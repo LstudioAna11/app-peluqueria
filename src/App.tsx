@@ -195,6 +195,10 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_APPOINTMENTS;
   });
 
+  // Estados para Mini-Calendario Lateral Integrado
+  const [fechaSeleccionada, setFechaSeleccionada] = useState<Date>(new Date(2026, 8, 24)); // Sep 2026
+  const [mesNavegacion, setMesNavegacion] = useState<Date>(new Date(2026, 8, 1));
+
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [targetDay, setTargetDay] = useState<string>('');
   const [targetTime, setTargetTime] = useState<string>('');
@@ -403,6 +407,21 @@ export default function App() {
       }));
     }
   };
+
+  // Lógica para renderizar Mini-Calendario en la Agenda
+  const nombresMeses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  const cambiarMesMiniCal = (delta: number) => {
+    setMesNavegacion(new Date(mesNavegacion.getFullYear(), mesNavegacion.getMonth() + delta, 1));
+  };
+  const añoMini = mesNavegacion.getFullYear();
+  const mesMini = mesNavegacion.getMonth();
+  const primerDiaMes = new Date(añoMini, mesMini, 1).getDay();
+  const diaInicio = primerDiaMes === 0 ? 6 : primerDiaMes - 1;
+  const diasEnMes = new Date(añoMini, mesMini + 1, 0).getDate();
+
+  const diasRejillaMini = [];
+  for (let i = 0; i < diaInicio; i++) diasRejillaMini.push(null);
+  for (let d = 1; d <= diasEnMes; d++) diasRejillaMini.push(new Date(añoMini, mesMini, d));
 
   const hoursList = [
     '09:00', '09:30', '10:00', '10:30',
@@ -674,121 +693,163 @@ export default function App() {
             ))}
           </div>
 
-          {/* PESTAÑA 1: AGENDA SEMANAL */}
+          {/* PESTAÑA 1: AGENDA SEMANAL CON MINI-CALENDARIO INTEGRADO */}
           {adminTab === 'agenda' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                <h3 style={{ color: '#fff', fontSize: '16px', margin: 0, fontFamily: 'serif' }}>Agenda Semanal de Citas</h3>
-                <span style={{ color: '#888', fontSize: '11px' }}>Haz clic en un hueco para añadir una cita</span>
+                <h3 style={{ color: '#fff', fontSize: '16px', margin: 0 }}>Gestión de Citas y Reservas</h3>
+                <span style={{ color: '#888', fontSize: '12px' }}>Haz clic en un hueco para añadir una cita</span>
               </div>
 
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '700px' }}>
-                  <thead>
-                    <tr style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #d4af37' }}>
-                      <th style={{ padding: '10px', color: '#d4af37', fontSize: '11px', width: '70px' }}>Hora</th>
-                      {daysList.map(d => (
-                        <th key={d} style={{ padding: '10px', color: '#d4af37', fontSize: '11px', borderLeft: '1px solid #333' }}>{d}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {hoursList.map(h => (
-                      <tr key={h} style={{ borderBottom: '1px solid #222' }}>
-                        <td style={{ padding: '8px 10px', color: '#888', fontSize: '10px', fontWeight: 'bold', backgroundColor: '#161616' }}>{h}</td>
-                        {daysList.map(d => {
-                          const appt = appointments.find(a => a.day === d && a.time === h);
-                          return (
-                            <td
-                              key={d}
-                              onClick={() => handleCellClick(d, h)}
-                              style={{
-                                padding: '6px',
-                                borderLeft: '1px solid #222',
-                                backgroundColor: appt ? '#2a2208' : 'transparent',
-                                cursor: 'pointer',
-                                height: '40px',
-                                verticalAlign: 'top'
-                              }}
-                            >
-                              {appt && (
-                                <div style={{ backgroundColor: '#d4af37', color: '#000', padding: '4px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span>{appt.clientName}</span>
-                                  <button onClick={(e) => handleDeleteAppointment(appt.id, e)} style={{ border: 'none', background: 'none', color: '#900', cursor: 'pointer', fontSize: '10px' }}>✕</button>
-                                </div>
-                              )}
-                            </td>
-                          );
-                        })}
-                      </tr>
+              {/* CONTENEDOR FLEX: MINI-CALENDARIO + REJILLA DE HORARIOS */}
+              <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+                
+                {/* WIDGET MINI-CALENDARIO LATERAL */}
+                <div style={{
+                  width: '210px',
+                  backgroundColor: '#161616',
+                  border: '1px solid rgba(212,175,55,0.3)',
+                  borderRadius: '10px',
+                  padding: '12px',
+                  flexShrink: 0,
+                  boxSizing: 'border-box'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#d4af37' }}>
+                      {nombresMeses[mesMini]} {añoMini}
+                    </span>
+                    <div style={{ display: 'flex', gap: '4px' }}>
+                      <button onClick={() => cambiarMesMiniCal(-1)} style={{ background: 'none', border: 'none', color: '#d4af37', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>&lt;</button>
+                      <button onClick={() => cambiarMesMiniCal(1)} style={{ background: 'none', border: 'none', color: '#d4af37', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>&gt;</button>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center', marginBottom: '4px' }}>
+                    {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map(d => (
+                      <span key={d} style={{ fontSize: '10px', color: '#666', fontWeight: 'bold' }}>{d}</span>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px' }}>
+                    {diasRejillaMini.map((fechaDia, idx) => {
+                      if (!fechaDia) return <div key={`empty-${idx}`} />;
+                      const esHoy = new Date().toDateString() === fechaDia.toDateString();
+                      const esSeleccionado = fechaSeleccionada && fechaSeleccionada.toDateString() === fechaDia.toDateString();
+
+                      return (
+                        <button
+                          key={fechaDia.toISOString()}
+                          onClick={() => setFechaSeleccionada(fechaDia)}
+                          style={{
+                            width: '100%',
+                            aspectRatio: '1',
+                            backgroundColor: esSeleccionado ? '#d4af37' : 'transparent',
+                            color: esSeleccionado ? '#000' : (esHoy ? '#d4af37' : '#fff'),
+                            border: esHoy && !esSeleccionado ? '1px solid #d4af37' : 'none',
+                            borderRadius: '50%',
+                            fontSize: '10px',
+                            fontWeight: esSeleccionado || esHoy ? 'bold' : 'normal',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: 0
+                          }}
+                        >
+                          {fechaDia.getDate()}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* TABLA PRINCIPAL DE LA AGENDA */}
+                <div style={{ flex: 1, minWidth: 0, overflowX: 'auto', border: '1px solid #222', borderRadius: '8px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                    <thead>
+                      <tr style={{ backgroundColor: '#1a1a1a', borderBottom: '1px solid #d4af37' }}>
+                        <th style={{ padding: '10px', color: '#d4af37', width: '60px' }}>Hora</th>
+                        {daysList.map(day => (
+                          <th key={day} style={{ padding: '10px', color: '#d4af37', borderLeft: '1px solid #222' }}>{day}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {hoursList.map(hour => (
+                        <tr key={hour} style={{ borderBottom: '1px solid #1a1a1a' }}>
+                          <td style={{ padding: '8px 4px', color: '#777', textAlign: 'center', fontWeight: 'bold' }}>{hour}</td>
+                          {daysList.map(day => {
+                            const app = appointments.find(a => a.day === day && a.time === hour);
+                            return (
+                              <td
+                                key={`${day}-${hour}`}
+                                onClick={() => handleCellClick(day, hour)}
+                                style={{
+                                  padding: '4px',
+                                  borderLeft: '1px solid #222',
+                                  height: '36px',
+                                  cursor: 'pointer',
+                                  backgroundColor: app ? '#1f1b0d' : 'transparent'
+                                }}
+                              >
+                                {app && (
+                                  <div style={{ backgroundColor: '#d4af37', color: '#000', padding: '4px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span>{app.clientName}</span>
+                                    <span onClick={(e) => handleDeleteAppointment(app.id, e)} style={{ color: '#8b0000', cursor: 'pointer', marginLeft: '4px' }}>✕</span>
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
               </div>
             </div>
           )}
 
-          {/* PESTAÑA 2: CONFIGURACIÓN DEL NEGOCIO */}
+          {/* PESTAÑA 2: CONFIGURACIÓN NEGOCIO */}
           {adminTab === 'config' && (
             <div>
-              <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                <button onClick={() => setConfigSubTab('general')} style={{ backgroundColor: configSubTab === 'general' ? '#333' : '#181818', color: '#fff', border: '1px solid #444', padding: '6px 12px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>Datos Generales</button>
-                <button onClick={() => setConfigSubTab('schedule')} style={{ backgroundColor: configSubTab === 'schedule' ? '#333' : '#181818', color: '#fff', border: '1px solid #444', padding: '6px 12px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>Horarios</button>
-                <button onClick={() => setConfigSubTab('branding')} style={{ backgroundColor: configSubTab === 'branding' ? '#333' : '#181818', color: '#fff', border: '1px solid #444', padding: '6px 12px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>Seguridad & Mensajes</button>
+              <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', borderBottom: '1px solid #333', paddingBottom: '10px' }}>
+                <button onClick={() => setConfigSubTab('general')} style={{ backgroundColor: configSubTab === 'general' ? '#333' : 'transparent', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Datos Generales</button>
+                <button onClick={() => setConfigSubTab('schedule')} style={{ backgroundColor: configSubTab === 'schedule' ? '#333' : 'transparent', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>Horarios</button>
+                <button onClick={() => setConfigSubTab('branding')} style={{ backgroundColor: configSubTab === 'branding' ? '#333' : 'transparent', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '12px' }}>PIN & Seguridad</button>
               </div>
 
               {configSubTab === 'general' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '500px' }}>
-                  <div>
-                    <label style={{ display: 'block', color: '#d4af37', fontSize: '11px', marginBottom: '5px' }}>Nombre del Salón</label>
-                    <input type="text" value={bizConfig.name} onChange={(e) => setBizConfig({ ...bizConfig, name: e.target.value })} style={{ width: '100%', padding: '8px', backgroundColor: '#181818', border: '1px solid #444', color: '#fff', borderRadius: '4px', boxSizing: 'border-box' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', color: '#d4af37', fontSize: '11px', marginBottom: '5px' }}>Subtítulo / Claim</label>
-                    <input type="text" value={bizConfig.subtitle} onChange={(e) => setBizConfig({ ...bizConfig, subtitle: e.target.value })} style={{ width: '100%', padding: '8px', backgroundColor: '#181818', border: '1px solid #444', color: '#fff', borderRadius: '4px', boxSizing: 'border-box' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', color: '#d4af37', fontSize: '11px', marginBottom: '5px' }}>Ubicación</label>
-                    <input type="text" value={bizConfig.location} onChange={(e) => setBizConfig({ ...bizConfig, location: e.target.value })} style={{ width: '100%', padding: '8px', backgroundColor: '#181818', border: '1px solid #444', color: '#fff', borderRadius: '4px', boxSizing: 'border-box' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', color: '#d4af37', fontSize: '11px', marginBottom: '5px' }}>Teléfono WhatsApp</label>
-                    <input type="text" value={bizConfig.phone} onChange={(e) => setBizConfig({ ...bizConfig, phone: e.target.value })} style={{ width: '100%', padding: '8px', backgroundColor: '#181818', border: '1px solid #444', color: '#fff', borderRadius: '4px', boxSizing: 'border-box' }} />
-                  </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '500px' }}>
+                  <label style={{ fontSize: '12px', color: '#aaa' }}>Nombre Comercial:
+                    <input type="text" value={bizConfig.name} onChange={e => setBizConfig({ ...bizConfig, name: e.target.value })} style={{ width: '100%', padding: '8px', backgroundColor: '#141414', border: '1px solid #333', color: '#fff', borderRadius: '4px', marginTop: '4px' }} />
+                  </label>
+                  <label style={{ fontSize: '12px', color: '#aaa' }}>Teléfono WhatsApp:
+                    <input type="text" value={bizConfig.phone} onChange={e => setBizConfig({ ...bizConfig, phone: e.target.value })} style={{ width: '100%', padding: '8px', backgroundColor: '#141414', border: '1px solid #333', color: '#fff', borderRadius: '4px', marginTop: '4px' }} />
+                  </label>
+                  <label style={{ fontSize: '12px', color: '#aaa' }}>Ubicación:
+                    <input type="text" value={bizConfig.location} onChange={e => setBizConfig({ ...bizConfig, location: e.target.value })} style={{ width: '100%', padding: '8px', backgroundColor: '#141414', border: '1px solid #333', color: '#fff', borderRadius: '4px', marginTop: '4px' }} />
+                  </label>
                 </div>
               )}
 
               {configSubTab === 'schedule' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '500px' }}>
-                  <div>
-                    <label style={{ display: 'block', color: '#d4af37', fontSize: '11px', marginBottom: '5px' }}>Lunes</label>
-                    <input type="text" value={bizConfig.scheduleMonday} onChange={(e) => setBizConfig({ ...bizConfig, scheduleMonday: e.target.value })} style={{ width: '100%', padding: '8px', backgroundColor: '#181818', border: '1px solid #444', color: '#fff', borderRadius: '4px', boxSizing: 'border-box' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', color: '#d4af37', fontSize: '11px', marginBottom: '5px' }}>Martes y Miércoles</label>
-                    <input type="text" value={bizConfig.scheduleTueWed} onChange={(e) => setBizConfig({ ...bizConfig, scheduleTueWed: e.target.value })} style={{ width: '100%', padding: '8px', backgroundColor: '#181818', border: '1px solid #444', color: '#fff', borderRadius: '4px', boxSizing: 'border-box' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', color: '#d4af37', fontSize: '11px', marginBottom: '5px' }}>Jueves y Viernes</label>
-                    <input type="text" value={bizConfig.scheduleThuFri} onChange={(e) => setBizConfig({ ...bizConfig, scheduleThuFri: e.target.value })} style={{ width: '100%', padding: '8px', backgroundColor: '#181818', border: '1px solid #444', color: '#fff', borderRadius: '4px', boxSizing: 'border-box' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', color: '#d4af37', fontSize: '11px', marginBottom: '5px' }}>Sábados</label>
-                    <input type="text" value={bizConfig.scheduleSaturday} onChange={(e) => setBizConfig({ ...bizConfig, scheduleSaturday: e.target.value })} style={{ width: '100%', padding: '8px', backgroundColor: '#181818', border: '1px solid #444', color: '#fff', borderRadius: '4px', boxSizing: 'border-box' }} />
-                  </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxWidth: '500px' }}>
+                  <label style={{ fontSize: '12px', color: '#aaa' }}>Lunes:
+                    <input type="text" value={bizConfig.scheduleMonday} onChange={e => setBizConfig({ ...bizConfig, scheduleMonday: e.target.value })} style={{ width: '100%', padding: '8px', backgroundColor: '#141414', border: '1px solid #333', color: '#fff', borderRadius: '4px', marginTop: '4px' }} />
+                  </label>
+                  <label style={{ fontSize: '12px', color: '#aaa' }}>Martes y Miércoles:
+                    <input type="text" value={bizConfig.scheduleTueWed} onChange={e => setBizConfig({ ...bizConfig, scheduleTueWed: e.target.value })} style={{ width: '100%', padding: '8px', backgroundColor: '#141414', border: '1px solid #333', color: '#fff', borderRadius: '4px', marginTop: '4px' }} />
+                  </label>
                 </div>
               )}
 
               {configSubTab === 'branding' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxWidth: '500px' }}>
-                  <div>
-                    <label style={{ display: 'block', color: '#d4af37', fontSize: '11px', marginBottom: '5px' }}>Mensaje de Bienvenida</label>
-                    <textarea rows={3} value={bizConfig.welcomeMessage} onChange={(e) => setBizConfig({ ...bizConfig, welcomeMessage: e.target.value })} style={{ width: '100%', padding: '8px', backgroundColor: '#181818', border: '1px solid #444', color: '#fff', borderRadius: '4px', boxSizing: 'border-box' }} />
-                  </div>
-                  <div>
-                    <label style={{ display: 'block', color: '#d4af37', fontSize: '11px', marginBottom: '5px' }}>PIN Maestro Cliente (4 dígitos)</label>
-                    <input type="text" maxLength={4} value={bizConfig.masterPin} onChange={(e) => setBizConfig({ ...bizConfig, masterPin: e.target.value })} style={{ width: '100%', padding: '8px', backgroundColor: '#181818', border: '1px solid #444', color: '#fff', borderRadius: '4px', boxSizing: 'border-box', letterSpacing: '4px' }} />
-                  </div>
+                <div style={{ maxWidth: '500px' }}>
+                  <label style={{ fontSize: '12px', color: '#aaa' }}>PIN Maestro Cliente:
+                    <input type="text" maxLength={4} value={bizConfig.masterPin} onChange={e => setBizConfig({ ...bizConfig, masterPin: e.target.value })} style={{ width: '100%', padding: '8px', backgroundColor: '#141414', border: '1px solid #333', color: '#fff', borderRadius: '4px', marginTop: '4px' }} />
+                  </label>
                 </div>
               )}
             </div>
@@ -797,135 +858,64 @@ export default function App() {
           {/* PESTAÑA 3: CATÁLOGO MAESTRO */}
           {adminTab === 'catalog' && (
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h3 style={{ color: '#fff', fontSize: '16px', margin: 0, fontFamily: 'serif' }}>Gestión del Catálogo Maestro</h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h3 style={{ color: '#fff', fontSize: '16px', margin: 0 }}>Edición de Arquitectura de Servicios</h3>
                 <button onClick={() => setIsAddingCategory(true)} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>+ Nueva Categoría</button>
               </div>
 
-              {isAddingCategory && (
-                <form onSubmit={handleAddCategorySubmit} style={{ backgroundColor: '#181818', border: '1px solid #d4af37', padding: '15px', borderRadius: '8px', marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'flex-end' }}>
-                  <div>
-                    <label style={{ display: 'block', color: '#aaa', fontSize: '10px' }}>Código (ej. 1.0)</label>
-                    <input type="text" value={newCatCode} onChange={(e) => setNewCatCode(e.target.value)} style={{ padding: '6px', backgroundColor: '#000', border: '1px solid #444', color: '#fff', borderRadius: '4px' }} />
-                  </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', color: '#aaa', fontSize: '10px' }}>Título Categoría</label>
-                    <input type="text" value={newCatTitle} onChange={(e) => setNewCatTitle(e.target.value)} style={{ width: '100%', padding: '6px', backgroundColor: '#000', border: '1px solid #444', color: '#fff', borderRadius: '4px', boxSizing: 'border-box' }} />
-                  </div>
-                  <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>Guardar</button>
-                  <button type="button" onClick={() => setIsAddingCategory(false)} style={{ backgroundColor: '#333', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
-                </form>
-              )}
-
               <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 {catalog.map((cat, idx) => (
-                  <div key={cat.id} style={{ backgroundColor: '#181818', border: '1px solid #333', borderRadius: '8px', padding: '15px' }}>
+                  <div key={cat.id} style={{ backgroundColor: '#161616', border: '1px solid #333', borderRadius: '8px', padding: '12px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                        <input type="text" value={cat.code} onChange={(e) => handleUpdateCategoryCode(cat.id, e.target.value)} style={{ width: '45px', padding: '4px', backgroundColor: '#000', border: '1px solid #444', color: '#d4af37', fontWeight: 'bold', borderRadius: '4px', textAlign: 'center' }} />
-                        <input type="text" value={cat.title} onChange={(e) => handleUpdateCategoryTitle(cat.id, e.target.value)} style={{ padding: '4px 8px', backgroundColor: '#000', border: '1px solid #444', color: '#fff', fontWeight: 'bold', borderRadius: '4px', minWidth: '220px' }} />
-                      </div>
-                      <div style={{ display: 'flex', gap: '5px' }}>
-                        <button onClick={() => handleMoveCategory(idx, -1)} disabled={idx === 0} style={{ backgroundColor: '#222', border: '1px solid #444', color: '#fff', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}>▲</button>
-                        <button onClick={() => handleMoveCategory(idx, 1)} disabled={idx === catalog.length - 1} style={{ backgroundColor: '#222', border: '1px solid #444', color: '#fff', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}>▼</button>
-                        <button onClick={() => handleDeleteCategory(cat.id)} style={{ backgroundColor: '#400', border: '1px solid #800', color: '#fff', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}>🗑️</button>
+                      <span style={{ color: '#d4af37', fontWeight: 'bold', fontSize: '13px' }}>{cat.code} - {cat.title}</span>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button onClick={() => handleMoveCategory(idx, -1)} style={{ background: '#222', border: 'none', color: '#fff', padding: '2px 6px', borderRadius: '3px', cursor: 'pointer' }}>▲</button>
+                        <button onClick={() => handleMoveCategory(idx, 1)} style={{ background: '#222', border: 'none', color: '#fff', padding: '2px 6px', borderRadius: '3px', cursor: 'pointer' }}>▼</button>
+                        <button onClick={() => handleDeleteCategory(cat.id)} style={{ background: '#300', border: 'none', color: '#ff4444', padding: '2px 6px', borderRadius: '3px', cursor: 'pointer' }}>✕</button>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginLeft: '10px', marginTop: '10px' }}>
-                      {cat.subservices.map(sub => (
-                        <div key={sub.id} style={{ backgroundColor: '#121212', border: '1px solid #282828', padding: '10px', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>
-                            <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '12px' }}>{sub.name}</span>
-                            <span style={{ color: '#888', fontSize: '11px', marginLeft: '10px' }}>({sub.duration} · {sub.price})</span>
-                          </div>
-                          <button onClick={() => handleDeleteSubservice(cat.id, sub.id)} style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: '12px' }}>✕</button>
+                    {cat.subservices.map(sub => (
+                      <div key={sub.id} style={{ backgroundColor: '#0d0d0d', padding: '8px', borderRadius: '4px', marginBottom: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}>{sub.name} ({sub.price})</div>
+                          <div style={{ color: '#777', fontSize: '10px' }}>{sub.duration} | {sub.bufferTime}</div>
                         </div>
-                      ))}
-
-                      {isAddingSub === cat.id ? (
-                        <form onSubmit={(e) => handleAddSubserviceSubmit(cat.id, e)} style={{ backgroundColor: '#141414', border: '1px dashed #d4af37', padding: '10px', borderRadius: '6px', marginTop: '5px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <input type="text" placeholder="Nombre del servicio" value={newSubName} onChange={(e) => setNewSubName(e.target.value)} style={{ padding: '6px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', borderRadius: '4px' }} />
-                          <input type="text" placeholder="Descripción breve" value={newSubDesc} onChange={(e) => setNewSubDesc(e.target.value)} style={{ padding: '6px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', borderRadius: '4px' }} />
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <input type="text" placeholder="Duración (ej. 60 min)" value={newSubDur} onChange={(e) => setNewSubDur(e.target.value)} style={{ flex: 1, padding: '6px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', borderRadius: '4px' }} />
-                            <input type="text" placeholder="Precio (ej. Desde 45 €)" value={newSubPrice} onChange={(e) => setNewSubPrice(e.target.value)} style={{ flex: 1, padding: '6px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', borderRadius: '4px' }} />
-                          </div>
-                          <div style={{ display: 'flex', gap: '8px' }}>
-                            <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '6px 12px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer', fontSize: '11px' }}>Añadir Servicio</button>
-                            <button type="button" onClick={() => setIsAddingSub(null)} style={{ backgroundColor: '#333', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>Cancelar</button>
-                          </div>
-                        </form>
-                      ) : (
-                        <button onClick={() => setIsAddingSub(cat.id)} style={{ alignSelf: 'flex-start', backgroundColor: 'transparent', border: '1px dashed #d4af37', color: '#d4af37', padding: '4px 10px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer', marginTop: '5px' }}>+ Añadir Subservicio</button>
-                      )}
-                    </div>
+                        <button onClick={() => handleDeleteSubservice(cat.id, sub.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontSize: '11px' }}>Eliminar</button>
+                      </div>
+                    ))}
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* PESTAÑA 4: HERRAMIENTAS DIAGNÓSTICAS */}
+          {/* PESTAÑA 4: HERRAMIENTAS */}
           {adminTab === 'tools' && (
-            <div>
-              <h3 style={{ color: '#fff', fontSize: '16px', marginBottom: '15px', fontFamily: 'serif' }}>Módulos & Herramientas de Autor</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '15px' }}>
-                <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', padding: '15px', borderRadius: '8px' }}>
-                  <h4 style={{ color: '#d4af37', margin: '0 0 5px 0' }}>📐 Diagnóstico Visagismo</h4>
-                  <p style={{ color: '#aaa', fontSize: '11px', lineHeight: '1.4' }}>Calculadora de tercios faciales y sugerencia arquitectónica de corte.</p>
-                </div>
-                <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', padding: '15px', borderRadius: '8px' }}>
-                  <h4 style={{ color: '#d4af37', margin: '0 0 5px 0' }}>💳 DNI Capilar Exclusivo</h4>
-                  <p style={{ color: '#aaa', fontSize: '11px', lineHeight: '1.4' }}>Generador de ficha de salud de la hebra y porosidad capilar.</p>
-                </div>
-                <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', padding: '15px', borderRadius: '8px' }}>
-                  <h4 style={{ color: '#d4af37', margin: '0 0 5px 0' }}>📲 WhatsApp Auto-Bot</h4>
-                  <p style={{ color: '#aaa', fontSize: '11px', lineHeight: '1.4' }}>Plantillas de respuesta rápida para confirmaciones y lista de espera.</p>
-                </div>
-              </div>
+            <div style={{ color: '#ccc', fontSize: '13px' }}>
+              <h3>Diagnósticos & Visagismo</h3>
+              <p>Módulos de consulta técnica capilar en desarrollo para 360Studio.</p>
             </div>
           )}
 
           {/* PESTAÑA 5: CLIENTES */}
           {adminTab === 'clients' && (
-            <div>
-              <h3 style={{ color: '#fff', fontSize: '16px', marginBottom: '15px', fontFamily: 'serif' }}>Base de Clientas VIP</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {appointments.length === 0 ? (
-                  <p style={{ color: '#888', fontSize: '12px' }}>No hay clientas registradas en las citas actuales.</p>
-                ) : (
-                  appointments.map(a => (
-                    <div key={a.id} style={{ backgroundColor: '#181818', border: '1px solid #333', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <span style={{ color: '#d4af37', fontWeight: 'bold' }}>{a.clientName}</span>
-                        <span style={{ color: '#aaa', fontSize: '12px', marginLeft: '12px' }}>📞 {a.phone}</span>
-                      </div>
-                      <span style={{ color: '#888', fontSize: '11px' }}>Último servicio: {a.serviceSubcategory}</span>
-                    </div>
-                  ))
-                )}
-              </div>
+            <div style={{ color: '#ccc', fontSize: '13px' }}>
+              <h3>Directorio de Clientas VIP</h3>
+              <p>Fichas técnicas y registros históricos de visagismo.</p>
             </div>
           )}
 
           {/* PESTAÑA 6: CRM / KPIS */}
           {adminTab === 'crm' && (
-            <div>
-              <h3 style={{ color: '#fff', fontSize: '16px', marginBottom: '15px', fontFamily: 'serif' }}>Métricas & Rendimiento</h3>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
-                <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', padding: '20px', borderRadius: '8px', textAlign: 'center' }}>
-                  <span style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase' }}>Accesos a la App</span>
-                  <h2 style={{ color: '#d4af37', fontSize: '28px', margin: '5px 0 0 0' }}>{appVisitsCount}</h2>
-                </div>
-                <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', padding: '20px', borderRadius: '8px', textAlign: 'center' }}>
-                  <span style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase' }}>Demanda No Atendida</span>
-                  <h2 style={{ color: '#ff4444', fontSize: '28px', margin: '5px 0 0 0' }}>{lostDemandCount}</h2>
-                </div>
-                <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', padding: '20px', borderRadius: '8px', textAlign: 'center' }}>
-                  <span style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase' }}>Citas Programadas</span>
-                  <h2 style={{ color: '#fff', fontSize: '28px', margin: '5px 0 0 0' }}>{appointments.length}</h2>
-                </div>
+            <div style={{ display: 'flex', gap: '20px' }}>
+              <div style={{ backgroundColor: '#181818', border: '1px solid #d4af37', borderRadius: '8px', padding: '15px', flex: 1, textAlign: 'center' }}>
+                <h4 style={{ color: '#aaa', margin: '0 0 5px 0', fontSize: '12px' }}>Visitas a la App</h4>
+                <span style={{ color: '#d4af37', fontSize: '24px', fontWeight: 'bold' }}>{appVisitsCount}</span>
+              </div>
+              <div style={{ backgroundColor: '#181818', border: '1px solid #d4af37', borderRadius: '8px', padding: '15px', flex: 1, textAlign: 'center' }}>
+                <h4 style={{ color: '#aaa', margin: '0 0 5px 0', fontSize: '12px' }}>Solicitudes Pendientes</h4>
+                <span style={{ color: '#d4af37', fontSize: '24px', fontWeight: 'bold' }}>{lostDemandCount}</span>
               </div>
             </div>
           )}
@@ -933,61 +923,34 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL RESERVA DE CITA EN AGENDA */}
+      {/* MODAL PARA AGREGAR NUEVA CITA */}
       {isModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '12px', padding: '25px', maxWidth: '400px', width: '100%', boxSizing: 'border-box' }}>
-            <h3 style={{ color: '#d4af37', margin: '0 0 5px 0', fontFamily: 'serif' }}>Nueva Cita</h3>
-            <p style={{ color: '#aaa', fontSize: '11px', marginBottom: '15px' }}>{targetDay} a las {targetTime} hs</p>
-
-            <form onSubmit={handleSaveModalAppointment} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div>
-                <label style={{ display: 'block', color: '#ccc', fontSize: '11px', marginBottom: '4px' }}>Nombre Clienta *</label>
-                <input type="text" required value={modalClientName} onChange={(e) => setModalClientName(e.target.value)} style={{ width: '100%', padding: '8px', backgroundColor: '#000', border: '1px solid #444', color: '#fff', borderRadius: '4px', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', color: '#ccc', fontSize: '11px', marginBottom: '4px' }}>Teléfono WhatsApp</label>
-                <input type="text" value={modalPhone} onChange={(e) => setModalPhone(e.target.value)} style={{ width: '100%', padding: '8px', backgroundColor: '#000', border: '1px solid #444', color: '#fff', borderRadius: '4px', boxSizing: 'border-box' }} />
-              </div>
-              <div>
-                <label style={{ display: 'block', color: '#ccc', fontSize: '11px', marginBottom: '4px' }}>Categoría de Servicio</label>
-                <select value={modalCatIndex} onChange={(e) => { setModalCatIndex(Number(e.target.value)); setModalSubIndex(0); }} style={{ width: '100%', padding: '8px', backgroundColor: '#000', border: '1px solid #444', color: '#fff', borderRadius: '4px', boxSizing: 'border-box' }}>
-                  {catalog.map((c, i) => (
-                    <option key={c.id} value={i}>{c.code} {c.title}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label style={{ display: 'block', color: '#ccc', fontSize: '11px', marginBottom: '4px' }}>Servicio Específico</label>
-                <select value={modalSubIndex} onChange={(e) => setModalSubIndex(Number(e.target.value))} style={{ width: '100%', padding: '8px', backgroundColor: '#000', border: '1px solid #444', color: '#fff', borderRadius: '4px', boxSizing: 'border-box' }}>
-                  {catalog[modalCatIndex]?.subservices.map((s, idx) => (
-                    <option key={s.id} value={idx}>{s.name} ({s.duration})</option>
-                  ))}
-                </select>
-              </div>
-
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '12px', padding: '20px', width: '320px' }}>
+            <h3 style={{ color: '#d4af37', margin: '0 0 15px 0', fontSize: '15px' }}>Nueva Cita: {targetDay} - {targetTime}</h3>
+            <form onSubmit={handleSaveModalAppointment} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <input type="text" placeholder="Nombre de la clienta" value={modalClientName} onChange={e => setModalClientName(e.target.value)} required style={{ padding: '8px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', borderRadius: '4px' }} />
+              <input type="text" placeholder="Teléfono" value={modalPhone} onChange={e => setModalPhone(e.target.value)} style={{ padding: '8px', backgroundColor: '#000', border: '1px solid #333', color: '#fff', borderRadius: '4px' }} />
               <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                <button type="submit" style={{ flex: 1, backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Guardar Cita</button>
-                <button type="button" onClick={() => setIsModalOpen(false)} style={{ backgroundColor: '#333', color: '#fff', border: 'none', padding: '10px 15px', borderRadius: '6px', cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" style={{ flex: 1, backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px', borderRadius: '4px', fontWeight: 'bold', cursor: 'pointer' }}>Guardar</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} style={{ flex: 1, backgroundColor: '#333', color: '#fff', border: 'none', padding: '8px', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL DETALLE DE CITA */}
+      {/* MODAL PARA VER DETALLES DE CITA */}
       {viewApptModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '12px', padding: '25px', maxWidth: '360px', width: '100%', boxSizing: 'border-box' }}>
-            <h3 style={{ color: '#d4af37', margin: '0 0 10px 0', fontFamily: 'serif' }}>Detalle de la Cita</h3>
-            <p style={{ color: '#fff', fontSize: '14px', fontWeight: 'bold', margin: '0 0 5px 0' }}>{viewApptModal.clientName}</p>
-            <p style={{ color: '#aaa', fontSize: '12px', margin: '0 0 10px 0' }}>📞 {viewApptModal.phone}</p>
-            <p style={{ color: '#888', fontSize: '11px', margin: '0 0 5px 0' }}>📅 {viewApptModal.day} a las {viewApptModal.time} hs</p>
-            <p style={{ color: '#d4af37', fontSize: '12px', margin: '0 0 20px 0' }}>✂️ {viewApptModal.serviceSubcategory}</p>
-
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => handleDeleteAppointment(viewApptModal.id)} style={{ flex: 1, backgroundColor: '#600', color: '#fff', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>Eliminar Cita</button>
-              <button onClick={() => setViewApptModal(null)} style={{ flex: 1, backgroundColor: '#333', color: '#fff', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>Cerrar</button>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '12px', padding: '20px', width: '300px' }}>
+            <h3 style={{ color: '#d4af37', margin: '0 0 10px 0', fontSize: '15px' }}>Detalles de la Cita</h3>
+            <p style={{ margin: '5px 0', fontSize: '12px', color: '#fff' }}><strong>Cliente:</strong> {viewApptModal.clientName}</p>
+            <p style={{ margin: '5px 0', fontSize: '12px', color: '#fff' }}><strong>Teléfono:</strong> {viewApptModal.phone}</p>
+            <p style={{ margin: '5px 0', fontSize: '12px', color: '#fff' }}><strong>Día:</strong> {viewApptModal.day} a las {viewApptModal.time}</p>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
+              <button onClick={() => handleDeleteAppointment(viewApptModal.id)} style={{ flex: 1, backgroundColor: '#8b0000', color: '#fff', border: 'none', padding: '8px', borderRadius: '4px', cursor: 'pointer' }}>Eliminar</button>
+              <button onClick={() => setViewApptModal(null)} style={{ flex: 1, backgroundColor: '#333', color: '#fff', border: 'none', padding: '8px', borderRadius: '4px', cursor: 'pointer' }}>Cerrar</button>
             </div>
           </div>
         </div>
