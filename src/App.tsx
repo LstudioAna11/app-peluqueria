@@ -195,6 +195,9 @@ export default function App() {
     return saved ? JSON.parse(saved) : INITIAL_APPOINTMENTS;
   });
 
+  // Estado para el elemento arrastrado
+  const [draggedApptId, setDraggedApptId] = useState<string | null>(null);
+
   // Estados para Mini-Calendario Lateral Integrado
   const [fechaSeleccionada, setFechaSeleccionada] = useState<Date>(new Date(2026, 8, 24)); // Sep 2026
   const [mesNavegacion, setMesNavegacion] = useState<Date>(new Date(2026, 8, 1));
@@ -281,6 +284,33 @@ export default function App() {
       setAdminError(true);
       setAdminPin('');
     }
+  };
+
+  // Drag & Drop Handlers
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    e.stopPropagation();
+    setDraggedApptId(id);
+    e.dataTransfer.setData('text/plain', id);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e: React.DragEvent, day: string, time: string) => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData('text/plain') || draggedApptId;
+    if (!id) return;
+
+    // Verificar si ya hay cita en ese hueco
+    const existing = appointments.find(a => a.day === day && a.time === time && a.id !== id);
+    if (existing) {
+      alert('Ese hueco horario ya está ocupado por otra cita.');
+      return;
+    }
+
+    setAppointments(prev => prev.map(a => a.id === id ? { ...a, day, time } : a));
+    setDraggedApptId(null);
   };
 
   const handleCellClick = (day: string, time: string) => {
@@ -693,12 +723,12 @@ export default function App() {
             ))}
           </div>
 
-          {/* PESTAÑA 1: AGENDA SEMANAL CON MINI-CALENDARIO INTEGRADO */}
+          {/* PESTAÑA 1: AGENDA SEMANAL CON MINI-CALENDARIO INTEGRADO Y CIKTAS ARRASTRABLES */}
           {adminTab === 'agenda' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                 <h3 style={{ color: '#fff', fontSize: '16px', margin: 0 }}>Gestión de Citas y Reservas</h3>
-                <span style={{ color: '#888', fontSize: '12px' }}>Haz clic en un hueco para añadir una cita</span>
+                <span style={{ color: '#888', fontSize: '12px' }}>Arrastra citas para mover de día/hora · 👁️ Detalle · 🗑️ Eliminar</span>
               </div>
 
               {/* CONTENEDOR FLEX: MINI-CALENDARIO + REJILLA DE HORARIOS */}
@@ -784,6 +814,8 @@ export default function App() {
                               <td
                                 key={`${day}-${hour}`}
                                 onClick={() => handleCellClick(day, hour)}
+                                onDragOver={handleDragOver}
+                                onDrop={(e) => handleDrop(e, day, hour)}
                                 style={{
                                   padding: '4px',
                                   borderLeft: '1px solid #222',
@@ -793,9 +825,43 @@ export default function App() {
                                 }}
                               >
                                 {app && (
-                                  <div style={{ backgroundColor: '#d4af37', color: '#000', padding: '4px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span>{app.clientName}</span>
-                                    <span onClick={(e) => handleDeleteAppointment(app.id, e)} style={{ color: '#8b0000', cursor: 'pointer', marginLeft: '4px' }}>✕</span>
+                                  <div
+                                    draggable
+                                    onDragStart={(e) => handleDragStart(e, app.id)}
+                                    style={{
+                                      backgroundColor: '#d4af37',
+                                      color: '#000',
+                                      padding: '4px 6px',
+                                      borderRadius: '4px',
+                                      fontSize: '10px',
+                                      fontWeight: 'bold',
+                                      display: 'flex',
+                                      justify: 'space-between',
+                                      alignItems: 'center',
+                                      cursor: 'grab'
+                                    }}
+                                  >
+                                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginRight: '4px' }}>
+                                      {app.clientName}
+                                    </span>
+                                    <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                      {/* ICONO OJO (ABRIR DETALLE) */}
+                                      <span
+                                        onClick={(e) => { e.stopPropagation(); setViewApptModal(app); }}
+                                        title="Ver Cita"
+                                        style={{ cursor: 'pointer', fontSize: '11px' }}
+                                      >
+                                        👁️
+                                      </span>
+                                      {/* ICONO PAPELERA (ELIMINAR) */}
+                                      <span
+                                        onClick={(e) => handleDeleteAppointment(app.id, e)}
+                                        title="Eliminar Cita"
+                                        style={{ cursor: 'pointer', fontSize: '11px' }}
+                                      >
+                                        🗑️
+                                      </span>
+                                    </div>
                                   </div>
                                 )}
                               </td>
@@ -940,17 +1006,21 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL PARA VER DETALLES DE CITA */}
+      {/* MODAL PARA VER DETALLES DE CITA (OJO) */}
       {viewApptModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '12px', padding: '20px', width: '300px' }}>
-            <h3 style={{ color: '#d4af37', margin: '0 0 10px 0', fontSize: '15px' }}>Detalles de la Cita</h3>
-            <p style={{ margin: '5px 0', fontSize: '12px', color: '#fff' }}><strong>Cliente:</strong> {viewApptModal.clientName}</p>
-            <p style={{ margin: '5px 0', fontSize: '12px', color: '#fff' }}><strong>Teléfono:</strong> {viewApptModal.phone}</p>
-            <p style={{ margin: '5px 0', fontSize: '12px', color: '#fff' }}><strong>Día:</strong> {viewApptModal.day} a las {viewApptModal.time}</p>
-            <div style={{ display: 'flex', gap: '10px', marginTop: '15px' }}>
-              <button onClick={() => handleDeleteAppointment(viewApptModal.id)} style={{ flex: 1, backgroundColor: '#8b0000', color: '#fff', border: 'none', padding: '8px', borderRadius: '4px', cursor: 'pointer' }}>Eliminar</button>
-              <button onClick={() => setViewApptModal(null)} style={{ flex: 1, backgroundColor: '#333', color: '#fff', border: 'none', padding: '8px', borderRadius: '4px', cursor: 'pointer' }}>Cerrar</button>
+          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '12px', padding: '20px', width: '320px' }}>
+            <h3 style={{ color: '#d4af37', margin: '0 0 12px 0', fontSize: '16px', borderBottom: '1px solid rgba(212,175,55,0.3)', paddingBottom: '8px' }}>👁️ Detalle de Cita Reservada</h3>
+            <div style={{ fontSize: '12px', color: '#ccc', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <p style={{ margin: 0 }}><strong>Clienta:</strong> <span style={{ color: '#fff' }}>{viewApptModal.clientName}</span></p>
+              <p style={{ margin: 0 }}><strong>Teléfono:</strong> <span style={{ color: '#fff' }}>{viewApptModal.phone}</span></p>
+              <p style={{ margin: 0 }}><strong>Día & Hora:</strong> <span style={{ color: '#d4af37' }}>{viewApptModal.day} a las {viewApptModal.time} hs</span></p>
+              <p style={{ margin: 0 }}><strong>Categoría:</strong> <span style={{ color: '#fff' }}>{viewApptModal.serviceCategory}</span></p>
+              <p style={{ margin: 0 }}><strong>Tratamiento:</strong> <span style={{ color: '#fff' }}>{viewApptModal.serviceSubcategory}</span></p>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button onClick={() => handleDeleteAppointment(viewApptModal.id)} style={{ flex: 1, backgroundColor: '#8b0000', color: '#fff', border: 'none', padding: '8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>🗑️ Eliminar</button>
+              <button onClick={() => setViewApptModal(null)} style={{ flex: 1, backgroundColor: '#333', color: '#fff', border: 'none', padding: '8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>Cerrar</button>
             </div>
           </div>
         </div>
