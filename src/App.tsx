@@ -1,4 +1,4 @@
-
+import React, { useState, useEffect } from 'react';
 
 // ==========================================
 // CONFIGURACIÓN DE L'STUDIO ANA
@@ -15,7 +15,7 @@ interface Appointment {
   time: string; // '09:00', '09:15', etc.
   clientName: string;
   phone: string;
-  serviceCategory: string;import React, { useState, useEffect } from 'react';
+  serviceCategory: string;
   serviceSubcategory: string;
 }
 
