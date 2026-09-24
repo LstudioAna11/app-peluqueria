@@ -8,6 +8,35 @@ const APP_CONFIG = {
   appSubtitle: "Hair Experience"
 };
 
+// Interfaz para la Configuración de Negocio Sincronizada
+interface BusinessConfig {
+  name: string;
+  subtitle: string;
+  location: string;
+  phone: string;
+  description: string;
+  scheduleMonday: string;
+  scheduleTueWed: string;
+  scheduleThuFri: string;
+  scheduleSaturday: string;
+  welcomeMessage: string;
+  masterPin: string;
+}
+
+const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
+  name: "L'Studio Ana",
+  appSubtitle: "Hair Experience",
+  location: "Centro de Elche, Alicante",
+  phone: "600000000",
+  description: "Más de 25 años dedicados al cuidado de la salud capilar y la estética del cabello de autor en el centro de Elche.",
+  scheduleMonday: "10H A 13:30H",
+  scheduleTueWed: "10h a 18h",
+  scheduleThuFri: "10 A 19H",
+  scheduleSaturday: "Cita previa / Turno especial consultorio",
+  welcomeMessage: "Bienvenida a tu espacio exclusivo de salud capilar y visagismo de autor.",
+  masterPin: "7009"
+};
+
 // Interfaz para las citas del calendario
 interface Appointment {
   id: string;
@@ -129,6 +158,15 @@ export default function App() {
   const [adminError, setAdminError] = useState<boolean>(false);
   const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'tools' | 'clients' | 'crm'>('agenda');
 
+  // Pestañas internas del bloque de Configuración de Negocio
+  const [configSubTab, setConfigSubTab] = useState<'general' | 'schedule' | 'branding'>('general');
+
+  // Configuración de Negocio Sincronizada con localStorage
+  const [bizConfig, setBizConfig] = useState<BusinessConfig>(() => {
+    const saved = localStorage.getItem('lst_business_config');
+    return saved ? JSON.parse(saved) : INITIAL_BUSINESS_CONFIG;
+  });
+
   // Catálogo Maestro sincronizado con localStorage
   const [catalog, setCatalog] = useState<CatalogCategory[]>(() => {
     const saved = localStorage.getItem('lst_master_catalog');
@@ -139,7 +177,6 @@ export default function App() {
   const [openCatalogCategories, setOpenCatalogCategories] = useState<{ [key: string]: boolean }>({ c1: true });
 
   // Estados edición Catálogo en Intranet
-  const [editingSubService, setEditingSubService] = useState<{ catId: string; sub: SubService } | null>(null);
   const [isAddingSub, setIsAddingSub] = useState<string | null>(null);
   const [newSubName, setNewSubName] = useState('');
   const [newSubDesc, setNewSubDesc] = useState('');
@@ -196,6 +233,10 @@ export default function App() {
   }, [catalog]);
 
   useEffect(() => {
+    localStorage.setItem('lst_business_config', JSON.stringify(bizConfig));
+  }, [bizConfig]);
+
+  useEffect(() => {
     localStorage.setItem('lst_app_visits', appVisitsCount.toString());
   }, [appVisitsCount]);
 
@@ -203,14 +244,14 @@ export default function App() {
     localStorage.setItem('lst_lost_demand', lostDemandCount.toString());
   }, [lostDemandCount]);
 
-  // Teclado PIN Maestro 7009
+  // Teclado PIN Maestro (Dinámico según config)
   const handleNumberClick = (num: string) => {
     if (pin.length < 4) {
       const newPin = pin + num;
       setPin(newPin);
       if (newPin.length === 4) {
         setTimeout(() => {
-          if (newPin === '7009') {
+          if (newPin === bizConfig.masterPin) {
             setPinError(false);
             setPin('');
             setAppVisitsCount(prev => prev + 1);
@@ -288,7 +329,6 @@ export default function App() {
     }
   };
 
-  // Funciones de gestión de Categorías Principales (Mover, Editar, Añadir, Eliminar)
   const handleMoveCategory = (index: number, direction: number) => {
     const newCatalog = [...catalog];
     const targetIndex = index + direction;
@@ -331,7 +371,6 @@ export default function App() {
     setNewCatTitle('');
   };
 
-  // Funciones de gestión de subcategorías ilimitadas en el Catálogo Maestro
   const handleAddSubserviceSubmit = (catId: string, e: React.FormEvent) => {
     e.preventDefault();
     if (!newSubName.trim()) return;
@@ -389,21 +428,21 @@ export default function App() {
   return (
     <div style={{ backgroundColor: '#000000', color: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', margin: 0, padding: '20px' }}>
       
-      {/* 1. ACCESO PIN MAESTRO (7009) */}
+      {/* 1. ACCESO PIN MAESTRO */}
       {currentScreen === 'clientPin' && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', maxWidth: '320px', width: '100%' }}>
           
           <div 
             onClick={handleLogoClick}
             style={{ textAlign: 'center', marginBottom: '30px', cursor: 'pointer', userSelect: 'none' }}
-            title="L'Studio Ana"
+            title={bizConfig.name}
           >
             <h1 style={{ color: '#d4af37', fontSize: '24px', letterSpacing: '4px', margin: '0 0 5px 0', fontFamily: 'serif' }}>L ' A</h1>
-            <p style={{ color: '#888888', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '3px', margin: 0 }}>{APP_CONFIG.appSubtitle}</p>
+            <p style={{ color: '#888888', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '3px', margin: 0 }}>{bizConfig.appSubtitle}</p>
           </div>
 
           <p style={{ color: pinError ? '#ff4444' : '#cccccc', fontSize: '14px', marginBottom: '20px', letterSpacing: '1px', textAlign: 'center' }}>
-            {pinError ? 'PIN incorrecto (Prueba 7009)' : 'Introduce tu PIN de acceso'}
+            {pinError ? `PIN incorrecto (Prueba ${bizConfig.masterPin})` : 'Introduce tu PIN de acceso'}
           </p>
           
           <div style={{ display: 'flex', gap: '15px', marginBottom: '35px' }}>
@@ -449,12 +488,12 @@ export default function App() {
         </div>
       )}
 
-      {/* 2. PORTAL DE CLIENTE EXCLUSIVO */}
+      {/* 2. PORTAL DE CLIENTE EXCLUSIVO (Sincronizado con BizConfig) */}
       {currentScreen === 'clientPortal' && (
         <div style={{ maxWidth: '600px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px', marginBottom: '25px' }}>
             <div>
-              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>L ' A</h2>
+              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>{bizConfig.name}</h2>
               <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>Portal Privado de Clientas</p>
             </div>
             <button onClick={() => { setPin(''); setCurrentScreen('clientPin'); }} style={{ background: 'none', border: '1px solid #333', color: '#aaa', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
@@ -463,16 +502,39 @@ export default function App() {
           </div>
 
           <div style={{ textAlign: 'center', padding: '35px 20px', backgroundColor: '#1a1a1a', borderRadius: '12px', border: '1px dashed rgba(212,175,55,0.3)', marginBottom: '20px' }}>
-            <p style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: '0 0 5px 0' }}>Espacio reservado para la fotografía de L'Studio Ana</p>
-            <p style={{ color: '#777', fontSize: '11px', margin: 0 }}>Salud capilar y visagism de autor en Elche</p>
+            <p style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: '0 0 5px 0' }}>Espacio reservado para la fotografía de {bizConfig.name}</p>
+            <p style={{ color: '#777', fontSize: '11px', margin: 0 }}>{bizConfig.location} — {bizConfig.phone}</p>
           </div>
 
           <h1 style={{ fontSize: '22px', fontFamily: 'serif', color: '#fff', marginBottom: '15px' }}>
-            Bienvenida a L'Studio Ana
+            {bizConfig.welcomeMessage}
           </h1>
-          <p style={{ color: '#ccc', fontSize: '13px', lineHeight: '1.6', marginBottom: '25px' }}>
-            Más de 25 años dedicados al cuidado de la salud capilar y la estética del cabello. Este es tu espacio exclusivo para consultar servicios, tratamientos personalizados y recomendaciones de autor.
+          <p style={{ color: '#ccc', fontSize: '13px', lineHeight: '1.6', marginBottom: '20px' }}>
+            {bizConfig.description}
           </p>
+
+          {/* Horarios estructurados y sincronizados */}
+          <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '16px', marginBottom: '25px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ color: '#d4af37', fontSize: '13px', fontWeight: 'bold', fontFamily: 'serif', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '6px', marginBottom: '2px' }}>
+              🕒 Horarios del Salón:
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', borderBottom: '1px solid #222', paddingBottom: '6px' }}>
+              <span style={{ color: '#aaa', fontWeight: 'bold' }}>LUNES:</span>
+              <span style={{ color: '#fff', fontWeight: 'bold' }}>{bizConfig.scheduleMonday}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', borderBottom: '1px solid #222', paddingBottom: '6px' }}>
+              <span style={{ color: '#aaa', fontWeight: 'bold' }}>MARTES Y MIÉRCOLES:</span>
+              <span style={{ color: '#fff', fontWeight: 'bold' }}>{bizConfig.scheduleTueWed}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', borderBottom: '1px solid #222', paddingBottom: '6px' }}>
+              <span style={{ color: '#aaa', fontWeight: 'bold' }}>JUEVES Y VIERNES:</span>
+              <span style={{ color: '#fff', fontWeight: 'bold' }}>{bizConfig.scheduleThuFri}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', paddingTop: '2px', alignItems: 'center' }}>
+              <span style={{ color: '#aaa', fontWeight: 'bold' }}>SÁBADOS:</span>
+              <span style={{ color: '#d4af37', fontStyle: 'italic', textAlign: 'right', maxWidth: '60%' }}>{bizConfig.scheduleSaturday}</span>
+            </div>
+          </div>
 
           <button
             onClick={() => setCurrentScreen('catalog')}
@@ -483,12 +545,12 @@ export default function App() {
         </div>
       )}
 
-      {/* 2.1. CATÁLOGO DE CLIENTES (ARQUITECTURA DINÁMICA CON DESPLEGABLES) */}
+      {/* 2.1. CATÁLOGO DE CLIENTES */}
       {currentScreen === 'catalog' && (
         <div style={{ maxWidth: '750px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px', marginBottom: '25px' }}>
             <div>
-              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>L ' A</h2>
+              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>{bizConfig.name}</h2>
               <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>Catálogo de Autor</p>
             </div>
             <button onClick={() => setCurrentScreen('clientPortal')} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
@@ -587,7 +649,7 @@ export default function App() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #d4af37', paddingBottom: '15px', marginBottom: '20px' }}>
             <div>
               <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>360STUDIO — PANEL DE GESTIÓN</h2>
-              <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>L'Studio Ana · Elche</p>
+              <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>{bizConfig.name} · Elche</p>
             </div>
             <button onClick={() => setCurrentScreen('clientPin')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Cerrar Sesión</button>
           </div>
@@ -620,7 +682,7 @@ export default function App() {
             ))}
           </div>
 
-          {/* BLOQUE 1: AGENDA SEMANAL INTERACTIVA (CADA 15 MIN) */}
+          {/* BLOQUE 1: AGENDA SEMANAL INTERACTIVA */}
           {adminTab === 'agenda' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
@@ -655,35 +717,30 @@ export default function App() {
                                 height: '35px', 
                                 minWidth: '130px',
                                 cursor: appt ? 'default' : 'pointer',
-                                transition: 'background-color 0.2s'
+                                backgroundColor: appt ? '#221a00' : 'transparent',
+                                transition: 'background 0.2s'
                               }}
-                              onMouseEnter={(e) => { if (!appt) e.currentTarget.style.backgroundColor = 'rgba(212,175,55,0.08)'; }}
-                              onMouseLeave={(e) => { if (!appt) e.currentTarget.style.backgroundColor = 'transparent'; }}
                             >
                               {appt ? (
-                                <div style={{ backgroundColor: 'rgba(212,175,55,0.15)', border: '1px solid #d4af37', borderRadius: '6px', padding: '6px', position: 'relative' }}>
-                                  <p style={{ color: '#d4af37', fontWeight: 'bold', margin: '0 0 2px 0', fontSize: '11px', paddingRight: '35px' }}>{appt.clientName}</p>
-                                  <p style={{ color: '#ccc', margin: 0, fontSize: '9px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appt.serviceSubcategory}</p>
-                                  
-                                  <div style={{ position: 'absolute', top: '4px', right: '4px', display: 'flex', gap: '4px' }}>
-                                    <button 
-                                      onClick={(e) => { e.stopPropagation(); setViewApptModal(appt); }}
-                                      style={{ background: 'none', border: 'none', color: '#d4af37', fontSize: '11px', cursor: 'pointer', padding: 0 }}
-                                      title="Ver detalles"
-                                    >
-                                      👁️
-                                    </button>
+                                <div 
+                                  onClick={(e) => { e.stopPropagation(); setViewApptModal(appt); }}
+                                  style={{ backgroundColor: '#2c2200', border: '1px solid #d4af37', borderRadius: '6px', padding: '6px', cursor: 'pointer', position: 'relative' }}
+                                >
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <span style={{ color: '#d4af37', fontWeight: 'bold', fontSize: '11px' }}>{appt.clientName}</span>
                                     <button 
                                       onClick={(e) => handleDeleteAppointment(appt.id, e)}
-                                      style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '11px', cursor: 'pointer', padding: 0 }}
+                                      style={{ background: 'none', border: 'none', color: '#ff6666', fontSize: '10px', cursor: 'pointer', padding: 0 }}
                                       title="Eliminar cita"
                                     >
-                                      🗑️
+                                      ✕
                                     </button>
                                   </div>
+                                  <p style={{ color: '#ccc', fontSize: '9px', margin: '3px 0 0 0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appt.serviceSubcategory}</p>
+                                  <p style={{ color: '#888', fontSize: '8px', margin: '2px 0 0 0' }}>📞 {appt.phone}</p>
                                 </div>
                               ) : (
-                                <div style={{ color: '#333', fontSize: '9px', textAlign: 'center', paddingTop: '8px', userSelect: 'none' }}>+</div>
+                                <div style={{ color: '#333', fontSize: '9px', textAlign: 'center', marginTop: '8px', userSelect: 'none' }}>+ libre</div>
                               )}
                             </td>
                           );
@@ -696,142 +753,281 @@ export default function App() {
             </div>
           )}
 
-          {/* BLOQUE 2: CONFIGURACIÓN NEGOCIO */}
+          {/* BLOQUE 2: CONFIGURACIÓN DE NEGOCIO CON PESTAÑAS SINCRONIZADAS */}
           {adminTab === 'config' && (
-            <div style={{ backgroundColor: '#181818', padding: '20px', borderRadius: '10px', border: '1px solid rgba(212,175,55,0.3)' }}>
-              <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', marginTop: 0 }}>Configuración de L'Studio Ana</h3>
-              <p style={{ color: '#aaa', fontSize: '12px', marginBottom: '20px' }}>Parámetros operativos generales del salón en Elche.</p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                <div>
-                  <label style={{ display: 'block', color: '#ccc', fontSize: '11px', marginBottom: '5px' }}>Nombre del Negocio</label>
-                  <input type="text" defaultValue="L'Studio Ana" style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #444', borderRadius: '6px', color: '#fff', fontSize: '12px' }} />
-                </div>
-                <div>
-                  <label style={{ display: 'block', color: '#ccc', fontSize: '11px', marginBottom: '5px' }}>PIN Maestro de Acceso Clientas</label>
-                  <input type="text" defaultValue="7009" style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #444', borderRadius: '6px', color: '#fff', fontSize: '12px' }} />
-                </div>
+            <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Configuración General del Salón</h3>
+                <span style={{ color: '#888', fontSize: '11px' }}>Sincronizado en tiempo real con el Portal de Clientas</span>
               </div>
-              <button onClick={() => alert('¡Configuración guardada correctamente!')} style={{ marginTop: '20px', backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px 20px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Guardar Cambios</button>
+
+              {/* Pestañas internas de Configuración */}
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '12px' }}>
+                {[
+                  { id: 'general', label: '📋 Identidad y Descripción' },
+                  { id: 'schedule', label: '🕒 Horarios del Salón' },
+                  { id: 'branding', label: '🔐 PIN de Acceso y Contacto' }
+                ].map(subTab => (
+                  <button
+                    key={subTab.id}
+                    onClick={() => setConfigSubTab(subTab.id as any)}
+                    style={{
+                      backgroundColor: configSubTab === subTab.id ? '#2c2200' : '#121212',
+                      color: configSubTab === subTab.id ? '#d4af37' : '#aaa',
+                      border: configSubTab === subTab.id ? '1px solid #d4af37' : '1px solid #333',
+                      padding: '6px 12px',
+                      borderRadius: '6px',
+                      fontSize: '11px',
+                      fontWeight: 'bold',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {subTab.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* PESTAÑA 1: Identidad y Descripción */}
+              {configSubTab === 'general' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                    <div>
+                      <label style={{ display: 'block', color: '#aaa', fontSize: '11px', marginBottom: '6px' }}>Nombre del Salón</label>
+                      <input
+                        type="text"
+                        value={bizConfig.name}
+                        onChange={(e) => setBizConfig({ ...bizConfig, name: e.target.value })}
+                        style={{ width: '100%', padding: '10px', backgroundColor: '#121212', border: '1px solid #333', borderRadius: '8px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', color: '#aaa', fontSize: '11px', marginBottom: '6px' }}>Eslogan / Subtítulo</label>
+                      <input
+                        type="text"
+                        value={bizConfig.appSubtitle}
+                        onChange={(e) => setBizConfig({ ...bizConfig, appSubtitle: e.target.value })}
+                        style={{ width: '100%', padding: '10px', backgroundColor: '#121212', border: '1px solid #333', borderRadius: '8px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', color: '#aaa', fontSize: '11px', marginBottom: '6px' }}>Mensaje de Bienvenida en el Portal</label>
+                    <input
+                      type="text"
+                      value={bizConfig.welcomeMessage}
+                      onChange={(e) => setBizConfig({ ...bizConfig, welcomeMessage: e.target.value })}
+                      style={{ width: '100%', padding: '10px', backgroundColor: '#121212', border: '1px solid #333', borderRadius: '8px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ display: 'block', color: '#aaa', fontSize: '11px', marginBottom: '6px' }}>Descripción Principal del Salón (Visible para Clientas)</label>
+                    <textarea
+                      rows={3}
+                      value={bizConfig.description}
+                      onChange={(e) => setBizConfig({ ...bizConfig, description: e.target.value })}
+                      style={{ width: '100%', padding: '10px', backgroundColor: '#121212', border: '1px solid #333', borderRadius: '8px', color: '#fff', fontSize: '12px', boxSizing: 'border-box', resize: 'vertical' }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* PESTAÑA 2: Horarios del Salón (Estructurados por bloques) */}
+              {configSubTab === 'schedule' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                  <div>
+                    <label style={{ display: 'block', color: '#d4af37', fontSize: '11px', marginBottom: '6px', fontWeight: 'bold' }}>LUNES</label>
+                    <input
+                      type="text"
+                      value={bizConfig.scheduleMonday}
+                      onChange={(e) => setBizConfig({ ...bizConfig, scheduleMonday: e.target.value })}
+                      placeholder="Ej: 10H A 13:30H"
+                      style={{ width: '100%', padding: '10px', backgroundColor: '#121212', border: '1px solid #333', borderRadius: '8px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', color: '#d4af37', fontSize: '11px', marginBottom: '6px', fontWeight: 'bold' }}>MARTES Y MIÉRCOLES</label>
+                    <input
+                      type="text"
+                      value={bizConfig.scheduleTueWed}
+                      onChange={(e) => setBizConfig({ ...bizConfig, scheduleTueWed: e.target.value })}
+                      placeholder="Ej: 10h a 18h"
+                      style={{ width: '100%', padding: '10px', backgroundColor: '#121212', border: '1px solid #333', borderRadius: '8px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', color: '#d4af37', fontSize: '11px', marginBottom: '6px', fontWeight: 'bold' }}>JUEVES Y VIERNES</label>
+                    <input
+                      type="text"
+                      value={bizConfig.scheduleThuFri}
+                      onChange={(e) => setBizConfig({ ...bizConfig, scheduleThuFri: e.target.value })}
+                      placeholder="Ej: 10 A 19H"
+                      style={{ width: '100%', padding: '10px', backgroundColor: '#121212', border: '1px solid #333', borderRadius: '8px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', color: '#d4af37', fontSize: '11px', marginBottom: '6px', fontWeight: 'bold' }}>SÁBADOS (Descripción / Horario)</label>
+                    <input
+                      type="text"
+                      value={bizConfig.scheduleSaturday}
+                      onChange={(e) => setBizConfig({ ...bizConfig, scheduleSaturday: e.target.value })}
+                      placeholder="Ej: Cita previa / Turno especial"
+                      style={{ width: '100%', padding: '10px', backgroundColor: '#121212', border: '1px solid #333', borderRadius: '8px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                  <p style={{ color: '#888', fontSize: '11px', fontStyle: 'italic', margin: 0 }}>Esta estructura se reflejará exactamente igual en el portal privado de clientas.</p>
+                </div>
+              )}
+
+              {/* PESTAÑA 3: PIN de Acceso y Contacto */}
+              {configSubTab === 'branding' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                    <div>
+                      <label style={{ display: 'block', color: '#aaa', fontSize: '11px', marginBottom: '6px' }}>Ubicación Física</label>
+                      <input
+                        type="text"
+                        value={bizConfig.location}
+                        onChange={(e) => setBizConfig({ ...bizConfig, location: e.target.value })}
+                        style={{ width: '100%', padding: '10px', backgroundColor: '#121212', border: '1px solid #333', borderRadius: '8px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', color: '#aaa', fontSize: '11px', marginBottom: '6px' }}>Teléfono de Contacto / WhatsApp</label>
+                      <input
+                        type="text"
+                        value={bizConfig.phone}
+                        onChange={(e) => setBizConfig({ ...bizConfig, phone: e.target.value })}
+                        style={{ width: '100%', padding: '10px', backgroundColor: '#121212', border: '1px solid #333', borderRadius: '8px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', color: '#aaa', fontSize: '11px', marginBottom: '6px' }}>PIN Maestro de Acceso para Clientas</label>
+                    <input
+                      type="text"
+                      maxLength={4}
+                      value={bizConfig.masterPin}
+                      onChange={(e) => setBizConfig({ ...bizConfig, masterPin: e.target.value })}
+                      style={{ width: '120px', padding: '10px', backgroundColor: '#121212', border: '1px solid #333', borderRadius: '8px', color: '#d4af37', fontSize: '16px', fontWeight: 'bold', textAlign: 'center', boxSizing: 'border-box' }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div style={{ marginTop: '25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid rgba(212,175,55,0.2)', paddingTop: '15px' }}>
+                <span style={{ color: '#44ff88', fontSize: '11px' }}>✓ Los cambios se guardan automáticamente</span>
+                <button onClick={() => alert('¡Configuración guardada y sincronizada correctamente!')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px 20px', borderRadius: '8px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Guardar Cambios</button>
+              </div>
             </div>
           )}
 
-          {/* BLOQUE 3: CATÁLOGO MAESTRO (CATEGORÍAS PRINCIPALES Y SUBCATEGORÍAS EDITABLES Y REORDENABLES) */}
+          {/* BLOQUE 3: CATÁLOGO MAESTRO */}
           {adminTab === 'catalog' && (
-            <div style={{ backgroundColor: '#181818', padding: '20px', borderRadius: '10px', border: '1px solid rgba(212,175,55,0.3)' }}>
+            <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
                 <div>
-                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 3px 0' }}>Catálogo Maestro (Intranet de Edición)</h3>
-                  <p style={{ color: '#aaa', fontSize: '12px', margin: 0 }}>Edita títulos, mueve de lugar, añade nuevas categorías principales o subcategorías ilimitadas.</p>
+                  <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Gestión del Catálogo Maestro</h3>
+                  <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Modifica títulos, reorganiza categorías principales o añade nuevos tratamientos.</p>
                 </div>
                 <button
                   onClick={() => setIsAddingCategory(true)}
-                  style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                  style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '11px', cursor: 'pointer' }}
                 >
                   + Nueva Categoría Principal
                 </button>
               </div>
 
-              {/* Formulario para añadir nueva categoría principal */}
               {isAddingCategory && (
-                <form onSubmit={handleAddCategorySubmit} style={{ backgroundColor: '#141414', border: '1px dashed #d4af37', padding: '15px', borderRadius: '10px', marginBottom: '20px' }}>
-                  <p style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', margin: '0 0 10px 0' }}>Añadir Nueva Categoría Principal</p>
-                  <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '10px', marginBottom: '10px' }}>
-                    <input type="text" placeholder="Código (Ej. 0.10)" value={newCatCode} onChange={e => setNewCatCode(e.target.value)} style={{ padding: '8px', backgroundColor: '#000', border: '1px solid #444', color: '#fff', fontSize: '11px', borderRadius: '4px' }} required />
-                    <input type="text" placeholder="Título de la Categoría Principal" value={newCatTitle} onChange={e => setNewCatTitle(e.target.value)} style={{ padding: '8px', backgroundColor: '#000', border: '1px solid #444', color: '#fff', fontSize: '11px', borderRadius: '4px' }} required />
+                <form onSubmit={handleAddCategorySubmit} style={{ backgroundColor: '#181818', border: '1px solid #d4af37', borderRadius: '10px', padding: '15px', marginBottom: '20px', display: 'flex', gap: '10px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                  <div style={{ flex: '0 0 80px' }}>
+                    <label style={{ display: 'block', color: '#aaa', fontSize: '10px', marginBottom: '4px' }}>Código</label>
+                    <input type="text" value={newCatCode} onChange={e => setNewCatCode(e.target.value)} placeholder="0.10" style={{ width: '100%', padding: '8px', backgroundColor: '#121212', border: '1px solid #333', borderRadius: '6px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }} required />
                   </div>
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Crear Categoría</button>
-                    <button type="button" onClick={() => setIsAddingCategory(false)} style={{ backgroundColor: '#333', color: '#ccc', border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}>Cancelar</button>
+                  <div style={{ flex: 1, minWidth: '200px' }}>
+                    <label style={{ display: 'block', color: '#aaa', fontSize: '10px', marginBottom: '4px' }}>Título de Categoría</label>
+                    <input type="text" value={newCatTitle} onChange={e => setNewCatTitle(e.target.value)} placeholder="Ej: NUEVOS TRATAMIENTOS" style={{ width: '100%', padding: '8px', backgroundColor: '#121212', border: '1px solid #333', borderRadius: '6px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }} required />
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '6px', fontWeight: 'bold', fontSize: '11px', cursor: 'pointer' }}>Crear</button>
+                    <button type="button" onClick={() => setIsAddingCategory(false)} style={{ backgroundColor: '#333', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Cancelar</button>
                   </div>
                 </form>
               )}
-              
+
               <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                {catalog.map((cat, catIdx) => (
-                  <div key={cat.id} style={{ backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '15px' }}>
-                    
-                    {/* Cabecera de Categoría Principal con controles de edición y movimiento */}
+                {catalog.map((cat, index) => (
+                  <div key={cat.id} style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '15px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '10px', gap: '10px', flexWrap: 'wrap' }}>
-                      
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '250px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1 }}>
                         <input
                           type="text"
                           value={cat.code}
                           onChange={(e) => handleUpdateCategoryCode(cat.id, e.target.value)}
-                          style={{ width: '55px', padding: '6px', backgroundColor: '#000', border: '1px solid #444', color: '#d4af37', fontSize: '12px', borderRadius: '4px', textAlign: 'center', fontWeight: 'bold' }}
-                          title="Editar código"
+                          style={{ width: '55px', padding: '6px', backgroundColor: '#121212', border: '1px solid #444', borderRadius: '6px', color: '#d4af37', fontWeight: 'bold', fontSize: '12px', textAlign: 'center' }}
                         />
                         <input
                           type="text"
                           value={cat.title}
                           onChange={(e) => handleUpdateCategoryTitle(cat.id, e.target.value)}
-                          style={{ flex: 1, padding: '6px', backgroundColor: '#000', border: '1px solid #444', color: '#fff', fontSize: '12px', borderRadius: '4px', fontWeight: 'bold', fontFamily: 'serif' }}
-                          title="Editar título"
+                          style={{ flex: 1, padding: '6px 10px', backgroundColor: '#121212', border: '1px solid #444', borderRadius: '6px', color: '#fff', fontWeight: 'bold', fontSize: '12px', fontFamily: 'serif' }}
                         />
                       </div>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <button
-                          onClick={() => handleMoveCategory(catIdx, -1)}
-                          disabled={catIdx === 0}
-                          style={{ backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', opacity: catIdx === 0 ? 0.3 : 1 }}
-                          title="Mover arriba"
-                        >
-                          ▲
-                        </button>
-                        <button
-                          onClick={() => handleMoveCategory(catIdx, 1)}
-                          disabled={catIdx === catalog.length - 1}
-                          style={{ backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', opacity: catIdx === catalog.length - 1 ? 0.3 : 1 }}
-                          title="Mover abajo"
-                        >
-                          ▼
-                        </button>
-                        <button
-                          onClick={() => handleDeleteCategory(cat.id)}
-                          style={{ backgroundColor: 'rgba(255,68,68,0.1)', border: '1px solid #ff4444', color: '#ff4444', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer' }}
-                          title="Eliminar categoría principal"
-                        >
-                          🗑️
-                        </button>
-                        <button
-                          onClick={() => setIsAddingSub(cat.id)}
-                          style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', cursor: 'pointer', marginLeft: '6px' }}
-                        >
-                          + Subcategoría
-                        </button>
+                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <button onClick={() => handleMoveCategory(index, -1)} disabled={index === 0} style={{ backgroundColor: '#222', border: '1px solid #444', color: index === 0 ? '#555' : '#ccc', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', cursor: index === 0 ? 'default' : 'pointer' }}>▲</button>
+                        <button onClick={() => handleMoveCategory(index, 1)} disabled={index === catalog.length - 1} style={{ backgroundColor: '#222', border: '1px solid #444', color: index === catalog.length - 1 ? '#555' : '#ccc', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', cursor: index === catalog.length - 1 ? 'default' : 'pointer' }}>▼</button>
+                        <button onClick={() => handleDeleteCategory(cat.id)} style={{ backgroundColor: '#331111', border: '1px solid #663333', color: '#ff8888', padding: '4px 10px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>Eliminar</button>
                       </div>
                     </div>
 
-                    {/* Formulario rápido para añadir subcategoría */}
-                    {isAddingSub === cat.id && (
-                      <form onSubmit={(e) => handleAddSubserviceSubmit(cat.id, e)} style={{ backgroundColor: '#1c1c1c', padding: '12px', borderRadius: '8px', marginBottom: '12px', border: '1px dashed #d4af37' }}>
-                        <p style={{ color: '#d4af37', fontSize: '11px', margin: '0 0 8px 0', fontWeight: 'bold' }}>Nueva subcategoría para {cat.title}</p>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginBottom: '8px' }}>
-                          <input type="text" placeholder="Nombre del servicio *" value={newSubName} onChange={e => setNewSubName(e.target.value)} style={{ padding: '8px', backgroundColor: '#000', border: '1px solid #444', color: '#fff', fontSize: '11px', borderRadius: '4px' }} required />
-                          <input type="text" placeholder="Precio (Ej. Desde 40 € / Consultar)" value={newSubPrice} onChange={e => setNewSubPrice(e.target.value)} style={{ padding: '8px', backgroundColor: '#000', border: '1px solid #444', color: '#fff', fontSize: '11px', borderRadius: '4px' }} />
-                          <input type="text" placeholder="Duración (Ej. 45 min)" value={newSubDur} onChange={e => setNewSubDur(e.target.value)} style={{ padding: '8px', backgroundColor: '#000', border: '1px solid #444', color: '#fff', fontSize: '11px', borderRadius: '4px' }} />
-                          <input type="text" placeholder="Buffer prep/limpieza (Ej. 10 min)" value={newSubBuffer} onChange={e => setNewSubBuffer(e.target.value)} style={{ padding: '8px', backgroundColor: '#000', border: '1px solid #444', color: '#fff', fontSize: '11px', borderRadius: '4px' }} />
-                        </div>
-                        <textarea placeholder="Definición clara del servicio..." value={newSubDesc} onChange={e => setNewSubDesc(e.target.value)} style={{ width: '100%', padding: '8px', backgroundColor: '#000', border: '1px solid #444', color: '#fff', fontSize: '11px', borderRadius: '4px', marginBottom: '8px', boxSizing: 'border-box' }} rows={2}></textarea>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}>Guardar</button>
-                          <button type="button" onClick={() => setIsAddingSub(null)} style={{ backgroundColor: '#333', color: '#ccc', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>Cancelar</button>
-                        </div>
-                      </form>
-                    )}
-
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {cat.subservices.map(sub => (
-                        <div key={sub.id} style={{ backgroundColor: '#101010', border: '1px solid #2a2a2a', padding: '10px', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <div>
-                            <p style={{ color: '#fff', fontWeight: 'bold', fontSize: '12px', margin: '0 0 2px 0' }}>{sub.name}</p>
-                            <p style={{ color: '#aaa', fontSize: '11px', margin: '0 0 4px 0' }}>{sub.description}</p>
-                            <p style={{ color: '#888', fontSize: '10px', margin: 0 }}>⏱️ {sub.duration} | 🛠️ {sub.bufferTime} | <span style={{ color: '#d4af37' }}>{sub.price}</span></p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '15px' }}>
+                      {cat.subservices.map((sub) => (
+                        <div key={sub.id} style={{ backgroundColor: '#141414', border: '1px solid #333', borderRadius: '8px', padding: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '15px' }}>
+                          <div style={{ flex: 1 }}>
+                            <h5 style={{ color: '#fff', fontSize: '12px', margin: '0 0 3px 0' }}>{sub.name}</h5>
+                            <p style={{ color: '#aaa', fontSize: '10px', margin: '0 0 5px 0' }}>{sub.description}</p>
+                            <div style={{ display: 'flex', gap: '8px', fontSize: '9px', color: '#888' }}>
+                              <span>⏱️ {sub.duration}</span>
+                              <span>🛠️ {sub.bufferTime}</span>
+                              <span style={{ color: '#d4af37', fontWeight: 'bold' }}>{sub.price}</span>
+                            </div>
                           </div>
-                          <button onClick={() => handleDeleteSubservice(cat.id, sub.id)} style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '12px', cursor: 'pointer' }} title="Eliminar servicio">🗑️</button>
+                          <button
+                            onClick={() => handleDeleteSubservice(cat.id, sub.id)}
+                            style={{ backgroundColor: 'transparent', border: '1px solid #553333', color: '#ff6666', padding: '4px 8px', borderRadius: '4px', fontSize: '9px', cursor: 'pointer' }}
+                          >
+                            Quitar
+                          </button>
                         </div>
                       ))}
+
+                      {isAddingSub === cat.id ? (
+                        <form onSubmit={(e) => handleAddSubserviceSubmit(cat.id, e)} style={{ backgroundColor: '#141414', border: '1px dashed #d4af37', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px' }}>
+                          <p style={{ color: '#d4af37', fontSize: '11px', margin: 0, fontWeight: 'bold' }}>Nuevo Tratamiento / Servicio</p>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <input type="text" placeholder="Nombre del servicio" value={newSubName} onChange={e => setNewSubName(e.target.value)} style={{ flex: 1, padding: '6px', backgroundColor: '#111', border: '1px solid #444', borderRadius: '4px', color: '#fff', fontSize: '11px' }} required />
+                            <input type="text" placeholder="Precio (ej: Desde 45 €)" value={newSubPrice} onChange={e => setNewSubPrice(e.target.value)} style={{ width: '120px', padding: '6px', backgroundColor: '#111', border: '1px solid #444', borderRadius: '4px', color: '#fff', fontSize: '11px' }} />
+                          </div>
+                          <div style={{ display: 'flex', gap: '8px' }}>
+                            <input type="text" placeholder="Descripción breve" value={newSubDesc} onChange={e => setNewSubDesc(e.target.value)} style={{ flex: 1, padding: '6px', backgroundColor: '#111', border: '1px solid #444', borderRadius: '4px', color: '#fff', fontSize: '11px' }} />
+                            <input type="text" placeholder="Duración (ej: 45 min)" value={newSubDur} onChange={e => setNewSubDur(e.target.value)} style={{ width: '100px', padding: '6px', backgroundColor: '#111', border: '1px solid #444', borderRadius: '4px', color: '#fff', fontSize: '11px' }} />
+                            <input type="text" placeholder="Buffer" value={newSubBuffer} onChange={e => setNewSubBuffer(e.target.value)} style={{ width: '80px', padding: '6px', backgroundColor: '#111', border: '1px solid #444', borderRadius: '4px', color: '#fff', fontSize: '11px' }} />
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', marginTop: '4px' }}>
+                            <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '5px 12px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}>Guardar Servicio</button>
+                            <button type="button" onClick={() => setIsAddingSub(null)} style={{ backgroundColor: '#333', color: '#fff', border: 'none', padding: '5px 12px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>Cancelar</button>
+                          </div>
+                        </form>
+                      ) : (
+                        <button
+                          onClick={() => setIsAddingSub(cat.id)}
+                          style={{ backgroundColor: 'transparent', border: '1px dashed rgba(212,175,55,0.4)', color: '#d4af37', padding: '8px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', textAlign: 'center', marginTop: '4px' }}
+                        >
+                          + Añadir servicio a esta categoría
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -841,24 +1037,23 @@ export default function App() {
 
           {/* BLOQUE 4: HERRAMIENTAS */}
           {adminTab === 'tools' && (
-            <div style={{ backgroundColor: '#181818', padding: '20px', borderRadius: '10px', border: '1px solid rgba(212,175,55,0.3)' }}>
-              <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', marginTop: 0 }}>Herramientas y Micro-Apps del Salón</h3>
-              <p style={{ color: '#aaa', fontSize: '12px', marginBottom: '20px' }}>Accesos rápidos a utilidades de diagnóstico y gestión.</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
-                <div style={{ backgroundColor: '#141414', border: '1px solid #333', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
-                  <p style={{ color: '#d4af37', fontWeight: 'bold', fontSize: '13px', margin: '0 0 5px 0' }}>DNI Capilar</p>
-                  <p style={{ color: '#888', fontSize: '10px', margin: '0 0 10px 0' }}>Diagnóstico avanzado de salud capilar</p>
-                  <button onClick={() => alert('Abriendo herramienta DNI Capilar...')} style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '6px 12px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>Abrir</button>
+            <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px' }}>
+              <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', marginTop: 0, marginBottom: '15px' }}>Herramientas Operativas de {bizConfig.name}</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '15px' }}>
+                <div style={{ backgroundColor: '#141414', border: '1px solid #333', borderRadius: '10px', padding: '15px' }}>
+                  <h4 style={{ color: '#fff', fontSize: '13px', margin: '0 0 5px 0' }}>💬 Automatización WhatsApp</h4>
+                  <p style={{ color: '#aaa', fontSize: '11px', margin: '0 0 12px 0' }}>Configura respuestas rápidas y redirección a agenda online.</p>
+                  <button onClick={() => alert('Módulo de WhatsApp Business vinculado.')} style={{ backgroundColor: '#1e1e1e', border: '1px solid #d4af37', color: '#d4af37', padding: '6px 12px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer' }}>Gestionar</button>
                 </div>
-                <div style={{ backgroundColor: '#141414', border: '1px solid #333', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
-                  <p style={{ color: '#d4af37', fontWeight: 'bold', fontSize: '13px', margin: '0 0 5px 0' }}>Visagismo Facial</p>
-                  <p style={{ color: '#888', fontSize: '10px', margin: '0 0 10px 0' }}>Estudio de proporciones y corte</p>
-                  <button onClick={() => alert('Abriendo herramienta Visagismo...')} style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '6px 12px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>Abrir</button>
+                <div style={{ backgroundColor: '#141414', border: '1px solid #333', borderRadius: '10px', padding: '15px' }}>
+                  <h4 style={{ color: '#fff', fontSize: '13px', margin: '0 0 5px 0' }}>📱 Acceso PWA / Escritorio</h4>
+                  <p style={{ color: '#aaa', fontSize: '11px', margin: '0 0 12px 0' }}>Instalación directa en Lenovo IdeaTab 11 e iPhone 16 Pro.</p>
+                  <button onClick={() => alert('La app está optimizada como Progressive Web App (PWA).')} style={{ backgroundColor: '#1e1e1e', border: '1px solid #d4af37', color: '#d4af37', padding: '6px 12px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer' }}>Ver Estado</button>
                 </div>
-                <div style={{ backgroundColor: '#141414', border: '1px solid #333', padding: '15px', borderRadius: '8px', textAlign: 'center' }}>
-                  <p style={{ color: '#d4af37', fontWeight: 'bold', fontSize: '13px', margin: '0 0 5px 0' }}>Protocolo Color</p>
-                  <p style={{ color: '#888', fontSize: '10px', margin: '0 0 10px 0' }}>Fórmulas y mantenimiento mechas</p>
-                  <button onClick={() => alert('Abriendo protocolo de color...')} style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '6px 12px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>Abrir</button>
+                <div style={{ backgroundColor: '#141414', border: '1px solid #333', borderRadius: '10px', padding: '15px' }}>
+                  <h4 style={{ color: '#fff', fontSize: '13px', margin: '0 0 5px 0' }}>🎨 Estética Dark Luxury</h4>
+                  <p style={{ color: '#aaa', fontSize: '11px', margin: '0 0 12px 0' }}>Esquema cromático negro, carbón, marfil y detalles dorados.</p>
+                  <span style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold' }}>Activo por defecto</span>
                 </div>
               </div>
             </div>
@@ -866,46 +1061,44 @@ export default function App() {
 
           {/* BLOQUE 5: BASE DE CLIENTES */}
           {adminTab === 'clients' && (
-            <div style={{ backgroundColor: '#181818', padding: '20px', borderRadius: '10px', border: '1px solid rgba(212,175,55,0.3)' }}>
-              <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', marginTop: 0 }}>Base de Datos de Clientas</h3>
-              <p style={{ color: '#aaa', fontSize: '12px', marginBottom: '20px' }}>Historial y registros frecuentes en el salón.</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {[
-                  { name: 'María G.', phone: '600111222', visits: '12 visitas', last: 'Coloración Global' },
-                  { name: 'Carmen R.', phone: '611222333', visits: '8 visitas', last: 'Corte de Autor' },
-                ].map((c, i) => (
-                  <div key={i} style={{ backgroundColor: '#141414', padding: '12px', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #333' }}>
-                    <div>
-                      <p style={{ color: '#d4af37', fontWeight: 'bold', margin: '0 0 3px 0', fontSize: '12px' }}>{c.name} <span style={{ color: '#888', fontWeight: 'normal', fontSize: '10px' }}>({c.phone})</span></p>
-                      <p style={{ color: '#aaa', margin: 0, fontSize: '10px' }}>Último servicio: {c.last}</p>
-                    </div>
-                    <span style={{ backgroundColor: 'rgba(212,175,55,0.1)', color: '#d4af37', padding: '4px 10px', borderRadius: '12px', fontSize: '10px' }}>{c.visits}</span>
-                  </div>
-                ))}
+            <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px' }}>
+              <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', marginTop: 0, marginBottom: '15px' }}>Directorio de Clientas</h3>
+              <p style={{ color: '#aaa', fontSize: '11px', marginBottom: '15px' }}>Historial clínico-capilar, visagismo y preferencias de productos (Balmain, Authentic Beauty Concept, BlondMe).</p>
+              
+              <div style={{ backgroundColor: '#141414', border: '1px solid #333', borderRadius: '8px', padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <div>
+                  <p style={{ color: '#fff', fontSize: '13px', margin: '0 0 2px 0', fontWeight: 'bold' }}>María G.</p>
+                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Tel: 600111222 · Último servicio: Coloración Global & Raíces</p>
+                </div>
+                <span style={{ backgroundColor: '#221a00', color: '#d4af37', border: '1px solid #d4af37', padding: '4px 8px', borderRadius: '6px', fontSize: '10px' }}>Ficha DNI Capilar</span>
+              </div>
+
+              <div style={{ backgroundColor: '#141414', border: '1px solid #333', borderRadius: '8px', padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <p style={{ color: '#fff', fontSize: '13px', margin: '0 0 2px 0', fontWeight: 'bold' }}>Carmen R.</p>
+                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Tel: 611222333 · Último servicio: Corte de Autor & Visagismo</p>
+                </div>
+                <span style={{ backgroundColor: '#221a00', color: '#d4af37', border: '1px solid #d4af37', padding: '4px 8px', borderRadius: '6px', fontSize: '10px' }}>Ficha DNI Capilar</span>
               </div>
             </div>
           )}
 
           {/* BLOQUE 6: CRM / KPIS */}
           {adminTab === 'crm' && (
-            <div style={{ backgroundColor: '#181818', padding: '20px', borderRadius: '10px', border: '1px solid rgba(212,175,55,0.3)' }}>
-              <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', marginTop: 0 }}>CRM & KPIs de Rendimiento</h3>
-              <p style={{ color: '#aaa', fontSize: '12px', marginBottom: '20px' }}>Métricas clave sobre uso de la app y demanda en L'Studio Ana.</p>
-              
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '25px' }}>
-                <div style={{ backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '10px', padding: '20px', textAlign: 'center' }}>
-                  <p style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 8px 0' }}>Clientas que Agendan / Entran en la App</p>
-                  <p style={{ color: '#d4af37', fontSize: '32px', fontFamily: 'serif', fontWeight: 'bold', margin: '0 0 8px 0' }}>{appVisitsCount}</p>
-                  <p style={{ color: '#666', fontSize: '10px', margin: 0 }}>Accesos totales validados con PIN maestro</p>
+            <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px' }}>
+              <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', marginTop: 0, marginBottom: '15px' }}>Métricas y Control de Demanda</h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '15px' }}>
+                <div style={{ backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '20px', textAlign: 'center' }}>
+                  <p style={{ color: '#888', fontSize: '11px', margin: '0 0 8px 0', textTransform: 'uppercase' }}>Visitas al Portal</p>
+                  <p style={{ color: '#d4af37', fontSize: '28px', fontFamily: 'serif', margin: 0, fontWeight: 'bold' }}>{appVisitsCount}</p>
                 </div>
-
-                <div style={{ backgroundColor: '#141414', border: '1px solid rgba(255,68,68,0.4)', borderRadius: '10px', padding: '20px', textAlign: 'center' }}>
-                  <p style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 8px 0' }}>Demanda Perdida (Sin Disponibilidad)</p>
-                  <p style={{ color: '#ff4444', fontSize: '32px', fontFamily: 'serif', fontWeight: 'bold', margin: '0 0 8px 0' }}>{lostDemandCount}</p>
-                  <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginTop: '10px' }}>
-                    <button onClick={() => setLostDemandCount(prev => prev + 1)} style={{ backgroundColor: '#ff4444', color: '#fff', border: 'none', padding: '4px 10px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>+ Registrar Baja</button>
-                    <button onClick={() => setLostDemandCount(prev => Math.max(0, prev - 1))} style={{ backgroundColor: '#333', color: '#ccc', border: 'none', padding: '4px 10px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>- Reducir</button>
-                  </div>
+                <div style={{ backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '20px', textAlign: 'center' }}>
+                  <p style={{ color: '#888', fontSize: '11px', margin: '0 0 8px 0', textTransform: 'uppercase' }}>Demanda No Atendida (Recuperable)</p>
+                  <p style={{ color: '#ffaa44', fontSize: '28px', fontFamily: 'serif', margin: 0, fontWeight: 'bold' }}>{lostDemandCount}</p>
+                </div>
+                <div style={{ backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '20px', textAlign: 'center' }}>
+                  <p style={{ color: '#888', fontSize: '11px', margin: '0 0 8px 0', textTransform: 'uppercase' }}>Citas Activas</p>
+                  <p style={{ color: '#44ff88', fontSize: '28px', fontFamily: 'serif', margin: 0, fontWeight: 'bold' }}>{appointments.length}</p>
                 </div>
               </div>
             </div>
@@ -914,113 +1107,66 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL 1: AÑADIR CITA */}
+      {/* MODAL PARA AÑADIR CITA DESDE LA AGENDA */}
       {isModalOpen && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', maxWidth: '450px', width: '100%', padding: '25px', boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.3)', paddingBottom: '12px', marginBottom: '20px' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '14px', maxWidth: '420px', width: '100%', padding: '25px', boxSizing: 'border-box' }}>
+            <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', marginTop: 0, marginBottom: '5px' }}>Nueva Cita — {bizConfig.name}</h3>
+            <p style={{ color: '#aaa', fontSize: '11px', marginBottom: '20px' }}>{targetDay} a las {targetTime} h</p>
+
+            <form onSubmit={handleSaveModalAppointment} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
-                <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: '0 0 2px 0' }}>Nueva Cita</h3>
-                <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>{targetDay} a las {targetTime}</p>
-              </div>
-              <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', color: '#888', fontSize: '16px', cursor: 'pointer' }}>✕</button>
-            </div>
-
-            <form onSubmit={handleSaveModalAppointment}>
-              <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'block', color: '#ccc', fontSize: '11px', marginBottom: '5px' }}>Nombre y Apellidos *</label>
-                <input
-                  type="text"
-                  placeholder="Ej. María Gómez"
-                  value={modalClientName}
-                  onChange={(e) => setModalClientName(e.target.value)}
-                  style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #444', borderRadius: '6px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
-                  required
-                  autoFocus
-                />
+                <label style={{ display: 'block', color: '#ccc', fontSize: '11px', marginBottom: '5px' }}>Nombre de la Clienta</label>
+                <input type="text" value={modalClientName} onChange={e => setModalClientName(e.target.value)} placeholder="Ej: Laura Martínez" style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #444', borderRadius: '8px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }} required />
               </div>
 
-              <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'block', color: '#ccc', fontSize: '11px', marginBottom: '5px' }}>Teléfono</label>
-                <input
-                  type="tel"
-                  placeholder="Ej. 600000000"
-                  value={modalPhone}
-                  onChange={(e) => setModalPhone(e.target.value)}
-                  style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #444', borderRadius: '6px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
-                />
+              <div>
+                <label style={{ display: 'block', color: '#ccc', fontSize: '11px', marginBottom: '5px' }}>Teléfono de Contacto</label>
+                <input type="tel" value={modalPhone} onChange={e => setModalPhone(e.target.value)} placeholder="Ej: 600000000" style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #444', borderRadius: '8px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }} />
               </div>
 
-              <div style={{ marginBottom: '15px' }}>
-                <label style={{ display: 'block', color: '#ccc', fontSize: '11px', marginBottom: '5px' }}>Categoría Principal</label>
-                <select
-                  value={modalCatIndex}
-                  onChange={(e) => {
-                    setModalCatIndex(Number(e.target.value));
-                    setModalSubIndex(0);
-                  }}
-                  style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #444', borderRadius: '6px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
-                >
+              <div>
+                <label style={{ display: 'block', color: '#ccc', fontSize: '11px', marginBottom: '5px' }}>Categoría de Servicio</label>
+                <select value={modalCatIndex} onChange={e => { setModalCatIndex(Number(e.target.value)); setModalSubIndex(0); }} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #444', borderRadius: '8px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}>
                   {catalog.map((cat, idx) => (
                     <option key={cat.id} value={idx}>{cat.code} &lt; {cat.title}</option>
                   ))}
                 </select>
               </div>
 
-              <div style={{ marginBottom: '25px' }}>
-                <label style={{ display: 'block', color: '#ccc', fontSize: '11px', marginBottom: '5px' }}>Subcategoría / Tratamiento</label>
-                <select
-                  value={modalSubIndex}
-                  onChange={(e) => setModalSubIndex(Number(e.target.value))}
-                  style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #444', borderRadius: '6px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}
-                >
+              <div>
+                <label style={{ display: 'block', color: '#ccc', fontSize: '11px', marginBottom: '5px' }}>Tratamiento Específico</label>
+                <select value={modalSubIndex} onChange={e => setModalSubIndex(Number(e.target.value))} style={{ width: '100%', padding: '10px', backgroundColor: '#000', border: '1px solid #444', borderRadius: '8px', color: '#fff', fontSize: '12px', boxSizing: 'border-box' }}>
                   {catalog[modalCatIndex]?.subservices.map((sub, idx) => (
                     <option key={sub.id} value={idx}>{sub.name} ({sub.price})</option>
                   ))}
                 </select>
               </div>
 
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button type="button" onClick={() => setIsModalOpen(false)} style={{ flex: 1, backgroundColor: '#1a1a1a', border: '1px solid #444', color: '#ccc', padding: '12px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>Cancelar</button>
-                <button type="submit" style={{ flex: 1, backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Guardar Cita</button>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <button type="submit" style={{ flex: 1, backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Confirmar Cita</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} style={{ backgroundColor: '#222', color: '#ccc', border: '1px solid #444', padding: '12px 16px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer' }}>Cancelar</button>
               </div>
             </form>
           </div>
         </div>
       )}
 
-      {/* MODAL 2: VER DETALLES DE CITA */}
+      {/* MODAL DETALLE DE CITA */}
       {viewApptModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
-          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', maxWidth: '400px', width: '100%', padding: '25px', boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.3)', paddingBottom: '12px', marginBottom: '20px' }}>
-              <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Detalles de la Cita</h3>
-              <button onClick={() => setViewApptModal(null)} style={{ background: 'none', border: 'none', color: '#888', fontSize: '16px', cursor: 'pointer' }}>✕</button>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }}>
+          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '14px', maxWidth: '380px', width: '100%', padding: '25px', boxSizing: 'border-box' }}>
+            <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', marginTop: 0, marginBottom: '15px' }}>Detalle de Cita</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '12px', color: '#ccc', marginBottom: '20px' }}>
+              <p style={{ margin: 0 }}><strong>Clienta:</strong> {viewApptModal.clientName}</p>
+              <p style={{ margin: 0 }}><strong>Teléfono:</strong> {viewApptModal.phone}</p>
+              <p style={{ margin: 0 }}><strong>Día y Hora:</strong> {viewApptModal.day} a las {viewApptModal.time} h</p>
+              <p style={{ margin: 0 }}><strong>Categoría:</strong> {viewApptModal.serviceCategory}</p>
+              <p style={{ margin: 0 }}><strong>Servicio:</strong> {viewApptModal.serviceSubcategory}</p>
             </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '25px', fontSize: '13px' }}>
-              <div style={{ backgroundColor: '#1a1a1a', padding: '10px', borderRadius: '8px' }}>
-                <p style={{ color: '#888', fontSize: '10px', margin: '0 0 2px 0', textTransform: 'uppercase' }}>Clienta</p>
-                <p style={{ color: '#fff', fontWeight: 'bold', margin: 0 }}>{viewApptModal.clientName}</p>
-              </div>
-              <div style={{ backgroundColor: '#1a1a1a', padding: '10px', borderRadius: '8px' }}>
-                <p style={{ color: '#888', fontSize: '10px', margin: '0 0 2px 0', textTransform: 'uppercase' }}>Teléfono de Contacto</p>
-                <p style={{ color: '#fff', margin: 0 }}>{viewApptModal.phone}</p>
-              </div>
-              <div style={{ backgroundColor: '#1a1a1a', padding: '10px', borderRadius: '8px' }}>
-                <p style={{ color: '#888', fontSize: '10px', margin: '0 0 2px 0', textTransform: 'uppercase' }}>Horario</p>
-                <p style={{ color: '#d4af37', fontWeight: 'bold', margin: 0 }}>{viewApptModal.day} a las {viewApptModal.time}</p>
-              </div>
-              <div style={{ backgroundColor: '#1a1a1a', padding: '10px', borderRadius: '8px' }}>
-                <p style={{ color: '#888', fontSize: '10px', margin: '0 0 2px 0', textTransform: 'uppercase' }}>Servicio Seleccionado</p>
-                <p style={{ color: '#fff', margin: '0 0 3px 0', fontWeight: 'bold' }}>{viewApptModal.serviceCategory}</p>
-                <p style={{ color: '#aaa', margin: 0, fontSize: '11px' }}>{viewApptModal.serviceSubcategory}</p>
-              </div>
-            </div>
-
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => { handleDeleteAppointment(viewApptModal.id); setViewApptModal(null); }} style={{ flex: 1, backgroundColor: 'rgba(255,68,68,0.15)', border: '1px solid #ff4444', color: '#ff4444', padding: '10px', borderRadius: '8px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Eliminar Cita 🗑️</button>
-              <button onClick={() => setViewApptModal(null)} style={{ flex: 1, backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Cerrar</button>
+              <button onClick={() => { handleDeleteAppointment(viewApptModal.id); setViewApptModal(null); }} style={{ backgroundColor: '#331111', border: '1px solid #663333', color: '#ff8888', padding: '10px', borderRadius: '8px', fontSize: '11px', cursor: 'pointer', flex: 1 }}>Eliminar Cita</button>
+              <button onClick={() => setViewApptModal(null)} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px 16px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', flex: 1 }}>Cerrar</button>
             </div>
           </div>
         </div>
