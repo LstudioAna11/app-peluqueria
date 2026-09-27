@@ -75,6 +75,7 @@ interface ClientRecord {
   pinAcceso: string;
   diagnostico: string;
   ultimaVisita: string;
+  proximaVisitaSugerida?: string;
 }
 
 interface FeedbackRecord {
@@ -174,10 +175,15 @@ const INITIAL_APPOINTMENTS: Appointment[] = [
 ];
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'clientPin' | 'clientPortal' | 'catalog' | 'adminLogin' | 'adminPanel'>('clientPin');
+  const [currentScreen, setCurrentScreen] = useState<'clientPin' | 'clientPortal' | 'catalog' | 'clientHistory' | 'adminLogin' | 'adminPanel'>('clientPin');
   
   const [pin, setPin] = useState<string>('');
   const [pinError, setPinError] = useState<boolean>(false);
+  const [currentClientRecord, setCurrentClientRecord] = useState<ClientRecord | null>(null);
+
+  // Estados Asistente IA de Estilo en Historial
+  const [clientWishText, setClientWishText] = useState<string>('');
+  const [aiRecommendation, setAiRecommendation] = useState<{ serviceName: string; reason: string; category: string } | null>(null);
 
   // Estados Administrador
   const [logoClicks, setLogoClicks] = useState<number>(0);
@@ -259,7 +265,7 @@ export default function App() {
     const newRecord: FeedbackRecord = {
       id: Date.now().toString(),
       date: new Date().toLocaleDateString('es-ES'),
-      clientName: 'Clienta Verificada (PIN ' + pin + ')',
+      clientName: currentClientRecord ? `${currentClientRecord.nombre} (PIN ${pin})` : `Clienta Verificada (PIN ${pin})`,
       rating: selectedRating,
       comment: feedbackComment,
       type
@@ -277,8 +283,8 @@ export default function App() {
   const [listaClientes, setListaClientes] = useState<ClientRecord[]>(() => {
     const saved = localStorage.getItem('lst_studio_clientes_ids');
     return saved ? JSON.parse(saved) : [
-      { idNum: 1, registroId: "LSTUDIO-001", nombre: "María Dolores Gómez", telefono: "+34 600 111 222", email: "mariadolores@gmail.com", pinAcceso: "7009", diagnostico: "Balayage manteca / Cabello sensibilizado", ultimaVisita: "15/09/2026" },
-      { idNum: 2, registroId: "LSTUDIO-002", nombre: "Carmen Martínez", telefono: "+34 633 444 555", email: "carmen@gmail.com", pinAcceso: "1234", diagnostico: "Melt & Lights avellana / Hidratación Profunda", ultimaVisita: "20/09/2026" }
+      { idNum: 1, registroId: "LSTUDIO-001", nombre: "María Dolores Gómez", telefono: "+34 600 111 222", email: "mariadolores@gmail.com", pinAcceso: "7009", diagnostico: "Balayage manteca / Cabello sensibilizado", ultimaVisita: "15/08/2026", proximaVisitaSugerida: "15/10/2026" },
+      { idNum: 2, registroId: "LSTUDIO-002", nombre: "Carmen Martínez", telefono: "+34 633 444 555", email: "carmen@gmail.com", pinAcceso: "1234", diagnostico: "Melt & Lights avellana / Hidratación Profunda", ultimaVisita: "01/09/2026", proximaVisitaSugerida: "01/10/2026" }
     ];
   });
 
@@ -293,6 +299,29 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('lst_studio_clientes_ids', JSON.stringify(listaClientes));
   }, [listaClientes]);
+
+  // IA Analizadora de deseos de la clienta frente al catálogo de autor
+  const handleRunAiRecommendation = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clientWishText.trim()) return;
+
+    const query = clientWishText.toLowerCase();
+    let bestMatch = { serviceName: 'DNI Capilar & Estudio Facial', reason: 'Recomendamos un diagnóstico de autor previo para evaluar la fibra capilar antes de realizar cualquier cambio.', category: 'VISAGISMO & DIAGNÓSTICO' };
+
+    if (query.includes('balayage') || query.includes('mechas') || query.includes('luz') || query.includes('rubio')) {
+      bestMatch = { serviceName: 'Balayage & Melt & Lights', reason: 'Ideal para conseguir fundidos de luz tridimensionales personalizados respetando la salud capilar.', category: 'MÉTODO DE AUTOR & ILUMINACIÓN' };
+    } else if (query.includes('corte') || query.includes('cambio de look') || query.includes('estilo')) {
+      bestMatch = { serviceName: 'Corte de Autor & Visagismo', reason: 'Corte arquitectónico adaptado exactamente a la morfología y proporciones de tu rostro.', category: 'VISAGISMO & CORTE' };
+    } else if (query.includes('color') || query.includes('raíces') || query.includes('tinte')) {
+      bestMatch = { serviceName: 'Coloración Global & Raíces', reason: 'Técnica de color de alta precisión con pigmentos y aceites de autor.', category: 'COLOR ATELIER' };
+    } else if (query.includes('hidrata') || query.includes('reconstrucción') || query.includes('seco') || query.includes('roto')) {
+      bestMatch = { serviceName: 'Protocolo Revivre / Reconstrucción', reason: 'Tratamiento profundo y exclusivo de nutrición para devolver la salud y brillo extremo al cabello.', category: 'SALUD CAPILAR & RECONSTRUCCIÓN' };
+    } else if (query.includes('brillo') || query.includes('gloss') || query.includes('matiz')) {
+      bestMatch = { serviceName: 'Gloss / Baño de Brillo Exprés', reason: 'Baño de brillo instantáneo para sellar la cutícula y revitalizar el tono al instante.', category: 'ADD-ONS & COMPLEMENTOS' };
+    }
+
+    setAiRecommendation(bestMatch);
+  };
 
   const handleGuardarNuevoCliente = (e: React.FormEvent) => {
     e.preventDefault();
@@ -309,7 +338,8 @@ export default function App() {
       email: novoEmail.trim() || 'Sin email',
       pinAcceso: novoPin.trim() || '0000',
       diagnostico: novoDiagnostico.trim() || 'Diagnóstico inicial pendiente',
-      ultimaVisita: 'Nuevo registro'
+      ultimaVisita: 'Nuevo registro',
+      proximaVisitaSugerida: 'Pendiente de agendar'
     };
 
     setListaClientes([...listaClientes, nuevoCliente]);
@@ -377,12 +407,20 @@ export default function App() {
       setPin(newPin);
       if (newPin.length === 4) {
         setTimeout(() => {
-          if (newPin === bizConfig.masterPin || newPin === '7009') {
+          // Buscar si el PIN coincide con alguna clienta registrada o con el máster
+          const clientMatch = listaClientes.find(c => c.pinAcceso === newPin);
+          if (clientMatch || newPin === bizConfig.masterPin || newPin === '7009') {
             setPinError(false);
             setPin('');
             setAppVisitsCount(prev => prev + 1);
             setFeedbackSubmitted(false);
             setIsReviewOpen(false);
+            if (clientMatch) {
+              setCurrentClientRecord(clientMatch);
+            } else {
+              // Si entra por PIN maestro, le asignamos por defecto la primera o creamos una vista genérica
+              setCurrentClientRecord(listaClientes[0] || null);
+            }
             setCurrentScreen('clientPortal');
           } else {
             setPinError(true);
@@ -738,15 +776,24 @@ export default function App() {
             </div>
           </div>
 
-          {/* 1. BOTÓN CATÁLOGO DE SERVICIOS */}
-          <button
-            onClick={() => setCurrentScreen('catalog')}
-            style={{ width: '100%', backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '14px', borderRadius: '10px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', letterSpacing: '1px' }}
-          >
-            Ver Catálogo de Servicios →
-          </button>
+          {/* BOTONES DE NAVEGACIÓN CLIENTE */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <button
+              onClick={() => setCurrentScreen('clientHistory')}
+              style={{ width: '100%', backgroundColor: '#221e10', border: '1px solid #d4af37', color: '#d4af37', padding: '14px', borderRadius: '10px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', letterSpacing: '1px' }}
+            >
+              ✨ Mi Historial & Visagismo IA (ID #{currentClientRecord?.idNum || '1'}) →
+            </button>
 
-          {/* 2. REDES SOCIALES DEBAJO DEL CATÁLOGO */}
+            <button
+              onClick={() => setCurrentScreen('catalog')}
+              style={{ width: '100%', backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '14px', borderRadius: '10px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', letterSpacing: '1px' }}
+            >
+              Ver Catálogo de Servicios →
+            </button>
+          </div>
+
+          {/* REDES SOCIALES */}
           <div style={{ display: 'flex', gap: '10px' }}>
             <a href={bizConfig.instagramUrl} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#1a1a1a', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold' }}>
               📸 Instagram
@@ -759,7 +806,7 @@ export default function App() {
             </a>
           </div>
 
-          {/* 3. WIDGET DE RESEÑAS EN DESPLEGABLE CON ENLACE GOOGLE MY BUSINESS */}
+          {/* WIDGET DE RESEÑAS EN DESPLEGABLE CON ENLACE GOOGLE MY BUSINESS */}
           <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', overflow: 'hidden' }}>
             <div 
               onClick={() => setIsReviewOpen(!isReviewOpen)}
@@ -839,7 +886,94 @@ export default function App() {
         </div>
       )}
 
-      {/* 2.1. CATÁLOGO DE CLIENTES */}
+      {/* 2.1. HISTORIAL DE CLIENTE & ASISTENTE IA */}
+      {currentScreen === 'clientHistory' && (
+        <div style={{ maxWidth: '650px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
+            <div>
+              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>{currentClientRecord?.nombre || 'Mi Ficha Personal'}</h2>
+              <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>ID #{currentClientRecord?.idNum || '1'} ({currentClientRecord?.registroId || 'LSTUDIO-001'})</p>
+            </div>
+            <button onClick={() => setCurrentScreen('clientPortal')} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
+              ← Volver
+            </button>
+          </div>
+
+          {/* Tarjeta de Historial y Próxima Visita */}
+          <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0, borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '8px' }}>
+              📋 Registro y Mantenimiento Capilar
+            </h3>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '12px' }}>
+              <div style={{ backgroundColor: '#141414', padding: '10px', borderRadius: '8px', border: '1px solid #333' }}>
+                <span style={{ color: '#888', display: 'block', marginBottom: '4px', fontSize: '10px' }}>ÚLTIMA VISITA</span>
+                <strong style={{ color: '#fff' }}>{currentClientRecord?.ultimaVisita || 'Sin registro'}</strong>
+              </div>
+              <div style={{ backgroundColor: '#141414', padding: '10px', borderRadius: '8px', border: '1px solid #d4af37' }}>
+                <span style={{ color: '#d4af37', display: 'block', marginBottom: '4px', fontSize: '10px' }}>PRÓXIMA VISITA SUGERIDA</span>
+                <strong style={{ color: '#d4af37' }}>{currentClientRecord?.proximaVisitaSugerida || 'Sugerido en 4 semanas'}</strong>
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: '#141414', padding: '10px', borderRadius: '8px', border: '1px solid #333', fontSize: '12px' }}>
+              <span style={{ color: '#888', display: 'block', marginBottom: '4px', fontSize: '10px' }}>DIAGNÓSTICO & NOTAS DE ANA</span>
+              <span style={{ color: '#ccc', fontStyle: 'italic' }}>"{currentClientRecord?.diagnostico || 'Sin notas de diagnóstico previo.'}"</span>
+            </div>
+          </div>
+
+          {/* Asistente IA de Sugerencia de Servicios del Studio */}
+          <div style={{ backgroundColor: '#161616', border: '1px solid #d4af37', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0 }}>
+              🤖 Asistente IA de Visagismo & Servicios
+            </h3>
+            <p style={{ color: '#aaa', fontSize: '11px', margin: 0, lineHeight: '1.4' }}>
+              ¿Qué te gustaría hacerte en el cabello o qué cambio buscas? Nuestra IA analizará tu petición y te sugerirá el tratamiento adecuado del catálogo de L'Studio Ana.
+            </p>
+
+            <form onSubmit={handleRunAiRecommendation} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <textarea 
+                value={clientWishText} 
+                onChange={(e) => setClientWishText(e.target.value)} 
+                placeholder="Ej. Quiero unas mechas balayage que iluminen mi rostro pero con mantenimiento fácil..." 
+                rows={3}
+                style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '8px', padding: '10px', fontSize: '12px', resize: 'none' }}
+              />
+              <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+                Consultar con la IA de L'Studio Ana ✨
+              </button>
+            </form>
+
+            {aiRecommendation && (
+              <div style={{ backgroundColor: '#1f1a10', border: '1px solid #d4af37', borderRadius: '8px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px' }}>
+                <span style={{ color: '#d4af37', fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold' }}>Tratamiento Sugerido por la IA:</span>
+                <h4 style={{ color: '#fff', fontSize: '13px', margin: 0, fontWeight: 'bold' }}>{aiRecommendation.serviceName}</h4>
+                <p style={{ color: '#ccc', fontSize: '11px', margin: 0, lineHeight: '1.4' }}>{aiRecommendation.reason}</p>
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
+                  <button 
+                    onClick={() => {
+                      const text = encodeURIComponent(`Hola Ana, tras consultar con la IA de la app, me gustaría reservar cita para: ${aiRecommendation.serviceName}`);
+                      window.open(`https://wa.me/34${bizConfig.phone}?text=${text}`, '_blank');
+                    }}
+                    style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    Reservar este servicio por WhatsApp →
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <button
+            onClick={() => setCurrentScreen('clientPortal')}
+            style={{ width: '100%', backgroundColor: '#1a1a1a', border: '1px solid #444', color: '#ccc', padding: '12px', borderRadius: '10px', fontSize: '12px', cursor: 'pointer' }}
+          >
+            ← Volver al Portal Privado
+          </button>
+        </div>
+      )}
+
+      {/* 2.2. CATÁLOGO DE CLIENTES */}
       {currentScreen === 'catalog' && (
         <div style={{ maxWidth: '750px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px', marginBottom: '25px' }}>
