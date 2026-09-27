@@ -46,8 +46,15 @@ interface Appointment {
   time: string;
   clientName: string;
   phone: string;
+  email: string;
   serviceCategory: string;
   serviceSubcategory: string;
+  remindersStatus: {
+    email48h: boolean;
+    whatsapp48h: boolean;
+    whatsapp24h: boolean;
+    whatsapp2h: boolean;
+  };
 }
 
 interface SubService {
@@ -70,12 +77,22 @@ interface ClientRecord {
   idNum: number;
   registroId: string;
   nombre: string;
+  apellidos: string;
+  fechaNacimiento: string;
   telefono: string;
   email: string;
   pinAcceso: string;
   diagnostico: string;
   ultimaVisita: string;
-  proximaVisitaSugerida?: string;
+  proximaVisitaSugerida: string;
+  formulasAplicadas: string;
+}
+
+interface LostDemandRecord {
+  id: string;
+  date: string;
+  reason: 'sin_disponibilidad' | 'abandono_sin_servicio' | 'intento_fallido' | 'otro';
+  clientNote: string;
 }
 
 interface FeedbackRecord {
@@ -170,16 +187,35 @@ const formatDateKey = (d: Date) => {
 };
 
 const INITIAL_APPOINTMENTS: Appointment[] = [
-  { id: '1', dateKey: '2026-09-21', dayName: 'Lunes', time: '10:00', clientName: 'María G.', phone: '600111222', serviceCategory: '0.4 < COLOR ATELIER', serviceSubcategory: 'Coloración Global & Raíces' },
-  { id: '2', dateKey: '2026-09-23', dayName: 'Miércoles', time: '11:30', clientName: 'Carmen R.', phone: '611222333', serviceCategory: '0.2 < VISAGISMO & CORTE', serviceSubcategory: 'Corte de Autor & Visagismo' },
+  { id: '1', dateKey: '2026-09-28', dayName: 'Lunes', time: '10:00', clientName: 'María Dolores Gómez', phone: '600111222', email: 'mariadolores@gmail.com', serviceCategory: '0.4 < COLOR ATELIER', serviceSubcategory: 'Coloración Global & Raíces', remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: false, whatsapp2h: false } },
+  { id: '2', dateKey: '2026-09-30', dayName: 'Miércoles', time: '11:30', clientName: 'Carmen Martínez', phone: '611222333', email: 'carmen@gmail.com', serviceCategory: '0.2 < VISAGISMO & CORTE', serviceSubcategory: 'Corte de Autor & Visagismo', remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false } },
 ];
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'clientPin' | 'clientPortal' | 'catalog' | 'clientHistory' | 'adminLogin' | 'adminPanel'>('clientPin');
+  const [currentScreen, setCurrentScreen] = useState<'clientPin' | 'clientRegistration' | 'clientPortal' | 'catalogBooking' | 'clientHistoryPage' | 'adminLogin' | 'adminPanel'>('clientPin');
   
   const [pin, setPin] = useState<string>('');
   const [pinError, setPinError] = useState<boolean>(false);
   const [currentClientRecord, setCurrentClientRecord] = useState<ClientRecord | null>(null);
+
+  // Estados de Registro de Nueva Clienta (Primer contacto)
+  const [regNombre, setRegNombre] = useState('');
+  const [regApellidos, setRegApellidos] = useState('');
+  const [regNacimiento, setRegNacimiento] = useState('');
+  const [regTelefono, setRegTelefono] = useState('');
+  const [regEmail, setRegEmail] = useState('');
+  const [regPin, setRegPin] = useState('');
+
+  // Estados de Reserva Interactiva en Portal
+  const [selectedServicesToBook, setSelectedServicesToBook] = useState<SubService[]>([]);
+  const [bookingDate, setBookingDate] = useState<Date>(new Date(2026, 8, 28));
+  const [bookingTime, setBookingTime] = useState<string>('11:00');
+  const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null);
+
+  // Estados editables de la ficha de cliente actual
+  const [editProximaVisita, setEditProximaVisita] = useState<string>('');
+  const [editFormulas, setEditFormulas] = useState<string>('');
+  const [editMsg, setEditMsg] = useState<string | null>(null);
 
   // Estados Asistente IA de Estilo en Historial
   const [clientWishText, setClientWishText] = useState<string>('');
@@ -225,13 +261,22 @@ export default function App() {
 
   const [appVisitsCount, setAppVisitsCount] = useState<number>(() => {
     const saved = localStorage.getItem('lst_app_visits');
-    return saved ? parseInt(saved, 10) : 0;
+    return saved ? parseInt(saved, 10) : 48;
   });
 
-  const [lostDemandCount, setLostDemandCount] = useState<number>(() => {
-    const saved = localStorage.getItem('lst_lost_demand');
-    return saved ? parseInt(saved, 10) : 0;
+  // Registro detallado de demandas perdidas
+  const [lostDemandsList, setLostDemandsList] = useState<LostDemandRecord[]>(() => {
+    const saved = localStorage.getItem('lst_lost_demands_detailed');
+    return saved ? JSON.parse(saved) : [
+      { id: '1', date: '22/09/2026', reason: 'sin_disponibilidad', clientNote: 'Buscaba hueco en sábado por la mañana pero estaba completo.' },
+      { id: '2', date: '24/09/2026', reason: 'abandono_sin_servicio', clientNote: 'Entró a ver catálogo de Balayage pero no concretó reserva.' },
+      { id: '3', date: '26/09/2026', reason: 'intento_fallido', clientNote: 'Dificultad con el PIN o el flujo de WhatsApp.' }
+    ];
   });
+
+  useEffect(() => {
+    localStorage.setItem('lst_lost_demands_detailed', JSON.stringify(lostDemandsList));
+  }, [lostDemandsList]);
 
   const [feedbackList, setFeedbackList] = useState<FeedbackRecord[]>(() => {
     const saved = localStorage.getItem('lst_feedback_list');
@@ -265,7 +310,7 @@ export default function App() {
     const newRecord: FeedbackRecord = {
       id: Date.now().toString(),
       date: new Date().toLocaleDateString('es-ES'),
-      clientName: currentClientRecord ? `${currentClientRecord.nombre} (PIN ${pin})` : `Clienta Verificada (PIN ${pin})`,
+      clientName: currentClientRecord ? `${currentClientRecord.nombre} (PIN ${currentClientRecord.pinAcceso})` : `Clienta Verificada`,
       rating: selectedRating,
       comment: feedbackComment,
       type
@@ -283,13 +328,15 @@ export default function App() {
   const [listaClientes, setListaClientes] = useState<ClientRecord[]>(() => {
     const saved = localStorage.getItem('lst_studio_clientes_ids');
     return saved ? JSON.parse(saved) : [
-      { idNum: 1, registroId: "LSTUDIO-001", nombre: "María Dolores Gómez", telefono: "+34 600 111 222", email: "mariadolores@gmail.com", pinAcceso: "7009", diagnostico: "Balayage manteca / Cabello sensibilizado", ultimaVisita: "15/08/2026", proximaVisitaSugerida: "15/10/2026" },
-      { idNum: 2, registroId: "LSTUDIO-002", nombre: "Carmen Martínez", telefono: "+34 633 444 555", email: "carmen@gmail.com", pinAcceso: "1234", diagnostico: "Melt & Lights avellana / Hidratación Profunda", ultimaVisita: "01/09/2026", proximaVisitaSugerida: "01/10/2026" }
+      { idNum: 1, registroId: "LSTUDIO-001", nombre: "María Dolores", apellidos: "Gómez Pérez", fechaNacimiento: "12/05/1988", telefono: "+34 600 111 222", email: "mariadolores@gmail.com", pinAcceso: "7009", diagnostico: "Balayage manteca / Cabello sensibilizado", ultimaVisita: "15/08/2026", proximaVisitaSugerida: "15/10/2026", formulasAplicadas: "Raíces 7.0 + Matiz 9.21 con emulsión de autor" },
+      { idNum: 2, registroId: "LSTUDIO-002", nombre: "Carmen", apellidos: "Martínez Ruiz", fechaNacimiento: "22/11/1990", telefono: "+34 633 444 555", email: "carmen@gmail.com", pinAcceso: "1234", diagnostico: "Melt & Lights avellana / Hidratación Profunda", ultimaVisita: "01/09/2026", proximaVisitaSugerida: "01/10/2026", formulasAplicadas: "Balayage enriquecido con proteínas Revivre" }
     ];
   });
 
   const [isAddingClient, setIsAddingClient] = useState(false);
   const [novoNombre, setNovoNombre] = useState('');
+  const [novoApellidos, setNovoApellidos] = useState('');
+  const [novoNacimiento, setNovoNacimiento] = useState('');
   const [novoTelefono, setNovoTelefono] = useState('');
   const [novoEmail, setNovoEmail] = useState('');
   const [novoPin, setNovoPin] = useState('');
@@ -300,7 +347,31 @@ export default function App() {
     localStorage.setItem('lst_studio_clientes_ids', JSON.stringify(listaClientes));
   }, [listaClientes]);
 
-  // IA Analizadora de deseos de la clienta frente al catálogo de autor
+  useEffect(() => {
+    if (currentClientRecord) {
+      setEditProximaVisita(currentClientRecord.proximaVisitaSugerida || '');
+      setEditFormulas(currentClientRecord.formulasAplicadas || '');
+    }
+  }, [currentClientRecord]);
+
+  const handleGuardarCambiosFichaClienta = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!currentClientRecord) return;
+
+    const clienteActualizado: ClientRecord = {
+      ...currentClientRecord,
+      proximaVisitaSugerida: editProximaVisita,
+      formulasAplicadas: editFormulas
+    };
+
+    const nuevaLista = listaClientes.map(c => c.idNum === clienteActualizado.idNum ? clienteActualizado : c);
+    setListaClientes(nuevaLista);
+    setCurrentClientRecord(clienteActualizado);
+
+    setEditMsg('¡Ficha, fórmulas y fecha guardadas correctamente!');
+    setTimeout(() => setEditMsg(null), 3000);
+  };
+
   const handleRunAiRecommendation = (e: React.FormEvent) => {
     e.preventDefault();
     if (!clientWishText.trim()) return;
@@ -334,21 +405,53 @@ export default function App() {
       idNum: siguienteIdNum,
       registroId: idFormateado,
       nombre: novoNombre.trim(),
+      apellidos: novoApellidos.trim() || 'Sin apellidos',
+      fechaNacimiento: novoNacimiento.trim() || '01/01/1990',
       telefono: novoTelefono.trim() || 'No facilitado',
-      email: novoEmail.trim() || 'Sin email',
+      email: novoEmail.trim() || 'sinemail@gmail.com',
       pinAcceso: novoPin.trim() || '0000',
       diagnostico: novoDiagnostico.trim() || 'Diagnóstico inicial pendiente',
       ultimaVisita: 'Nuevo registro',
-      proximaVisitaSugerida: 'Pendiente de agendar'
+      proximaVisitaSugerida: 'Pendiente de agendar',
+      formulasAplicadas: 'Sin fórmulas registradas'
     };
 
     setListaClientes([...listaClientes, nuevoCliente]);
     setNovoNombre('');
+    setNovoApellidos('');
+    setNovoNacimiento('');
     setNovoTelefono('');
     setNovoEmail('');
     setNovoPin('');
     setNovoDiagnostico('');
     setIsAddingClient(false);
+  };
+
+  const handleRegistroClientaPortalSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!regNombre.trim() || !regEmail.trim() || !regPin.trim()) return;
+
+    const siguienteIdNum = listaClientes.length > 0 ? Math.max(...listaClientes.map(c => c.idNum || 0)) + 1 : 1;
+    const idFormateado = `LSTUDIO-${String(siguienteIdNum).padStart(3, '0')}`;
+
+    const nuevaClienta: ClientRecord = {
+      idNum: siguienteIdNum,
+      registroId: idFormateado,
+      nombre: regNombre.trim(),
+      apellidos: regApellidos.trim(),
+      fechaNacimiento: regNacimiento.trim(),
+      telefono: regTelefono.trim(),
+      email: regEmail.trim(),
+      pinAcceso: regPin.trim(),
+      diagnostico: 'Primera visita registrada desde app',
+      ultimaVisita: 'Nuevo registro',
+      proximaVisitaSugerida: 'Pendiente',
+      formulasAplicadas: 'Registro inicial completado'
+    };
+
+    setListaClientes([...listaClientes, nuevaClienta]);
+    setCurrentClientRecord(nuevaClienta);
+    setCurrentScreen('clientPortal');
   };
 
   const handleBorrarCliente = (idNum: number) => {
@@ -359,7 +462,7 @@ export default function App() {
 
   const [draggedApptId, setDraggedApptId] = useState<string | null>(null);
 
-  const [fechaSeleccionada, setFechaSeleccionada] = useState<Date>(new Date(2026, 8, 24));
+  const [fechaSeleccionada, setFechaSeleccionada] = useState<Date>(new Date(2026, 8, 28));
   const [mesNavegacion, setMesNavegacion] = useState<Date>(new Date(2026, 8, 1));
 
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
@@ -368,6 +471,7 @@ export default function App() {
   const [targetTime, setTargetTime] = useState<string>('');
   const [modalClientName, setModalClientName] = useState<string>('');
   const [modalPhone, setModalPhone] = useState<string>('');
+  const [modalEmail, setModalEmail] = useState<string>('');
   const [modalCatIndex, setModalCatIndex] = useState<number>(0);
   const [modalSubIndex, setModalSubIndex] = useState<number>(0);
 
@@ -397,17 +501,12 @@ export default function App() {
     localStorage.setItem('lst_app_visits', appVisitsCount.toString());
   }, [appVisitsCount]);
 
-  useEffect(() => {
-    localStorage.setItem('lst_lost_demand', lostDemandCount.toString());
-  }, [lostDemandCount]);
-
   const handleNumberClick = (num: string) => {
     if (pin.length < 4) {
       const newPin = pin + num;
       setPin(newPin);
       if (newPin.length === 4) {
         setTimeout(() => {
-          // Buscar si el PIN coincide con alguna clienta registrada o con el máster
           const clientMatch = listaClientes.find(c => c.pinAcceso === newPin);
           if (clientMatch || newPin === bizConfig.masterPin || newPin === '7009') {
             setPinError(false);
@@ -417,11 +516,12 @@ export default function App() {
             setIsReviewOpen(false);
             if (clientMatch) {
               setCurrentClientRecord(clientMatch);
+              setCurrentScreen('clientPortal');
             } else {
-              // Si entra por PIN maestro, le asignamos por defecto la primera o creamos una vista genérica
+              // Si introduce PIN maestro pero no es clienta específica, puede registrarse o ver panel o clienta por defecto
               setCurrentClientRecord(listaClientes[0] || null);
+              setCurrentScreen('clientPortal');
             }
-            setCurrentScreen('clientPortal');
           } else {
             setPinError(true);
             setPin('');
@@ -501,6 +601,7 @@ export default function App() {
     setTargetTime(time);
     setModalClientName('');
     setModalPhone('');
+    setModalEmail('');
     setModalCatIndex(0);
     setModalSubIndex(0);
     setIsModalOpen(true);
@@ -520,12 +621,46 @@ export default function App() {
       time: targetTime,
       clientName: modalClientName,
       phone: modalPhone || 'No facilitado',
+      email: modalEmail || 'sinemail@gmail.com',
       serviceCategory: `${selectedCategory.code} < ${selectedCategory.title}`,
-      serviceSubcategory: selectedSub.name
+      serviceSubcategory: selectedSub.name,
+      remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false }
     };
 
     setAppointments([...appointments, newApp]);
     setIsModalOpen(false);
+  };
+
+  const handleConfirmarCitaClientaPortal = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (selectedServicesToBook.length === 0) {
+      alert('Por favor, selecciona al menos un servicio del catálogo.');
+      return;
+    }
+
+    const dayNamesMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+    const dayNameStr = dayNamesMap[bookingDate.getDay()];
+    const dateKeyStr = formatDateKey(bookingDate);
+
+    const subNames = selectedServicesToBook.map(s => s.name).join(', ');
+
+    const newApp: Appointment = {
+      id: Date.now().toString(),
+      dateKey: dateKeyStr,
+      dayName: dayNameStr,
+      time: bookingTime,
+      clientName: currentClientRecord ? currentClientRecord.nombre + ' ' + currentClientRecord.apellidos : 'Clienta Web',
+      phone: currentClientRecord?.telefono || '600000000',
+      email: currentClientRecord?.email || 'cliente@gmail.com',
+      serviceCategory: 'CATÁLOGO DE AUTOR ONLINE',
+      serviceSubcategory: subNames,
+      remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false }
+    };
+
+    setAppointments([...appointments, newApp]);
+    setBookingSuccessMsg(`¡Cita confirmada correctamente para el ${bookingDate.toLocaleDateString('es-ES')} a las ${bookingTime}! Se han programado los recordatorios (Email 48h, WhatsApp 48h/24h/2h).`);
+    setSelectedServicesToBook([]);
+    setTimeout(() => setBookingSuccessMsg(null), 5000);
   };
 
   const handleDeleteAppointment = (id: string, e?: React.MouseEvent) => {
@@ -676,11 +811,11 @@ export default function App() {
             <p style={{ color: '#888888', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '3px', margin: 0 }}>{bizConfig.subtitle}</p>
           </div>
 
-          <p style={{ color: pinError ? '#ff4444' : '#cccccc', fontSize: '14px', marginBottom: '20px', letterSpacing: '1px', textAlign: 'center' }}>
+          <p style={{ color: pinError ? '#ff4444' : '#cccccc', fontSize: '14px', marginBottom: '15px', letterSpacing: '1px', textAlign: 'center' }}>
             {pinError ? `PIN incorrecto` : 'Introduce tu PIN de acceso'}
           </p>
           
-          <div style={{ display: 'flex', gap: '15px', marginBottom: '35px' }}>
+          <div style={{ display: 'flex', gap: '15px', marginBottom: '25px' }}>
             {[0, 1, 2, 3].map((i) => (
               <div key={i} style={{
                 width: '14px',
@@ -693,7 +828,7 @@ export default function App() {
             ))}
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', width: '100%', marginBottom: '25px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px', width: '100%', marginBottom: '20px' }}>
             {['1', '2', '3', '4', '5', '6', '7', '8', '9'].map((num) => (
               <button
                 key={num}
@@ -714,16 +849,73 @@ export default function App() {
             <button onClick={handleDelete} style={{ width: '65px', height: '65px', borderRadius: '50%', backgroundColor: '#141414', border: '1px solid #333', color: '#888', fontSize: '16px', cursor: 'pointer', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
           </div>
 
+          {/* Botón Primera vez / Registrarse */}
+          <button
+            onClick={() => setCurrentScreen('clientRegistration')}
+            style={{ width: '100%', backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '12px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '15px' }}
+          >
+            ✨ ¿Es tu primera vez? Regístrate aquí
+          </button>
+
           {showInstallBanner && (
-            <div style={{ marginTop: '10px', padding: '12px', backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', textAlign: 'center', width: '100%', boxSizing: 'border-box' }}>
-              <p style={{ color: '#d4af37', fontSize: '11px', margin: '0 0 5px 0', fontWeight: 'bold' }}>📱 Instala la App</p>
+            <div style={{ padding: '10px', backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', textAlign: 'center', width: '100%', boxSizing: 'border-box' }}>
+              <p style={{ color: '#d4af37', fontSize: '11px', margin: '0 0 3px 0', fontWeight: 'bold' }}>📱 Instala la App</p>
               <p style={{ color: '#aaa', fontSize: '10px', margin: 0 }}>Añade a la pantalla de inicio de tu móvil.</p>
             </div>
           )}
         </div>
       )}
 
-      {/* 2. PORTAL CLIENTE */}
+      {/* 1.1 PANTALLA DE REGISTRO NUEVA CLIENTA (PRIMER CONTACTO) */}
+      {currentScreen === 'clientRegistration' && (
+        <div style={{ maxWidth: '400px', width: '100%', backgroundColor: '#121212', border: '1px solid #d4af37', borderRadius: '16px', padding: '30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <h2 style={{ color: '#d4af37', fontSize: '18px', fontFamily: 'serif', margin: 0, textAlign: 'center' }}>Registro de Nueva Clienta</h2>
+          <p style={{ color: '#aaa', fontSize: '11px', textAlign: 'center', margin: '0 0 10px 0' }}>Introduce tus datos por única vez. Quedarás registrada en nuestra base de datos con tu email.</p>
+
+          <form onSubmit={handleRegistroClientaPortalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Nombre *</label>
+              <input type="text" placeholder="Ej. Ana" value={regNombre} onChange={(e) => setRegNombre(e.target.value)} required style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ color: '#aaa', fontSize: '11px' }}>Apellidos</label>
+              <input type="text" placeholder="Ej. García López" value={regApellidos} onChange={(e) => setRegApellidos(e.target.value)} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ color: '#aaa', fontSize: '11px' }}>Fecha de Nacimiento</label>
+                <input type="text" placeholder="DD/MM/AAAA" value={regNacimiento} onChange={(e) => setRegNacimiento(e.target.value)} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ color: '#aaa', fontSize: '11px' }}>Teléfono móvil</label>
+                <input type="text" placeholder="600111222" value={regTelefono} onChange={(e) => setRegTelefono(e.target.value)} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Correo Electrónico (Tu identificador único) *</label>
+              <input type="email" placeholder="tucorreo@gmail.com" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} required style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Elige tu PIN de Acceso (4 dígitos) *</label>
+              <input type="password" placeholder="Ej. 7009" maxLength={4} value={regPin} onChange={(e) => setRegPin(e.target.value)} required style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #d4af37', color: '#fff', borderRadius: '6px', fontSize: '14px', textAlign: 'center', letterSpacing: '4px' }} />
+            </div>
+
+            <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', marginTop: '10px' }}>
+              Completar Registro y Acceder ✨
+            </button>
+          </form>
+
+          <button onClick={() => setCurrentScreen('clientPin')} style={{ background: 'none', border: 'none', color: '#888', fontSize: '11px', cursor: 'pointer', textAlign: 'center' }}>
+            ← Ya estoy registrada, volver al PIN
+          </button>
+        </div>
+      )}
+
+      {/* 2. PORTAL CLIENTE CON BIENVENIDA PERSONALIZADA */}
       {currentScreen === 'clientPortal' && (
         <div style={{ maxWidth: '600px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
@@ -737,20 +929,31 @@ export default function App() {
             </button>
           </div>
 
-          <div style={{ textAlign: 'center', padding: '25px 20px', backgroundColor: '#1a1a1a', borderRadius: '12px', border: '1px dashed rgba(212,175,55,0.3)' }}>
-            <p style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: '0 0 5px 0' }}>{bizConfig.name}</p>
+          <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#1a1a1a', borderRadius: '12px', border: '1px dashed rgba(212,175,55,0.3)' }}>
+            <p style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: '0 0 4px 0', fontWeight: 'bold' }}>
+              ✨ ¡Bienvenida, {currentClientRecord?.nombre || 'Estimada Clienta'}! ✨
+            </p>
+            <p style={{ color: '#888', fontSize: '11px', margin: '0 0 4px 0' }}>Email registrado: {currentClientRecord?.email || 'Registrada'} | ID: #{currentClientRecord?.idNum || '1'}</p>
             <a href={bizConfig.googleMapsUrl} target="_blank" rel="noreferrer" style={{ color: '#aaa', fontSize: '11px', textDecoration: 'underline' }}>
               📍 {bizConfig.location} (Ver en Google Maps)
             </a>
           </div>
 
-          <div>
-            <h1 style={{ fontSize: '20px', fontFamily: 'serif', color: '#fff', marginBottom: '8px' }}>
-              {bizConfig.welcomeMessage}
-            </h1>
-            <p style={{ color: '#ccc', fontSize: '12px', lineHeight: '1.6', margin: 0 }}>
-              {bizConfig.description}
-            </p>
+          {/* BOTONES DE ACCIÓN PRINCIPALES */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <button
+              onClick={() => setCurrentScreen('catalogBooking')}
+              style={{ width: '100%', backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '14px', borderRadius: '10px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', letterSpacing: '1px' }}
+            >
+              📅 Ver Catálogo & Reservar Cita (Selección Interactiva) →
+            </button>
+
+            <button
+              onClick={() => setCurrentScreen('clientHistoryPage')}
+              style={{ width: '100%', backgroundColor: '#1c1c1c', border: '1px solid #d4af37', color: '#d4af37', padding: '14px', borderRadius: '10px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', letterSpacing: '1px' }}
+            >
+              📋 Mi Historial, Fórmulas & Ficha Personal →
+            </button>
           </div>
 
           {/* Horarios */}
@@ -776,23 +979,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* BOTONES DE NAVEGACIÓN CLIENTE */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <button
-              onClick={() => setCurrentScreen('clientHistory')}
-              style={{ width: '100%', backgroundColor: '#221e10', border: '1px solid #d4af37', color: '#d4af37', padding: '14px', borderRadius: '10px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', letterSpacing: '1px' }}
-            >
-              ✨ Mi Historial & Visagismo IA (ID #{currentClientRecord?.idNum || '1'}) →
-            </button>
-
-            <button
-              onClick={() => setCurrentScreen('catalog')}
-              style={{ width: '100%', backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '14px', borderRadius: '10px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', letterSpacing: '1px' }}
-            >
-              Ver Catálogo de Servicios →
-            </button>
-          </div>
-
           {/* REDES SOCIALES */}
           <div style={{ display: 'flex', gap: '10px' }}>
             <a href={bizConfig.instagramUrl} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#1a1a1a', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold' }}>
@@ -806,7 +992,7 @@ export default function App() {
             </a>
           </div>
 
-          {/* WIDGET DE RESEÑAS EN DESPLEGABLE CON ENLACE GOOGLE MY BUSINESS */}
+          {/* WIDGET DE RESEÑAS */}
           <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', overflow: 'hidden' }}>
             <div 
               onClick={() => setIsReviewOpen(!isReviewOpen)}
@@ -886,61 +1072,194 @@ export default function App() {
         </div>
       )}
 
-      {/* 2.1. HISTORIAL DE CLIENTE & ASISTENTE IA */}
-      {currentScreen === 'clientHistory' && (
-        <div style={{ maxWidth: '650px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* 2.2. CATÁLOGO & RESERVA INTERACTIVA EN PORTAL DE CLIENTE */}
+      {currentScreen === 'catalogBooking' && (
+        <div style={{ maxWidth: '700px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
             <div>
-              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>{currentClientRecord?.nombre || 'Mi Ficha Personal'}</h2>
-              <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>ID #{currentClientRecord?.idNum || '1'} ({currentClientRecord?.registroId || 'LSTUDIO-001'})</p>
+              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>{bizConfig.name}</h2>
+              <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>Selección de Servicios & Agenda</p>
             </div>
             <button onClick={() => setCurrentScreen('clientPortal')} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
-              ← Volver
+              ← Volver al Portal
             </button>
           </div>
 
-          {/* Tarjeta de Historial y Próxima Visita */}
-          <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0, borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '8px' }}>
-              📋 Registro y Mantenimiento Capilar
-            </h3>
-            
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', fontSize: '12px' }}>
-              <div style={{ backgroundColor: '#141414', padding: '10px', borderRadius: '8px', border: '1px solid #333' }}>
-                <span style={{ color: '#888', display: 'block', marginBottom: '4px', fontSize: '10px' }}>ÚLTIMA VISITA</span>
-                <strong style={{ color: '#fff' }}>{currentClientRecord?.ultimaVisita || 'Sin registro'}</strong>
-              </div>
-              <div style={{ backgroundColor: '#141414', padding: '10px', borderRadius: '8px', border: '1px solid #d4af37' }}>
-                <span style={{ color: '#d4af37', display: 'block', marginBottom: '4px', fontSize: '10px' }}>PRÓXIMA VISITA SUGERIDA</span>
-                <strong style={{ color: '#d4af37' }}>{currentClientRecord?.proximaVisitaSugerida || 'Sugerido en 4 semanas'}</strong>
-              </div>
+          {bookingSuccessMsg && (
+            <div style={{ padding: '15px', backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', borderRadius: '8px', fontSize: '12px', textAlign: 'center', lineHeight: '1.5' }}>
+              {bookingSuccessMsg}
             </div>
+          )}
 
-            <div style={{ backgroundColor: '#141414', padding: '10px', borderRadius: '8px', border: '1px solid #333', fontSize: '12px' }}>
-              <span style={{ color: '#888', display: 'block', marginBottom: '4px', fontSize: '10px' }}>DIAGNÓSTICO & NOTAS DE ANA</span>
-              <span style={{ color: '#ccc', fontStyle: 'italic' }}>"{currentClientRecord?.diagnostico || 'Sin notas de diagnóstico previo.'}"</span>
-            </div>
+          <div>
+            <h1 style={{ fontSize: '18px', fontFamily: 'serif', color: '#fff', marginBottom: '6px' }}>1. Selecciona tus servicios deseados:</h1>
+            <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Haz clic en los servicios que deseas incluir en tu visita.</p>
           </div>
 
-          {/* Asistente IA de Sugerencia de Servicios del Studio */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '300px', overflowY: 'auto', paddingRight: '5px' }}>
+            {catalog.map((cat) => (
+              <div key={cat.id} style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '8px', padding: '12px' }}>
+                <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>{cat.code} &lt; {cat.title}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {cat.subservices.map((sub) => {
+                    const isSelected = selectedServicesToBook.some(s => s.id === sub.id);
+                    return (
+                      <div 
+                        key={sub.id} 
+                        onClick={() => {
+                          if (isSelected) {
+                            setSelectedServicesToBook(selectedServicesToBook.filter(s => s.id !== sub.id));
+                          } else {
+                            setSelectedServicesToBook([...selectedServicesToBook, sub]);
+                          }
+                        }}
+                        style={{ 
+                          backgroundColor: isSelected ? '#252012' : '#141414', 
+                          border: isSelected ? '1px solid #d4af37' : '1px solid #333', 
+                          borderRadius: '6px', 
+                          padding: '10px', 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center', 
+                          cursor: 'pointer' 
+                        }}
+                      >
+                        <div>
+                          <div style={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}>{sub.name}</div>
+                          <div style={{ color: '#888', fontSize: '10px' }}>{sub.duration} — <strong style={{ color: '#d4af37' }}>{sub.price}</strong></div>
+                        </div>
+                        <div style={{ width: '20px', height: '20px', borderRadius: '4px', border: '1px solid #d4af37', backgroundColor: isSelected ? '#d4af37' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontSize: '12px', fontWeight: 'bold' }}>
+                          {isSelected ? '✓' : ''}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* SELECCIÓN DE FECHA Y HORA */}
+          <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <h2 style={{ fontSize: '15px', fontFamily: 'serif', color: '#d4af37', margin: 0 }}>2. Selecciona Fecha y Hora Laboral:</h2>
+            
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ color: '#aaa', fontSize: '11px' }}>Fecha de Cita:</label>
+                <input 
+                  type="date" 
+                  value={formatDateKey(bookingDate)} 
+                  onChange={(e) => setBookingDate(new Date(e.target.value))} 
+                  style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '8px', borderRadius: '6px', fontSize: '12px' }} 
+                />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ color: '#aaa', fontSize: '11px' }}>Hora Disponible:</label>
+                <select 
+                  value={bookingTime} 
+                  onChange={(e) => setBookingTime(e.target.value)} 
+                  style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '8px', borderRadius: '6px', fontSize: '12px' }}
+                >
+                  {hoursList.map((h) => (
+                    <option key={h} value={h}>{h} ({appointments.some(a => a.dateKey === formatDateKey(bookingDate) && a.time === h) ? '🔴 Ocupado' : '🟢 Libre'})</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <button 
+              onClick={handleConfirmarCitaClientaPortal}
+              style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', marginTop: '5px' }}
+            >
+              Confirmar Reserva de Cita ✨
+            </button>
+          </div>
+
+        </div>
+      )}
+
+      {/* 2.3. VENTANA APARTE: HISTORIAL DE CLIENTE CON BIENVENIDA */}
+      {currentScreen === 'clientHistoryPage' && (
+        <div style={{ maxWidth: '700px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
+            <div>
+              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>Hola, {currentClientRecord?.nombre || 'Clienta'}</h2>
+              <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>ID #{currentClientRecord?.idNum || '1'} ({currentClientRecord?.registroId || 'LSTUDIO-001'}) — Ficha Personal y Fórmulas</p>
+            </div>
+            <button onClick={() => setCurrentScreen('clientPortal')} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
+              ← Volver al Portal
+            </button>
+          </div>
+
+          {editMsg && (
+            <div style={{ padding: '10px', backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }}>
+              {editMsg}
+            </div>
+          )}
+
+          {/* Formulario de Modificación Manual de Fecha Sugerida y Fórmulas */}
+          <form onSubmit={handleGuardarCambiosFichaClienta} style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0, borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '8px' }}>
+              ✏️ Fórmulas y Próxima Visita (Modo Manual)
+            </h3>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ color: '#aaa', fontSize: '11px' }}>Última Visita Registrada:</label>
+                <input type="text" value={currentClientRecord?.ultimaVisita || ''} disabled style={{ backgroundColor: '#121212', border: '1px solid #333', color: '#888', padding: '8px', borderRadius: '6px', fontSize: '11px' }} />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Próxima Visita Sugerida (Editable):</label>
+                <input 
+                  type="text" 
+                  value={editProximaVisita} 
+                  onChange={(e) => setEditProximaVisita(e.target.value)} 
+                  placeholder="Ej. 15/10/2026 o En 4 semanas" 
+                  style={{ backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', padding: '8px', borderRadius: '6px', fontSize: '11px' }} 
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Fórmulas Aplicadas & Diagnóstico (Editable):</label>
+              <textarea 
+                value={editFormulas} 
+                onChange={(e) => setEditFormulas(e.target.value)} 
+                rows={2}
+                placeholder="Introduce las fórmulas de color, matiz o notas técnicas..."
+                style={{ backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', padding: '8px', borderRadius: '6px', fontSize: '11px', resize: 'none' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 16px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
+                Guardar Fórmulas y Fecha Sugerida
+              </button>
+            </div>
+          </form>
+
+          {/* Asistente IA */}
           <div style={{ backgroundColor: '#161616', border: '1px solid #d4af37', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0 }}>
-              🤖 Asistente IA de Visagismo & Servicios
+              🤖 Asistente IA de Visagismo & Recomendación de Servicios
             </h3>
             <p style={{ color: '#aaa', fontSize: '11px', margin: 0, lineHeight: '1.4' }}>
-              ¿Qué te gustaría hacerte en el cabello o qué cambio buscas? Nuestra IA analizará tu petición y te sugerirá el tratamiento adecuado del catálogo de L'Studio Ana.
+              Describe qué cambio o mantenimiento buscas y la IA te recomendará el servicio exacto del catálogo de L'Studio Ana.
             </p>
 
             <form onSubmit={handleRunAiRecommendation} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <textarea 
                 value={clientWishText} 
                 onChange={(e) => setClientWishText(e.target.value)} 
-                placeholder="Ej. Quiero unas mechas balayage que iluminen mi rostro pero con mantenimiento fácil..." 
-                rows={3}
-                style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '8px', padding: '10px', fontSize: '12px', resize: 'none' }}
+                placeholder="Ej. Quiero matizar mi rubio y darle nutrición profunda sin perder la raíz..." 
+                rows={2}
+                style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '8px', padding: '10px', fontSize: '11px', resize: 'none' }}
               />
               <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
-                Consultar con la IA de L'Studio Ana ✨
+                Consultar con la IA ✨
               </button>
             </form>
 
@@ -952,93 +1271,16 @@ export default function App() {
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
                   <button 
                     onClick={() => {
-                      const text = encodeURIComponent(`Hola Ana, tras consultar con la IA de la app, me gustaría reservar cita para: ${aiRecommendation.serviceName}`);
+                      const text = encodeURIComponent(`Hola Ana, tras consultar el historial y la IA, me gustaría reservar: ${aiRecommendation.serviceName}`);
                       window.open(`https://wa.me/34${bizConfig.phone}?text=${text}`, '_blank');
                     }}
                     style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
                   >
-                    Reservar este servicio por WhatsApp →
+                    Reservar por WhatsApp →
                   </button>
                 </div>
               </div>
             )}
-          </div>
-
-          <button
-            onClick={() => setCurrentScreen('clientPortal')}
-            style={{ width: '100%', backgroundColor: '#1a1a1a', border: '1px solid #444', color: '#ccc', padding: '12px', borderRadius: '10px', fontSize: '12px', cursor: 'pointer' }}
-          >
-            ← Volver al Portal Privado
-          </button>
-        </div>
-      )}
-
-      {/* 2.2. CATÁLOGO DE CLIENTES */}
-      {currentScreen === 'catalog' && (
-        <div style={{ maxWidth: '750px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px', marginBottom: '25px' }}>
-            <div>
-              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>{bizConfig.name}</h2>
-              <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>Catálogo de Autor</p>
-            </div>
-            <button onClick={() => setCurrentScreen('clientPortal')} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
-              ← Volver
-            </button>
-          </div>
-
-          <h1 style={{ fontSize: '20px', fontFamily: 'serif', color: '#fff', marginBottom: '8px' }}>Arquitectura de Servicios</h1>
-          <p style={{ color: '#aaa', fontSize: '12px', marginBottom: '25px' }}>Explora los tratamientos disponibles, sus duraciones y precios.</p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '25px' }}>
-            {catalog.map((cat) => {
-              const isOpen = openCatalogCategories[cat.id];
-              return (
-                <div key={cat.id} style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', overflow: 'hidden' }}>
-                  <div
-                    onClick={() => setOpenCatalogCategories({ ...openCatalogCategories, [cat.id]: !isOpen })}
-                    style={{ padding: '15px 18px', backgroundColor: '#1c1c1c', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}
-                  >
-                    <span style={{ color: '#d4af37', fontSize: '13px', fontFamily: 'serif', fontWeight: 'bold', letterSpacing: '1px' }}>
-                      {cat.code} &lt; {cat.title}
-                    </span>
-                    <span style={{ color: '#d4af37', fontSize: '12px' }}>{isOpen ? '▲' : '▼'}</span>
-                  </div>
-
-                  {isOpen && (
-                    <div style={{ padding: '15px', display: 'flex', flexDirection: 'column', gap: '12px', borderTop: '1px solid rgba(212,175,55,0.1)' }}>
-                      {cat.subservices.length === 0 ? (
-                        <p style={{ color: '#777', fontSize: '11px', fontStyle: 'italic', margin: 0 }}>Sin servicios en esta categoría.</p>
-                      ) : (
-                        cat.subservices.map((sub) => (
-                          <div key={sub.id} style={{ backgroundColor: '#141414', border: '1px solid #333', borderRadius: '8px', padding: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '15px' }}>
-                            <div style={{ flex: 1 }}>
-                              <h4 style={{ color: '#fff', fontSize: '13px', margin: '0 0 4px 0', fontWeight: 'bold' }}>{sub.name}</h4>
-                              <p style={{ color: '#bbb', fontSize: '11px', margin: '0 0 8px 0', lineHeight: '1.4' }}>{sub.description}</p>
-                              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', fontSize: '10px', color: '#888' }}>
-                                <span style={{ backgroundColor: '#1e1e1e', padding: '2px 6px', borderRadius: '4px' }}>⏱️ {sub.duration}</span>
-                                <span style={{ backgroundColor: '#1e1e1e', padding: '2px 6px', borderRadius: '4px' }}>🛠️ Buffer: {sub.bufferTime}</span>
-                              </div>
-                            </div>
-                            <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px' }}>
-                              <span style={{ color: '#d4af37', fontWeight: 'bold', fontSize: '12px' }}>{sub.price}</span>
-                              <button
-                                onClick={() => {
-                                  const text = encodeURIComponent(`Hola Ana, me gustaría reservar cita para el servicio: ${sub.name}`);
-                                  window.open(`https://wa.me/34${bizConfig.phone}?text=${text}`, '_blank');
-                                }}
-                                style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '4px 10px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}
-                              >
-                                Reservar por WhatsApp
-                              </button>
-                            </div>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
           </div>
 
           <button
@@ -1092,7 +1334,7 @@ export default function App() {
           </div>
 
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <button onClick={() => setAdminTab('agenda')} style={{ backgroundColor: adminTab === 'agenda' ? '#d4af37' : '#1a1a1a', color: adminTab === 'agenda' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>📅 Agenda</button>
+            <button onClick={() => setAdminTab('agenda')} style={{ backgroundColor: adminTab === 'agenda' ? '#d4af37' : '#1a1a1a', color: adminTab === 'agenda' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>📅 Agenda & Recordatorios</button>
             <button onClick={() => setAdminTab('config')} style={{ backgroundColor: adminTab === 'config' ? '#d4af37' : '#1a1a1a', color: adminTab === 'config' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>⚙️ Configuración</button>
             <button onClick={() => setAdminTab('catalog')} style={{ backgroundColor: adminTab === 'catalog' ? '#d4af37' : '#1a1a1a', color: adminTab === 'catalog' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>📂 Catálogo</button>
             <button onClick={() => setAdminTab('clients')} style={{ backgroundColor: adminTab === 'clients' ? '#d4af37' : '#1a1a1a', color: adminTab === 'clients' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>👥 Clientes</button>
@@ -1144,7 +1386,7 @@ export default function App() {
 
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px', minWidth: '600px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>Gestión de Citas y Horarios</h3>
+                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>Agenda, Huecos & Automatización de Notificaciones</h3>
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                     <button onClick={() => {
                       const d = new Date(fechaSeleccionada);
@@ -1257,14 +1499,6 @@ export default function App() {
                     <label style={{ color: '#aaa', fontSize: '11px' }}>Enlace Reseñas Google My Business:</label>
                     <input type="text" value={tempConfig.googleReviewUrl} onChange={(e) => setTempConfig({ ...tempConfig, googleReviewUrl: e.target.value })} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#aaa', fontSize: '11px' }}>Enlace Instagram:</label>
-                    <input type="text" value={tempConfig.instagramUrl} onChange={(e) => setTempConfig({ ...tempConfig, instagramUrl: e.target.value })} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#aaa', fontSize: '11px' }}>Enlace TikTok:</label>
-                    <input type="text" value={tempConfig.tiktokUrl} onChange={(e) => setTempConfig({ ...tempConfig, tiktokUrl: e.target.value })} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
-                  </div>
                   <button onClick={() => handleSaveSection('Datos Generales y Redes')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Guardar Cambios Generales</button>
                 </div>
               )}
@@ -1300,10 +1534,6 @@ export default function App() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#aaa', fontSize: '11px' }}>Descripción del Salón:</label>
                     <textarea value={tempConfig.description} onChange={(e) => setTempConfig({ ...tempConfig, description: e.target.value })} rows={3} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#aaa', fontSize: '11px' }}>PIN de Acceso Maestro (4 dígitos):</label>
-                    <input type="text" value={tempConfig.masterPin} onChange={(e) => setTempConfig({ ...tempConfig, masterPin: e.target.value })} maxLength={4} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <button onClick={() => handleSaveSection('Branding y Textos')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Guardar Branding</button>
                 </div>
@@ -1387,8 +1617,8 @@ export default function App() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
-                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Base de Clientes & IDs Correlativos</h3>
-                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Control de fichas con ID numérico automático, alta de clientas y borrado.</p>
+                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Base de Clientes & Identificador por Email</h3>
+                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Control de fichas con registro único por email y PIN.</p>
                 </div>
                 <button 
                   onClick={() => setIsAddingClient(!isAddingClient)}
@@ -1400,16 +1630,18 @@ export default function App() {
 
               {isAddingClient && (
                 <form onSubmit={handleGuardarNuevoCliente} style={{ backgroundColor: '#181818', border: '1px solid #d4af37', borderRadius: '8px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0 }}>Nueva Ficha de Clienta (ID Correlativo Automático)</h4>
+                  <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0 }}>Nueva Ficha de Clienta</h4>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-                    <input type="text" placeholder="Nombre y Apellidos *" value={novoNombre} onChange={(e) => setNovoNombre(e.target.value)} required style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
+                    <input type="text" placeholder="Nombre *" value={novoNombre} onChange={(e) => setNovoNombre(e.target.value)} required style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
+                    <input type="text" placeholder="Apellidos" value={novoApellidos} onChange={(e) => setNovoApellidos(e.target.value)} style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
+                    <input type="text" placeholder="Fecha Nacimiento" value={novoNacimiento} onChange={(e) => setNovoNacimiento(e.target.value)} style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
                     <input type="text" placeholder="Teléfono" value={novoTelefono} onChange={(e) => setNovoTelefono(e.target.value)} style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
-                    <input type="email" placeholder="Correo electrónico" value={novoEmail} onChange={(e) => setNovoEmail(e.target.value)} style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
-                    <input type="text" placeholder="PIN de acceso (ej. 7009)" maxLength={4} value={novoPin} onChange={(e) => setNovoPin(e.target.value)} style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
+                    <input type="email" placeholder="Email (Identificador) *" value={novoEmail} onChange={(e) => setNovoEmail(e.target.value)} required style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
+                    <input type="text" placeholder="PIN acceso (4 dígs)" maxLength={4} value={novoPin} onChange={(e) => setNovoPin(e.target.value)} style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
                   </div>
-                  <input type="text" placeholder="Diagnóstico capilar o notas iniciales" value={novoDiagnostico} onChange={(e) => setNovoDiagnostico(e.target.value)} style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
+                  <input type="text" placeholder="Diagnóstico capilar o notas" value={novoDiagnostico} onChange={(e) => setNovoDiagnostico(e.target.value)} style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 16px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Guardar y Asignar ID</button>
+                    <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 16px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Guardar Clienta</button>
                   </div>
                 </form>
               )}
@@ -1417,7 +1649,7 @@ export default function App() {
               <div>
                 <input 
                   type="text" 
-                  placeholder="Buscar por Nombre o ID correlativo..." 
+                  placeholder="Buscar por Nombre, Email o ID..." 
                   value={busquedaCliente}
                   onChange={(e) => setBusquedaCliente(e.target.value)}
                   style={{ width: '100%', maxWidth: '320px', padding: '8px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '11px', outline: 'none' }}
@@ -1426,7 +1658,7 @@ export default function App() {
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
                 {listaClientes
-                  .filter(c => c.nombre.toLowerCase().includes(busquedaCliente.toLowerCase()) || c.registroId.toLowerCase().includes(busquedaCliente.toLowerCase()) || String(c.idNum).includes(busquedaCliente))
+                  .filter(c => c.nombre.toLowerCase().includes(busquedaCliente.toLowerCase()) || c.email.toLowerCase().includes(busquedaCliente.toLowerCase()) || c.registroId.toLowerCase().includes(busquedaCliente.toLowerCase()))
                   .map((c) => (
                     <div key={c.idNum} style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1441,9 +1673,9 @@ export default function App() {
                           🗑️
                         </button>
                       </div>
-                      <div style={{ color: '#fff', fontSize: '13px', fontWeight: 'bold', marginTop: '4px' }}>{c.nombre}</div>
+                      <div style={{ color: '#fff', fontSize: '13px', fontWeight: 'bold', marginTop: '4px' }}>{c.nombre} {c.apellidos}</div>
+                      <div style={{ color: '#aaa', fontSize: '11px' }}>📧 {c.email}</div>
                       <div style={{ color: '#aaa', fontSize: '11px' }}>📞 Tel: {c.telefono} | PIN: <strong style={{ color: '#d4af37' }}>{c.pinAcceso}</strong></div>
-                      <div style={{ color: '#888', fontSize: '10px', fontStyle: 'italic' }}>Diagnóstico: {c.diagnostico}</div>
                     </div>
                 ))}
               </div>
@@ -1486,12 +1718,12 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 6: CRM & KPIS */}
+          {/* TAB 6: CRM & KPIS CON DEMANDA PERDIDA EXPLICADA */}
           {adminTab === 'crm' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>Métricas de Negocio & CRM (Editables)</h3>
-                <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Modifica directamente los valores haciendo clic sobre los números.</p>
+                <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>Métricas de Negocio & Análisis de Demanda Perdida</h3>
+                <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Control analítico de visitas y motivos por los que no se concretó cita.</p>
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px' }}>
@@ -1506,18 +1738,47 @@ export default function App() {
                 </div>
 
                 <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase' }}>Citas en Agenda</div>
+                  <div style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase' }}>Citas Agendadas</div>
                   <div style={{ color: '#d4af37', fontSize: '32px', fontWeight: 'bold', fontFamily: 'serif', padding: '6px' }}>{appointments.length}</div>
                 </div>
 
                 <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase' }}>Demanda Potencial</div>
-                  <input 
-                    type="number" 
-                    value={lostDemandCount} 
-                    onChange={(e) => setLostDemandCount(parseInt(e.target.value) || 0)} 
-                    style={{ backgroundColor: '#1c1c1c', border: '1px solid #d4af37', color: '#d4af37', fontSize: '26px', fontWeight: 'bold', fontFamily: 'serif', textAlign: 'center', padding: '6px', borderRadius: '6px', width: '100%', boxSizing: 'border-box' }}
-                  />
+                  <div style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase' }}>Demanda Perdida Total</div>
+                  <div style={{ color: '#ff4444', fontSize: '32px', fontWeight: 'bold', fontFamily: 'serif', padding: '6px' }}>{lostDemandsList.length}</div>
+                </div>
+              </div>
+
+              {/* Detalle explicativo de Demanda Perdida */}
+              <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0, fontFamily: 'serif' }}>Desglose de Intentos y Oportunidades No Concretadas:</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {lostDemandsList.map((item) => {
+                    let badgeLabel = 'Otro';
+                    let badgeColor = '#888';
+                    if (item.reason === 'sin_disponibilidad') { badgeLabel = 'Sin disponibilidad horaria'; badgeColor = '#ffaa00'; }
+                    else if (item.reason === 'abandono_sin_servicio') { badgeLabel = 'Entró pero no cogió servicio'; badgeColor = '#ff4444'; }
+                    else if (item.reason === 'intento_fallido') { badgeLabel = 'Intento de cita fallido / Error'; badgeColor = '#cc44ff'; }
+
+                    return (
+                      <div key={item.id} style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                          <span style={{ backgroundColor: '#121212', color: badgeColor, border: `1px solid ${badgeColor}`, padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', width: 'fit-content' }}>
+                            {badgeLabel}
+                          </span>
+                          <span style={{ color: '#fff', fontSize: '12px' }}>{item.clientNote}</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                          <span style={{ color: '#888', fontSize: '10px' }}>{item.date}</span>
+                          <button 
+                            onClick={() => setLostDemandsList(lostDemandsList.filter(l => l.id !== item.id))} 
+                            style={{ background: 'transparent', border: 'none', color: '#ff4444', fontSize: '11px', cursor: 'pointer' }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -1533,13 +1794,18 @@ export default function App() {
             
             <form onSubmit={handleSaveModalAppointment} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ color: '#aaa', fontSize: '11px' }}>Nombre de la Clienta:</label>
+                <label style={{ color: '#aaa', fontSize: '11px' }}>Nombre y Apellidos:</label>
                 <input type="text" placeholder="Ej. Laura M." value={modalClientName} onChange={(e) => setModalClientName(e.target.value)} required style={{ padding: '8px', backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ color: '#aaa', fontSize: '11px' }}>Teléfono:</label>
+                <label style={{ color: '#aaa', fontSize: '11px' }}>Teléfono móvil:</label>
                 <input type="text" placeholder="Ej. 600123456" value={modalPhone} onChange={(e) => setModalPhone(e.target.value)} style={{ padding: '8px', backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ color: '#aaa', fontSize: '11px' }}>Email (para recordatorio 48h):</label>
+                <input type="email" placeholder="cliente@gmail.com" value={modalEmail} onChange={(e) => setModalEmail(e.target.value)} style={{ padding: '8px', backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -1572,15 +1838,23 @@ export default function App() {
       {/* MODAL VER / ELIMINAR CITA EXISTENTE */}
       {viewApptModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '360px', width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Detalle de Cita</h3>
+          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '380px', width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Detalle de Cita & Recordatorios</h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', color: '#ccc' }}>
               <div><strong style={{ color: '#fff' }}>Clienta:</strong> {viewApptModal.clientName}</div>
               <div><strong style={{ color: '#fff' }}>Teléfono:</strong> {viewApptModal.phone}</div>
+              <div><strong style={{ color: '#fff' }}>Email:</strong> {viewApptModal.email}</div>
               <div><strong style={{ color: '#fff' }}>Día y Hora:</strong> {viewApptModal.dayName} a las {viewApptModal.time}</div>
-              <div><strong style={{ color: '#fff' }}>Categoría:</strong> {viewApptModal.serviceCategory}</div>
               <div><strong style={{ color: '#fff' }}>Servicio:</strong> {viewApptModal.serviceSubcategory}</div>
+              
+              <div style={{ backgroundColor: '#1a1a1a', padding: '10px', borderRadius: '6px', border: '1px solid #333', marginTop: '5px' }}>
+                <div style={{ color: '#d4af37', fontWeight: 'bold', marginBottom: '4px' }}>🔔 Estado de Automatizaciones:</div>
+                <div style={{ fontSize: '11px', color: '#aaa' }}>• Email 48h antes: Programado / Enviado</div>
+                <div style={{ fontSize: '11px', color: '#aaa' }}>• WhatsApp 48h antes: Programado</div>
+                <div style={{ fontSize: '11px', color: '#aaa' }}>• WhatsApp 24h antes: Programado</div>
+                <div style={{ fontSize: '11px', color: '#aaa' }}>• WhatsApp 2h antes: Programado (Crítico)</div>
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', marginTop: '10px' }}>
