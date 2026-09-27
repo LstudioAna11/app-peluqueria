@@ -1144,14 +1144,30 @@ export default function App() {
             <h2 style={{ fontSize: '15px', fontFamily: 'serif', color: '#d4af37', margin: 0 }}>2. Selecciona Fecha y Hora Laboral:</h2>
             
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <label style={{ color: '#aaa', fontSize: '11px' }}>Fecha de Cita:</label>
-                <input 
-                  type="date" 
+                <select 
                   value={formatDateKey(bookingDate)} 
                   onChange={(e) => setBookingDate(new Date(e.target.value))} 
-                  style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '8px', borderRadius: '6px', fontSize: '12px' }} 
-                />
+                  style={{ backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', padding: '8px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}
+                >
+                  {Array.from({ length: 30 }).map((_, index) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() + index);
+                    if (d.getDay() === 0) return null; // Salta los domingos
+
+                    const dateKeyStr = formatDateKey(d);
+                    const optionsNamesMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                    const dayNameStr = optionsNamesMap[d.getDay()];
+                    const formattedDisplay = `${dayNameStr}, ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
+
+                    return (
+                      <option key={dateKeyStr} value={dateKeyStr}>
+                        {formattedDisplay}
+                      </option>
+                    );
+                  })}
+                </select>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
