@@ -69,9 +69,12 @@ interface Appointment {
   };
 }
 // Función auxiliar para gestionar y simular el envío de automatizaciones WhatsApp / Email
+// Función auxiliar para gestionar y simular el envío de automatizaciones WhatsApp / Email
 const triggerNotificationDispatch = (clientName: string, service: string, time: string, phone: string, email: string) => {
-  console.log(`[L'Studio Ana - Automatización Activa] Enviando confirmación a ${clientName} (${email} / ${phone}) para las ${time}`);
-  // Aquí se disparan los avisos automáticos al registrar la cita
+  // Mensaje formal y cuidado para WhatsApp
+  const mensajeWhatsApp = `✨ *L'Studio Ana* ✨\n\nHola ${clientName}, ¡gracias por confiar en nosotros! 🤍\n\nTe confirmamos tu cita para *${service}* programada para: *${time}*.\n\n📍 Te esperamos en el centro de Elche.\nSi necesitas modificar tu cita, puedes avisarnos con antelación. ¡Nos vemos pronto!`;
+
+  console.log(`[L'Studio Ana - WhatsApp Enviado a ${phone}]:\n${mensajeWhatsApp}`);
 };
 interface SubService {
   id: string;
