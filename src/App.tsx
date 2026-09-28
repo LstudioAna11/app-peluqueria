@@ -19,6 +19,12 @@ interface BusinessConfig {
   tiktokUrl: string;
   googleMapsUrl: string;
   googleReviewUrl: string;
+  whatsappEnabled: boolean;
+  emailEnabled: boolean;
+  reminder48hEmail: boolean;
+  reminder48hWhatsapp: boolean;
+  reminder24hWhatsapp: boolean;
+  reminder2hWhatsapp: boolean;
 }
 
 const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
@@ -36,7 +42,13 @@ const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
   instagramUrl: "https://instagram.com",
   tiktokUrl: "https://tiktok.com",
   googleMapsUrl: "https://maps.google.com",
-  googleReviewUrl: "https://g.page/r/CRLx1fxwpIAYEBM/review"
+  googleReviewUrl: "https://g.page/r/CRLx1fxwpIAYEBM/review",
+  whatsappEnabled: true,
+  emailEnabled: true,
+  reminder48hEmail: true,
+  reminder48hWhatsapp: true,
+  reminder24hWhatsapp: true,
+  reminder2hWhatsapp: true,
 };
 
 interface Appointment {
@@ -56,7 +68,11 @@ interface Appointment {
     whatsapp2h: boolean;
   };
 }
-
+// Función auxiliar para gestionar y simular el envío de automatizaciones WhatsApp / Email
+const triggerNotificationDispatch = (clientName: string, service: string, time: string, phone: string, email: string) => {
+  console.log(`[L'Studio Ana - Automatización Activa] Enviando confirmación a ${clientName} (${email} / ${phone}) para las ${time}`);
+  // Aquí se disparan los avisos automáticos al registrar la cita
+};
 interface SubService {
   id: string;
   name: string;
@@ -427,7 +443,8 @@ export default function App() {
     setIsAddingClient(false);
   };
 
-  const handleRegistroClientaPortalSubmit = (e: React.FormEvent) => {
+  const handleRegistroClientaPortalSubmit = (e: React.FormEvent) => { 
+
     e.preventDefault();
     if (!regNombre.trim() || !regEmail.trim() || !regPin.trim()) return;
 
@@ -451,6 +468,18 @@ export default function App() {
 
     setListaClientes([...listaClientes, nuevaClienta]);
     setCurrentClientRecord(nuevaClienta);
+    setCurrentScreen('clientPortal'); setListaClientas([...listaClientas, nuevaClienta]);
+    setCurrentClientRecord(nuevaClienta);
+  
+    // Disparamos la automatización del registro
+    triggerNotificationDispatch(
+      regNombre.trim(),
+      'Registro de Nueva Clienta',
+      'Ahora',
+      regTelefono.trim(),
+      regEmail.trim()
+    );
+  
     setCurrentScreen('clientPortal');
   };
 
@@ -767,11 +796,16 @@ export default function App() {
   for (let d = 1; d <= diasEnMes; d++) diasRejillaMini.push(new Date(añoMini, mesMini, d));
 
   const hoursList = [
-    '10:00', '10:15', '11:00', '11:15',
-    '12:00', '12:15', '13:00', '13:15',
-    '14:00', '14:15', '15:00', '15:15',
-    '16:00', '16:15', '17:00', '17:15',
-    '18:00', '18:15', '19:00', '19:15',
+    '10:00', '10:15', '10:30', '10:45',
+    '11:00', '11:15', '11:30', '11:45',
+    '12:00', '12:15', '12:30', '12:45',
+    '13:00', '13:15', '13:30', '13:45',
+    '14:00', '14:15', '14:30', '14:45',
+    '15:00', '15:15', '15:30', '15:45',
+    '16:00', '16:15', '16:30', '16:45',
+    '17:00', '17:15', '17:30', '17:45',
+    '18:00', '18:15', '18:30', '18:45',
+    '19:00', '19:15', '19:30', '19:45'
   ];
 
   const getDaysOfWeekForDate = (date: Date) => {
