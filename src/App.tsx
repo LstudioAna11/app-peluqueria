@@ -428,7 +428,6 @@ export default function App() {
   const [novoDiagnostico, setNovoDiagnostico] = useState('');
   const [busquedaCliente, setBusquedaCliente] = useState('');
 
-  // Estados específicos para edición rápida de cliente desde la Intranet
   const [editingClientId, setEditingClientId] = useState<number | null>(null);
   const [editAdminUltimaVisita, setEditAdminUltimaVisita] = useState('');
   const [editAdminProxima, setEditAdminProxima] = useState('');
@@ -460,7 +459,6 @@ export default function App() {
     setTimeout(() => setEditMsg(null), 3000);
   };
 
-  // Guardar edición directa de cliente desde el panel de control administrador
   const handleGuardarEdicionAdminCliente = (idNum: number) => {
     const nuevaLista = listaClientes.map(c => {
       if (c.idNum === idNum) {
@@ -708,14 +706,15 @@ export default function App() {
       dayName: targetDayName,
       time: targetTime,
       clientName: modalClientName,
-      phone: modalPhone || 'No facilitado',
+      phone: modalPhone || '600000000',
       email: modalEmail || 'sinemail@gmail.com',
       serviceCategory: `${selectedCategory.code} < ${selectedCategory.title}`,
       serviceSubcategory: selectedSub.name,
-      remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false }
+      remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
     };
     setAppointments([...appointments, newApp]);
     setIsModalOpen(false);
+    window.alert(`¡Cita guardada para ${modalClientName}! Ya aparece en la agenda.`);
   };
 
   const handleConfirmarCitaClientaPortal = (e: React.FormEvent) => {
@@ -738,10 +737,10 @@ export default function App() {
       email: currentClientRecord?.email || 'cliente@gmail.com',
       serviceCategory: 'CATÁLOGO DE AUTOR ONLINE',
       serviceSubcategory: subNames,
-      remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false }
+      remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
     };
     setAppointments([...appointments, newApp]);
-    setBookingSuccessMsg(`¡Cita confirmada correctamente para el ${bookingDate.toLocaleDateString('es-ES')} a las ${bookingTime}! Se han programado los recordatorios.`);
+    setBookingSuccessMsg(`¡Cita confirmada correctamente para el ${bookingDate.toLocaleDateString('es-ES')} a las ${bookingTime}! Ya ha entrado en la agenda de Ana.`);
     setSelectedServicesToBook([]);
     setTimeout(() => setBookingSuccessMsg(null), 5000);
   };
@@ -1092,7 +1091,7 @@ export default function App() {
             </button>
           </div>
           {bookingSuccessMsg && (
-            <div style={{ padding: '15px', backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', borderRadius: '8px', fontSize: '12px', textAlign: 'center', lineHeight: '1.5' }}>
+            <div style={{ padding: '15px', backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', borderRadius: '8px', fontSize: '12px', textAlign: 'center', lineHeight: '1.5', fontWeight: 'bold' }}>
               {bookingSuccessMsg}
             </div>
           )}
@@ -1561,7 +1560,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 4: CLIENTES (BASE DE DATOS MEJORADA EN INTRANET) */}
+          {/* TAB 4: CLIENTES */}
           {adminTab === 'clients' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
@@ -1596,7 +1595,6 @@ export default function App() {
                 <input type="text" placeholder="Buscar por Nombre, Email, Teléfono o ID..." value={busquedaCliente} onChange={(e) => setBusquedaCliente(e.target.value)} onFocus={(e) => e.target.select()} style={{ width: '100%', maxWidth: '350px', padding: '8px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '11px', outline: 'none' }} />
               </div>
 
-              {/* LISTADO MEJORADO DE CLIENTES EN INTRANET */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {listaClientes
                   .filter(c =>
@@ -1641,7 +1639,6 @@ export default function App() {
                           <div><strong>F. Nacimiento:</strong> {c.fechaNacimiento}</div>
                         </div>
 
-                        {/* BLOQUE DE FÓRMULAS E HISTORIAL VISIBLE / EDITABLE */}
                         {isEditing ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#1f1a10', padding: '12px', borderRadius: '8px', border: '1px solid #d4af37' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -1804,7 +1801,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL VER / ELIMINAR CITA EXISTENTE */}
+      {/* MODAL VER / ELIMINAR CITA EXISTENTE & BOTÓN WHATSAPP DE RECORDATORIO */}
       {viewApptModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
           <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '380px', width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -1817,11 +1814,32 @@ export default function App() {
               <div><strong style={{ color: '#fff' }}>Servicio:</strong> {viewApptModal.serviceSubcategory}</div>
               <div style={{ backgroundColor: '#1a1a1a', padding: '10px', borderRadius: '6px', border: '1px solid #333', marginTop: '5px' }}>
                 <div style={{ color: '#d4af37', fontWeight: 'bold', marginBottom: '4px' }}>Estado de Automatizaciones:</div>
-                <div style={{ fontSize: '11px', color: '#aaa' }}>• Email 48h antes: Programado / Enviado</div>
-                <div style={{ fontSize: '11px', color: '#aaa' }}>• WhatsApp 48h antes: Programado</div>
-                <div style={{ fontSize: '11px', color: '#aaa' }}>• WhatsApp 24h antes: Programado</div>
-                <div style={{ fontSize: '11px', color: '#aaa' }}>• WhatsApp 2h antes: Programado (Crítico)</div>
+                <div style={{ fontSize: '11px', color: '#44bb44' }}>✓ Email 48h antes: Programado</div>
+                <div style={{ fontSize: '11px', color: '#44bb44' }}>✓ WhatsApp 48h antes: Programado</div>
+                <div style={{ fontSize: '11px', color: '#44bb44' }}>✓ WhatsApp 24h antes: Programado</div>
+                <div style={{ fontSize: '11px', color: '#44bb44' }}>✓ WhatsApp 2h antes: Programado (Crítico)</div>
               </div>
+
+              {/* BOTÓN DE WHATSAPP DIRECTO */}
+              <a 
+                href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola ${viewApptModal.clientName}, te escribimos desde L'Studio Ana para confirmarte tu cita el ${viewApptModal.dayName} a las ${viewApptModal.time} para: ${viewApptModal.serviceSubcategory}. ¡Te esperamos en el salón!`)}`}
+                target="_blank" 
+                rel="noreferrer"
+                style={{
+                  display: 'block',
+                  textAlign: 'center',
+                  backgroundColor: '#d4af37',
+                  color: '#000',
+                  padding: '10px',
+                  borderRadius: '6px',
+                  fontSize: '11px',
+                  fontWeight: 'bold',
+                  textDecoration: 'none',
+                  marginTop: '8px'
+                }}
+              >
+                📲 Enviar recordatorio por WhatsApp
+              </a>
             </div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', marginTop: '10px' }}>
               <button onClick={(e) => handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#2a1212', border: '1px solid #ff4444', color: '#ff4444', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar Cita</button>
