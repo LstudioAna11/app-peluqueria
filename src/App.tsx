@@ -21,11 +21,11 @@ interface BusinessConfig {
 }
 
 const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
-  name: "L'Studio Ana",
+  name: "L'Studio Ana | Hair Experience",
   subtitle: "PORTAL PRIVADO DE CLIENTAS",
   location: "Centro de Elche, Alicante",
   phone: "600000000",
-  description: "Más de 25 años dedicados al cuidado de la salud capilar y la estética del cabello de autor en el centro de Elche.",
+  description: "Ubicado en el centro de Elche, Ubicado en el centro de Elche, netra escelar sepan una refugioana refugio pornento contacto curadado diyenes digunnes djienes, atbsedo a cun transformaeción real. Com con a des tedet gesl do limpo de 25/7",
   scheduleMonday: "10:00h a 13:30h",
   scheduleTueWed: "10:00h a 18:00h",
   scheduleThuFri: "10:00h a 19:00h",
@@ -328,8 +328,8 @@ export default function App() {
   const [logoClicks, setLogoClicks] = useState<number>(0);
   const [adminPin, setAdminPin] = useState<string>('');
   const [adminError, setAdminError] = useState<boolean>(false);
-  const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm'>('agenda');
-  const [configSubTab, setConfigSubTab] = useState<'general' | 'schedule' | 'branding'>('general');
+  const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm'>('config');
+  const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule'>('marca');
 
   const [bizConfig] = useState<BusinessConfig>(() => {
     const saved = localStorage.getItem('lst_business_config');
@@ -1575,25 +1575,113 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 2: CONFIGURACIÓN */}
+          {/* TAB 2: CONFIGURACIÓN (CON EL DISEÑO EXACTO DE TU IMAGEN) */}
           {adminTab === 'config' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '10px' }}>
-                <button onClick={() => setConfigSubTab('general')} style={{ background: configSubTab === 'general' ? '#d4af37' : 'transparent', color: configSubTab === 'general' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>General (Redes & Maps)</button>
-                <button onClick={() => setConfigSubTab('schedule')} style={{ background: configSubTab === 'schedule' ? '#d4af37' : 'transparent', color: configSubTab === 'schedule' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Horarios</button>
-                <button onClick={() => setConfigSubTab('branding')} style={{ background: configSubTab === 'branding' ? '#d4af37' : 'transparent', color: configSubTab === 'branding' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Branding & Textos</button>
+              <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '10px', flexWrap: 'wrap' }}>
+                <button onClick={() => setConfigSubTab('marca')} style={{ background: configSubTab === 'marca' ? '#d4af37' : '#1a1a1a', color: configSubTab === 'marca' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 14px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Marca & Identidad</button>
+                <button onClick={() => setConfigSubTab('general')} style={{ background: configSubTab === 'general' ? '#d4af37' : '#1a1a1a', color: configSubTab === 'general' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 14px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>General, Redes & Ubicación</button>
+                <button onClick={() => setConfigSubTab('schedule')} style={{ background: configSubTab === 'schedule' ? '#d4af37' : '#1a1a1a', color: configSubTab === 'schedule' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 14px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Horarios & Zona Horaria</button>
               </div>
+
               {savedMsg && (
                 <div style={{ padding: '10px', backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }}>
                   {savedMsg}
                 </div>
               )}
+
+              {configSubTab === 'marca' && (
+                <div style={{ display: 'flex', gap: '25px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+                  {/* COLUMNA IZQUIERDA: GESTOR DE MARCA */}
+                  <div style={{ flex: 1, minWidth: '420px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0, letterSpacing: '1px' }}>Gestor de Marca</h3>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                      <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ color: '#aaa', fontSize: '11px', alignSelf: 'flex-start' }}>Logotipo de la Marca</span>
+                        <div style={{ width: '65px', height: '65px', borderRadius: '50%', border: '1px solid #d4af37', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' }}>
+                          <span style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', fontWeight: 'bold' }}>L'A</span>
+                        </div>
+                        <button style={{ background: '#1c1c1c', border: '1px solid #444', color: '#ccc', padding: '4px 12px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>✎ Editar</button>
+                      </div>
+
+                      <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                        <span style={{ color: '#aaa', fontSize: '11px', alignSelf: 'flex-start' }}>Cabecera Principal</span>
+                        <div style={{ height: '65px', width: '100%', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#121212' }}>
+                          <span style={{ color: '#d4af37', fontSize: '12px', fontFamily: 'serif', letterSpacing: '2px' }}>L'STUDIO</span>
+                        </div>
+                        <button style={{ background: '#1c1c1c', border: '1px solid #444', color: '#ccc', padding: '4px 12px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>✎ Editar</button>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0, fontFamily: 'serif' }}>Detalles del Salón</h4>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ color: '#aaa', fontSize: '11px' }}>Nombre oficial</label>
+                        <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig({ ...tempConfig, name: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ color: '#aaa', fontSize: '11px' }}>Descripción Corporativa</label>
+                        <textarea value={tempConfig.description} onChange={(e) => setTempConfig({ ...tempConfig, description: e.target.value })} onFocus={(e) => e.target.select()} rows={3} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px', resize: 'none' }} />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0, fontFamily: 'serif' }}>Tema Visual</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11px', color: '#ccc' }}>
+                          <div style={{ color: '#d4af37', fontWeight: 'bold' }}>• Modo Oscuro (Dark Luxury - activo)</div>
+                          <div style={{ color: '#777' }}>• Modo Claro</div>
+                          <div style={{ color: '#aaa' }}>• Paleta de Acentos (Dorado, Marfil)</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0, fontFamily: 'serif' }}>Galería de Fotos</h4>
+                          <span style={{ fontSize: '10px', color: '#d4af37', cursor: 'pointer' }}>+ Añadir  🗑️ Eliminar</span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
+                          {[1, 2, 3, 4, 5].map((_, i) => (
+                            <div key={i} style={{ width: '45px', height: '45px', backgroundColor: '#222', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '4px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#d4af37' }}>
+                              Img {i+1}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <button onClick={() => handleSaveSection('Cambios de Marca')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', width: '100%', marginTop: '5px' }}>
+                      Guardar Cambios de Marca
+                    </button>
+                  </div>
+
+                  {/* COLUMNA DERECHA: VISTA PREVIA DEL PORTAL (MÓVIL) */}
+                  <div style={{ width: '260px', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px', alignSelf: 'center', margin: '0 auto' }}>
+                    <span style={{ color: '#d4af37', fontSize: '11px', fontFamily: 'serif', fontWeight: 'bold', textAlign: 'center' }}>Vista Previa del Portal</span>
+                    <div style={{ backgroundColor: '#000', border: '2px solid #333', borderRadius: '24px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px', height: '340px', boxSizing: 'border-box' }}>
+                      <div style={{ textAlign: 'center', borderBottom: '1px solid #222', paddingBottom: '6px' }}>
+                        <div style={{ color: '#d4af37', fontSize: '11px', fontFamily: 'serif', letterSpacing: '2px' }}>L'STUDIO ANA</div>
+                        <div style={{ color: '#666', fontSize: '8px' }}>PORTAL PRIVADO</div>
+                      </div>
+                      <div style={{ backgroundColor: '#141414', padding: '8px', borderRadius: '6px', border: '1px solid rgba(212,175,55,0.2)' }}>
+                        <div style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold' }}>{tempConfig.name}</div>
+                        <div style={{ color: '#888', fontSize: '8px', marginTop: '2px' }}>{tempConfig.location}</div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ height: '8px', backgroundColor: '#222', borderRadius: '4px', width: '80%' }}></div>
+                        <div style={{ height: '8px', backgroundColor: '#222', borderRadius: '4px', width: '60%' }}></div>
+                        <div style={{ height: '8px', backgroundColor: '#222', borderRadius: '4px', width: '90%' }}></div>
+                      </div>
+                      <div style={{ marginTop: 'auto', backgroundColor: '#d4af37', color: '#000', textAlign: 'center', padding: '6px', borderRadius: '4px', fontSize: '9px', fontWeight: 'bold' }}>
+                        Reservar Cita
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {configSubTab === 'general' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#aaa', fontSize: '11px' }}>Nombre del Salón:</label>
-                    <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig({ ...tempConfig, name: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
-                  </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#aaa', fontSize: '11px' }}>Ubicación (Texto visible):</label>
                     <input type="text" value={tempConfig.location} onChange={(e) => setTempConfig({ ...tempConfig, location: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
@@ -1609,6 +1697,7 @@ export default function App() {
                   <button onClick={() => handleSaveSection('Datos Generales y Redes')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Guardar Cambios Generales</button>
                 </div>
               )}
+
               {configSubTab === 'schedule' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -1628,19 +1717,6 @@ export default function App() {
                     <input type="text" value={tempConfig.scheduleSaturday} onChange={(e) => setTempConfig({ ...tempConfig, scheduleSaturday: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <button onClick={() => handleSaveSection('Horarios')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Guardar Horarios</button>
-                </div>
-              )}
-              {configSubTab === 'branding' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#aaa', fontSize: '11px' }}>Mensaje de Bienvenida en Portal:</label>
-                    <input type="text" value={tempConfig.welcomeMessage} onChange={(e) => setTempConfig({ ...tempConfig, welcomeMessage: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#aaa', fontSize: '11px' }}>Descripción del Salón:</label>
-                    <textarea value={tempConfig.description} onChange={(e) => setTempConfig({ ...tempConfig, description: e.target.value })} onFocus={(e) => e.target.select()} rows={3} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
-                  </div>
-                  <button onClick={() => handleSaveSection('Branding y Textos')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Guardar Branding</button>
                 </div>
               )}
             </div>
