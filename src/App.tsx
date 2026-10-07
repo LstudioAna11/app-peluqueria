@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-
 // ======
 // CONFIGURACIÓN DE L'STUDIO ANA
 // ======
@@ -91,6 +90,9 @@ interface ClientRecord {
   ultimaVisita: string;
   proximaVisitaSugerida: string;
   formulasAplicadas: string;
+  dniCapilar?: string;
+  prescripcionCasa?: string;
+  pastVisits?: { date: string; service: string; stylist: string; notes: string }[];
 }
 
 interface LostDemandRecord {
@@ -114,7 +116,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c1',
     code: '0.1',
     title: 'VISAGISMO & DIAGNÓSTICO',
-    icon: '👤',
+    icon: '',
     subservices: [
       {
         id: 's1',
@@ -133,7 +135,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c2',
     code: '0.2',
     title: 'VISAGISMO & CORTE',
-    icon: '✂️',
+    icon: '',
     subservices: [
       {
         id: 's2',
@@ -152,7 +154,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c3',
     code: '0.3',
     title: 'STYLING & ACABADO',
-    icon: '✨',
+    icon: '',
     subservices: [
       {
         id: 's3',
@@ -171,7 +173,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c4',
     code: '0.4',
     title: 'COLOR ATELIER',
-    icon: '🎨',
+    icon: '',
     subservices: [
       {
         id: 's4',
@@ -190,7 +192,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c5',
     code: '0.5',
     title: 'MÉTODO DE AUTOR & ILUMINACIÓN',
-    icon: '🌟',
+    icon: '',
     subservices: [
       {
         id: 's5',
@@ -209,7 +211,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c6',
     code: '0.6',
     title: 'SALUD CAPILAR & RECONSTRUCCIÓN',
-    icon: '🌿',
+    icon: '',
     subservices: [
       {
         id: 's6',
@@ -228,7 +230,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c7',
     code: '0.7',
     title: 'TEXTURA & MOLDEADO ORGÁNICO',
-    icon: '🌀',
+    icon: '',
     subservices: [
       {
         id: 's7',
@@ -247,7 +249,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c8',
     code: '0.8',
     title: 'GROOMING & MAN',
-    icon: '💈',
+    icon: '',
     subservices: [
       {
         id: 's8',
@@ -266,7 +268,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c9',
     code: '0.9',
     title: 'ADD-ONS & COMPLEMENTOS',
-    icon: '💎',
+    icon: '',
     subservices: [
       {
         id: 's9',
@@ -301,17 +303,19 @@ export default function App() {
   const [pin, setPin] = useState<string>('');
   const [pinError, setPinError] = useState<boolean>(false);
   const [currentClientRecord, setCurrentClientRecord] = useState<ClientRecord | null>(null);
+
   const [regNombre, setRegNombre] = useState('');
   const [regApellidos, setRegApellidos] = useState('');
   const [regNacimiento, setRegNacimiento] = useState('');
   const [regTelefono, setRegTelefono] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPin, setRegPin] = useState('');
+
   const [selectedServicesToBook, setSelectedServicesToBook] = useState<SubService[]>([]);
   const [expandedSubDetails, setExpandedSubDetails] = useState<{ [key: string]: boolean }>({});
   const [expandedCategories, setExpandedCategories] = useState<{ [key: string]: boolean }>({});
-  
-  const [bookingDate, setBookingDate] = useState<Date>(new Date(2026, 9, 7)); // 7 de Octubre 2026
+
+  const [bookingDate, setBookingDate] = useState<Date>(new Date(2026, 9, 7));
   const [selectedVisualTime, setSelectedVisualTime] = useState<string>('12:00');
   const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null);
 
@@ -320,6 +324,7 @@ export default function App() {
   const [editMsg, setEditMsg] = useState<string | null>(null);
   const [clientWishText, setClientWishText] = useState('');
   const [aiRecommendation, setAiRecommendation] = useState<{ serviceName: string; reason: string; category: string } | null>(null);
+
   const [logoClicks, setLogoClicks] = useState<number>(0);
   const [adminPin, setAdminPin] = useState<string>('');
   const [adminError, setAdminError] = useState<boolean>(false);
@@ -350,6 +355,7 @@ export default function App() {
   const [newSubIncludes, setNewSubIncludes] = useState('');
   const [newSubAchieved, setNewSubAchieved] = useState('');
   const [newSubPriceType, setNewSubPriceType] = useState<'desde' | 'aprox' | 'fijo' | 'consultar'>('desde');
+
   const [isAddingCategory, setIsAddingCategory] = useState<boolean>(false);
   const [newCatCode, setNewCatCode] = useState('');
   const [newCatTitle, setNewCatTitle] = useState('');
@@ -412,7 +418,6 @@ export default function App() {
     setFeedbackSubmitted(true);
   };
 
-  // Sincronización maestra centralizada con localStorage ('lst_studio_appointments')
   const [appointments, setAppointments] = useState<Appointment[]>(() => {
     const saved = localStorage.getItem('lst_studio_appointments');
     return saved ? JSON.parse(saved) : INITIAL_APPOINTMENTS;
@@ -425,8 +430,28 @@ export default function App() {
   const [listaClientes, setListaClientes] = useState<ClientRecord[]>(() => {
     const saved = localStorage.getItem('lst_studio_clientes_ids');
     return saved ? JSON.parse(saved) : [
-      { idNum: 1, registroId: "LSTUDIO-001", nombre: "Ana", apellidos: "Moreno Fernández", fechaNacimiento: "12/05/1988", telefono: "600000000", email: "anamorenofernandez79@gmail.com", pinAcceso: "7009", diagnostico: "Balayage manteca / Cabello sensibilizado", ultimaVisita: "15/08/2026", proximaVisitaSugerida: "15/10/2026", formulasAplicadas: "Raíces 7.0 + Matiz 9.21 con emulsión de autor" },
-      { idNum: 2, registroId: "LSTUDIO-002", nombre: "Carmen", apellidos: "Martínez Ruiz", fechaNacimiento: "22/11/1990", telefono: "+34 633 444 555", email: "carmen@gmail.com", pinAcceso: "1234", diagnostico: "Melt & Lights avellana / Hidratación Profunda", ultimaVisita: "01/09/2026", proximaVisitaSugerida: "01/10/2026", formulasAplicadas: "Balayage enriquecido con proteínas Revivre" }
+      { 
+        idNum: 1, 
+        registroId: "LSTUDIO-001", 
+        nombre: "Ana", 
+        apellidos: "Moreno Fernández", 
+        fechaNacimiento: "12/05/1988", 
+        telefono: "600000000", 
+        email: "anamorenofernandez79@gmail.com", 
+        pinAcceso: "7009", 
+        diagnostico: "Balayage manteca / Cabello sensibilizado", 
+        ultimaVisita: "15/08/2026", 
+        proximaVisitaSugerida: "15/10/2026", 
+        formulasAplicadas: "Raíces 7.0 + Matiz 9.21 con emulsión de autor",
+        dniCapilar: "Porosidad: Media | Hidratación: Necesaria | Textura: Fina",
+        prescripcionCasa: "Champú Hidratante | Acondicionador Sellador | Sérum Nutritivo",
+        pastVisits: [
+          { date: "15 Septiembre, 2026", service: "Balayage & Melt & Lights", stylist: "Ana", notes: "Matizado en tonos perla, corte capeado orgánico." },
+          { date: "5 Agosto, 2026", service: "Color Atelier", stylist: "Ana", notes: "Balayage efecto sol, sellado de cutícula." },
+          { date: "20 Junio, 2026", service: "Visagismo & Diagnóstico", stylist: "Ana", notes: "Diagnóstico: porosidad media, hidratación profunda." }
+        ]
+      },
+      { idNum: 2, registroId: "LSTUDIO-002", nombre: "Carmen", apellidos: "Martínez Ruiz", fechaNacimiento: "22/11/1990", telefono: "+34 633 444 555", email: "carmen@gmail.com", pinAcceso: "1234", diagnostico: "Melt & Lights avellana / Hidratación Profunda", ultimaVisita: "01/09/2026", proximaVisitaSugerida: "01/10/2026", formulasAplicadas: "Balayage enriquecido con proteínas Revivre", dniCapilar: "Porosidad: Baja | Hidratación: Óptima", prescripcionCasa: "Champú Revivre" }
     ];
   });
 
@@ -708,7 +733,6 @@ export default function App() {
     const selectedSub = selectedCategory?.subservices[modalSubIndex] || { name: 'Servicio general', duration: '45 min' };
     const durMatch = selectedSub.duration.match(/\d+/);
     const durationMin = durMatch ? parseInt(durMatch[0], 10) : 45;
-
     const newApp: Appointment = {
       id: Date.now().toString(),
       dateKey: formatDateKey(targetDateObj),
@@ -736,7 +760,6 @@ export default function App() {
     const dayNameStr = dayNamesMap[bookingDate.getDay()];
     const dateKeyStr = formatDateKey(bookingDate);
     const subNames = selectedServicesToBook.map(s => s.name).join(', ');
-    
     let totalDurationMinutes = 0;
     selectedServicesToBook.forEach(s => {
       const match = s.duration.match(/\d+/);
@@ -746,7 +769,6 @@ export default function App() {
         totalDurationMinutes += 45;
       }
     });
-
     const newApp: Appointment = {
       id: Date.now().toString(),
       dateKey: dateKeyStr,
@@ -876,7 +898,6 @@ export default function App() {
   for (let i = 0; i < diaInicio; i++) diasRejillaMini.push(null);
   for (let d = 1; d <= diasEnMes; d++) diasRejillaMini.push(new Date(añoMini, mesMini, d));
 
-  // Franjas horarias cada 15 minutos de 10:00h a 20:00h
   const hoursList = [
     '10:00', '10:15', '10:30', '10:45',
     '11:00', '11:15', '11:30', '11:45',
@@ -894,14 +915,12 @@ export default function App() {
   const isTimeSlotOccupied = (dateKey: string, timeStr: string) => {
     const [checkHour, checkMin] = timeStr.split(':').map(Number);
     const checkTotalMinutes = checkHour * 60 + checkMin;
-
     return appointments.some(appt => {
       if (appt.dateKey !== dateKey) return false;
       const [apptHour, apptMin] = appt.time.split(':').map(Number);
       const apptStartMinutes = apptHour * 60 + apptMin;
       const duration = appt.durationMinutes || 45;
       const apptEndMinutes = apptStartMinutes + duration;
-
       return checkTotalMinutes >= apptStartMinutes && checkTotalMinutes < apptEndMinutes;
     });
   };
@@ -1018,7 +1037,6 @@ export default function App() {
       {/* 2. PORTAL CLIENTE */}
       {currentScreen === 'clientPortal' && (
         <div style={{ maxWidth: '600px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
             <div>
               <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>L'Studio Ana</h2>
@@ -1028,7 +1046,6 @@ export default function App() {
               Salir
             </button>
           </div>
-
           <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
               <div>
@@ -1045,14 +1062,13 @@ export default function App() {
             </div>
             <div style={{ display: 'flex', gap: '15px', fontSize: '11px', borderTop: '1px solid rgba(212,175,55,0.15)', paddingTop: '10px' }}>
               <a href={`tel:${bizConfig.phone}`} style={{ color: '#d4af37', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                📞 Llamar Salón
+                Llamar Salón
               </a>
               <a href={`https://wa.me/34${bizConfig.phone}`} target="_blank" rel="noreferrer" style={{ color: '#44bb44', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
-                💬 WhatsApp
+                WhatsApp
               </a>
             </div>
           </div>
-
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <button onClick={() => setCurrentScreen('catalogBooking')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '16px 12px', borderRadius: '10px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', textAlign: 'center' }}>
               📅 Ver Catálogo & Reservar Cita
@@ -1061,7 +1077,6 @@ export default function App() {
               🔬 Mi Historial, Fórmulas
             </button>
           </div>
-
           <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ color: '#d4af37', fontSize: '13px', fontWeight: 'bold', fontFamily: 'serif' }}>
               Próxima Cita
@@ -1069,7 +1084,7 @@ export default function App() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', color: '#ccc' }}>
                 <div>📅 {clientNextAppointment ? `${clientNextAppointment.dateKey} (${clientNextAppointment.dayName})` : '10 de octubre 2026'}</div>
-                <div>⏰ {clientNextAppointment ? `${clientNextAppointment.time}` : '16:00'}</div>
+                <div>⏰ {clientNextAppointment ? clientNextAppointment.time : '16:00'}</div>
                 <div style={{ color: '#fff' }}><strong style={{ color: '#d4af37' }}>Servicio:</strong> {clientNextAppointment?.serviceSubcategory || 'Coloración Global'}</div>
                 <div style={{ color: '#888', fontSize: '11px' }}>Stylist: Ana</div>
               </div>
@@ -1078,7 +1093,6 @@ export default function App() {
               </button>
             </div>
           </div>
-
           <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', fontFamily: 'serif', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '6px' }}>
               Horarios del Salón:
@@ -1100,19 +1114,16 @@ export default function App() {
               <span style={{ color: '#d4af37', fontStyle: 'italic', textAlign: 'right' }}>{bizConfig.scheduleSaturday}</span>
             </div>
           </div>
-
           <div style={{ display: 'flex', gap: '10px' }}>
             <a href={bizConfig.instagramUrl} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold' }}>Instagram</a>
             <a href={bizConfig.tiktokUrl} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold' }}>Tik Tok</a>
             <a href={bizConfig.googleMapsUrl} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold' }}>Google Maps</a>
           </div>
-
           <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ color: '#d4af37', fontSize: '13px', fontFamily: 'serif', fontWeight: 'bold', letterSpacing: '1px' }}>Déjanos tu opinión & Reseña Google</span>
               <span style={{ color: '#d4af37', fontSize: '12px' }}>▲</span>
             </div>
-
             {feedbackSubmitted ? (
               <div style={{ textAlign: 'center', padding: '12px', backgroundColor: '#1a261a', border: '1px solid #44bb44', borderRadius: '8px' }}>
                 <p style={{ color: '#44bb44', fontSize: '12px', fontWeight: 'bold', margin: '0 0 4px 0' }}>¡Gracias por compartir tu opinión!</p>
@@ -1145,20 +1156,17 @@ export default function App() {
               </form>
             )}
           </div>
-
           <div style={{ textAlign: 'center', color: '#666', fontSize: '10px', display: 'flex', justifyContent: 'center', gap: '15px', marginTop: '5px' }}>
             <span>Terms</span>
             <span>Global</span>
             <span>Privacidad</span>
           </div>
-
         </div>
       )}
 
       {/* 2.2. CATÁLOGO & RESERVA */}
       {currentScreen === 'catalogBooking' && (
         <div style={{ maxWidth: '700px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
             <div>
               <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>{bizConfig.name}</h2>
@@ -1168,18 +1176,15 @@ export default function App() {
               ← Volver al Portal
             </button>
           </div>
-
           {bookingSuccessMsg && (
             <div style={{ padding: '15px', backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', borderRadius: '8px', fontSize: '12px', textAlign: 'center', lineHeight: '1.5', fontWeight: 'bold' }}>
               {bookingSuccessMsg}
             </div>
           )}
-
           <div>
             <h1 style={{ fontSize: '16px', fontFamily: 'serif', color: '#fff', marginBottom: '4px' }}>1. Selecciona tus servicios deseados:</h1>
             <p style={{ color: '#888', fontSize: '10px', margin: 0 }}>Despliega cada categoría para ver los servicios y selecciónalos según prefieras.</p>
           </div>
-          
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {catalog.map((cat) => {
               const isCategoryExpanded = !!expandedCategories[cat.id];
@@ -1187,7 +1192,7 @@ export default function App() {
                 <div key={cat.id} style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.25)', borderRadius: '10px', overflow: 'hidden' }}>
                   <div onClick={() => setExpandedCategories({ ...expandedCategories, [cat.id]: !isCategoryExpanded })} style={{ padding: '14px 18px', backgroundColor: '#181818', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
                     <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '14px' }}>{cat.icon || '✨'}</span> {cat.title} ({cat.subservices.length} servicios)
+                      <span style={{ fontSize: '14px' }}>{cat.icon || ' '}</span> {cat.title} ({cat.subservices.length} servicios)
                     </span>
                     <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>{isCategoryExpanded ? 'Ocultar' : 'Desplegar'}</span>
                   </div>
@@ -1211,7 +1216,7 @@ export default function App() {
                               </div>
                               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                 <button onClick={(e) => { e.stopPropagation(); setExpandedSubDetails({ ...expandedSubDetails, [sub.id]: !isExpanded }); }} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', fontSize: '10px', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}>
-                                  {isExpanded ? 'Ocultar info ▲' : 'Saber más ▼'}
+                                  {isExpanded ? 'Ocultar info' : 'Saber más▼'}
                                 </button>
                                 <div onClick={() => {
                                   if (isSelected) {
@@ -1240,10 +1245,8 @@ export default function App() {
               );
             })}
           </div>
-
           <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', overflow: 'hidden' }}>
             <h2 style={{ fontSize: '14px', fontFamily: 'serif', color: '#d4af37', margin: 0 }}>2. Selecciona Fecha y Hora Laboral:</h2>
-            
             {selectedServicesToBook.length === 0 ? (
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(12,12,12,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, padding: '20px', textAlign: 'center' }}>
                 <span style={{ color: '#d4af37', fontSize: '13px', fontWeight: 'bold', fontFamily: 'serif', letterSpacing: '1px', textShadow: '0 0 10px rgba(212,175,55,0.4)' }}>
@@ -1262,16 +1265,14 @@ export default function App() {
         </div>
       )}
 
-      {/* 2.4. AGENDA VISUAL INTERACTIVA (FRANJAS DE 15 MIN, SOLO MUESTRA OCUPADO Y SIN DATOS PERSONALES) */}
+      {/* 2.4. AGENDA VISUAL INTERACTIVA */}
       {currentScreen === 'visualAgenda' && (
         <div style={{ maxWidth: '680px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
             <div>
               <span style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', display: 'block' }}>PORTAL PRIVADO DE CLIENTAS</span>
               <h2 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: '2px 0 0 0' }}>L'Studio Ana</h2>
             </div>
-            
             <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
               <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '8px', padding: '6px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <span style={{ color: '#d4af37', fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '2px' }}>GESTIONAR CITA ACTUAL</span>
@@ -1287,56 +1288,35 @@ export default function App() {
                   }} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', textDecoration: 'underline' }}>Cancelar Cita</button>
                 </div>
               </div>
-
               <button onClick={() => setCurrentScreen('catalogBooking')} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '6px 12px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
                 ← Volver a Selección de Servicios
               </button>
             </div>
           </div>
-
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <span style={{ color: '#d4af37', fontSize: '13px', fontWeight: 'bold', fontFamily: 'serif' }}>
               MI AGENDA VISUAL: {bookingDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </span>
             <input type="date" value={formatDateKey(bookingDate)} onChange={(e) => setBookingDate(new Date(e.target.value))} style={{ backgroundColor: '#181818', border: '1px solid #d4af37', color: '#fff', padding: '6px 10px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }} />
           </div>
-
-          {/* Grilla visual interactiva con franjas de 15 min (Sin mostrar datos personales en ocupados) */}
           <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '420px', overflowY: 'auto' }}>
             {hoursList.map((time) => {
               const targetKey = formatDateKey(bookingDate);
               const isOccupied = isTimeSlotOccupied(targetKey, time);
               const isSelectedVisual = selectedVisualTime === time;
-
               return (
                 <div key={time} style={{ display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '1px solid #222', paddingBottom: '6px' }}>
                   <span style={{ color: '#888', fontSize: '10px', width: '45px', fontWeight: 'bold' }}>{time}h</span>
-                  
                   <div style={{ flex: 1 }}>
                     {isOccupied ? (
-                      /* BLOQUE OCUPADO SIN NINGÚN DATO PERSONAL DE LA CLIENTA */
                       <div style={{ backgroundColor: '#211d12', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '6px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.95, pointerEvents: 'none' }}>
-                        <span style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px' }}>
-                          OCUPADO
-                        </span>
+                        <span style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px' }}>OCUPADO</span>
                         <span style={{ color: '#888', fontSize: '9px' }}>NO DISPONIBLE</span>
                       </div>
                     ) : (
-                      /* Hueco libre seleccionable con un toque */
-                      <div 
-                        onClick={() => setSelectedVisualTime(time)}
-                        style={{ 
-                          backgroundColor: isSelectedVisual ? '#2a2412' : '#1c1c1c', 
-                          border: isSelectedVisual ? '2px solid #d4af37' : '1px dashed rgba(212,175,55,0.3)', 
-                          borderRadius: '6px', 
-                          padding: '10px', 
-                          textAlign: 'center', 
-                          cursor: 'pointer',
-                          transition: 'all 0.2s'
-                        }}
-                      >
+                      <div onClick={() => setSelectedVisualTime(time)} style={{ backgroundColor: isSelectedVisual ? '#2a2412' : '#1c1c1c', border: isSelectedVisual ? '2px solid #d4af37' : '1px dashed rgba(212,175,55,0.3)', borderRadius: '6px', padding: '10px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}>
                         <span style={{ color: isSelectedVisual ? '#fff' : '#d4af37', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px' }}>
-                          {isSelectedVisual ? `✓ HUECO SELECCIONADO (${time})` : 'HUECO LIBRE'}
+                          {isSelectedVisual ? `HUECO SELECCIONADO (${time})` : 'HUECO LIBRE'}
                         </span>
                       </div>
                     )}
@@ -1345,10 +1325,9 @@ export default function App() {
               );
             })}
           </div>
-
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '5px' }}>
             <button onClick={() => setCurrentScreen('catalogBooking')} style={{ backgroundColor: '#222', border: '1px solid #444', color: '#aaa', padding: '12px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
-              SELECCIONA HUECO PARA CONFIRMAR
+              SELECCIONa HUECO PARA CONFIRMAR
             </button>
             <button onClick={handleConfirmarCitaVisual} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'center' }}>
               CONFIRMAR CITA: {bookingDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'numeric' })}, {selectedVisualTime}
@@ -1357,7 +1336,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 2.3. HISTORIAL DE CLIENTE */}
+      {/* 2.3. HISTORIAL DE CLIENTE (CON PASAPORTE DE EXPERIENCIAS INTEGRADO) */}
       {currentScreen === 'clientHistoryPage' && (
         <div style={{ maxWidth: '700px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
@@ -1369,11 +1348,54 @@ export default function App() {
               ← Volver al Portal
             </button>
           </div>
+
+          {/* PASAPORTE DE EXPERIENCIAS DE AUTOR (COMO EN TU IMAGEN) */}
+          <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>Mi Pasaporte de Experiencias de Autor</h3>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              {['[Septiembre]', '[Agosto]', '[Junio]', '[March]', '[March]'].map((mes, idx) => (
+                <div key={idx} style={{ backgroundColor: idx === 0 ? '#d4af37' : '#1c1c1c', color: idx === 0 ? '#000' : '#d4af37', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '20px', padding: '6px 14px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
+                  {mes}
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
+              {currentClientRecord?.pastVisits && currentClientRecord.pastVisits.length > 0 ? (
+                currentClientRecord.pastVisits.map((v, i) => (
+                  <div key={i} style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', fontSize: '11px', color: '#ccc', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div><strong style={{ color: '#d4af37' }}>Visita:</strong> {v.date}</div>
+                    <div><strong style={{ color: '#d4af37' }}>Servicio:</strong> {v.service}</div>
+                    <div><strong style={{ color: '#d4af37' }}>Estilista:</strong> {v.stylist}</div>
+                    <div><strong style={{ color: '#d4af37' }}>Notas de Estilo:</strong> {v.notes}</div>
+                  </div>
+                ))
+              ) : (
+                <div style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', fontSize: '11px', color: '#ccc', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div><strong style={{ color: '#d4af37' }}>Estilista:</strong> Ana</div>
+                  <div><strong style={{ color: '#d4af37' }}>Notas de Estilo:</strong> Matizado en tonos perla, corte capeado orgánico.</div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* DNI CAPILAR Y MANTENIMIENTO EN CASA */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '14px' }}>
+              <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>DNI Capilar Activo</div>
+              <div style={{ color: '#ccc', fontSize: '11px' }}>{currentClientRecord?.dniCapilar || 'Porosidad: Media | Hidratación: Necesaria | Textura: Fina'}</div>
+            </div>
+            <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '14px' }}>
+              <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>Mantenimiento en Casa (Prescripción)</div>
+              <div style={{ color: '#ccc', fontSize: '11px' }}>{currentClientRecord?.prescripcionCasa || 'Champú Hidratante | Acondicionador Sellador | Sérum Nutritivo'}</div>
+            </div>
+          </div>
+
           {editMsg && (
             <div style={{ padding: '10px', backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }}>
               {editMsg}
             </div>
           )}
+
           <form onSubmit={handleGuardarCambiosFichaClienta} style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0, borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '8px' }}>
               Fórmulas y Próxima Visita (Modo Manual)
@@ -1453,7 +1475,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 4. PANEL DE ADMINISTRACIÓN (PORTAL MAESTRO SINCRONIZADO) */}
+      {/* 4. PANEL DE ADMINISTRACIÓN */}
       {currentScreen === 'adminPanel' && (
         <div style={{ maxWidth: '1200px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
@@ -1527,7 +1549,6 @@ export default function App() {
                           const targetKey = formatDateKey(day.dateObj);
                           const appt = appointments.find(a => a.dateKey === targetKey && a.time === time);
                           const occupiedByDuration = isTimeSlotOccupied(targetKey, time);
-
                           return (
                             <div key={dIdx} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, day.dateObj, day.name, time)} onClick={() => handleCellClick(day.dateObj, day.name, time)} style={{ backgroundColor: appt ? '#221e10' : (occupiedByDuration ? '#1a1510' : '#1a1a1a'), border: appt ? '1px solid #d4af37' : (occupiedByDuration ? '1px dashed #554422' : '1px dashed #2c2c2c'), borderRadius: '6px', padding: '6px', minHeight: '35px', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                               {appt ? (
