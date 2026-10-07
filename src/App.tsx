@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 
-// ==========================================
+// ======
 // CONFIGURACIÓN DE L'STUDIO ANA
-// ==========================================
+// ======
 interface BusinessConfig {
   name: string;
   subtitle: string;
@@ -36,7 +36,7 @@ const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
   instagramUrl: "https://instagram.com",
   tiktokUrl: "https://tiktok.com",
   googleMapsUrl: "https://maps.google.com",
-  googleReviewUrl: "https://g.page/r/CRLx1fxwpIAYEBM/review"
+  googleReviewUrl: "https://g.page/r/CRLx1fxwplAYEBM/review"
 };
 
 interface Appointment {
@@ -63,7 +63,7 @@ interface SubService {
   description: string;
   duration: string;
   price: string;
-  bufferTime: string;
+  bufferTime?: string;
   includesText?: string;
   achievedText?: string;
   priceType?: 'desde' | 'aprox' | 'fijo' | 'consultar';
@@ -289,28 +289,23 @@ export default function App() {
   const [pin, setPin] = useState<string>('');
   const [pinError, setPinError] = useState<boolean>(false);
   const [currentClientRecord, setCurrentClientRecord] = useState<ClientRecord | null>(null);
-
   const [regNombre, setRegNombre] = useState('');
   const [regApellidos, setRegApellidos] = useState('');
   const [regNacimiento, setRegNacimiento] = useState('');
   const [regTelefono, setRegTelefono] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPin, setRegPin] = useState('');
-
   const [selectedServicesToBook, setSelectedServicesToBook] = useState<SubService[]>([]);
   const [expandedSubDetails, setExpandedSubDetails] = useState<{ [key: string]: boolean }>({});
   const [expandedCategories, setExpandedCategories] = useState<{ [key: string]: boolean }>({});
   const [bookingDate, setBookingDate] = useState<Date>(new Date(2026, 8, 28));
   const [bookingTime, setBookingTime] = useState<string>('11:00');
   const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null);
-
-  const [editProximaVisita, setEditProximaVisita] = useState<string>('');
-  const [editFormulas, setEditFormulas] = useState<string>('');
+  const [editProximaVisita, setEditProximaVisita] = useState('');
+  const [editFormulas, setEditFormulas] = useState('');
   const [editMsg, setEditMsg] = useState<string | null>(null);
-
-  const [clientWishText, setClientWishText] = useState<string>('');
+  const [clientWishText, setClientWishText] = useState('');
   const [aiRecommendation, setAiRecommendation] = useState<{ serviceName: string; reason: string; category: string } | null>(null);
-
   const [logoClicks, setLogoClicks] = useState<number>(0);
   const [adminPin, setAdminPin] = useState<string>('');
   const [adminError, setAdminError] = useState<boolean>(false);
@@ -341,7 +336,6 @@ export default function App() {
   const [newSubIncludes, setNewSubIncludes] = useState('');
   const [newSubAchieved, setNewSubAchieved] = useState('');
   const [newSubPriceType, setNewSubPriceType] = useState<'desde' | 'aprox' | 'fijo' | 'consultar'>('desde');
-
   const [isAddingCategory, setIsAddingCategory] = useState<boolean>(false);
   const [newCatCode, setNewCatCode] = useState('');
   const [newCatTitle, setNewCatTitle] = useState('');
@@ -427,7 +421,6 @@ export default function App() {
   const [novoPin, setNovoPin] = useState('');
   const [novoDiagnostico, setNovoDiagnostico] = useState('');
   const [busquedaCliente, setBusquedaCliente] = useState('');
-
   const [editingClientId, setEditingClientId] = useState<number | null>(null);
   const [editAdminUltimaVisita, setEditAdminUltimaVisita] = useState('');
   const [editAdminProxima, setEditAdminProxima] = useState('');
@@ -859,7 +852,7 @@ export default function App() {
     '12:00', '12:15', '13:00', '13:15',
     '14:00', '14:15', '15:00', '15:15',
     '16:00', '16:15', '17:00', '17:15',
-    '18:00', '18:15', '19:00', '19:15',
+    '18:00', '18:15', '19:00', '19:15'
   ];
 
   const getDaysOfWeekForDate = (date: Date) => {
@@ -965,7 +958,7 @@ export default function App() {
             </button>
           </form>
           <button onClick={() => setCurrentScreen('clientPin')} style={{ background: 'none', border: 'none', color: '#888', fontSize: '11px', cursor: 'pointer', textAlign: 'center' }}>
-            ← Ya estoy registrada, volver al PIN
+            Ya estoy registrada, volver al PIN
           </button>
         </div>
       )}
@@ -1049,11 +1042,11 @@ export default function App() {
                     <p style={{ color: '#aaa', fontSize: '11px', margin: 0, textAlign: 'center' }}>Selecciona tu nivel de satisfacción:</p>
                     <div style={{ display: 'flex', justifyContent: 'space-around', fontSize: '26px', cursor: 'pointer' }}>
                       {[
-                        {val: 1, emoji: '😠', label: 'Muy mal'},
-                        {val: 2, emoji: '🙁', label: 'Regular'},
-                        {val: 3, emoji: '😐', label: 'Neutral'},
-                        {val: 4, emoji: '😊', label: 'Bien'},
-                        {val: 5, emoji: '⭐', label: '¡Excelente!'}
+                        { val: 1, emoji: '😡', label: 'Muy mal' },
+                        { val: 2, emoji: '🙁', label: 'Regular' },
+                        { val: 3, emoji: '😐', label: 'Neutral' },
+                        { val: 4, emoji: '😊', label: 'Bien' },
+                        { val: 5, emoji: '😍', label: '¡Excelente!' }
                       ].map((item) => (
                         <div key={item.val} onClick={() => handleRatingSelect(item.val)} style={{ textAlign: 'center', opacity: selectedRating === item.val ? 1 : 0.4, transform: selectedRating === item.val ? 'scale(1.15)' : 'scale(1)', transition: 'all 0.2s' }} title={item.label}>
                           <div style={{ fontSize: '16px' }}>{item.emoji}</div>
@@ -1099,7 +1092,9 @@ export default function App() {
             <h1 style={{ fontSize: '18px', fontFamily: 'serif', color: '#fff', marginBottom: '6px' }}>1. Selecciona tus servicios deseados:</h1>
             <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Despliega cada categoría para ver los servicios y selecciónalos según prefieras.</p>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '350px', overflowY: 'auto', paddingRight: '5px' }}>
+          
+          {/* Contenedor principal de categorías con flujo natural */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {catalog.map((cat) => {
               const isCategoryExpanded = !!expandedCategories[cat.id];
               return (
@@ -1111,7 +1106,7 @@ export default function App() {
                     <span style={{ color: '#d4af37', fontSize: '11px' }}>{isCategoryExpanded ? 'Ocultar ▲' : 'Desplegar ▼'}</span>
                   </div>
                   {isCategoryExpanded && (
-                    <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid rgba(212,175,55,0.2)' }}>
+                    <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid rgba(212,175,55,0.2)', maxHeight: '300px', overflowY: 'auto' }}>
                       {cat.subservices.map((sub) => {
                         const isSelected = selectedServicesToBook.some(s => s.id === sub.id);
                         const isExpanded = !!expandedSubDetails[sub.id];
@@ -1159,6 +1154,7 @@ export default function App() {
               );
             })}
           </div>
+
           <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <h2 style={{ fontSize: '15px', fontFamily: 'serif', color: '#d4af37', margin: 0 }}>2. Selecciona Fecha y Hora Laboral:</h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -1235,6 +1231,7 @@ export default function App() {
               </button>
             </div>
           </form>
+
           {/* Asistente IA */}
           <div style={{ backgroundColor: '#161616', border: '1px solid #d4af37', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0 }}>
@@ -1315,9 +1312,9 @@ export default function App() {
             <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
               <div style={{ width: '260px', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '15px', boxSizing: 'border-box', height: 'fit-content' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                  <button onClick={() => cambiarMesMiniCal(-1)} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>◄</button>
+                  <button onClick={() => cambiarMesMiniCal(-1)} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>◀</button>
                   <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', fontFamily: 'serif' }}>{nombresMeses[mesMini]} {añoMini}</span>
-                  <button onClick={() => cambiarMesMiniCal(1)} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>►</button>
+                  <button onClick={() => cambiarMesMiniCal(1)} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>▶</button>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center', marginBottom: '8px' }}>
                   {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d, i) => (
@@ -1368,7 +1365,7 @@ export default function App() {
                                 <div draggable onDragStart={(e) => handleDragStart(e, appt.id)} title="Arrastra para mover de hora/día o haz clic para ver" style={{ fontSize: '11px' }}>
                                   <div style={{ color: '#d4af37', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span>{appt.clientName}</span>
-                                    <button onClick={(e) => handleDeleteAppointment(appt.id, e)} style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '10px', cursor: 'pointer' }}>✕</button>
+                                    <button onClick={(e) => handleDeleteAppointment(appt.id, e)} style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '10px', cursor: 'pointer' }}>X</button>
                                   </div>
                                   <div style={{ color: '#bbb', fontSize: '9px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appt.serviceSubcategory}</div>
                                 </div>
@@ -1403,19 +1400,19 @@ export default function App() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#aaa', fontSize: '11px' }}>Nombre del Salón:</label>
-                    <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig({...tempConfig, name: e.target.value})} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+                    <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig({ ...tempConfig, name: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#aaa', fontSize: '11px' }}>Ubicación (Texto visible):</label>
-                    <input type="text" value={tempConfig.location} onChange={(e) => setTempConfig({...tempConfig, location: e.target.value})} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+                    <input type="text" value={tempConfig.location} onChange={(e) => setTempConfig({ ...tempConfig, location: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#aaa', fontSize: '11px' }}>Enlace Google Maps (Ubicación):</label>
-                    <input type="text" value={tempConfig.googleMapsUrl} onChange={(e) => setTempConfig({...tempConfig, googleMapsUrl: e.target.value})} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+                    <input type="text" value={tempConfig.googleMapsUrl} onChange={(e) => setTempConfig({ ...tempConfig, googleMapsUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#aaa', fontSize: '11px' }}>Enlace Reseñas Google My Business:</label>
-                    <input type="text" value={tempConfig.googleReviewUrl} onChange={(e) => setTempConfig({...tempConfig, googleReviewUrl: e.target.value})} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+                    <input type="text" value={tempConfig.googleReviewUrl} onChange={(e) => setTempConfig({ ...tempConfig, googleReviewUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <button onClick={() => handleSaveSection('Datos Generales y Redes')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Guardar Cambios Generales</button>
                 </div>
@@ -1432,7 +1429,7 @@ export default function App() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#aaa', fontSize: '11px' }}>Horario Jueves y Viernes:</label>
-                    <input type="text" value={tempConfig.scheduleThuFri} onChange={(e) => setTempConfig({...tempConfig, scheduleThuFri: e.target.value})} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+                    <input type="text" value={tempConfig.scheduleThuFri} onChange={(e) => setTempConfig({ ...tempConfig, scheduleThuFri: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#aaa', fontSize: '11px' }}>Horario Sábados:</label>
@@ -1449,7 +1446,7 @@ export default function App() {
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#aaa', fontSize: '11px' }}>Descripción del Salón:</label>
-                    <textarea value={tempConfig.description} onChange={(e) => setTempConfig({...tempConfig, description: e.target.value})} onFocus={(e) => e.target.select()} rows={3} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+                    <textarea value={tempConfig.description} onChange={(e) => setTempConfig({ ...tempConfig, description: e.target.value })} onFocus={(e) => e.target.select()} rows={3} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <button onClick={() => handleSaveSection('Branding y Textos')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Guardar Branding</button>
                 </div>
@@ -1511,7 +1508,7 @@ export default function App() {
                                     <button onClick={() => setExpandedSubDetails({ ...expandedSubDetails, [`admin_${sub.id}`]: !isExpandedAdmin })} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', fontSize: '10px', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer' }}>
                                       {isExpandedAdmin ? 'Ocultar ▲' : 'Ver info ▼'}
                                     </button>
-                                    <button onClick={() => handleDeleteSubservice(cat.id, sub.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontSize: '11px' }}>✕</button>
+                                    <button onClick={() => handleDeleteSubservice(cat.id, sub.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontSize: '11px' }}>X</button>
                                   </div>
                                 </div>
                                 {isExpandedAdmin && (
@@ -1572,7 +1569,6 @@ export default function App() {
                   {isAddingClient ? 'Cancelar' : '+ Dar de Alta Clienta'}
                 </button>
               </div>
-
               {isAddingClient && (
                 <form onSubmit={handleGuardarNuevoCliente} style={{ backgroundColor: '#181818', border: '1px solid #d4af37', borderRadius: '8px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0 }}>Nueva Ficha de Clienta</h4>
@@ -1590,11 +1586,9 @@ export default function App() {
                   </div>
                 </form>
               )}
-
               <div>
                 <input type="text" placeholder="Buscar por Nombre, Email, Teléfono o ID..." value={busquedaCliente} onChange={(e) => setBusquedaCliente(e.target.value)} onFocus={(e) => e.target.select()} style={{ width: '100%', maxWidth: '350px', padding: '8px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '11px', outline: 'none' }} />
               </div>
-
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {listaClientes
                   .filter(c =>
@@ -1626,19 +1620,17 @@ export default function App() {
                                 setEditAdminFormulas(c.formulasAplicadas);
                               }
                             }} style={{ background: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '4px 10px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}>
-                              {isEditing ? 'Cerrar Edición' : 'Editar Ficha / Fórmulas ✏️'}
+                              {isEditing ? 'Cerrar Edición' : 'Editar Ficha / Fórmulas'}
                             </button>
-                            <button onClick={() => handleBorrarCliente(c.idNum)} title="Eliminar clienta" style={{ background: 'transparent', border: 'none', color: '#ff4444', fontSize: '14px', cursor: 'pointer' }}>✕</button>
+                            <button onClick={() => handleBorrarCliente(c.idNum)} title="Eliminar clienta" style={{ background: 'transparent', border: 'none', color: '#ff4444', fontSize: '14px', cursor: 'pointer' }}> X </button>
                           </div>
                         </div>
-
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', fontSize: '11px', color: '#aaa', backgroundColor: '#1a1a1a', padding: '10px', borderRadius: '6px' }}>
                           <div><strong>Email:</strong> {c.email}</div>
                           <div><strong>Teléfono:</strong> {c.telefono}</div>
                           <div><strong>PIN Acceso:</strong> <span style={{ color: '#d4af37', fontWeight: 'bold' }}>{c.pinAcceso}</span></div>
                           <div><strong>F. Nacimiento:</strong> {c.fechaNacimiento}</div>
                         </div>
-
                         {isEditing ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#1f1a10', padding: '12px', borderRadius: '8px', border: '1px solid #d4af37' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -1689,7 +1681,7 @@ export default function App() {
                   feedbackList.filter(f => f.type === 'detractor').map((fb) => (
                     <div key={fb.id} style={{ backgroundColor: '#1a1414', border: '1px solid #ff4444', borderRadius: '8px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ color: '#ff4444', fontWeight: 'bold', fontSize: '12px' }}>Valoración: {fb.rating} ⭐ ({fb.clientName})</span>
+                        <span style={{ color: '#ff4444', fontWeight: 'bold', fontSize: '12px' }}>Valoración: {fb.rating} ({fb.clientName})</span>
                         <span style={{ color: '#888', fontSize: '10px' }}>{fb.date}</span>
                       </div>
                       <p style={{ color: '#fff', fontSize: '12px', margin: 0, fontStyle: 'italic' }}>"{fb.comment}"</p>
@@ -1745,7 +1737,7 @@ export default function App() {
                         </div>
                         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                           <span style={{ color: '#888', fontSize: '10px' }}>{item.date}</span>
-                          <button onClick={() => setLostDemandsList(lostDemandsList.filter(l => l.id !== item.id))} style={{ background: 'transparent', border: 'none', color: '#ff4444', fontSize: '11px', cursor: 'pointer' }}>✕</button>
+                          <button onClick={() => setLostDemandsList(lostDemandsList.filter(l => l.id !== item.id))} style={{ background: 'transparent', border: 'none', color: '#ff4444', fontSize: '11px', cursor: 'pointer' }}>X</button>
                         </div>
                       </div>
                     );
@@ -1754,7 +1746,6 @@ export default function App() {
               </div>
             </div>
           )}
-
         </div>
       )}
 
@@ -1801,7 +1792,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL VER / ELIMINAR CITA EXISTENTE & BOTÓN WHATSAPP DE RECORDATORIO */}
+      {/* MODAL VER / ELIMINAR CITA EXISTENTE & BOTÓN WHATSAPP */}
       {viewApptModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
           <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '380px', width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -1814,16 +1805,14 @@ export default function App() {
               <div><strong style={{ color: '#fff' }}>Servicio:</strong> {viewApptModal.serviceSubcategory}</div>
               <div style={{ backgroundColor: '#1a1a1a', padding: '10px', borderRadius: '6px', border: '1px solid #333', marginTop: '5px' }}>
                 <div style={{ color: '#d4af37', fontWeight: 'bold', marginBottom: '4px' }}>Estado de Automatizaciones:</div>
-                <div style={{ fontSize: '11px', color: '#44bb44' }}>✓ Email 48h antes: Programado</div>
-                <div style={{ fontSize: '11px', color: '#44bb44' }}>✓ WhatsApp 48h antes: Programado</div>
-                <div style={{ fontSize: '11px', color: '#44bb44' }}>✓ WhatsApp 24h antes: Programado</div>
-                <div style={{ fontSize: '11px', color: '#44bb44' }}>✓ WhatsApp 2h antes: Programado (Crítico)</div>
+                <div style={{ fontSize: '11px', color: '#44bb44' }}>Email 48h antes: Programado</div>
+                <div style={{ fontSize: '11px', color: '#44bb44' }}>WhatsApp 48h antes: Programado</div>
+                <div style={{ fontSize: '11px', color: '#44bb44' }}>WhatsApp 24h antes: Programado</div>
+                <div style={{ fontSize: '11px', color: '#44bb44' }}>WhatsApp 2h antes: Programado (Crítico)</div>
               </div>
-
-              {/* BOTÓN DE WHATSAPP DIRECTO */}
-              <a 
-                href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola ${viewApptModal.clientName}, te escribimos desde L'Studio Ana para confirmarte tu cita el ${viewApptModal.dayName} a las ${viewApptModal.time} para: ${viewApptModal.serviceSubcategory}. ¡Te esperamos en el salón!`)}`}
-                target="_blank" 
+              <a
+                href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola ${viewApptModal.clientName}, te escribimos desde L'Studio Ana para confirmarte tu cita el${viewApptModal.dayName} a las ${viewApptModal.time} para:${viewApptModal.serviceSubcategory}. ¡Te esperamos en el salón!`)}`}
+                target="_blank"
                 rel="noreferrer"
                 style={{
                   display: 'block',
@@ -1838,7 +1827,7 @@ export default function App() {
                   marginTop: '8px'
                 }}
               >
-                📲 Enviar recordatorio por WhatsApp
+                Enviar recordatorio por WhatsApp
               </a>
             </div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', marginTop: '10px' }}>
