@@ -23,15 +23,15 @@ interface BusinessConfig {
 
 const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
   name: "L'Studio Ana",
-  subtitle: "Hair Experience",
+  subtitle: "PORTAL PRIVADO DE CLIENTAS",
   location: "Centro de Elche, Alicante",
   phone: "600000000",
   description: "Más de 25 años dedicados al cuidado de la salud capilar y la estética del cabello de autor en el centro de Elche.",
-  scheduleMonday: "10H A 13:30H",
-  scheduleTueWed: "10h a 18h",
-  scheduleThuFri: "10h a 19h",
-  scheduleSaturday: "Cita previa / Turno especial consultorio",
-  welcomeMessage: "Bienvenida a tu espacio exclusivo de salud capilar y visagismo de autor.",
+  scheduleMonday: "10:00h a 13:30h",
+  scheduleTueWed: "10:00h a 18:00h",
+  scheduleThuFri: "10:00h a 19:00h",
+  scheduleSaturday: "10:00h a 19:00h",
+  welcomeMessage: "¡Bienvenida, Ana!",
   masterPin: "7009",
   instagramUrl: "https://instagram.com",
   tiktokUrl: "https://tiktok.com",
@@ -44,6 +44,7 @@ interface Appointment {
   dateKey: string;
   dayName: string;
   time: string;
+  durationMinutes?: number;
   clientName: string;
   phone: string;
   email: string;
@@ -280,8 +281,8 @@ const formatDateKey = (d: Date) => {
 };
 
 const INITIAL_APPOINTMENTS: Appointment[] = [
-  { id: '1', dateKey: '2026-09-28', dayName: 'Lunes', time: '10:00', clientName: 'María Dolores Gómez', phone: '600111222', email: 'mariadolores@gmail.com', serviceCategory: '0.4 < COLOR ATELIER', serviceSubcategory: 'Coloración Global & Raíces', remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: false, whatsapp2h: false } },
-  { id: '2', dateKey: '2026-09-30', dayName: 'Miércoles', time: '11:30', clientName: 'Carmen Martínez', phone: '611222333', email: 'carmen@gmail.com', serviceCategory: '0.2 < VISAGISMO & CORTE', serviceSubcategory: 'Corte de Autor & Visagismo', remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false } },
+  { id: '1', dateKey: '2026-09-28', dayName: 'Lunes', time: '16:00', durationMinutes: 90, clientName: 'Ana', phone: '600000000', email: 'anamorenofernandez79@gmail.com', serviceCategory: '0.4 < COLOR ATELIER', serviceSubcategory: 'Coloración Global & Raíces', remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: false, whatsapp2h: false } },
+  { id: '2', dateKey: '2026-09-30', dayName: 'Miércoles', time: '11:30', durationMinutes: 60, clientName: 'Carmen Martínez', phone: '611222333', email: 'carmen@gmail.com', serviceCategory: '0.2 < VISAGISMO & CORTE', serviceSubcategory: 'Corte de Autor & Visagismo', remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false } },
 ];
 
 export default function App() {
@@ -312,7 +313,7 @@ export default function App() {
   const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm'>('agenda');
   const [configSubTab, setConfigSubTab] = useState<'general' | 'schedule' | 'branding'>('general');
 
-  const [bizConfig, setBizConfig] = useState<BusinessConfig>(() => {
+  const [bizConfig] = useState<BusinessConfig>(() => {
     const saved = localStorage.getItem('lst_business_config');
     return saved ? JSON.parse(saved) : INITIAL_BUSINESS_CONFIG;
   });
@@ -370,7 +371,6 @@ export default function App() {
     localStorage.setItem('lst_feedback_list', JSON.stringify(feedbackList));
   }, [feedbackList]);
 
-  const [isReviewOpen, setIsReviewOpen] = useState<boolean>(false);
   const [selectedRating, setSelectedRating] = useState<number>(5);
   const [feedbackComment, setFeedbackComment] = useState<string>('¡Excelente experiencia! El servicio de autor y la atención de Ana han sido impecables.');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState<boolean>(false);
@@ -407,7 +407,7 @@ export default function App() {
   const [listaClientes, setListaClientes] = useState<ClientRecord[]>(() => {
     const saved = localStorage.getItem('lst_studio_clientes_ids');
     return saved ? JSON.parse(saved) : [
-      { idNum: 1, registroId: "LSTUDIO-001", nombre: "María Dolores", apellidos: "Gómez Pérez", fechaNacimiento: "12/05/1988", telefono: "+34 600 111 222", email: "mariadolores@gmail.com", pinAcceso: "7009", diagnostico: "Balayage manteca / Cabello sensibilizado", ultimaVisita: "15/08/2026", proximaVisitaSugerida: "15/10/2026", formulasAplicadas: "Raíces 7.0 + Matiz 9.21 con emulsión de autor" },
+      { idNum: 1, registroId: "LSTUDIO-001", nombre: "Ana", apellidos: "Moreno Fernández", fechaNacimiento: "12/05/1988", telefono: "600000000", email: "anamorenofernandez79@gmail.com", pinAcceso: "7009", diagnostico: "Balayage manteca / Cabello sensibilizado", ultimaVisita: "15/08/2026", proximaVisitaSugerida: "15/10/2026", formulasAplicadas: "Raíces 7.0 + Matiz 9.21 con emulsión de autor" },
       { idNum: 2, registroId: "LSTUDIO-002", nombre: "Carmen", apellidos: "Martínez Ruiz", fechaNacimiento: "22/11/1990", telefono: "+34 633 444 555", email: "carmen@gmail.com", pinAcceso: "1234", diagnostico: "Melt & Lights avellana / Hidratación Profunda", ultimaVisita: "01/09/2026", proximaVisitaSugerida: "01/10/2026", formulasAplicadas: "Balayage enriquecido con proteínas Revivre" }
     ];
   });
@@ -597,7 +597,6 @@ export default function App() {
             setPin('');
             setAppVisitsCount(prev => prev + 1);
             setFeedbackSubmitted(false);
-            setIsReviewOpen(false);
             if (clientMatch) {
               setCurrentClientRecord(clientMatch);
               setCurrentScreen('clientPortal');
@@ -692,12 +691,16 @@ export default function App() {
     e.preventDefault();
     if (!modalClientName.trim()) return;
     const selectedCategory = catalog[modalCatIndex];
-    const selectedSub = selectedCategory?.subservices[modalSubIndex] || { name: 'Servicio general' };
+    const selectedSub = selectedCategory?.subservices[modalSubIndex] || { name: 'Servicio general', duration: '45 min' };
+    const durMatch = selectedSub.duration.match(/\d+/);
+    const durationMin = durMatch ? parseInt(durMatch[0], 10) : 45;
+
     const newApp: Appointment = {
       id: Date.now().toString(),
       dateKey: formatDateKey(targetDateObj),
       dayName: targetDayName,
       time: targetTime,
+      durationMinutes: durationMin,
       clientName: modalClientName,
       phone: modalPhone || '600000000',
       email: modalEmail || 'sinemail@gmail.com',
@@ -720,11 +723,23 @@ export default function App() {
     const dayNameStr = dayNamesMap[bookingDate.getDay()];
     const dateKeyStr = formatDateKey(bookingDate);
     const subNames = selectedServicesToBook.map(s => s.name).join(', ');
+    
+    let totalDurationMinutes = 0;
+    selectedServicesToBook.forEach(s => {
+      const match = s.duration.match(/\d+/);
+      if (match) {
+        totalDurationMinutes += parseInt(match[0], 10);
+      } else {
+        totalDurationMinutes += 45;
+      }
+    });
+
     const newApp: Appointment = {
       id: Date.now().toString(),
       dateKey: dateKeyStr,
       dayName: dayNameStr,
       time: bookingTime,
+      durationMinutes: totalDurationMinutes,
       clientName: currentClientRecord ? currentClientRecord.nombre + ' ' + currentClientRecord.apellidos : 'Clienta Web',
       phone: currentClientRecord?.telefono || '600000000',
       email: currentClientRecord?.email || 'cliente@gmail.com',
@@ -848,12 +863,33 @@ export default function App() {
   for (let d = 1; d <= diasEnMes; d++) diasRejillaMini.push(new Date(añoMini, mesMini, d));
 
   const hoursList = [
-    '10:00', '10:15', '11:00', '11:15',
-    '12:00', '12:15', '13:00', '13:15',
-    '14:00', '14:15', '15:00', '15:15',
-    '16:00', '16:15', '17:00', '17:15',
-    '18:00', '18:15', '19:00', '19:15'
+    '10:00', '10:15', '10:30', '10:45',
+    '11:00', '11:15', '11:30', '11:45',
+    '12:00', '12:15', '12:30', '12:45',
+    '13:00', '13:15', '13:30', '13:45',
+    '14:00', '14:15', '14:30', '14:45',
+    '15:00', '15:15', '15:30', '15:45',
+    '16:00', '16:15', '16:30', '16:45',
+    '17:00', '17:15', '17:30', '17:45',
+    '18:00', '18:15', '18:30', '18:45',
+    '19:00', '19:15', '19:30', '19:45',
+    '20:00'
   ];
+
+  const isTimeSlotOccupied = (dateKey: string, timeStr: string) => {
+    const [checkHour, checkMin] = timeStr.split(':').map(Number);
+    const checkTotalMinutes = checkHour * 60 + checkMin;
+
+    return appointments.some(appt => {
+      if (appt.dateKey !== dateKey) return false;
+      const [apptHour, apptMin] = appt.time.split(':').map(Number);
+      const apptStartMinutes = apptHour * 60 + apptMin;
+      const duration = appt.durationMinutes || 45;
+      const apptEndMinutes = apptStartMinutes + duration;
+
+      return checkTotalMinutes >= apptStartMinutes && checkTotalMinutes < apptEndMinutes;
+    });
+  };
 
   const getDaysOfWeekForDate = (date: Date) => {
     const d = new Date(date);
@@ -875,6 +911,7 @@ export default function App() {
   };
 
   const semanaActual = getDaysOfWeekForDate(fechaSeleccionada);
+  const clientNextAppointment = appointments[0];
 
   return (
     <div style={{ backgroundColor: '#000000', color: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', margin: 0, padding: '20px' }}>
@@ -963,35 +1000,70 @@ export default function App() {
         </div>
       )}
 
-      {/* 2. PORTAL CLIENTE */}
+      {/* 2. PORTAL CLIENTE (DISEÑO LIMPIO Y EXACTO A TU REFERENCIA) */}
       {currentScreen === 'clientPortal' && (
-        <div style={{ maxWidth: '600px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ maxWidth: '600px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
             <div>
-              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>{bizConfig.name}</h2>
-              <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>Portal Privado de Clientas</p>
+              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>L'Studio Ana</h2>
+              <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>PORTAL PRIVADO DE CLIENTAS</p>
             </div>
-            <button onClick={() => { setPin(''); setCurrentScreen('clientPin'); }} style={{ background: 'none', border: '1px solid #333', color: '#aaa', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
+            <button onClick={() => { setPin(''); setCurrentScreen('clientPin'); }} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
               Salir
             </button>
           </div>
-          <div style={{ textAlign: 'center', padding: '20px', backgroundColor: '#1a1a1a', borderRadius: '12px', border: '1px dashed rgba(212,175,55,0.3)' }}>
-            <p style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: '0 0 4px 0', fontWeight: 'bold' }}>
-              ¡Bienvenida, {currentClientRecord?.nombre || 'Estimada Clienta'}!
-            </p>
-            <p style={{ color: '#888', fontSize: '11px', margin: '0 0 4px 0' }}>Email registrado: {currentClientRecord?.email || 'Registrada'} | ID: #{currentClientRecord?.idNum || '1'}</p>
-            <a href={bizConfig.googleMapsUrl} target="_blank" rel="noreferrer" style={{ color: '#aaa', fontSize: '11px', textDecoration: 'underline' }}>
-              {bizConfig.location} (Ver en Google Maps)
-            </a>
+
+          <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <p style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0', fontWeight: 'bold' }}>
+                  ¡Bienvenida, {currentClientRecord?.nombre || 'Ana'}!
+                </p>
+                <p style={{ color: '#888', fontSize: '10px', margin: 0 }}>
+                  Email registrado: {currentClientRecord?.email || 'anamorenofernandez79@gmail.com'} | ID: #{currentClientRecord?.idNum || '1'}
+                </p>
+              </div>
+              <button onClick={() => setCurrentScreen('clientHistoryPage')} style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '6px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}>
+                Editar Perfil
+              </button>
+            </div>
+            <div style={{ display: 'flex', gap: '15px', fontSize: '11px', borderTop: '1px solid rgba(212,175,55,0.15)', paddingTop: '10px' }}>
+              <a href={`tel:${bizConfig.phone}`} style={{ color: '#d4af37', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                📞 Llamar Salón
+              </a>
+              <a href={`https://wa.me/34${bizConfig.phone}`} target="_blank" rel="noreferrer" style={{ color: '#44bb44', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 'bold' }}>
+                💬 WhatsApp
+              </a>
+            </div>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <button onClick={() => setCurrentScreen('catalogBooking')} style={{ width: '100%', backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '14px', borderRadius: '10px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', letterSpacing: '1px' }}>
-              Ver Catálogo & Reservar Cita (Selección Interactiva) →
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <button onClick={() => setCurrentScreen('catalogBooking')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '16px 12px', borderRadius: '10px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', textAlign: 'center' }}>
+              📅 Ver Catálogo & Reservar Cita
             </button>
-            <button onClick={() => setCurrentScreen('clientHistoryPage')} style={{ width: '100%', backgroundColor: '#1c1c1c', border: '1px solid #d4af37', color: '#d4af37', padding: '14px', borderRadius: '10px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', letterSpacing: '1px' }}>
-              Mi Historial, Fórmulas & Ficha Personal →
+            <button onClick={() => setCurrentScreen('clientHistoryPage')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '16px 12px', borderRadius: '10px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', textAlign: 'center' }}>
+              🔬 Mi Historial, Fórmulas
             </button>
           </div>
+
+          <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ color: '#d4af37', fontSize: '13px', fontWeight: 'bold', fontFamily: 'serif' }}>
+              Próxima Cita
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', color: '#ccc' }}>
+                <div>📅 {clientNextAppointment ? `${clientNextAppointment.dateKey} (${clientNextAppointment.dayName})` : '10 de octubre 2026'}</div>
+                <div>⏰ {clientNextAppointment ? `${clientNextAppointment.time}` : '16:00'}</div>
+                <div style={{ color: '#fff' }}><strong style={{ color: '#d4af37' }}>Servicio:</strong> {clientNextAppointment?.serviceSubcategory || 'Coloración Global'}</div>
+                <div style={{ color: '#888', fontSize: '11px' }}>Stylist: Ana</div>
+              </div>
+              <button onClick={() => setCurrentScreen('catalogBooking')} style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '8px 14px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
+                Gestionar Cita
+              </button>
+            </div>
+          </div>
+
           <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', fontFamily: 'serif', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '6px' }}>
               Horarios del Salón:
@@ -1013,61 +1085,58 @@ export default function App() {
               <span style={{ color: '#d4af37', fontStyle: 'italic', textAlign: 'right' }}>{bizConfig.scheduleSaturday}</span>
             </div>
           </div>
+
           <div style={{ display: 'flex', gap: '10px' }}>
-            <a href={bizConfig.instagramUrl} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#1a1a1a', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold' }}>Instagram</a>
-            <a href={bizConfig.tiktokUrl} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#1a1a1a', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold' }}>Tik Tok</a>
-            <a href={bizConfig.googleMapsUrl} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#1a1a1a', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold' }}>Google Maps</a>
+            <a href={bizConfig.instagramUrl} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold' }}>Instagram</a>
+            <a href={bizConfig.tiktokUrl} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold' }}>Tik Tok</a>
+            <a href={bizConfig.googleMapsUrl} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold' }}>Google Maps</a>
           </div>
-          <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', overflow: 'hidden' }}>
-            <div onClick={() => setIsReviewOpen(!isReviewOpen)} style={{ padding: '15px 18px', backgroundColor: '#1c1c1c', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
+
+          <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ color: '#d4af37', fontSize: '13px', fontFamily: 'serif', fontWeight: 'bold', letterSpacing: '1px' }}>Déjanos tu opinión & Reseña Google</span>
-              <span style={{ color: '#d4af37', fontSize: '12px' }}>{isReviewOpen ? '▲' : '▼'}</span>
+              <span style={{ color: '#d4af37', fontSize: '12px' }}>▲</span>
             </div>
-            {isReviewOpen && (
-              <div style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px', borderTop: '1px solid rgba(212,175,55,0.2)' }}>
-                {feedbackSubmitted ? (
-                  <div style={{ textAlign: 'center', padding: '15px', backgroundColor: '#1a261a', border: '1px solid #44bb44', borderRadius: '8px' }}>
-                    <p style={{ color: '#44bb44', fontSize: '12px', fontWeight: 'bold', margin: '0 0 5px 0' }}>¡Gracias por compartir tu opinión con Ana!</p>
-                    <p style={{ color: '#ccc', fontSize: '11px', margin: 0 }}>
-                      {selectedRating <= 2 ? 'Tu mensaje ha sido enviado directamente a la dirección para revisarlo de forma privada.' : 'Te invitamos a dejar tu reseña oficial en Google My Business para apoyar al salón.'}
-                    </p>
-                    {selectedRating >= 3 && (
-                      <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: '10px', backgroundColor: '#d4af37', color: '#000', padding: '8px 16px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none' }}>
-                        Dejar Reseña en Google My Business
-                      </a>
-                    )}
-                  </div>
-                ) : (
-                  <form onSubmit={handleSendFeedback} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <p style={{ color: '#aaa', fontSize: '11px', margin: 0, textAlign: 'center' }}>Selecciona tu nivel de satisfacción:</p>
-                    <div style={{ display: 'flex', justifyContent: 'space-around', fontSize: '26px', cursor: 'pointer' }}>
-                      {[
-                        { val: 1, emoji: '😡', label: 'Muy mal' },
-                        { val: 2, emoji: '🙁', label: 'Regular' },
-                        { val: 3, emoji: '😐', label: 'Neutral' },
-                        { val: 4, emoji: '😊', label: 'Bien' },
-                        { val: 5, emoji: '😍', label: '¡Excelente!' }
-                      ].map((item) => (
-                        <div key={item.val} onClick={() => handleRatingSelect(item.val)} style={{ textAlign: 'center', opacity: selectedRating === item.val ? 1 : 0.4, transform: selectedRating === item.val ? 'scale(1.15)' : 'scale(1)', transition: 'all 0.2s' }} title={item.label}>
-                          <div style={{ fontSize: '16px' }}>{item.emoji}</div>
-                          <div style={{ fontSize: '9px', color: selectedRating === item.val ? '#d4af37' : '#888', marginTop: '2px' }}>{item.label}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <label style={{ color: '#aaa', fontSize: '11px' }}>
-                        {selectedRating <= 2 ? 'Cuéntanos qué falló (Directo a la Intranet):' : 'Resumen de tu servicio (Sugerido):'}
-                      </label>
-                      <textarea value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} onFocus={(e) => e.target.select()} rows={2} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', padding: '8px', fontSize: '11px', resize: 'none' }} />
-                    </div>
-                    <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
-                      {selectedRating <= 2 ? 'Enviar reclamación privada a Ana' : 'Enviar Opinión / Continuar a Google'}
-                    </button>
-                  </form>
+
+            {feedbackSubmitted ? (
+              <div style={{ textAlign: 'center', padding: '12px', backgroundColor: '#1a261a', border: '1px solid #44bb44', borderRadius: '8px' }}>
+                <p style={{ color: '#44bb44', fontSize: '12px', fontWeight: 'bold', margin: '0 0 4px 0' }}>¡Gracias por compartir tu opinión!</p>
+                {selectedRating >= 3 && (
+                  <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: '6px', backgroundColor: '#d4af37', color: '#000', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none' }}>
+                    Dejar Reseña en Google
+                  </a>
                 )}
               </div>
+            ) : (
+              <form onSubmit={handleSendFeedback} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
+                  {[
+                    { val: 1, label: 'Mala' },
+                    { val: 2, label: 'Regular' },
+                    { val: 3, label: 'Neutral' },
+                    { val: 4, label: 'Buena' },
+                    { val: 5, label: 'Excelente' }
+                  ].map((item) => (
+                    <div key={item.val} onClick={() => handleRatingSelect(item.val)} style={{ textAlign: 'center', cursor: 'pointer', opacity: selectedRating === item.val ? 1 : 0.4, transform: selectedRating === item.val ? 'scale(1.1)' : 'scale(1)', transition: 'all 0.2s' }}>
+                      <div style={{ fontSize: '24px', color: '#d4af37' }}>★</div>
+                      <div style={{ fontSize: '10px', color: selectedRating === item.val ? '#d4af37' : '#888', marginTop: '2px' }}>{item.label}</div>
+                    </div>
+                  ))}
+                </div>
+                <input type="text" value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} onFocus={(e) => e.target.select()} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', padding: '10px', fontSize: '11px' }} />
+                <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+                  Enviar Reseña
+                </button>
+              </form>
             )}
           </div>
+
+          <div style={{ textAlign: 'center', color: '#666', fontSize: '10px', display: 'flex', justifyContent: 'center', gap: '15px', marginTop: '5px' }}>
+            <span>Terms</span>
+            <span>Global</span>
+            <span>Privacidad</span>
+          </div>
+
         </div>
       )}
 
@@ -1093,7 +1162,6 @@ export default function App() {
             <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Despliega cada categoría para ver los servicios y selecciónalos según prefieras.</p>
           </div>
           
-          {/* Contenedor principal de categorías con flujo natural */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {catalog.map((cat) => {
               const isCategoryExpanded = !!expandedCategories[cat.id];
@@ -1177,7 +1245,7 @@ export default function App() {
                 <label style={{ color: '#aaa', fontSize: '11px' }}>Hora Disponible:</label>
                 <select value={bookingTime} onChange={(e) => setBookingTime(e.target.value)} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '8px', borderRadius: '6px', fontSize: '12px' }}>
                   {hoursList.map((h) => {
-                    const isOccupied = appointments.some(a => a.dateKey === formatDateKey(bookingDate) && a.time === h);
+                    const isOccupied = isTimeSlotOccupied(formatDateKey(bookingDate), h);
                     return <option key={h} value={h}>{h} {isOccupied ? '(Ocupado)' : '(Libre)'}</option>;
                   })}
                 </select>
@@ -1359,16 +1427,20 @@ export default function App() {
                         {semanaActual.map((day, dIdx) => {
                           const targetKey = formatDateKey(day.dateObj);
                           const appt = appointments.find(a => a.dateKey === targetKey && a.time === time);
+                          const occupiedByDuration = isTimeSlotOccupied(targetKey, time);
+
                           return (
-                            <div key={dIdx} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, day.dateObj, day.name, time)} onClick={() => handleCellClick(day.dateObj, day.name, time)} style={{ backgroundColor: appt ? '#221e10' : '#1a1a1a', border: appt ? '1px solid #d4af37' : '1px dashed #2c2c2c', borderRadius: '6px', padding: '8px', minHeight: '45px', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <div key={dIdx} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, day.dateObj, day.name, time)} onClick={() => handleCellClick(day.dateObj, day.name, time)} style={{ backgroundColor: appt ? '#221e10' : (occupiedByDuration ? '#1a1510' : '#1a1a1a'), border: appt ? '1px solid #d4af37' : (occupiedByDuration ? '1px dashed #554422' : '1px dashed #2c2c2c'), borderRadius: '6px', padding: '8px', minHeight: '45px', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                               {appt ? (
                                 <div draggable onDragStart={(e) => handleDragStart(e, appt.id)} title="Arrastra para mover de hora/día o haz clic para ver" style={{ fontSize: '11px' }}>
                                   <div style={{ color: '#d4af37', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span>{appt.clientName}</span>
                                     <button onClick={(e) => handleDeleteAppointment(appt.id, e)} style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '10px', cursor: 'pointer' }}>X</button>
                                   </div>
-                                  <div style={{ color: '#bbb', fontSize: '9px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appt.serviceSubcategory}</div>
+                                  <div style={{ color: '#bbb', fontSize: '9px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appt.serviceSubcategory} ({appt.durationMinutes || 45} min)</div>
                                 </div>
+                              ) : occupiedByDuration ? (
+                                <div style={{ color: '#a68a4c', fontSize: '9px', textAlign: 'center', fontStyle: 'italic' }}>Reservado (Duración)</div>
                               ) : (
                                 <div style={{ color: '#444', fontSize: '10px', textAlign: 'center' }}>+ Libre</div>
                               )}
@@ -1801,7 +1873,7 @@ export default function App() {
               <div><strong style={{ color: '#fff' }}>Clienta:</strong> {viewApptModal.clientName}</div>
               <div><strong style={{ color: '#fff' }}>Teléfono:</strong> {viewApptModal.phone}</div>
               <div><strong style={{ color: '#fff' }}>Email:</strong> {viewApptModal.email}</div>
-              <div><strong style={{ color: '#fff' }}>Día y Hora:</strong> {viewApptModal.dayName} a las {viewApptModal.time}</div>
+              <div><strong style={{ color: '#fff' }}>Día y Hora:</strong> {viewApptModal.dayName} a las {viewApptModal.time} ({viewApptModal.durationMinutes || 45} min)</div>
               <div><strong style={{ color: '#fff' }}>Servicio:</strong> {viewApptModal.serviceSubcategory}</div>
               <div style={{ backgroundColor: '#1a1a1a', padding: '10px', borderRadius: '6px', border: '1px solid #333', marginTop: '5px' }}>
                 <div style={{ color: '#d4af37', fontWeight: 'bold', marginBottom: '4px' }}>Estado de Automatizaciones:</div>
