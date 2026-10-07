@@ -74,6 +74,7 @@ interface CatalogCategory {
   id: string;
   code: string;
   title: string;
+  icon?: string;
   subservices: SubService[];
 }
 
@@ -113,6 +114,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c1',
     code: '0.1',
     title: 'VISAGISMO & DIAGNÓSTICO',
+    icon: '👤',
     subservices: [
       {
         id: 's1',
@@ -131,6 +133,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c2',
     code: '0.2',
     title: 'VISAGISMO & CORTE',
+    icon: '✂️',
     subservices: [
       {
         id: 's2',
@@ -149,6 +152,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c3',
     code: '0.3',
     title: 'STYLING & ACABADO',
+    icon: '✨',
     subservices: [
       {
         id: 's3',
@@ -167,6 +171,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c4',
     code: '0.4',
     title: 'COLOR ATELIER',
+    icon: '🎨',
     subservices: [
       {
         id: 's4',
@@ -185,6 +190,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c5',
     code: '0.5',
     title: 'MÉTODO DE AUTOR & ILUMINACIÓN',
+    icon: '🌟',
     subservices: [
       {
         id: 's5',
@@ -203,6 +209,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c6',
     code: '0.6',
     title: 'SALUD CAPILAR & RECONSTRUCCIÓN',
+    icon: '🌿',
     subservices: [
       {
         id: 's6',
@@ -221,6 +228,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c7',
     code: '0.7',
     title: 'TEXTURA & MOLDEADO ORGÁNICO',
+    icon: '🌀',
     subservices: [
       {
         id: 's7',
@@ -239,6 +247,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c8',
     code: '0.8',
     title: 'GROOMING & MAN',
+    icon: '💈',
     subservices: [
       {
         id: 's8',
@@ -257,6 +266,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c9',
     code: '0.9',
     title: 'ADD-ONS & COMPLEMENTOS',
+    icon: '💎',
     subservices: [
       {
         id: 's9',
@@ -281,12 +291,13 @@ const formatDateKey = (d: Date) => {
 };
 
 const INITIAL_APPOINTMENTS: Appointment[] = [
-  { id: '1', dateKey: '2026-09-28', dayName: 'Lunes', time: '16:00', durationMinutes: 90, clientName: 'Ana', phone: '600000000', email: 'anamorenofernandez79@gmail.com', serviceCategory: '0.4 < COLOR ATELIER', serviceSubcategory: 'Coloración Global & Raíces', remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: false, whatsapp2h: false } },
-  { id: '2', dateKey: '2026-09-30', dayName: 'Miércoles', time: '11:30', durationMinutes: 60, clientName: 'Carmen Martínez', phone: '611222333', email: 'carmen@gmail.com', serviceCategory: '0.2 < VISAGISMO & CORTE', serviceSubcategory: 'Corte de Autor & Visagismo', remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false } },
+  { id: '1', dateKey: '2026-10-07', dayName: 'Miércoles', time: '10:00', durationMinutes: 90, clientName: 'Ana', phone: '600000000', email: 'anamorenofernandez79@gmail.com', serviceCategory: '0.1 < VISAGISMO & DIAGNÓSTICO', serviceSubcategory: 'RESERVADO A.M. M.', remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: false, whatsapp2h: false } },
+  { id: '2', dateKey: '2026-10-07', dayName: 'Miércoles', time: '14:00', durationMinutes: 120, clientName: 'Carmen Martínez', phone: '611222333', email: 'carmen@gmail.com', serviceCategory: '0.4 < COLOR ATELIER', serviceSubcategory: 'RESERVADO M.L. M.L.', remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false } },
+  { id: '3', dateKey: '2026-10-07', dayName: 'Miércoles', time: '16:00', durationMinutes: 60, clientName: 'Lucía R.', phone: '633444555', email: 'lucia@gmail.com', serviceCategory: '0.3 < STYLING & ACABADO', serviceSubcategory: 'RESERVADO I.. M.L.', remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false } }
 ];
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'clientPin' | 'clientRegistration' | 'clientPortal' | 'catalogBooking' | 'clientHistoryPage' | 'adminLogin' | 'adminPanel'>('clientPin');
+  const [currentScreen, setCurrentScreen] = useState<'clientPin' | 'clientRegistration' | 'clientPortal' | 'catalogBooking' | 'visualAgenda' | 'clientHistoryPage' | 'adminLogin' | 'adminPanel'>('clientPin');
   const [pin, setPin] = useState<string>('');
   const [pinError, setPinError] = useState<boolean>(false);
   const [currentClientRecord, setCurrentClientRecord] = useState<ClientRecord | null>(null);
@@ -299,9 +310,11 @@ export default function App() {
   const [selectedServicesToBook, setSelectedServicesToBook] = useState<SubService[]>([]);
   const [expandedSubDetails, setExpandedSubDetails] = useState<{ [key: string]: boolean }>({});
   const [expandedCategories, setExpandedCategories] = useState<{ [key: string]: boolean }>({});
-  const [bookingDate, setBookingDate] = useState<Date>(new Date(2026, 8, 28));
-  const [bookingTime, setBookingTime] = useState<string>('11:00');
+  
+  const [bookingDate, setBookingDate] = useState<Date>(new Date(2026, 9, 7)); // 7 de Octubre 2026
+  const [selectedVisualTime, setSelectedVisualTime] = useState<string>('12:00');
   const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null);
+
   const [editProximaVisita, setEditProximaVisita] = useState('');
   const [editFormulas, setEditFormulas] = useState('');
   const [editMsg, setEditMsg] = useState<string | null>(null);
@@ -399,10 +412,15 @@ export default function App() {
     setFeedbackSubmitted(true);
   };
 
+  // Sincronización maestra centralizada con localStorage ('lst_studio_appointments')
   const [appointments, setAppointments] = useState<Appointment[]>(() => {
     const saved = localStorage.getItem('lst_studio_appointments');
     return saved ? JSON.parse(saved) : INITIAL_APPOINTMENTS;
   });
+
+  useEffect(() => {
+    localStorage.setItem('lst_studio_appointments', JSON.stringify(appointments));
+  }, [appointments]);
 
   const [listaClientes, setListaClientes] = useState<ClientRecord[]>(() => {
     const saved = localStorage.getItem('lst_studio_clientes_ids');
@@ -548,8 +566,8 @@ export default function App() {
   };
 
   const [draggedApptId, setDraggedApptId] = useState<string | null>(null);
-  const [fechaSeleccionada, setFechaSeleccionada] = useState<Date>(new Date(2026, 8, 28));
-  const [mesNavegacion, setMesNavegacion] = useState<Date>(new Date(2026, 8, 1));
+  const [fechaSeleccionada, setFechaSeleccionada] = useState<Date>(new Date(2026, 9, 7));
+  const [mesNavegacion, setMesNavegacion] = useState<Date>(new Date(2026, 9, 1));
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [targetDateObj, setTargetDateObj] = useState<Date>(new Date());
   const [targetDayName, setTargetDayName] = useState<string>('');
@@ -568,10 +586,6 @@ export default function App() {
       setShowInstallBanner(true);
     }
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('lst_studio_appointments', JSON.stringify(appointments));
-  }, [appointments]);
 
   useEffect(() => {
     localStorage.setItem('lst_master_catalog', JSON.stringify(catalog));
@@ -705,7 +719,7 @@ export default function App() {
       phone: modalPhone || '600000000',
       email: modalEmail || 'sinemail@gmail.com',
       serviceCategory: `${selectedCategory.code} < ${selectedCategory.title}`,
-      serviceSubcategory: selectedSub.name,
+      serviceSubcategory: `RESERVADO ${selectedSub.name}`,
       remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
     };
     setAppointments([...appointments, newApp]);
@@ -713,8 +727,7 @@ export default function App() {
     window.alert(`¡Cita guardada para ${modalClientName}! Ya aparece en la agenda.`);
   };
 
-  const handleConfirmarCitaClientaPortal = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleConfirmarCitaVisual = () => {
     if (selectedServicesToBook.length === 0) {
       alert('Por favor, selecciona al menos un servicio del catálogo.');
       return;
@@ -738,24 +751,25 @@ export default function App() {
       id: Date.now().toString(),
       dateKey: dateKeyStr,
       dayName: dayNameStr,
-      time: bookingTime,
+      time: selectedVisualTime,
       durationMinutes: totalDurationMinutes,
       clientName: currentClientRecord ? currentClientRecord.nombre + ' ' + currentClientRecord.apellidos : 'Clienta Web',
       phone: currentClientRecord?.telefono || '600000000',
       email: currentClientRecord?.email || 'cliente@gmail.com',
       serviceCategory: 'CATÁLOGO DE AUTOR ONLINE',
-      serviceSubcategory: subNames,
+      serviceSubcategory: `RESERVADO ${subNames}`,
       remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
     };
     setAppointments([...appointments, newApp]);
-    setBookingSuccessMsg(`¡Cita confirmada correctamente para el ${bookingDate.toLocaleDateString('es-ES')} a las ${bookingTime}! Ya ha entrado en la agenda de Ana.`);
+    setBookingSuccessMsg(`¡Cita confirmada correctamente para el ${bookingDate.toLocaleDateString('es-ES')} a las ${selectedVisualTime}! Sincronizado con la intranet maestra.`);
     setSelectedServicesToBook([]);
+    setCurrentScreen('catalogBooking');
     setTimeout(() => setBookingSuccessMsg(null), 5000);
   };
 
   const handleDeleteAppointment = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (window.confirm('¿Deseas eliminar esta cita de la agenda?')) {
+    if (window.confirm('¿Deseas cancelar esta cita de la agenda?')) {
       setAppointments(appointments.filter(a => a.id !== id));
       if (viewApptModal?.id === id) setViewApptModal(null);
     }
@@ -862,6 +876,7 @@ export default function App() {
   for (let i = 0; i < diaInicio; i++) diasRejillaMini.push(null);
   for (let d = 1; d <= diasEnMes; d++) diasRejillaMini.push(new Date(añoMini, mesMini, d));
 
+  // Franjas horarias cada 15 minutos de 10:00h a 20:00h
   const hoursList = [
     '10:00', '10:15', '10:30', '10:45',
     '11:00', '11:15', '11:30', '11:45',
@@ -1000,7 +1015,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 2. PORTAL CLIENTE (DISEÑO LIMPIO Y EXACTO A TU REFERENCIA) */}
+      {/* 2. PORTAL CLIENTE */}
       {currentScreen === 'clientPortal' && (
         <div style={{ maxWidth: '600px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
@@ -1143,38 +1158,41 @@ export default function App() {
       {/* 2.2. CATÁLOGO & RESERVA */}
       {currentScreen === 'catalogBooking' && (
         <div style={{ maxWidth: '700px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
             <div>
               <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>{bizConfig.name}</h2>
-              <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>Selección de Servicios & Agenda</p>
+              <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>SELECCION DE SERVICIOS & AGENDA</p>
             </div>
             <button onClick={() => setCurrentScreen('clientPortal')} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
               ← Volver al Portal
             </button>
           </div>
+
           {bookingSuccessMsg && (
             <div style={{ padding: '15px', backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', borderRadius: '8px', fontSize: '12px', textAlign: 'center', lineHeight: '1.5', fontWeight: 'bold' }}>
               {bookingSuccessMsg}
             </div>
           )}
+
           <div>
-            <h1 style={{ fontSize: '18px', fontFamily: 'serif', color: '#fff', marginBottom: '6px' }}>1. Selecciona tus servicios deseados:</h1>
-            <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Despliega cada categoría para ver los servicios y selecciónalos según prefieras.</p>
+            <h1 style={{ fontSize: '16px', fontFamily: 'serif', color: '#fff', marginBottom: '4px' }}>1. Selecciona tus servicios deseados:</h1>
+            <p style={{ color: '#888', fontSize: '10px', margin: 0 }}>Despliega cada categoría para ver los servicios y selecciónalos según prefieras.</p>
           </div>
           
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {catalog.map((cat) => {
               const isCategoryExpanded = !!expandedCategories[cat.id];
               return (
-                <div key={cat.id} style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '8px', overflow: 'hidden' }}>
-                  <div onClick={() => setExpandedCategories({ ...expandedCategories, [cat.id]: !isCategoryExpanded })} style={{ padding: '12px 15px', backgroundColor: '#1c1c1c', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
-                    <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>
-                      {cat.code} &lt; {cat.title} ({cat.subservices.length} servicios)
+                <div key={cat.id} style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.25)', borderRadius: '10px', overflow: 'hidden' }}>
+                  <div onClick={() => setExpandedCategories({ ...expandedCategories, [cat.id]: !isCategoryExpanded })} style={{ padding: '14px 18px', backgroundColor: '#181818', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
+                    <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '14px' }}>{cat.icon || '✨'}</span> {cat.title} ({cat.subservices.length} servicios)
                     </span>
-                    <span style={{ color: '#d4af37', fontSize: '11px' }}>{isCategoryExpanded ? 'Ocultar ▲' : 'Desplegar ▼'}</span>
+                    <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>{isCategoryExpanded ? 'Ocultar' : 'Desplegar'}</span>
                   </div>
                   {isCategoryExpanded && (
-                    <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid rgba(212,175,55,0.2)', maxHeight: '300px', overflowY: 'auto' }}>
+                    <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid rgba(212,175,55,0.2)', maxHeight: '300px', overflowY: 'auto', backgroundColor: '#121212' }}>
                       {cat.subservices.map((sub) => {
                         const isSelected = selectedServicesToBook.some(s => s.id === sub.id);
                         const isExpanded = !!expandedSubDetails[sub.id];
@@ -1223,36 +1241,117 @@ export default function App() {
             })}
           </div>
 
-          <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <h2 style={{ fontSize: '15px', fontFamily: 'serif', color: '#d4af37', margin: 0 }}>2. Selecciona Fecha y Hora Laboral:</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ color: '#aaa', fontSize: '11px' }}>Fecha de Cita:</label>
-                <select value={formatDateKey(bookingDate)} onChange={(e) => setBookingDate(new Date(e.target.value))} style={{ backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', padding: '8px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>
-                  {Array.from({ length: 30 }).map((_, index) => {
-                    const d = new Date();
-                    d.setDate(d.getDate() + index);
-                    if (d.getDay() === 0) return null;
-                    const dateKeyStr = formatDateKey(d);
-                    const optionsNamesMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-                    const dayNameStr = optionsNamesMap[d.getDay()];
-                    const formattedDisplay = `${dayNameStr}, ${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`;
-                    return <option key={dateKeyStr} value={dateKeyStr}>{formattedDisplay}</option>;
-                  })}
-                </select>
+          <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', overflow: 'hidden' }}>
+            <h2 style={{ fontSize: '14px', fontFamily: 'serif', color: '#d4af37', margin: 0 }}>2. Selecciona Fecha y Hora Laboral:</h2>
+            
+            {selectedServicesToBook.length === 0 ? (
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(12,12,12,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, padding: '20px', textAlign: 'center' }}>
+                <span style={{ color: '#d4af37', fontSize: '13px', fontWeight: 'bold', fontFamily: 'serif', letterSpacing: '1px', textShadow: '0 0 10px rgba(212,175,55,0.4)' }}>
+                  SELECCIONA UN SERVICIO PARA ACTIVAR ESTE PASO
+                </span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ color: '#aaa', fontSize: '11px' }}>Hora Disponible:</label>
-                <select value={bookingTime} onChange={(e) => setBookingTime(e.target.value)} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '8px', borderRadius: '6px', fontSize: '12px' }}>
-                  {hoursList.map((h) => {
-                    const isOccupied = isTimeSlotOccupied(formatDateKey(bookingDate), h);
-                    return <option key={h} value={h}>{h} {isOccupied ? '(Ocupado)' : '(Libre)'}</option>;
-                  })}
-                </select>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <p style={{ color: '#ccc', fontSize: '11px', margin: 0 }}>¡Servicio seleccionado! Accede a la agenda visual interactiva con franjas de 15 min.</p>
+                <button onClick={() => setCurrentScreen('visualAgenda')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'center' }}>
+                  📅 Abrir Agenda Visual Interactiva
+                </button>
               </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* 2.4. AGENDA VISUAL INTERACTIVA (FRANJAS DE 15 MIN, SOLO MUESTRA OCUPADO Y SIN DATOS PERSONALES) */}
+      {currentScreen === 'visualAgenda' && (
+        <div style={{ maxWidth: '680px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
+            <div>
+              <span style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', display: 'block' }}>PORTAL PRIVADO DE CLIENTAS</span>
+              <h2 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: '2px 0 0 0' }}>L'Studio Ana</h2>
             </div>
-            <button onClick={handleConfirmarCitaClientaPortal} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', marginTop: '5px' }}>
-              Confirmar Reserva de Cita
+            
+            <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+              <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '8px', padding: '6px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <span style={{ color: '#d4af37', fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '2px' }}>GESTIONAR CITA ACTUAL</span>
+                <div style={{ display: 'flex', gap: '10px', fontSize: '10px' }}>
+                  <button onClick={() => alert('Modo modificación de cita activa. Selecciona un nuevo hueco libre.')} style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', textDecoration: 'underline' }}>Modificar Cita</button>
+                  <span style={{ color: '#444' }}>|</span>
+                  <button onClick={() => {
+                    if (clientNextAppointment) {
+                      handleDeleteAppointment(clientNextAppointment.id);
+                    } else {
+                      alert('No hay cita actual activa para cancelar.');
+                    }
+                  }} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', textDecoration: 'underline' }}>Cancelar Cita</button>
+                </div>
+              </div>
+
+              <button onClick={() => setCurrentScreen('catalogBooking')} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '6px 12px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
+                ← Volver a Selección de Servicios
+              </button>
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <span style={{ color: '#d4af37', fontSize: '13px', fontWeight: 'bold', fontFamily: 'serif' }}>
+              MI AGENDA VISUAL: {bookingDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            </span>
+            <input type="date" value={formatDateKey(bookingDate)} onChange={(e) => setBookingDate(new Date(e.target.value))} style={{ backgroundColor: '#181818', border: '1px solid #d4af37', color: '#fff', padding: '6px 10px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }} />
+          </div>
+
+          {/* Grilla visual interactiva con franjas de 15 min (Sin mostrar datos personales en ocupados) */}
+          <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '420px', overflowY: 'auto' }}>
+            {hoursList.map((time) => {
+              const targetKey = formatDateKey(bookingDate);
+              const isOccupied = isTimeSlotOccupied(targetKey, time);
+              const isSelectedVisual = selectedVisualTime === time;
+
+              return (
+                <div key={time} style={{ display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '1px solid #222', paddingBottom: '6px' }}>
+                  <span style={{ color: '#888', fontSize: '10px', width: '45px', fontWeight: 'bold' }}>{time}h</span>
+                  
+                  <div style={{ flex: 1 }}>
+                    {isOccupied ? (
+                      /* BLOQUE OCUPADO SIN NINGÚN DATO PERSONAL DE LA CLIENTA */
+                      <div style={{ backgroundColor: '#211d12', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '6px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.95, pointerEvents: 'none' }}>
+                        <span style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px' }}>
+                          OCUPADO
+                        </span>
+                        <span style={{ color: '#888', fontSize: '9px' }}>NO DISPONIBLE</span>
+                      </div>
+                    ) : (
+                      /* Hueco libre seleccionable con un toque */
+                      <div 
+                        onClick={() => setSelectedVisualTime(time)}
+                        style={{ 
+                          backgroundColor: isSelectedVisual ? '#2a2412' : '#1c1c1c', 
+                          border: isSelectedVisual ? '2px solid #d4af37' : '1px dashed rgba(212,175,55,0.3)', 
+                          borderRadius: '6px', 
+                          padding: '10px', 
+                          textAlign: 'center', 
+                          cursor: 'pointer',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <span style={{ color: isSelectedVisual ? '#fff' : '#d4af37', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px' }}>
+                          {isSelectedVisual ? `✓ HUECO SELECCIONADO (${time})` : 'HUECO LIBRE'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '5px' }}>
+            <button onClick={() => setCurrentScreen('catalogBooking')} style={{ backgroundColor: '#222', border: '1px solid #444', color: '#aaa', padding: '12px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
+              SELECCIONA HUECO PARA CONFIRMAR
+            </button>
+            <button onClick={handleConfirmarCitaVisual} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'center' }}>
+              CONFIRMAR CITA: {bookingDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'numeric' })}, {selectedVisualTime}
             </button>
           </div>
         </div>
@@ -1345,7 +1444,7 @@ export default function App() {
             <input type="password" placeholder="PIN de Administración (0000)" value={adminPin} onChange={(e) => setAdminPin(e.target.value)} onFocus={(e) => e.target.select()} maxLength={4} style={{ padding: '12px', backgroundColor: '#1f1f1f', border: adminError ? '1px solid #ff4444' : '1px solid #444', color: '#fff', borderRadius: '8px', textAlign: 'center', fontSize: '16px', letterSpacing: '4px' }} />
             {adminError && <p style={{ color: '#ff4444', fontSize: '11px', margin: 0 }}>PIN de administrador incorrecto.</p>}
             <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer' }}>
-              Acceder al Panel
+              Acceder al Panel Maestro
             </button>
           </form>
           <button onClick={() => setCurrentScreen('clientPin')} style={{ background: 'none', border: 'none', color: '#777', fontSize: '11px', marginTop: '20px', cursor: 'pointer' }}>
@@ -1354,20 +1453,20 @@ export default function App() {
         </div>
       )}
 
-      {/* 4. PANEL DE ADMINISTRACIÓN */}
+      {/* 4. PANEL DE ADMINISTRACIÓN (PORTAL MAESTRO SINCRONIZADO) */}
       {currentScreen === 'adminPanel' && (
         <div style={{ maxWidth: '1200px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
             <div>
-              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>360STUDIO - PANEL DE CONTROL</h2>
-              <p style={{ color: '#888', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>{bizConfig.name}</p>
+              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>360STUDIO - PORTAL MAESTRO (INTRANET)</h2>
+              <p style={{ color: '#888', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>{bizConfig.name} - Sincronizado en tiempo real</p>
             </div>
             <button onClick={() => setCurrentScreen('clientPin')} style={{ background: 'none', border: '1px solid #333', color: '#aaa', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
               Cerrar Sesión
             </button>
           </div>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <button onClick={() => setAdminTab('agenda')} style={{ backgroundColor: adminTab === 'agenda' ? '#d4af37' : '#1a1a1a', color: adminTab === 'agenda' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Agenda & Recordatorios</button>
+            <button onClick={() => setAdminTab('agenda')} style={{ backgroundColor: adminTab === 'agenda' ? '#d4af37' : '#1a1a1a', color: adminTab === 'agenda' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Agenda Maestra Sincronizada</button>
             <button onClick={() => setAdminTab('config')} style={{ backgroundColor: adminTab === 'config' ? '#d4af37' : '#1a1a1a', color: adminTab === 'config' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Configuración</button>
             <button onClick={() => setAdminTab('catalog')} style={{ backgroundColor: adminTab === 'catalog' ? '#d4af37' : '#1a1a1a', color: adminTab === 'catalog' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Catálogo</button>
             <button onClick={() => setAdminTab('clients')} style={{ backgroundColor: adminTab === 'clients' ? '#d4af37' : '#1a1a1a', color: adminTab === 'clients' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Clientes</button>
@@ -1375,7 +1474,7 @@ export default function App() {
             <button onClick={() => setAdminTab('crm')} style={{ backgroundColor: adminTab === 'crm' ? '#d4af37' : '#1a1a1a', color: adminTab === 'crm' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>CRM & KPIs</button>
           </div>
 
-          {/* TAB 1: AGENDA */}
+          {/* TAB 1: AGENDA MAESTRA */}
           {adminTab === 'agenda' && (
             <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
               <div style={{ width: '260px', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '15px', boxSizing: 'border-box', height: 'fit-content' }}>
@@ -1403,7 +1502,7 @@ export default function App() {
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px', minWidth: '600px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>Agenda, Huecos & Automatización de Notificaciones</h3>
+                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>Agenda Maestra (Control Total & Sincronizada)</h3>
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                     <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() - 7); setFechaSeleccionada(d); }} style={{ background: '#1a1a1a', border: '1px solid #444', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>◄ Semana Anterior</button>
                     <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>Semana del {semanaActual[0].dateFormatted}</span>
@@ -1421,7 +1520,7 @@ export default function App() {
                     ))}
                     {hoursList.map((time, hIdx) => (
                       <React.Fragment key={hIdx}>
-                        <div style={{ padding: '10px 4px', textAlign: 'center', color: '#888', fontSize: '11px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ padding: '8px 4px', textAlign: 'center', color: '#888', fontSize: '10px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           {time}
                         </div>
                         {semanaActual.map((day, dIdx) => {
@@ -1430,19 +1529,19 @@ export default function App() {
                           const occupiedByDuration = isTimeSlotOccupied(targetKey, time);
 
                           return (
-                            <div key={dIdx} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, day.dateObj, day.name, time)} onClick={() => handleCellClick(day.dateObj, day.name, time)} style={{ backgroundColor: appt ? '#221e10' : (occupiedByDuration ? '#1a1510' : '#1a1a1a'), border: appt ? '1px solid #d4af37' : (occupiedByDuration ? '1px dashed #554422' : '1px dashed #2c2c2c'), borderRadius: '6px', padding: '8px', minHeight: '45px', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                            <div key={dIdx} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, day.dateObj, day.name, time)} onClick={() => handleCellClick(day.dateObj, day.name, time)} style={{ backgroundColor: appt ? '#221e10' : (occupiedByDuration ? '#1a1510' : '#1a1a1a'), border: appt ? '1px solid #d4af37' : (occupiedByDuration ? '1px dashed #554422' : '1px dashed #2c2c2c'), borderRadius: '6px', padding: '6px', minHeight: '35px', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                               {appt ? (
-                                <div draggable onDragStart={(e) => handleDragStart(e, appt.id)} title="Arrastra para mover de hora/día o haz clic para ver" style={{ fontSize: '11px' }}>
+                                <div draggable onDragStart={(e) => handleDragStart(e, appt.id)} title="Arrastra para mover o haz clic para ver detalles" style={{ fontSize: '10px' }}>
                                   <div style={{ color: '#d4af37', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span>{appt.clientName}</span>
                                     <button onClick={(e) => handleDeleteAppointment(appt.id, e)} style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '10px', cursor: 'pointer' }}>X</button>
                                   </div>
-                                  <div style={{ color: '#bbb', fontSize: '9px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appt.serviceSubcategory} ({appt.durationMinutes || 45} min)</div>
+                                  <div style={{ color: '#bbb', fontSize: '9px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appt.serviceSubcategory}</div>
                                 </div>
                               ) : occupiedByDuration ? (
-                                <div style={{ color: '#a68a4c', fontSize: '9px', textAlign: 'center', fontStyle: 'italic' }}>Reservado (Duración)</div>
+                                <div style={{ color: '#a68a4c', fontSize: '9px', textAlign: 'center', fontStyle: 'italic' }}>Ocupado</div>
                               ) : (
-                                <div style={{ color: '#444', fontSize: '10px', textAlign: 'center' }}>+ Libre</div>
+                                <div style={{ color: '#444', fontSize: '9px', textAlign: 'center' }}>+ Libre</div>
                               )}
                             </div>
                           );
@@ -1526,7 +1625,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 3: CATÁLOGO (ADMIN) */}
+          {/* TAB 3: CATÁLOGO */}
           {adminTab === 'catalog' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1864,7 +1963,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL VER / ELIMINAR CITA EXISTENTE & BOTÓN WHATSAPP */}
+      {/* MODAL VER / ELIMINAR CITA EXISTENTE */}
       {viewApptModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
           <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '380px', width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -1882,25 +1981,6 @@ export default function App() {
                 <div style={{ fontSize: '11px', color: '#44bb44' }}>WhatsApp 24h antes: Programado</div>
                 <div style={{ fontSize: '11px', color: '#44bb44' }}>WhatsApp 2h antes: Programado (Crítico)</div>
               </div>
-              <a
-                href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola ${viewApptModal.clientName}, te escribimos desde L'Studio Ana para confirmarte tu cita el${viewApptModal.dayName} a las ${viewApptModal.time} para:${viewApptModal.serviceSubcategory}. ¡Te esperamos en el salón!`)}`}
-                target="_blank"
-                rel="noreferrer"
-                style={{
-                  display: 'block',
-                  textAlign: 'center',
-                  backgroundColor: '#d4af37',
-                  color: '#000',
-                  padding: '10px',
-                  borderRadius: '6px',
-                  fontSize: '11px',
-                  fontWeight: 'bold',
-                  textDecoration: 'none',
-                  marginTop: '8px'
-                }}
-              >
-                Enviar recordatorio por WhatsApp
-              </a>
             </div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', marginTop: '10px' }}>
               <button onClick={(e) => handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#2a1212', border: '1px solid #ff4444', color: '#ff4444', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar Cita</button>
