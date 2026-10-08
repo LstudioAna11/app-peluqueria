@@ -2307,47 +2307,58 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL DETALLE CITA CON BOTONES DIRECTOS DE WHATSAPP E EMAIL */}
-      {viewApptModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '400px', width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Detalle de Cita[cite: 198]</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', color: '#ccc' }}>
-              <div><strong style={{ color: '#fff' }}>Clienta:</strong> {viewApptModal.clientName}</div>
-              <div><strong style={{ color: '#fff' }}>Teléfono:</strong> <a href={`tel:${viewApptModal.phone}`} style={{ color: '#d4af37', textDecoration: 'none' }}>{viewApptModal.phone}</a></div>
-              <div><strong style={{ color: '#fff' }}>Email:</strong> <a href={`mailto:${viewApptModal.email}`} style={{ color: '#d4af37', textDecoration: 'none' }}>{viewApptModal.email}</a></div>
-              <div><strong style={{ color: '#fff' }}>Fecha y Hora:</strong> {viewApptModal.dateKey} a las {viewApptModal.time}</div>
-              <div><strong style={{ color: '#fff' }}>Servicio & Variante:</strong> {viewApptModal.serviceSubcategory}</div>
-            </div>
-
-            {/* BOTONES DIRECTOS DE RECORDATORIO (WHATSAPP & EMAIL) */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px', borderTop: '1px solid rgba(212,175,55,0.2)', paddingTop: '12px' }}>
-              <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Enviar Recordatorio Rápido:</span>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <a 
-                  href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola ${viewApptModal.clientName}, te recordamos tu cita en L'Studio Ana el próximo ${viewApptModal.dateKey} a las${viewApptModal.time}. ¡Te esperamos!`)}`} 
-                  target="_blank" 
-                  rel="noreferrer" 
-                  style={{ backgroundColor: '#25D366', color: '#000', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                >
-                  💬 WhatsApp
-                </a>
-                <a 
-                  href={`mailto:${viewApptModal.email}?subject=${encodeURIComponent("Recordatorio de tu cita en L'Studio Ana")}&body=${encodeURIComponent(`Hola ${viewApptModal.clientName},\n\nTe recordamos tu cita en L'Studio Ana para el día ${viewApptModal.dateKey} a las ${viewApptModal.time}.\n\nServicio:${viewApptModal.serviceSubcategory}\n\n¡Gracias por confiar en nosotros!`)}`} 
-                  style={{ backgroundColor: '#d4af37', color: '#000', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                >
-                  ✉️ Email
-                </a>
-              </div>
-            </div>
-
+      
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', marginTop: '10px' }}>
               <button onClick={(e) => handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#2a1212', border: '1px solid #ff4444', color: '#ff4444', padding: '8px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar Cita[cite: 199]</button>
               <button onClick={() => setViewApptModal(null)} style={{ background: '#1c1c1c', border: '1px solid #444', color: '#fff', padding: '8px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Cerrar[cite: 199]</button>
             </div>
-          </div>
+
+    {/* MODAL DETALLE CITA CON BOTONES DE WHATSAPP Y COPIA DE EMAIL */}
+{viewApptModal && (
+  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
+    <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '400px', width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+      <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Detalle de Cita</h3>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', color: '#ccc' }}>
+        <div><strong style={{ color: '#fff' }}>Clienta:</strong> {viewApptModal.clientName}</div>
+        <div><strong style={{ color: '#fff' }}>Teléfono:</strong> <a href={`tel:${viewApptModal.phone}`} style={{ color: '#d4af37', textDecoration: 'none' }}>{viewApptModal.phone}</a></div>
+        <div><strong style={{ color: '#fff' }}>Email:</strong> {viewApptModal.email}</div>
+        <div><strong style={{ color: '#fff' }}>Fecha y Hora:</strong> {viewApptModal.dateKey} a las {viewApptModal.time}</div>
+        <div><strong style={{ color: '#fff' }}>Servicio & Variante:</strong> {viewApptModal.serviceSubcategory}</div>
+      </div>
+
+      {/* BOTONES DIRECTOS DE RECORDATORIO (WHATSAPP & EMAIL / COPIA) */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px', borderTop: '1px solid rgba(212,175,55,0.2)', paddingTop: '12px' }}>
+        <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Enviar Recordatorio Rápido:</span>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          <a 
+            href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola ${viewApptModal.clientName}, te recordamos tu cita en L'Studio Ana el próximo ${viewApptModal.dateKey} a las${viewApptModal.time}. ¡Te esperamos!`)}`} 
+            target="_blank" 
+            rel="noreferrer" 
+            style={{ backgroundColor: '#25D366', color: '#000', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+          >
+            💬 WhatsApp
+          </a>
+          <button 
+            type="button"
+            onClick={() => {
+              const textoEmail = `Hola ${viewApptModal.clientName},\n\nTe recordamos tu cita en L'Studio Ana para el día ${viewApptModal.dateKey} a las ${viewApptModal.time}.\n\nServicio: ${viewApptModal.serviceSubcategory}\n\n¡Gracias por confiar en nosotros!`;
+              navigator.clipboard.writeText(textoEmail);
+              alert('¡Texto del recordatorio copiado al portapapeletas! Ya puedes pegarlo en tu correo o app de mensajería.');
+            }}
+            style={{ backgroundColor: '#d4af37', color: '#000', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', textAlign: 'center', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+          >
+            📋 Copiar Email
+          </button>
         </div>
-      )}
+      </div>
+
+      <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', marginTop: '10px' }}>
+        <button onClick={(e) => handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#2a1212', border: '1px solid #ff4444', color: '#ff4444', padding: '8px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar Cita</button>
+        <button onClick={() => setViewApptModal(null)} style={{ background: '#1c1c1c', border: '1px solid #444', color: '#fff', padding: '8px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Cerrar</button>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* MODAL PARA MODIFICAR HORA DE CITA */}
       {rescheduleModalAppt && (
