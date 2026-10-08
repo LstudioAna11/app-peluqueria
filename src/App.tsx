@@ -131,7 +131,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c1',
     code: '0.1',
     title: 'VISAGISMO & DIAGNÓSTICO',
-    icon: '✨',
+    icon: '',
     subservices: [
       {
         id: 's1',
@@ -150,7 +150,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c2',
     code: '0.2',
     title: 'VISAGISMO & CORTE',
-    icon: '✂️',
+    icon: '',
     subservices: [
       {
         id: 's2',
@@ -169,7 +169,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c3',
     code: '0.3',
     title: 'STYLING & ACABADO',
-    icon: '🌟',
+    icon: '',
     subservices: [
       {
         id: 's3',
@@ -188,7 +188,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c4',
     code: '0.4',
     title: 'COLOR ATELIER',
-    icon: '🎨',
+    icon: '',
     subservices: [
       {
         id: 's4',
@@ -207,7 +207,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c5',
     code: '0.5',
     title: 'MÉTODO DE AUTOR & ILUMINACIÓN',
-    icon: '💡',
+    icon: '',
     subservices: [
       {
         id: 's5',
@@ -232,7 +232,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c6',
     code: '0.6',
     title: 'SALUD CAPILAR & RECONSTRUCCIÓN',
-    icon: '🌿',
+    icon: '',
     subservices: [
       {
         id: 's6',
@@ -251,7 +251,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c7',
     code: '0.7',
     title: 'TEXTURA & MOLDEADO ORGÁNICO',
-    icon: '🌀',
+    icon: '',
     subservices: [
       {
         id: 's7',
@@ -270,7 +270,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c8',
     code: '0.8',
     title: 'GROOMING & MAN',
-    icon: '💈',
+    icon: '',
     subservices: [
       {
         id: 's8',
@@ -289,7 +289,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c9',
     code: '0.9',
     title: 'ADD-ONS & COMPLEMENTOS',
-    icon: '💎',
+    icon: '',
     subservices: [
       {
         id: 's9',
@@ -324,7 +324,7 @@ export default function App() {
   const [pin, setPin] = useState<string>('');
   const [pinError, setPinError] = useState<boolean>(false);
   const [currentClientRecord, setCurrentClientRecord] = useState<ClientRecord | null>(null);
-  
+
   const [regNombre, setRegNombre] = useState('');
   const [regApellidos, setRegApellidos] = useState('');
   const [regNacimiento, setRegNacimiento] = useState('');
@@ -338,26 +338,26 @@ export default function App() {
   const [bookingDate, setBookingDate] = useState<Date>(new Date(2026, 9, 7));
   const [selectedVisualTime, setSelectedVisualTime] = useState<string>('12:00');
   const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null);
-  
+
   const [editProximaVisita, setEditProximaVisita] = useState('');
   const [editFormulas, setEditFormulas] = useState('');
   const [editMsg, setEditMsg] = useState<string | null>(null);
-  
+
   const [clientWishText, setClientWishText] = useState('');
   const [aiRecommendation, setAiRecommendation] = useState<{ serviceName: string; reason: string; category: string } | null>(null);
-  
+
   const [logoClicks, setLogoClicks] = useState<number>(0);
   const [adminPin, setAdminPin] = useState<string>('');
   const [adminError, setAdminError] = useState<boolean>(false);
-  
+
   const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm'>('crm');
   const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule'>('marca');
-  
+
   const [bizConfig, setBizConfig] = useState<BusinessConfig>(() => {
     const saved = localStorage.getItem('lst_business_config');
     return saved ? JSON.parse(saved) : INITIAL_BUSINESS_CONFIG;
   });
-  
+
   const [tempConfig, setTempConfig] = useState<BusinessConfig>(bizConfig);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
 
@@ -428,7 +428,7 @@ export default function App() {
   const handleRatingSelect = (rating: number) => {
     setSelectedRating(rating);
     if (rating <= 2) {
-      setFeedbackComment('Lamento que algo no haya sido perfecto. Por favor, explícanos qué ha ocurrido para solucionarlo en privado:');
+      setFeedbackComment('Lamento que algo no haya sido perfecto. Por favor, explícanos qué ha ocurrido para solucionarlo en privado[cite: 144, 145].');
     } else {
       setFeedbackComment('¡Excelente experiencia! El servicio de autor y la atención de Ana han sido impecables.');
     }
@@ -510,12 +510,12 @@ export default function App() {
   const [novoPin, setNovoPin] = useState('');
   const [novoDiagnostico, setNovoDiagnostico] = useState('');
   const [busquedaCliente, setBusquedaCliente] = useState('');
-  
+
   const [editingClientId, setEditingClientId] = useState<number | null>(null);
   const [editAdminUltimaVisita, setEditAdminUltimaVisita] = useState('');
   const [editAdminProxima, setEditAdminProxima] = useState('');
   const [editAdminFormulas, setEditAdminFormulas] = useState('');
-  
+
   const [rescheduleModalAppt, setRescheduleModalAppt] = useState<Appointment | null>(null);
   const [newRescheduleTime, setNewRescheduleTime] = useState<string>('10:00');
   const [newRescheduleDate, setNewRescheduleDate] = useState<string>(formatDateKey(new Date()));
@@ -644,7 +644,7 @@ export default function App() {
   const [draggedApptId, setDraggedApptId] = useState<string | null>(null);
   const [fechaSeleccionada, setFechaSeleccionada] = useState<Date>(new Date(2026, 9, 7));
   const [mesNavegacion, setMesNavegacion] = useState<Date>(new Date(2026, 9, 1));
-  
+
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [targetDateObj, setTargetDateObj] = useState<Date>(new Date());
   const [targetDayName, setTargetDayName] = useState<string>('');
@@ -789,12 +789,10 @@ export default function App() {
     const selectedCategory = catalog[modalCatIndex];
     const selectedSub = selectedCategory?.subservices[modalSubIndex];
     if (!selectedSub) return;
-
     if (selectedSub.hasVariants && selectedSub.variants && selectedSub.variants.length > 0 && !modalSelectedVariant) {
-      alert('Por favor, selecciona una variante por largo.');
+      alert('Por favor, selecciona una variante.');
       return;
     }
-
     let durationMin = 45;
     if (selectedSub.hasVariants && modalSelectedVariant) {
       const durMatch = modalSelectedVariant.duration.match(/\d+/);
@@ -803,9 +801,9 @@ export default function App() {
       const durMatch = selectedSub.duration.match(/\d+/);
       if (durMatch) durationMin = parseInt(durMatch[0], 10);
     }
-
+    // SIN LA PALABRA LARGO
     const varText = modalSelectedVariant ? ` (${modalSelectedVariant.name} - ${modalSelectedVariant.price})` : '';
-
+    
     const newApp: Appointment = {
       id: Date.now().toString(),
       dateKey: formatDateKey(targetDateObj),
@@ -830,18 +828,17 @@ export default function App() {
       alert('Por favor, selecciona al menos un servicio del catálogo[cite: 153].');
       return;
     }
-
     for (const item of selectedServicesToBook) {
       if (item.sub.hasVariants && item.sub.variants && item.sub.variants.length > 0 && !item.variant) {
-        alert(`Es obligatorio seleccionar el largo para el servicio: ${item.sub.name}`);
+        alert(`Es obligatorio seleccionar una variante para el servicio: ${item.sub.name}`);
         return;
       }
     }
-
     const dayNamesMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     const dayNameStr = dayNamesMap[bookingDate.getDay()];
     const dateKeyStr = formatDateKey(bookingDate);
 
+    // SIN LA PALABRA LARGO EN LA RESERVA ONLINE
     const subNames = selectedServicesToBook.map(s => {
       return s.variant ? `${s.sub.name} (${s.variant.name})` : s.sub.name;
     }).join(', ');
@@ -1008,6 +1005,7 @@ export default function App() {
     } else if (newSubPriceType === 'consultar') {
       formattedPrice = 'Consultar';
     }
+
     const newSub: SubService = {
       id: Date.now().toString(),
       name: newSubName,
@@ -1020,6 +1018,7 @@ export default function App() {
       priceType: newSubPriceType,
       hasVariants: false
     };
+
     setCatalog(catalog.map(cat => {
       if (cat.id === catId) {
         return { ...cat, subservices: [...cat.subservices, newSub] };
@@ -1337,13 +1336,13 @@ export default function App() {
         </div>
       )}
 
-      {/* 2.2. CATÁLOGO & RESERVA CON VARIANTES M, L, XL */}
+      {/* 2.2. CATÁLOGO & RESERVA CON VARIANTES SIN LA PALABRA LARGO */}
       {currentScreen === 'catalogBooking' && (
         <div style={{ maxWidth: '700px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
             <div>
               <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>{bizConfig.name}</h2>
-              <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>SELECCIÓN DE SERVICIOS & VARIANTES POR LARGO</p>
+              <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>SELECCIÓN DE SERVICIOS & VARIANTES</p>
             </div>
             <button onClick={() => setCurrentScreen('clientPortal')} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
               ← Volver al Portal
@@ -1356,7 +1355,7 @@ export default function App() {
           )}
           <div>
             <h1 style={{ fontSize: '16px', fontFamily: 'serif', color: '#fff', marginBottom: '4px' }}>1. Selecciona tus servicios deseados:</h1>
-            <p style={{ color: '#888', fontSize: '10px', margin: 0 }}>Si el servicio cuenta con variantes por largo (M, L, XL), selecciona obligatoriamente tu opción.</p>
+            <p style={{ color: '#888', fontSize: '10px', margin: 0 }}>Si el servicio cuenta con variantes, selecciona tu opción preferida.</p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {catalog.map((cat) => {
@@ -1375,7 +1374,6 @@ export default function App() {
                         const existingSelection = selectedServicesToBook.find(s => s.sub.id === sub.id);
                         const isSelected = !!existingSelection;
                         const isExpanded = !!expandedSubDetails[sub.id];
-
                         return (
                           <div key={sub.id} style={{ backgroundColor: isSelected ? '#252012' : '#141414', border: isSelected ? '1px solid #d4af37' : '1px solid #333', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1406,11 +1404,10 @@ export default function App() {
                                 </div>
                               </div>
                             </div>
-
-                            {/* Selector integrado de largo M, L, XL */}
+                            
                             {sub.hasVariants && sub.variants && sub.variants.length > 0 && isSelected && (
                               <div style={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
-                                <span style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }}>Selecciona el largo de tu melena (Obligatorio):</span>
+                                <span style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }}>Selecciona variante:</span>
                                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                   {sub.variants.map((v) => {
                                     const isVarSelected = existingSelection?.variant?.id === v.id;
@@ -1418,7 +1415,7 @@ export default function App() {
                                       <button key={v.id} onClick={() => {
                                         setSelectedServicesToBook(selectedServicesToBook.map(item => item.sub.id === sub.id ? { ...item, variant: v } : item));
                                       }} style={{ backgroundColor: isVarSelected ? '#d4af37' : '#141414', color: isVarSelected ? '#000' : '#fff', border: '1px solid #d4af37', borderRadius: '4px', padding: '6px 10px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
-                                        Largo {v.name} — {v.price} — {v.duration}
+                                        {v.name} - {v.price} - {v.duration}
                                       </button>
                                     );
                                   })}
@@ -1857,11 +1854,11 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 3: CATÁLOGO & VARIANTES */}
+          {/* TAB 3: CATÁLOGO & VARIANTES (SIN LA PALABRA LARGO) */}
           {adminTab === 'catalog' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>Gestión de Catálogo y Activación de Variantes por Largo (M, L, XL)</h3>
+                <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>Gestión de Catálogo y Activación de Variantes (M, L, XL)</h3>
                 <button onClick={() => setIsAddingCategory(true)} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>+ Nueva Categoría</button>
               </div>
               {isAddingCategory && (
@@ -1903,7 +1900,7 @@ export default function App() {
                             const isExpandedAdmin = !!expandedSubDetails[`admin_${sub.id}`];
                             return (
                               <div key={sub.id} style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                                   <div style={{ flex: 1 }}>
                                     <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '12px' }}>{sub.name}</span>
                                     <span style={{ color: '#888', fontSize: '11px', marginLeft: '10px' }}>({sub.duration} - {sub.price})</span>
@@ -1926,14 +1923,14 @@ export default function App() {
                                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                       {sub.variants?.map((v) => (
                                         <div key={v.id} style={{ backgroundColor: '#1c1c1c', border: '1px solid #d4af37', borderRadius: '4px', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#fff' }}>
-                                          <span><strong>Largo {v.name}</strong>: {v.price} / {v.duration}</span>
-                                          <button onClick={() => handleDeleteVariant(cat.id, sub.id, v.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontSize: '11px' }}>×</button>
+                                          {/* SIN LA PALABRA LARGO AQUÍ */}
+                                          <span><strong>{v.name}</strong>: {v.price} / {v.duration}</span>
+                                          <button onClick={() => handleDeleteVariant(cat.id, sub.id, v.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontSize: '11px' }}>x</button>
                                         </div>
                                       ))}
                                     </div>
-
                                     <form onSubmit={(e) => handleAddVariant(cat.id, sub.id, e)} style={{ display: 'flex', gap: '8px', marginTop: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                      <input type="text" placeholder="Nombre (ej. XXL)" value={newVariantName} onChange={(e) => setNewVariantName(e.target.value)} style={{ width: '80px', padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '11px' }} />
+                                      <input type="text" placeholder="Nombre (ej. M)" value={newVariantName} onChange={(e) => setNewVariantName(e.target.value)} style={{ width: '80px', padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '11px' }} />
                                       <input type="text" placeholder="Precio (ej. 320,00 €)" value={newVariantPrice} onChange={(e) => setNewVariantPrice(e.target.value)} style={{ width: '120px', padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '11px' }} />
                                       <input type="text" placeholder="Duración (ej. 240 min)" value={newVariantDuration} onChange={(e) => setNewVariantDuration(e.target.value)} style={{ width: '110px', padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '11px' }} />
                                       <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>+ Añadir variante</button>
@@ -2170,7 +2167,7 @@ export default function App() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px' }}>
                 <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '18px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase' }}>Visitas Web / App</div>
+                  <div style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase' }}>Visitas Web/App</div>
                   <input type="number" value={appVisitsCount} onChange={(e) => setAppVisitsCount(parseInt(e.target.value) || 0)} onFocus={(e) => e.target.select()} style={{ backgroundColor: '#1c1c1c', border: '1px solid #d4af37', color: '#d4af37', fontSize: '24px', fontWeight: 'bold', fontFamily: 'serif', textAlign: 'center', padding: '4px', borderRadius: '6px', width: '100%', boxSizing: 'border-box' }} />
                 </div>
                 <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '18px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -2270,10 +2267,17 @@ export default function App() {
             <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Nueva Cita: {targetDayName} a las {targetTime}[cite: 197]</h3>
             <form onSubmit={handleSaveModalAppointment} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <input type="text" placeholder="Nombre y Apellidos" value={modalClientName} onChange={(e) => setModalClientName(e.target.value)} required style={{ padding: '8px', backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
-              <select value={modalCatIndex} onChange={(e) => { setModalCatIndex(Number(e.target.value)); setModalSubIndex(0); const sub = catalog[Number(e.target.value)]?.subservices[0]; setModalSelectedVariant(sub?.variants?.[0] || null); }} style={{ padding: '8px', backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '12px' }}>
+              
+              <input type="text" placeholder="Teléfono móvil" value={modalPhone} onChange={(e) => setModalPhone(e.target.value)} style={{ padding: '8px', backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+              <input type="email" placeholder="Correo electrónico" value={modalEmail} onChange={(e) => setModalEmail(e.target.value)} style={{ padding: '8px', backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+
+              <select value={modalCatIndex} onChange={(e) => {
+                setModalCatIndex(Number(e.target.value)); setModalSubIndex(0); const sub = catalog[Number(e.target.value)]?.subservices[0];
+                setModalSelectedVariant(sub?.variants?.[0] || null);
+              }} style={{ padding: '8px', backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '12px' }}>
                 {catalog.map((cat, idx) => (<option key={cat.id} value={idx}>{cat.code} &lt; {cat.title}</option>))}
               </select>
-              <select value={modalSubIndex} onChange={(e) => { 
+              <select value={modalSubIndex} onChange={(e) => {
                 const sIdx = Number(e.target.value);
                 setModalSubIndex(sIdx);
                 const sub = catalog[modalCatIndex]?.subservices[sIdx];
@@ -2281,21 +2285,19 @@ export default function App() {
               }} style={{ padding: '8px', backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '12px' }}>
                 {catalog[modalCatIndex]?.subservices.map((sub, idx) => (<option key={sub.id} value={idx}>{sub.name}</option>))}
               </select>
-
               {catalog[modalCatIndex]?.subservices[modalSubIndex]?.hasVariants && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Selecciona Variante (Largo):</label>
+                  <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Selecciona Variante:</label>
                   <select value={modalSelectedVariant?.id || ''} onChange={(e) => {
                     const v = catalog[modalCatIndex]?.subservices[modalSubIndex]?.variants?.find(item => item.id === e.target.value);
                     setModalSelectedVariant(v || null);
                   }} style={{ padding: '8px', backgroundColor: '#1c1c1c', border: '1px solid #d4af37', color: '#fff', borderRadius: '6px', fontSize: '12px' }}>
                     {catalog[modalCatIndex]?.subservices[modalSubIndex]?.variants?.map(v => (
-                      <option key={v.id} value={v.id}>Largo {v.name} — {v.price} — {v.duration}</option>
+                      <option key={v.id} value={v.id}>{v.name} - {v.price} / {v.duration}</option>
                     ))}
                   </select>
                 </div>
               )}
-
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
                 <button type="button" onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: '1px solid #444', color: '#aaa', padding: '8px 14px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>Cancelar</button>
                 <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Guardar Cita</button>
@@ -2305,16 +2307,40 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL DETALLE CITA */}
+      {/* MODAL DETALLE CITA CON BOTONES DIRECTOS DE WHATSAPP E EMAIL */}
       {viewApptModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '380px', width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '400px', width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Detalle de Cita[cite: 198]</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', color: '#ccc' }}>
               <div><strong style={{ color: '#fff' }}>Clienta:</strong> {viewApptModal.clientName}</div>
+              <div><strong style={{ color: '#fff' }}>Teléfono:</strong> <a href={`tel:${viewApptModal.phone}`} style={{ color: '#d4af37', textDecoration: 'none' }}>{viewApptModal.phone}</a></div>
+              <div><strong style={{ color: '#fff' }}>Email:</strong> <a href={`mailto:${viewApptModal.email}`} style={{ color: '#d4af37', textDecoration: 'none' }}>{viewApptModal.email}</a></div>
               <div><strong style={{ color: '#fff' }}>Fecha y Hora:</strong> {viewApptModal.dateKey} a las {viewApptModal.time}</div>
               <div><strong style={{ color: '#fff' }}>Servicio & Variante:</strong> {viewApptModal.serviceSubcategory}</div>
             </div>
+
+            {/* BOTONES DIRECTOS DE RECORDATORIO (WHATSAPP & EMAIL) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px', borderTop: '1px solid rgba(212,175,55,0.2)', paddingTop: '12px' }}>
+              <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Enviar Recordatorio Rápido:</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <a 
+                  href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola ${viewApptModal.clientName}, te recordamos tu cita en L'Studio Ana el próximo ${viewApptModal.dateKey} a las${viewApptModal.time}. ¡Te esperamos!`)}`} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  style={{ backgroundColor: '#25D366', color: '#000', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                >
+                  💬 WhatsApp
+                </a>
+                <a 
+                  href={`mailto:${viewApptModal.email}?subject=${encodeURIComponent("Recordatorio de tu cita en L'Studio Ana")}&body=${encodeURIComponent(`Hola ${viewApptModal.clientName},\n\nTe recordamos tu cita en L'Studio Ana para el día ${viewApptModal.dateKey} a las ${viewApptModal.time}.\n\nServicio:${viewApptModal.serviceSubcategory}\n\n¡Gracias por confiar en nosotros!`)}`} 
+                  style={{ backgroundColor: '#d4af37', color: '#000', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                >
+                  ✉️ Email
+                </a>
+              </div>
+            </div>
+
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', marginTop: '10px' }}>
               <button onClick={(e) => handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#2a1212', border: '1px solid #ff4444', color: '#ff4444', padding: '8px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar Cita[cite: 199]</button>
               <button onClick={() => setViewApptModal(null)} style={{ background: '#1c1c1c', border: '1px solid #444', color: '#fff', padding: '8px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Cerrar[cite: 199]</button>
