@@ -16,6 +16,7 @@ interface BusinessConfig {
   welcomeMessage: string;
   masterPin: string;
   instagramUrl: string;
+  facebookUrl: string;
   tiktokUrl: string;
   googleMapsUrl: string;
   googleReviewUrl: string;
@@ -24,7 +25,7 @@ interface BusinessConfig {
 const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
   name: "L'Studio Ana",
   subtitle: "PORTAL PRIVADO DE CLIENTAS",
-  location: "Centro de Elche, Alicante",
+  location: "Calle Mayor / Centro de Elche, Alicante",
   phone: "600000000",
   description: "L'Studio Ana - Hair Experience es una peluquería premium en el centro de Elche, especializada en Balayage de Autor, mechas personalizadas, Babylights, coloración personalizada, técnicas de iluminación y terapias orgánicas.",
   scheduleMonday: "10:00h a 13:30h",
@@ -34,6 +35,7 @@ const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
   welcomeMessage: "¡Bienvenida, Ana!",
   masterPin: "0000",
   instagramUrl: "https://instagram.com",
+  facebookUrl: "https://facebook.com",
   tiktokUrl: "https://tiktok.com",
   googleMapsUrl: "https://maps.google.com",
   googleReviewUrl: "https://g.page/r/CRLx1fxwplAYEBM/review"
@@ -124,6 +126,14 @@ interface FeedbackRecord {
   rating: number;
   comment: string;
   type: 'detractor' | 'neutral' | 'promoter';
+}
+
+interface HolidayBlock {
+  id: string;
+  startDate: string;
+  endDate: string;
+  reason: string;
+  type: 'vacaciones' | 'festivo';
 }
 
 const INITIAL_CATALOG: CatalogCategory[] = [
@@ -350,7 +360,7 @@ export default function App() {
   const [adminPin, setAdminPin] = useState<string>('');
   const [adminError, setAdminError] = useState<boolean>(false);
 
-  const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm'>('detractors');
+  const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'holidays'>('holidays');
   const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule'>('marca');
 
   const [bizConfig, setBizConfig] = useState<BusinessConfig>(() => {
@@ -369,6 +379,30 @@ export default function App() {
     const saved = localStorage.getItem('lst_master_catalog');
     return saved ? JSON.parse(saved) : INITIAL_CATALOG;
   });
+
+  // Estado para Vacaciones y Festivos sincronizados
+  const [holidaysList, setHolidaysList] = useState<HolidayBlock[]>(() => {
+    const saved = localStorage.getItem('lst_holidays_list');
+    return saved ? JSON.parse(saved) : [
+      { id: 'h1', startDate: '2026-12-24', endDate: '2026-12-26', reason: 'Navidad / Festivo local', type: 'festivo' },
+      { id: 'h2', startDate: '2026-08-01', endDate: '2026-08-20', reason: 'Vacaciones de Verano', type: 'vacaciones' }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('lst_holidays_list', JSON.stringify(holidaysList));
+  }, [holidaysList]);
+
+  const [newHolidayStart, setNewHolidayStart] = useState('');
+  const [newHolidayEnd, setNewHolidayEnd] = useState('');
+  const [newHolidayReason, setNewHolidayReason] = useState('');
+  const [newHolidayType, setNewHolidayType] = useState<'vacaciones' | 'festivo'>('vacaciones');
+
+  const isDateBlockedByHoliday = (dateKey: string) => {
+    return holidaysList.some(h => {
+      return dateKey >= h.startDate && dateKey <= h.endDate;
+    });
+  };
 
   const [newVariantName, setNewVariantName] = useState('');
   const [newVariantPrice, setNewVariantPrice] = useState('');
@@ -421,7 +455,6 @@ export default function App() {
     localStorage.setItem('lst_feedback_list', JSON.stringify(feedbackList));
   }, [feedbackList]);
 
-  // Estado para las respuestas de los detractores indexadas por ID
   const [detractorReplies, setDetractorReplies] = useState<{ [key: string]: string }>({
     '1': "Hola María, lamentamos mucho el tiempo de espera en el lavado. En L'Studio Ana cuidamos cada detalle y queremos compensarte en tu próxima visita con un ritual exclusivo de hidratación."
   });
@@ -746,9 +779,13 @@ export default function App() {
 
   const handleDrop = (e: React.DragEvent, targetDate: Date, dayName: string, time: string) => {
     e.preventDefault();
+    const targetDateKey = formatDateKey(targetDate);
+    if (isDateBlockedByHoliday(targetDateKey)) {
+      window.alert('Este día está bloqueado por vacaciones o festivo. No se pueden mover citas aquí.');
+      return;
+    }
     const id = e.dataTransfer.getData('text/plain') || draggedApptId;
     if (!id) return;
-    const targetDateKey = formatDateKey(targetDate);
     const existing = appointments.find(a => a.dateKey === targetDateKey && a.time === time && a.id !== id);
     if (existing) {
       window.alert('Ese hueco horario ya está ocupado por otra cita en esta fecha y hora.');
@@ -760,6 +797,10 @@ export default function App() {
 
   const handleCellClick = (targetDate: Date, dayName: string, time: string) => {
     const targetDateKey = formatDateKey(targetDate);
+    if (isDateBlockedByHoliday(targetDateKey)) {
+      window.alert('Este día es festivo o de vacaciones. Está bloqueado en la agenda.');
+      return;
+    }
     const existing = appointments.find(a => a.dateKey === targetDateKey && a.time === time);
     if (existing) {
       setViewApptModal(existing);
@@ -822,6 +863,12 @@ export default function App() {
       alert('Por favor, selecciona al menos un servicio del catálogo.');
       return;
     }
+    const dateKeyStr = formatDateKey(bookingDate);
+    if (isDateBlockedByHoliday(dateKeyStr)) {
+      alert('Lo sentimos, el salón se encuentra cerrado por vacaciones o festivo en esta fecha.');
+      return;
+    }
+
     for (const item of selectedServicesToBook) {
       if (item.sub.hasVariants && item.sub.variants && item.sub.variants.length > 0 && !item.variant) {
         alert(`Es obligatorio seleccionar una variante para el servicio: ${item.sub.name}`);
@@ -830,7 +877,6 @@ export default function App() {
     }
     const dayNamesMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     const dayNameStr = dayNamesMap[bookingDate.getDay()];
-    const dateKeyStr = formatDateKey(bookingDate);
 
     const subNames = selectedServicesToBook.map(s => {
       return s.variant ? `${s.sub.name} (${s.variant.name})` : s.sub.name;
@@ -1067,6 +1113,7 @@ export default function App() {
   ];
 
   const isTimeSlotOccupied = (dateKey: string, timeStr: string) => {
+    if (isDateBlockedByHoliday(dateKey)) return true;
     const [checkHour, checkMin] = timeStr.split(':').map(Number);
     const checkTotalMinutes = checkHour * 60 + checkMin;
     return appointments.some(appt => {
@@ -1209,6 +1256,9 @@ export default function App() {
                 <p style={{ color: '#888', fontSize: '10px', margin: 0 }}>
                   Email registrado: {currentClientRecord?.email || 'anamorenofernandez79@gmail.com'} | ID: #{currentClientRecord?.idNum || '1'}
                 </p>
+                <p style={{ color: '#aaa', fontSize: '10px', margin: '3px 0 0 0' }}>
+                  📍 {bizConfig.location} | 📞 {bizConfig.phone}
+                </p>
               </div>
               <button onClick={() => setCurrentScreen('clientHistoryPage')} style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '6px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}>
                 Editar Perfil
@@ -1279,10 +1329,11 @@ export default function App() {
               <span style={{ color: '#d4af37', fontStyle: 'italic', textAlign: 'right' }}>{bizConfig.scheduleSaturday}</span>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <a href={bizConfig.instagramUrl} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold' }}>Instagram</a>
-            <a href={bizConfig.tiktokUrl} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold' }}>Tik Tok</a>
-            <a href={bizConfig.googleMapsUrl} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '12px', textDecoration: 'none', fontWeight: 'bold' }}>Google Maps</a>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <a href={bizConfig.instagramUrl} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '11px', textDecoration: 'none', fontWeight: 'bold' }}>Instagram</a>
+            <a href={bizConfig.facebookUrl} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '11px', textDecoration: 'none', fontWeight: 'bold' }}>Facebook</a>
+            <a href={bizConfig.tiktokUrl} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '11px', textDecoration: 'none', fontWeight: 'bold' }}>Tik Tok</a>
+            <a href={bizConfig.googleMapsUrl} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '10px', borderRadius: '8px', textAlign: 'center', fontSize: '11px', textDecoration: 'none', fontWeight: 'bold' }}>Google Maps</a>
           </div>
           <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1329,7 +1380,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 2.2. CATÁLOGO & RESERVA CON VARIANTES SIN LA PALABRA LARGO */}
+      {/* 2.2. CATÁLOGO & RESERVA CON VARIANTES */}
       {currentScreen === 'catalogBooking' && (
         <div style={{ maxWidth: '700px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
@@ -1471,37 +1522,46 @@ export default function App() {
             </span>
             <input type="date" value={formatDateKey(bookingDate)} onChange={(e) => setBookingDate(new Date(e.target.value))} style={{ backgroundColor: '#181818', border: '1px solid #d4af37', color: '#fff', padding: '6px 10px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }} />
           </div>
-          <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '420px', overflowY: 'auto' }}>
-            {hoursList.map((time) => {
-              const targetKey = formatDateKey(bookingDate);
-              const isOccupied = isTimeSlotOccupied(targetKey, time);
-              const isSelectedVisual = selectedVisualTime === time;
-              return (
-                <div key={time} style={{ display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '1px solid #222', paddingBottom: '6px' }}>
-                  <span style={{ color: '#888', fontSize: '10px', width: '45px', fontWeight: 'bold' }}>{time}h</span>
-                  <div style={{ flex: 1 }}>
-                    {isOccupied ? (
-                      <div style={{ backgroundColor: '#211d12', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '6px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.95, pointerEvents: 'none' }}>
-                        <span style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px' }}>OCUPADO</span>
-                        <span style={{ color: '#888', fontSize: '9px' }}>NO DISPONIBLE</span>
-                      </div>
-                    ) : (
-                      <div onClick={() => setSelectedVisualTime(time)} style={{ backgroundColor: isSelectedVisual ? '#2a2412' : '#1c1c1c', border: isSelectedVisual ? '2px solid #d4af37' : '1px dashed rgba(212,175,55,0.3)', borderRadius: '6px', padding: '10px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}>
-                        <span style={{ color: isSelectedVisual ? '#fff' : '#d4af37', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px' }}>
-                          {isSelectedVisual ? `HUECO SELECCIONADO (${time})` : 'HUECO LIBRE'}
-                        </span>
-                      </div>
-                    )}
+          
+          {isDateBlockedByHoliday(formatDateKey(bookingDate)) ? (
+            <div style={{ padding: '25px', backgroundColor: '#261212', border: '1px solid #ff4444', borderRadius: '12px', textAlign: 'center', color: '#ff4444' }}>
+              <p style={{ fontSize: '14px', fontWeight: 'bold', margin: '0 0 5px 0' }}>🌴 SALÓN CERRADO (VACACIONES O FESTIVO)</p>
+              <p style={{ fontSize: '11px', color: '#ccc', margin: 0 }}>No hay disponibilidad en esta fecha seleccionada.</p>
+            </div>
+          ) : (
+            <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '420px', overflowY: 'auto' }}>
+              {hoursList.map((time) => {
+                const targetKey = formatDateKey(bookingDate);
+                const isOccupied = isTimeSlotOccupied(targetKey, time);
+                const isSelectedVisual = selectedVisualTime === time;
+                return (
+                  <div key={time} style={{ display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '1px solid #222', paddingBottom: '6px' }}>
+                    <span style={{ color: '#888', fontSize: '10px', width: '45px', fontWeight: 'bold' }}>{time}h</span>
+                    <div style={{ flex: 1 }}>
+                      {isOccupied ? (
+                        <div style={{ backgroundColor: '#211d12', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '6px', padding: '8px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', opacity: 0.95, pointerEvents: 'none' }}>
+                          <span style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold', letterSpacing: '1px' }}>OCUPADO / BLOQUEADO</span>
+                          <span style={{ color: '#888', fontSize: '9px' }}>NO DISPONIBLE</span>
+                        </div>
+                      ) : (
+                        <div onClick={() => setSelectedVisualTime(time)} style={{ backgroundColor: isSelectedVisual ? '#2a2412' : '#1c1c1c', border: isSelectedVisual ? '2px solid #d4af37' : '1px dashed rgba(212,175,55,0.3)', borderRadius: '6px', padding: '10px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}>
+                          <span style={{ color: isSelectedVisual ? '#fff' : '#d4af37', fontSize: '11px', fontWeight: 'bold', letterSpacing: '1px' }}>
+                            {isSelectedVisual ? `HUECO SELECCIONADO (${time})` : 'HUECO LIBRE'}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
+                );
+              })}
+            </div>
+          )}
+
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '5px' }}>
             <button onClick={() => setCurrentScreen('catalogBooking')} style={{ backgroundColor: '#222', border: '1px solid #444', color: '#aaa', padding: '12px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
               SELECCIONA HUECO
             </button>
-            <button onClick={handleConfirmarCitaVisual} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'center' }}>
+            <button onClick={handleConfirmarCitaVisual} disabled={isDateBlockedByHoliday(formatDateKey(bookingDate))} style={{ backgroundColor: isDateBlockedByHoliday(formatDateKey(bookingDate)) ? '#444' : '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: isDateBlockedByHoliday(formatDateKey(bookingDate)) ? 'not-allowed' : 'pointer', textAlign: 'center' }}>
               CONFIRMAR CITA: {bookingDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'numeric' })}, {selectedVisualTime}
             </button>
           </div>
@@ -1634,13 +1694,14 @@ export default function App() {
               Cerrar Sesión
             </button>
           </div>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button onClick={() => setAdminTab('agenda')} style={{ backgroundColor: adminTab === 'agenda' ? '#d4af37' : '#1a1a1a', color: adminTab === 'agenda' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Agenda Maestra</button>
             <button onClick={() => setAdminTab('config')} style={{ backgroundColor: adminTab === 'config' ? '#d4af37' : '#1a1a1a', color: adminTab === 'config' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Configuración</button>
             <button onClick={() => setAdminTab('catalog')} style={{ backgroundColor: adminTab === 'catalog' ? '#d4af37' : '#1a1a1a', color: adminTab === 'catalog' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Catálogo</button>
             <button onClick={() => setAdminTab('clients')} style={{ backgroundColor: adminTab === 'clients' ? '#d4af37' : '#1a1a1a', color: adminTab === 'clients' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Clientes</button>
             <button onClick={() => setAdminTab('detractors')} style={{ backgroundColor: adminTab === 'detractors' ? '#d4af37' : '#1a1a1a', color: adminTab === 'detractors' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>⚠️ Buzón ({feedbackList.filter(f => f.type === 'detractor').length})</button>
             <button onClick={() => setAdminTab('crm')} style={{ backgroundColor: adminTab === 'crm' ? '#d4af37' : '#1a1a1a', color: adminTab === 'crm' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>CRM & KPIs</button>
+            <button onClick={() => setAdminTab('holidays')} style={{ backgroundColor: adminTab === 'holidays' ? '#d4af37' : '#1a1a1a', color: adminTab === 'holidays' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>🌴 Vacaciones & Festivos</button>
           </div>
 
           {/* TAB 1: AGENDA MAESTRA */}
@@ -1660,9 +1721,11 @@ export default function App() {
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px' }}>
                   {diasRejillaMini.map((dateObj, i) => {
                     if (!dateObj) return <div key={i} />;
-                    const isSelected = formatDateKey(dateObj) === formatDateKey(fechaSeleccionada);
+                    const dKey = formatDateKey(dateObj);
+                    const isBlocked = isDateBlockedByHoliday(dKey);
+                    const isSelected = dKey === formatDateKey(fechaSeleccionada);
                     return (
-                      <button key={i} onClick={() => setFechaSeleccionada(dateObj)} style={{ backgroundColor: isSelected ? '#d4af37' : '#1c1c1c', color: isSelected ? '#000' : '#ccc', border: 'none', borderRadius: '4px', padding: '6px 0', fontSize: '11px', cursor: 'pointer', fontWeight: isSelected ? 'bold' : 'normal' }}>
+                      <button key={i} onClick={() => setFechaSeleccionada(dateObj)} style={{ backgroundColor: isBlocked ? '#441111' : (isSelected ? '#d4af37' : '#1c1c1c'), color: isBlocked ? '#ff8888' : (isSelected ? '#000' : '#ccc'), border: isBlocked ? '1px solid #ff4444' : 'none', borderRadius: '4px', padding: '6px 0', fontSize: '11px', cursor: 'pointer', fontWeight: isSelected ? 'bold' : 'normal' }} title={isBlocked ? 'Día bloqueado (Vacaciones/Festivo)' : ''}>
                         {dateObj.getDate()}
                       </button>
                     );
@@ -1681,12 +1744,16 @@ export default function App() {
                 <div style={{ overflowX: 'auto', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '15px' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '70px repeat(6, minmax(110px, 1fr))', gap: '4px', minWidth: '750px' }}>
                     <div style={{ padding: '8px', textAlign: 'center', color: '#777', fontSize: '11px', fontWeight: 'bold' }}>Hora</div>
-                    {semanaActual.map((day, idx) => (
-                      <div key={idx} style={{ padding: '8px', textAlign: 'center', backgroundColor: '#1e1e1e', borderRadius: '6px', borderBottom: '2px solid #d4af37' }}>
-                        <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>{day.name}</div>
-                        <div style={{ color: '#aaa', fontSize: '10px' }}>{day.dateFormatted}</div>
-                      </div>
-                    ))}
+                    {semanaActual.map((day, idx) => {
+                      const dKey = formatDateKey(day.dateObj);
+                      const isBlocked = isDateBlockedByHoliday(dKey);
+                      return (
+                        <div key={idx} style={{ padding: '8px', textAlign: 'center', backgroundColor: isBlocked ? '#2e1414' : '#1e1e1e', borderRadius: '6px', borderBottom: isBlocked ? '2px solid #ff4444' : '2px solid #d4af37' }}>
+                          <div style={{ color: isBlocked ? '#ff8888' : '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>{day.name}</div>
+                          <div style={{ color: '#aaa', fontSize: '10px' }}>{day.dateFormatted} {isBlocked ? '🌴' : ''}</div>
+                        </div>
+                      );
+                    })}
                     {hoursList.map((time, hIdx) => (
                       <React.Fragment key={hIdx}>
                         <div style={{ padding: '8px 4px', textAlign: 'center', color: '#888', fontSize: '10px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1694,11 +1761,14 @@ export default function App() {
                         </div>
                         {semanaActual.map((day, dIdx) => {
                           const targetKey = formatDateKey(day.dateObj);
+                          const isBlocked = isDateBlockedByHoliday(targetKey);
                           const appt = appointments.find(a => a.dateKey === targetKey && a.time === time);
                           const occupiedByDuration = isTimeSlotOccupied(targetKey, time);
                           return (
-                            <div key={dIdx} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, day.dateObj, day.name, time)} onClick={() => handleCellClick(day.dateObj, day.name, time)} style={{ backgroundColor: appt ? '#221e10' : (occupiedByDuration ? '#1a1510' : '#1a1a1a'), border: appt ? '1px solid #d4af37' : (occupiedByDuration ? '1px dashed #554422' : '1px dashed #2c2c2c'), borderRadius: '6px', padding: '6px', minHeight: '35px', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                              {appt ? (
+                            <div key={dIdx} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, day.dateObj, day.name, time)} onClick={() => handleCellClick(day.dateObj, day.name, time)} style={{ backgroundColor: isBlocked ? '#261212' : (appt ? '#221e10' : (occupiedByDuration ? '#1a1510' : '#1a1a1a')), border: isBlocked ? '1px solid #ff4444' : (appt ? '1px solid #d4af37' : (occupiedByDuration ? '1px dashed #554422' : '1px dashed #2c2c2c')), borderRadius: '6px', padding: '6px', minHeight: '35px', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                              {isBlocked ? (
+                                <div style={{ color: '#ff6666', fontSize: '9px', textAlign: 'center', fontWeight: 'bold' }}>BLOQUEADO</div>
+                              ) : appt ? (
                                 <div draggable onDragStart={(e) => handleDragStart(e, appt.id)} title="Arrastra para mover a cualquier hora u otro día" style={{ fontSize: '10px' }}>
                                   <div style={{ color: '#d4af37', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span>{appt.clientName}</span>
@@ -1737,7 +1807,7 @@ export default function App() {
               )}
               {configSubTab === 'marca' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Gestor de Marca</h3>
+                  <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Gestor de Marca, Dirección y Teléfono (Con Vista Previa en Tiempo Real)</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 280px', gap: '15px', alignItems: 'stretch' }}>
                     <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
                       <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', alignSelf: 'flex-start' }}>Logotipo de la Marca</span>
@@ -1749,33 +1819,45 @@ export default function App() {
                       <div style={{ width: '100%', height: '70px', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d4af37', fontSize: '14px', letterSpacing: '2px', fontFamily: 'serif' }}>L'STUDIO</div>
                       <button type="button" onClick={() => alert('Función de edición de cabecera')} style={{ backgroundColor: 'transparent', border: '1px solid rgba(212,175,55,0.4)', color: '#d4af37', padding: '6px 16px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Editar</button>
                     </div>
+                    
+                    {/* VISTA PREVIA A TIEMPO REAL */}
                     <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold', marginBottom: '5px' }}>Vista Previa del Portal</span>
+                      <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold', marginBottom: '5px' }}>Vista Previa en Tiempo Real</span>
                       <div style={{ width: '100%', backgroundColor: '#000', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '10px', padding: '12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ textAlign: 'center', fontSize: '11px', color: '#d4af37', fontFamily: 'serif', fontWeight: 'bold' }}>L'STUDIO ANA</div>
+                        <div style={{ textAlign: 'center', fontSize: '11px', color: '#d4af37', fontFamily: 'serif', fontWeight: 'bold' }}>{tempConfig.name}</div>
                         <div style={{ textAlign: 'center', fontSize: '8px', color: '#888', letterSpacing: '1px' }}>PORTAL PRIVADO</div>
                         <div style={{ backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '6px', padding: '8px' }}>
                           <div style={{ fontSize: '10px', color: '#d4af37', fontWeight: 'bold' }}>{tempConfig.name}</div>
-                          <div style={{ fontSize: '8px', color: '#aaa' }}>{tempConfig.location}</div>
+                          <div style={{ fontSize: '8px', color: '#aaa' }}>📍 {tempConfig.location}</div>
+                          <div style={{ fontSize: '8px', color: '#aaa' }}>📞 {tempConfig.phone}</div>
                         </div>
-                        <div style={{ height: '4px', backgroundColor: '#333', borderRadius: '2px', width: '80%' }}></div>
-                        <div style={{ height: '4px', backgroundColor: '#333', borderRadius: '2px', width: '60%' }}></div>
                         <div style={{ backgroundColor: '#d4af37', color: '#000', textAlign: 'center', fontSize: '9px', fontWeight: 'bold', padding: '6px', borderRadius: '4px', marginTop: '4px' }}>Reservar Cita</div>
                       </div>
                     </div>
                   </div>
+
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px' }}>
-                    <span style={{ color: '#d4af37', fontSize: '13px', fontWeight: 'bold' }}>Detalles del Salón</span>
+                    <span style={{ color: '#d4af37', fontSize: '13px', fontWeight: 'bold' }}>Detalles de Ubicación y Contacto</span>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                        <label style={{ color: '#aaa', fontSize: '11px' }}>Nombre oficial</label>
+                        <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig({ ...tempConfig, name: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#121212', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                        <label style={{ color: '#aaa', fontSize: '11px' }}>Teléfono del Salón</label>
+                        <input type="text" value={tempConfig.phone} onChange={(e) => setTempConfig({ ...tempConfig, phone: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#121212', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+                      </div>
+                    </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                      <label style={{ color: '#aaa', fontSize: '11px' }}>Nombre oficial</label>
-                      <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig({ ...tempConfig, name: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#121212', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+                      <label style={{ color: '#aaa', fontSize: '11px' }}>Dirección del Studio (Aparecerá en el portal)</label>
+                      <input type="text" value={tempConfig.location} onChange={(e) => setTempConfig({ ...tempConfig, location: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#121212', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                       <label style={{ color: '#aaa', fontSize: '11px' }}>Descripción Corporativa</label>
                       <textarea value={tempConfig.description} onChange={(e) => setTempConfig({ ...tempConfig, description: e.target.value })} onFocus={(e) => e.target.select()} rows={3} style={{ padding: '10px', backgroundColor: '#121212', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} />
                     </div>
                   </div>
-                  <button onClick={() => handleSaveSection('Cambios de Marca')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', textAlign: 'center' }}>
+                  <button onClick={() => handleSaveSection('Cambios de Marca, Dirección y Teléfono')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', textAlign: 'center' }}>
                     Guardar Cambios de Marca
                   </button>
                 </div>
@@ -1786,10 +1868,24 @@ export default function App() {
                     <label style={{ color: '#aaa', fontSize: '11px' }}>Nombre del Salón:</label>
                     <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig({ ...tempConfig, name: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#aaa', fontSize: '11px' }}>Ubicación:</label>
-                    <input type="text" value={tempConfig.location} onChange={(e) => setTempConfig({ ...tempConfig, location: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+                  
+                  {/* REDES SOCIALES AMPLIADAS (INSTAGRAM, FACEBOOK, TIK TOK) */}
+                  <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0, fontFamily: 'serif' }}>Redes Sociales del Salón</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <label style={{ color: '#aaa', fontSize: '11px' }}>Instagram URL:</label>
+                      <input type="text" value={tempConfig.instagramUrl} onChange={(e) => setTempConfig({ ...tempConfig, instagramUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <label style={{ color: '#aaa', fontSize: '11px' }}>Facebook URL:</label>
+                      <input type="text" value={tempConfig.facebookUrl} onChange={(e) => setTempConfig({ ...tempConfig, facebookUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <label style={{ color: '#aaa', fontSize: '11px' }}>Tik Tok URL:</label>
+                      <input type="text" value={tempConfig.tiktokUrl} onChange={(e) => setTempConfig({ ...tempConfig, tiktokUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
+                    </div>
                   </div>
+
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#aaa', fontSize: '11px' }}>Enlace Google Maps:</label>
                     <input type="text" value={tempConfig.googleMapsUrl} onChange={(e) => setTempConfig({ ...tempConfig, googleMapsUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
@@ -1798,6 +1894,7 @@ export default function App() {
                     <label style={{ color: '#aaa', fontSize: '11px' }}>Enlace Reseñas Google My Business:</label>
                     <input type="text" value={tempConfig.googleReviewUrl} onChange={(e) => setTempConfig({ ...tempConfig, googleReviewUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
+                  
                   <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '10px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
                     <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0, fontFamily: 'serif' }}>Gestión de Contraseña PIN de Administrador (Maestro)</h4>
                     <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Modifica el PIN de 4 dígitos para acceder al panel de gestión.</p>
@@ -1820,7 +1917,7 @@ export default function App() {
                       </button>
                     </div>
                   </div>
-                  <button onClick={() => handleSaveSection('Datos Generales, Redes y PIN')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', marginTop: '10px' }}>Guardar Cambios Generales</button>
+                  <button onClick={() => handleSaveSection('Datos Generales, Redes Sociales y PIN')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', marginTop: '10px' }}>Guardar Cambios Generales</button>
                 </div>
               )}
               {configSubTab === 'schedule' && (
@@ -1847,7 +1944,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 3: CATÁLOGO & VARIANTES (SIN LA PALABRA LARGO) */}
+          {/* TAB 3: CATÁLOGO & VARIANTES */}
           {adminTab === 'catalog' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2110,7 +2207,6 @@ export default function App() {
                           "{fb.comment}"
                         </p>
 
-                        {/* SECCIÓN DE RESPUESTA ASISTIDA POR IA Y MANUAL */}
                         <div style={{ backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>🤖 Respuesta Asistida por IA / Manual:</span>
@@ -2299,6 +2395,96 @@ export default function App() {
               </div>
             </div>
           )}
+
+          {/* TAB 7: VACACIONES Y FESTIVOS SINCRONIZADOS */}
+          {adminTab === 'holidays' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div>
+                <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Gestión de Vacaciones & Festivos (Sincronizado con Agenda)</h3>
+                <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Bloquea días uホras donde el salón permanecerá cerrado. La agenda y el sistema de reservas online se desactivarán automáticamente.</p>
+              </div>
+
+              {/* Formulario para añadir periodo */}
+              <form onSubmit={(e) => {
+                e.preventDefault();
+                if (!newHolidayStart || !newHolidayEnd) {
+                  alert('Por favor, indica fecha de inicio y fin.');
+                  return;
+                }
+                const newBlock: HolidayBlock = {
+                  id: Date.now().toString(),
+                  startDate: newHolidayStart,
+                  endDate: newHolidayEnd,
+                  reason: newHolidayReason.trim() || (newHolidayType === 'vacaciones' ? 'Vacaciones' : 'Festivo'),
+                  type: newHolidayType
+                };
+                setHolidaysList([...holidaysList, newBlock]);
+                setNewHolidayStart('');
+                setNewHolidayEnd('');
+                setNewHolidayReason('');
+                alert('¡Periodo bloqueado correctamente y sincronizado con la agenda!');
+              }} style={{ backgroundColor: '#181818', border: '1px solid #d4af37', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0 }}>Bloquear Nuevo Periodo (Vacaciones / Festivo)</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ color: '#aaa', fontSize: '11px' }}>Tipo:</label>
+                    <select value={newHolidayType} onChange={(e) => setNewHolidayType(e.target.value as any)} style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }}>
+                      <option value="vacaciones">🌴 Vacaciones</option>
+                      <option value="festivo">🎉 Festivo</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ color: '#aaa', fontSize: '11px' }}>Desde el día:</label>
+                    <input type="date" value={newHolidayStart} onChange={(e) => setNewHolidayStart(e.target.value)} required style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ color: '#aaa', fontSize: '11px' }}>Hasta el día:</label>
+                    <input type="date" value={newHolidayEnd} onChange={(e) => setNewHolidayEnd(e.target.value)} required style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ color: '#aaa', fontSize: '11px' }}>Motivo o descripción:</label>
+                  <input type="text" placeholder="Ej. Vacaciones de verano o Festivo local de Elche" value={newHolidayReason} onChange={(e) => setNewHolidayReason(e.target.value)} style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
+                    Bloquear Fechas en Agenda
+                  </button>
+                </div>
+              </form>
+
+              {/* Lista de bloqueos actuales */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <h4 style={{ color: '#d4af37', fontSize: '13px', margin: '5px 0 0 0' }}>Periodos Bloqueados Activos</h4>
+                {holidaysList.length === 0 ? (
+                  <div style={{ backgroundColor: '#161616', padding: '15px', borderRadius: '8px', color: '#777', fontSize: '11px', textAlign: 'center' }}>
+                    No hay vacaciones ni festivos bloqueados actualmente.
+                  </div>
+                ) : (
+                  holidaysList.map((h) => (
+                    <div key={h.id} style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '8px', padding: '12px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <span style={{ backgroundColor: h.type === 'vacaciones' ? '#2e2010' : '#2e1010', color: h.type === 'vacaciones' ? '#d4af37' : '#ff6666', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>
+                            {h.type === 'vacaciones' ? '🌴 VACACIONES' : '🎉 FESTIVO'}
+                          </span>
+                          <span style={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}>{h.reason}</span>
+                        </div>
+                        <span style={{ color: '#aaa', fontSize: '11px' }}>Desde el <strong>{h.startDate}</strong> hasta el <strong>{h.endDate}</strong></span>
+                      </div>
+                      <button onClick={() => {
+                        if (window.confirm('¿Eliminar este bloqueo y permitir reservas en estas fechas?')) {
+                          setHolidaysList(holidaysList.filter(item => item.id !== h.id));
+                        }
+                      }} style={{ backgroundColor: '#2a1212', border: '1px solid #552222', color: '#ff4444', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>
+                        Desbloquear / Eliminar
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -2349,7 +2535,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL DETALLE CITA CON BOTONES DIRECTOS DE WHATSAPP Y COPIA DE EMAIL */}
+      {/* MODAL DETALLE CITA */}
       {viewApptModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
           <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '400px', width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -2362,7 +2548,6 @@ export default function App() {
               <div><strong style={{ color: '#fff' }}>Servicio & Variante:</strong> {viewApptModal.serviceSubcategory}</div>
             </div>
 
-            {/* BOTONES DIRECTOS DE RECORDATORIO (WHATSAPP & COPIA EMAIL) */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px', borderTop: '1px solid rgba(212,175,55,0.2)', paddingTop: '12px' }}>
               <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Enviar Recordatorio Rápido:</span>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -2379,7 +2564,7 @@ export default function App() {
                   onClick={() => {
                     const textoEmail = `Hola ${viewApptModal.clientName},\n\nTe recordamos tu cita en L'Studio Ana para el día ${viewApptModal.dateKey} a las ${viewApptModal.time}.\n\nServicio: ${viewApptModal.serviceSubcategory}\n\n¡Gracias por confiar en nosotros!`;
                     navigator.clipboard.writeText(textoEmail);
-                    alert('¡Texto del recordatorio copiado al portapapeletas! Ya puedes pegarlo en tu correo o app de mensajería.');
+                    alert('¡Texto del recordatorio copiado al portapapeletas!');
                   }}
                   style={{ backgroundColor: '#d4af37', color: '#000', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', textAlign: 'center', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                 >
