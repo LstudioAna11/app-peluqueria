@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+
 // ======
 // CONFIGURACIÓN DE L'STUDIO ANA
 // ======
@@ -21,17 +22,17 @@ interface BusinessConfig {
 }
 
 const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
-  name: "L'Studio Ana | Hair Experience",
+  name: "L'Studio Ana",
   subtitle: "PORTAL PRIVADO DE CLIENTAS",
   location: "Centro de Elche, Alicante",
   phone: "600000000",
-  description: "Ubicado en el centro de Elche, Ubicado en el centro de Elche, netra escelar sepan una refugioana refugio pornento contacto curadado diyenes digunnes djienes, atbsedo a cun transformaeción real. Com con a des tedet gesl do limpo de 25/7",
+  description: "L'Studio Ana - Hair Experience es una peluquería premium en el centro de Elche, especializada en Balayage de Autor, mechas personalizadas, Babylights, coloración personalizada, técnicas de iluminación y incluso terapias orgánicas de Alizado y Botox capilar.",
   scheduleMonday: "10:00h a 13:30h",
   scheduleTueWed: "10:00h a 18:00h",
   scheduleThuFri: "10:00h a 19:00h",
   scheduleSaturday: "10:00h a 19:00h",
   welcomeMessage: "¡Bienvenida, Ana!",
-  masterPin: "7009",
+  masterPin: "0000",
   instagramUrl: "https://instagram.com",
   tiktokUrl: "https://tiktok.com",
   googleMapsUrl: "https://maps.google.com",
@@ -116,7 +117,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c1',
     code: '0.1',
     title: 'VISAGISMO & DIAGNÓSTICO',
-    icon: '',
+    icon: '✨',
     subservices: [
       {
         id: 's1',
@@ -135,7 +136,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c2',
     code: '0.2',
     title: 'VISAGISMO & CORTE',
-    icon: '',
+    icon: '✂️',
     subservices: [
       {
         id: 's2',
@@ -154,7 +155,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c3',
     code: '0.3',
     title: 'STYLING & ACABADO',
-    icon: '',
+    icon: '🌟',
     subservices: [
       {
         id: 's3',
@@ -173,7 +174,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c4',
     code: '0.4',
     title: 'COLOR ATELIER',
-    icon: '',
+    icon: '🎨',
     subservices: [
       {
         id: 's4',
@@ -192,7 +193,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c5',
     code: '0.5',
     title: 'MÉTODO DE AUTOR & ILUMINACIÓN',
-    icon: '',
+    icon: '💡',
     subservices: [
       {
         id: 's5',
@@ -211,7 +212,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c6',
     code: '0.6',
     title: 'SALUD CAPILAR & RECONSTRUCCIÓN',
-    icon: '',
+    icon: '🌿',
     subservices: [
       {
         id: 's6',
@@ -230,7 +231,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c7',
     code: '0.7',
     title: 'TEXTURA & MOLDEADO ORGÁNICO',
-    icon: '',
+    icon: '🌊',
     subservices: [
       {
         id: 's7',
@@ -249,7 +250,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c8',
     code: '0.8',
     title: 'GROOMING & MAN',
-    icon: '',
+    icon: '💈',
     subservices: [
       {
         id: 's8',
@@ -268,7 +269,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     id: 'c9',
     code: '0.9',
     title: 'ADD-ONS & COMPLEMENTOS',
-    icon: '',
+    icon: '💎',
     subservices: [
       {
         id: 's9',
@@ -303,7 +304,7 @@ export default function App() {
   const [pin, setPin] = useState<string>('');
   const [pinError, setPinError] = useState<boolean>(false);
   const [currentClientRecord, setCurrentClientRecord] = useState<ClientRecord | null>(null);
-
+  
   const [regNombre, setRegNombre] = useState('');
   const [regApellidos, setRegApellidos] = useState('');
   const [regNacimiento, setRegNacimiento] = useState('');
@@ -314,27 +315,29 @@ export default function App() {
   const [selectedServicesToBook, setSelectedServicesToBook] = useState<SubService[]>([]);
   const [expandedSubDetails, setExpandedSubDetails] = useState<{ [key: string]: boolean }>({});
   const [expandedCategories, setExpandedCategories] = useState<{ [key: string]: boolean }>({});
-
   const [bookingDate, setBookingDate] = useState<Date>(new Date(2026, 9, 7));
   const [selectedVisualTime, setSelectedVisualTime] = useState<string>('12:00');
   const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null);
-
+  
   const [editProximaVisita, setEditProximaVisita] = useState('');
   const [editFormulas, setEditFormulas] = useState('');
   const [editMsg, setEditMsg] = useState<string | null>(null);
+  
   const [clientWishText, setClientWishText] = useState('');
   const [aiRecommendation, setAiRecommendation] = useState<{ serviceName: string; reason: string; category: string } | null>(null);
-
+  
   const [logoClicks, setLogoClicks] = useState<number>(0);
   const [adminPin, setAdminPin] = useState<string>('');
   const [adminError, setAdminError] = useState<boolean>(false);
-  const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm'>('config');
-  const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule'>('marca');
-
-  const [bizConfig] = useState<BusinessConfig>(() => {
+  
+  const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm'>('agenda');
+  const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule' | 'security'>('marca');
+  
+  const [bizConfig, setBizConfig] = useState<BusinessConfig>(() => {
     const saved = localStorage.getItem('lst_business_config');
     return saved ? JSON.parse(saved) : INITIAL_BUSINESS_CONFIG;
   });
+  
   const [tempConfig, setTempConfig] = useState<BusinessConfig>(bizConfig);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
 
@@ -430,18 +433,18 @@ export default function App() {
   const [listaClientes, setListaClientes] = useState<ClientRecord[]>(() => {
     const saved = localStorage.getItem('lst_studio_clientes_ids');
     return saved ? JSON.parse(saved) : [
-      { 
-        idNum: 1, 
-        registroId: "LSTUDIO-001", 
-        nombre: "Ana", 
-        apellidos: "Moreno Fernández", 
-        fechaNacimiento: "12/05/1988", 
-        telefono: "600000000", 
-        email: "anamorenofernandez79@gmail.com", 
-        pinAcceso: "7009", 
-        diagnostico: "Balayage manteca / Cabello sensibilizado", 
-        ultimaVisita: "15/08/2026", 
-        proximaVisitaSugerida: "15/10/2026", 
+      {
+        idNum: 1,
+        registroId: "LSTUDIO-001",
+        nombre: "Ana",
+        apellidos: "Moreno Fernández",
+        fechaNacimiento: "12/05/1988",
+        telefono: "600000000",
+        email: "anamorenofernandez79@gmail.com",
+        pinAcceso: "7009",
+        diagnostico: "Balayage manteca / Cabello sensibilizado",
+        ultimaVisita: "15/08/2026",
+        proximaVisitaSugerida: "15/10/2026",
         formulasAplicadas: "Raíces 7.0 + Matiz 9.21 con emulsión de autor",
         dniCapilar: "Porosidad: Media | Hidratación: Necesaria | Textura: Fina",
         prescripcionCasa: "Champú Hidratante | Acondicionador Sellador | Sérum Nutritivo",
@@ -451,7 +454,22 @@ export default function App() {
           { date: "20 Junio, 2026", service: "Visagismo & Diagnóstico", stylist: "Ana", notes: "Diagnóstico: porosidad media, hidratación profunda." }
         ]
       },
-      { idNum: 2, registroId: "LSTUDIO-002", nombre: "Carmen", apellidos: "Martínez Ruiz", fechaNacimiento: "22/11/1990", telefono: "+34 633 444 555", email: "carmen@gmail.com", pinAcceso: "1234", diagnostico: "Melt & Lights avellana / Hidratación Profunda", ultimaVisita: "01/09/2026", proximaVisitaSugerida: "01/10/2026", formulasAplicadas: "Balayage enriquecido con proteínas Revivre", dniCapilar: "Porosidad: Baja | Hidratación: Óptima", prescripcionCasa: "Champú Revivre" }
+      {
+        idNum: 2,
+        registroId: "LSTUDIO-002",
+        nombre: "Carmen",
+        apellidos: "Martínez Ruiz",
+        fechaNacimiento: "22/11/1990",
+        telefono: "+34 633 444 555",
+        email: "carmen@gmail.com",
+        pinAcceso: "1234",
+        diagnostico: "Melt & Lights avellana / Hidratación Profunda",
+        ultimaVisita: "01/09/2026",
+        proximaVisitaSugerida: "01/10/2026",
+        formulasAplicadas: "Balayage enriquecido con proteínas Revivre",
+        dniCapilar: "Porosidad: Baja | Hidratación: Óptima",
+        prescripcionCasa: "Champú Revivre"
+      }
     ];
   });
 
@@ -464,6 +482,7 @@ export default function App() {
   const [novoPin, setNovoPin] = useState('');
   const [novoDiagnostico, setNovoDiagnostico] = useState('');
   const [busquedaCliente, setBusquedaCliente] = useState('');
+
   const [editingClientId, setEditingClientId] = useState<number | null>(null);
   const [editAdminUltimaVisita, setEditAdminUltimaVisita] = useState('');
   const [editAdminProxima, setEditAdminProxima] = useState('');
@@ -516,6 +535,7 @@ export default function App() {
     if (!clientWishText.trim()) return;
     const query = clientWishText.toLowerCase();
     let bestMatch = { serviceName: 'DNI Capilar & Estudio Facial', reason: 'Recomendamos un diagnóstico de autor previo para evaluar la fibra capilar antes de realizar cualquier cambio.', category: 'VISAGISMO & DIAGNÓSTICO' };
+    
     if (query.includes('balayage') || query.includes('mechas') || query.includes('luz') || query.includes('rubio')) {
       bestMatch = { serviceName: 'Balayage & Melt & Lights', reason: 'Ideal para conseguir fundidos de luz tridimensionales personalizados respetando la salud capilar.', category: 'MÉTODO DE AUTOR & ILUMINACIÓN' };
     } else if (query.includes('corte') || query.includes('cambio de look') || query.includes('estilo')) {
@@ -593,6 +613,7 @@ export default function App() {
   const [draggedApptId, setDraggedApptId] = useState<string | null>(null);
   const [fechaSeleccionada, setFechaSeleccionada] = useState<Date>(new Date(2026, 9, 7));
   const [mesNavegacion, setMesNavegacion] = useState<Date>(new Date(2026, 9, 1));
+  
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [targetDateObj, setTargetDateObj] = useState<Date>(new Date());
   const [targetDayName, setTargetDayName] = useState<string>('');
@@ -603,6 +624,7 @@ export default function App() {
   const [modalCatIndex, setModalCatIndex] = useState<number>(0);
   const [modalSubIndex, setModalSubIndex] = useState<number>(0);
   const [viewApptModal, setViewApptModal] = useState<Appointment | null>(null);
+
   const [showInstallBanner, setShowInstallBanner] = useState<boolean>(false);
 
   useEffect(() => {
@@ -670,8 +692,10 @@ export default function App() {
 
   const handleAdminLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPin === '00000' || adminPin === '7009') {
+    if (adminPin === bizConfig.masterPin || adminPin === '7009') {
       setCurrentScreen('adminPanel');
+      setAdminError(false);
+      setAdminPin('');
     } else {
       setAdminError(true);
       setAdminPin('');
@@ -733,6 +757,7 @@ export default function App() {
     const selectedSub = selectedCategory?.subservices[modalSubIndex] || { name: 'Servicio general', duration: '45 min' };
     const durMatch = selectedSub.duration.match(/\d+/);
     const durationMin = durMatch ? parseInt(durMatch[0], 10) : 45;
+    
     const newApp: Appointment = {
       id: Date.now().toString(),
       dateKey: formatDateKey(targetDateObj),
@@ -769,6 +794,7 @@ export default function App() {
         totalDurationMinutes += 45;
       }
     });
+
     const newApp: Appointment = {
       id: Date.now().toString(),
       dateKey: dateKeyStr,
@@ -782,6 +808,7 @@ export default function App() {
       serviceSubcategory: `RESERVADO ${subNames}`,
       remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
     };
+
     setAppointments([...appointments, newApp]);
     setBookingSuccessMsg(`¡Cita confirmada correctamente para el ${bookingDate.toLocaleDateString('es-ES')} a las ${selectedVisualTime}! Sincronizado con la intranet maestra.`);
     setSelectedServicesToBook([]);
@@ -847,6 +874,7 @@ export default function App() {
     } else if (newSubPriceType === 'consultar') {
       formattedPrice = 'Consultar';
     }
+
     const newSub: SubService = {
       id: Date.now().toString(),
       name: newSubName,
@@ -858,6 +886,7 @@ export default function App() {
       achievedText: newSubAchieved || 'Resultado óptimo de autor con acabado duradero.',
       priceType: newSubPriceType
     };
+
     setCatalog(catalog.map(cat => {
       if (cat.id === catId) {
         return { ...cat, subservices: [...cat.subservices, newSub] };
@@ -886,9 +915,11 @@ export default function App() {
   };
 
   const nombresMeses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  
   const cambiarMesMiniCal = (delta: number) => {
     setMesNavegacion(new Date(mesNavegacion.getFullYear(), mesNavegacion.getMonth() + delta, 1));
   };
+
   const añoMini = mesNavegacion.getFullYear();
   const mesMini = mesNavegacion.getMonth();
   const primerDiaMes = new Date(añoMini, mesMini, 1).getDay();
@@ -978,7 +1009,7 @@ export default function App() {
             ))}
             <button onClick={handleClear} style={{ width: '65px', height: '65px', borderRadius: '50%', backgroundColor: '#141414', border: '1px solid #333', color: '#888', fontSize: '16px', cursor: 'pointer', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>X</button>
             <button onClick={() => handleNumberClick('0')} style={{ width: '65px', height: '65px', borderRadius: '50%', backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', color: '#ffffff', fontSize: '20px', cursor: 'pointer', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>0</button>
-            <button onClick={handleDelete} style={{ width: '65px', height: '65px', borderRadius: '50%', backgroundColor: '#141414', border: '1px solid #333', color: '#888', fontSize: '16px', cursor: 'pointer', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
+            <button onClick={handleDelete} style={{ width: '65px', height: '65px', borderRadius: '50%', backgroundColor: '#141414', border: '1px solid #333', color: '#888', fontSize: '16px', cursor: 'pointer', margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>⌫</button>
           </div>
           <button onClick={() => setCurrentScreen('clientRegistration')} style={{ width: '100%', backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '12px', borderRadius: '10px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '15px' }}>
             ¿Es tu primera vez? Regístrate aquí
@@ -1039,7 +1070,7 @@ export default function App() {
         <div style={{ maxWidth: '600px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
             <div>
-              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>L'Studio Ana</h2>
+              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>{bizConfig.name}</h2>
               <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>PORTAL PRIVADO DE CLIENTAS</p>
             </div>
             <button onClick={() => { setPin(''); setCurrentScreen('clientPin'); }} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
@@ -1050,7 +1081,7 @@ export default function App() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
               <div>
                 <p style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0', fontWeight: 'bold' }}>
-                  ¡Bienvenida, {currentClientRecord?.nombre || 'Ana'}!
+                  {bizConfig.welcomeMessage}
                 </p>
                 <p style={{ color: '#888', fontSize: '10px', margin: 0 }}>
                   Email registrado: {currentClientRecord?.email || 'anamorenofernandez79@gmail.com'} | ID: #{currentClientRecord?.idNum || '1'}
@@ -1071,10 +1102,10 @@ export default function App() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <button onClick={() => setCurrentScreen('catalogBooking')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '16px 12px', borderRadius: '10px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', textAlign: 'center' }}>
-              📅 Ver Catálogo & Reservar Cita
+              Ver Catálogo & Reservar Cita
             </button>
             <button onClick={() => setCurrentScreen('clientHistoryPage')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '16px 12px', borderRadius: '10px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', textAlign: 'center' }}>
-              🔬 Mi Historial, Fórmulas
+              Mi Historial & Fórmulas
             </button>
           </div>
           <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1083,8 +1114,8 @@ export default function App() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '12px', color: '#ccc' }}>
-                <div>📅 {clientNextAppointment ? `${clientNextAppointment.dateKey} (${clientNextAppointment.dayName})` : '10 de octubre 2026'}</div>
-                <div>⏰ {clientNextAppointment ? clientNextAppointment.time : '16:00'}</div>
+                <div>{clientNextAppointment ? `${clientNextAppointment.dateKey} (${clientNextAppointment.dayName})` : '10 de octubre 2026'}</div>
+                <div>{clientNextAppointment ? clientNextAppointment.time : '16:00'}</div>
                 <div style={{ color: '#fff' }}><strong style={{ color: '#d4af37' }}>Servicio:</strong> {clientNextAppointment?.serviceSubcategory || 'Coloración Global'}</div>
                 <div style={{ color: '#888', fontSize: '11px' }}>Stylist: Ana</div>
               </div>
@@ -1170,7 +1201,7 @@ export default function App() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
             <div>
               <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>{bizConfig.name}</h2>
-              <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>SELECCION DE SERVICIOS & AGENDA</p>
+              <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>SELECCIÓN DE SERVICIOS & AGENDA</p>
             </div>
             <button onClick={() => setCurrentScreen('clientPortal')} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
               ← Volver al Portal
@@ -1192,7 +1223,7 @@ export default function App() {
                 <div key={cat.id} style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.25)', borderRadius: '10px', overflow: 'hidden' }}>
                   <div onClick={() => setExpandedCategories({ ...expandedCategories, [cat.id]: !isCategoryExpanded })} style={{ padding: '14px 18px', backgroundColor: '#181818', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
                     <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '14px' }}>{cat.icon || ' '}</span> {cat.title} ({cat.subservices.length} servicios)
+                      <span style={{ fontSize: '14px' }}>{cat.icon || '✨'}</span> {cat.title} ({cat.subservices.length} servicios)
                     </span>
                     <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>{isCategoryExpanded ? 'Ocultar' : 'Desplegar'}</span>
                   </div>
@@ -1206,7 +1237,7 @@ export default function App() {
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                               <div onClick={() => {
                                 if (isSelected) {
-                                  setSelectedServicesToBook(selectedServicesToBook.filter(s => s.id !== sub.id));
+                                  setSelectedServicesToBook(selectedServicesToBook.some(s => s.id === sub.id) ? selectedServicesToBook.filter(s => s.id !== sub.id) : [...selectedServicesToBook, sub]);
                                 } else {
                                   setSelectedServicesToBook([...selectedServicesToBook, sub]);
                                 }
@@ -1216,7 +1247,7 @@ export default function App() {
                               </div>
                               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                                 <button onClick={(e) => { e.stopPropagation(); setExpandedSubDetails({ ...expandedSubDetails, [sub.id]: !isExpanded }); }} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', fontSize: '10px', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer' }}>
-                                  {isExpanded ? 'Ocultar info' : 'Saber más▼'}
+                                  {isExpanded ? 'Ocultar info' : 'Saber más ▼'}
                                 </button>
                                 <div onClick={() => {
                                   if (isSelected) {
@@ -1271,7 +1302,7 @@ export default function App() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
             <div>
               <span style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', display: 'block' }}>PORTAL PRIVADO DE CLIENTAS</span>
-              <h2 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: '2px 0 0 0' }}>L'Studio Ana</h2>
+              <h2 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: '2px 0 0 0' }}>{bizConfig.name}</h2>
             </div>
             <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
               <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '8px', padding: '6px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -1289,7 +1320,7 @@ export default function App() {
                 </div>
               </div>
               <button onClick={() => setCurrentScreen('catalogBooking')} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '6px 12px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
-                ← Volver a Selección de Servicios
+                ← Volver a Selección
               </button>
             </div>
           </div>
@@ -1327,7 +1358,7 @@ export default function App() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginTop: '5px' }}>
             <button onClick={() => setCurrentScreen('catalogBooking')} style={{ backgroundColor: '#222', border: '1px solid #444', color: '#aaa', padding: '12px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
-              SELECCIONa HUECO PARA CONFIRMAR
+              SELECCIONA HUECO
             </button>
             <button onClick={handleConfirmarCitaVisual} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'center' }}>
               CONFIRMAR CITA: {bookingDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'numeric' })}, {selectedVisualTime}
@@ -1336,7 +1367,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 2.3. HISTORIAL DE CLIENTE (CON PASAPORTE DE EXPERIENCIAS INTEGRADO) */}
+      {/* 2.3. HISTORIAL DE CLIENTE */}
       {currentScreen === 'clientHistoryPage' && (
         <div style={{ maxWidth: '700px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
@@ -1348,12 +1379,10 @@ export default function App() {
               ← Volver al Portal
             </button>
           </div>
-
-          {/* PASAPORTE DE EXPERIENCIAS DE AUTOR (COMO EN TU IMAGEN) */}
           <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>Mi Pasaporte de Experiencias de Autor</h3>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              {['[Septiembre]', '[Agosto]', '[Junio]', '[March]', '[March]'].map((mes, idx) => (
+              {['[Septiembre]', '[Agosto]', '[Junio]'].map((mes, idx) => (
                 <div key={idx} style={{ backgroundColor: idx === 0 ? '#d4af37' : '#1c1c1c', color: idx === 0 ? '#000' : '#d4af37', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '20px', padding: '6px 14px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
                   {mes}
                 </div>
@@ -1377,25 +1406,21 @@ export default function App() {
               )}
             </div>
           </div>
-
-          {/* DNI CAPILAR Y MANTENIMIENTO EN CASA */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '14px' }}>
               <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>DNI Capilar Activo</div>
               <div style={{ color: '#ccc', fontSize: '11px' }}>{currentClientRecord?.dniCapilar || 'Porosidad: Media | Hidratación: Necesaria | Textura: Fina'}</div>
             </div>
             <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '14px' }}>
-              <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>Mantenimiento en Casa (Prescripción)</div>
-              <div style={{ color: '#ccc', fontSize: '11px' }}>{currentClientRecord?.prescripcionCasa || 'Champú Hidratante | Acondicionador Sellador | Sérum Nutritivo'}</div>
+              <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>Mantenimiento en Casa</div>
+              <div style={{ color: '#ccc', fontSize: '11px' }}>{currentClientRecord?.prescripcionCasa || 'Champú Hidratante | Acondicionador Sellador'}</div>
             </div>
           </div>
-
           {editMsg && (
             <div style={{ padding: '10px', backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }}>
               {editMsg}
             </div>
           )}
-
           <form onSubmit={handleGuardarCambiosFichaClienta} style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0, borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '8px' }}>
               Fórmulas y Próxima Visita (Modo Manual)
@@ -1406,48 +1431,35 @@ export default function App() {
                 <input type="text" value={currentClientRecord?.ultimaVisita || ''} disabled style={{ backgroundColor: '#121212', border: '1px solid #333', color: '#888', padding: '8px', borderRadius: '6px', fontSize: '11px' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Próxima Visita Sugerida (Editable):</label>
-                <input type="text" value={editProximaVisita} onChange={(e) => setEditProximaVisita(e.target.value)} onFocus={(e) => e.target.select()} placeholder="Ej. 15/10/2026 o En 4 semanas" style={{ backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', padding: '8px', borderRadius: '6px', fontSize: '11px' }} />
+                <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Próxima Visita Sugerida:</label>
+                <input type="text" value={editProximaVisita} onChange={(e) => setEditProximaVisita(e.target.value)} onFocus={(e) => e.target.select()} placeholder="Ej. 15/10/2026" style={{ backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', padding: '8px', borderRadius: '6px', fontSize: '11px' }} />
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Fórmulas Aplicadas & Diagnóstico (Editable):</label>
-              <textarea value={editFormulas} onChange={(e) => setEditFormulas(e.target.value)} onFocus={(e) => e.target.select()} rows={2} placeholder="Introduce las fórmulas de color, matiz o notas técnicas..." style={{ backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', padding: '8px', borderRadius: '6px', fontSize: '11px', resize: 'none' }} />
+              <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Fórmulas Aplicadas & Diagnóstico:</label>
+              <textarea value={editFormulas} onChange={(e) => setEditFormulas(e.target.value)} onFocus={(e) => e.target.select()} rows={2} placeholder="Introduce fórmulas..." style={{ backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', padding: '8px', borderRadius: '6px', fontSize: '11px', resize: 'none' }} />
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 16px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
-                Guardar Fórmulas y Fecha Sugerida
+                Guardar Fórmulas y Fecha
               </button>
             </div>
           </form>
-
-          {/* Asistente IA */}
           <div style={{ backgroundColor: '#161616', border: '1px solid #d4af37', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0 }}>
-              Asistente IA de Visagismo & Recomendación de Servicios
+              Asistente IA de Visagismo & Recomendación
             </h3>
-            <p style={{ color: '#aaa', fontSize: '11px', margin: 0, lineHeight: '1.4' }}>
-              Describe qué cambio o mantenimiento buscas y la IA te recomendará el servicio exacto del catálogo de L'Studio Ana.
-            </p>
             <form onSubmit={handleRunAiRecommendation} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <textarea value={clientWishText} onChange={(e) => setClientWishText(e.target.value)} onFocus={(e) => e.target.select()} placeholder="Ej. Quiero matizar mi rubio y darle nutrición profunda sin perder la raíz..." rows={2} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '8px', padding: '10px', fontSize: '11px', resize: 'none' }} />
+              <textarea value={clientWishText} onChange={(e) => setClientWishText(e.target.value)} onFocus={(e) => e.target.select()} placeholder="Ej. Quiero matizar mi rubio..." rows={2} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '8px', padding: '10px', fontSize: '11px', resize: 'none' }} />
               <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
                 Consultar con la IA
               </button>
             </form>
             {aiRecommendation && (
               <div style={{ backgroundColor: '#1f1a10', border: '1px solid #d4af37', borderRadius: '8px', padding: '14px', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px' }}>
-                <span style={{ color: '#d4af37', fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold' }}>Tratamiento Sugerido por la IA:</span>
+                <span style={{ color: '#d4af37', fontSize: '10px', textTransform: 'uppercase', fontWeight: 'bold' }}>Tratamiento Sugerido:</span>
                 <h4 style={{ color: '#fff', fontSize: '13px', margin: 0, fontWeight: 'bold' }}>{aiRecommendation.serviceName}</h4>
                 <p style={{ color: '#ccc', fontSize: '11px', margin: 0, lineHeight: '1.4' }}>{aiRecommendation.reason}</p>
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px' }}>
-                  <button onClick={() => {
-                    const text = encodeURIComponent(`Hola Ana, tras consultar el historial y la IA, me gustaría reservar: ${aiRecommendation.serviceName}`);
-                    window.open(`https://wa.me/34${bizConfig.phone}?text=${text}`, '_blank');
-                  }} style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    Reservar por WhatsApp →
-                  </button>
-                </div>
               </div>
             )}
           </div>
@@ -1488,11 +1500,11 @@ export default function App() {
             </button>
           </div>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <button onClick={() => setAdminTab('agenda')} style={{ backgroundColor: adminTab === 'agenda' ? '#d4af37' : '#1a1a1a', color: adminTab === 'agenda' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Agenda Maestra Sincronizada</button>
+            <button onClick={() => setAdminTab('agenda')} style={{ backgroundColor: adminTab === 'agenda' ? '#d4af37' : '#1a1a1a', color: adminTab === 'agenda' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Agenda Maestra</button>
             <button onClick={() => setAdminTab('config')} style={{ backgroundColor: adminTab === 'config' ? '#d4af37' : '#1a1a1a', color: adminTab === 'config' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Configuración</button>
             <button onClick={() => setAdminTab('catalog')} style={{ backgroundColor: adminTab === 'catalog' ? '#d4af37' : '#1a1a1a', color: adminTab === 'catalog' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Catálogo</button>
             <button onClick={() => setAdminTab('clients')} style={{ backgroundColor: adminTab === 'clients' ? '#d4af37' : '#1a1a1a', color: adminTab === 'clients' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Clientes</button>
-            <button onClick={() => setAdminTab('detractors')} style={{ backgroundColor: adminTab === 'detractors' ? '#d4af37' : '#1a1a1a', color: adminTab === 'detractors' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>! Buzón Detractores ({feedbackList.filter(f => f.type === 'detractor').length})</button>
+            <button onClick={() => setAdminTab('detractors')} style={{ backgroundColor: adminTab === 'detractors' ? '#d4af37' : '#1a1a1a', color: adminTab === 'detractors' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>⚠️ Buzón ({feedbackList.filter(f => f.type === 'detractor').length})</button>
             <button onClick={() => setAdminTab('crm')} style={{ backgroundColor: adminTab === 'crm' ? '#d4af37' : '#1a1a1a', color: adminTab === 'crm' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>CRM & KPIs</button>
           </div>
 
@@ -1501,9 +1513,9 @@ export default function App() {
             <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
               <div style={{ width: '260px', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '15px', boxSizing: 'border-box', height: 'fit-content' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                  <button onClick={() => cambiarMesMiniCal(-1)} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>◀</button>
+                  <button onClick={() => cambiarMesMiniCal(-1)} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>◄</button>
                   <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', fontFamily: 'serif' }}>{nombresMeses[mesMini]} {añoMini}</span>
-                  <button onClick={() => cambiarMesMiniCal(1)} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>▶</button>
+                  <button onClick={() => cambiarMesMiniCal(1)} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>►</button>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center', marginBottom: '8px' }}>
                   {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d, i) => (
@@ -1526,9 +1538,9 @@ export default function App() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                   <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>Agenda Maestra (Control Total & Sincronizada)</h3>
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() - 7); setFechaSeleccionada(d); }} style={{ background: '#1a1a1a', border: '1px solid #444', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>◄ Semana Anterior</button>
+                    <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() - 7); setFechaSeleccionada(d); }} style={{ background: '#1a1a1a', border: '1px solid #444', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>◄ Anterior</button>
                     <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>Semana del {semanaActual[0].dateFormatted}</span>
-                    <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() + 7); setFechaSeleccionada(d); }} style={{ background: '#1a1a1a', border: '1px solid #444', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>Semana Siguiente ►</button>
+                    <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() + 7); setFechaSeleccionada(d); }} style={{ background: '#1a1a1a', border: '1px solid #444', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>Siguiente ►</button>
                   </div>
                 </div>
                 <div style={{ overflowX: 'auto', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '15px' }}>
@@ -1552,7 +1564,7 @@ export default function App() {
                           return (
                             <div key={dIdx} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, day.dateObj, day.name, time)} onClick={() => handleCellClick(day.dateObj, day.name, time)} style={{ backgroundColor: appt ? '#221e10' : (occupiedByDuration ? '#1a1510' : '#1a1a1a'), border: appt ? '1px solid #d4af37' : (occupiedByDuration ? '1px dashed #554422' : '1px dashed #2c2c2c'), borderRadius: '6px', padding: '6px', minHeight: '35px', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                               {appt ? (
-                                <div draggable onDragStart={(e) => handleDragStart(e, appt.id)} title="Arrastra para mover o haz clic para ver detalles" style={{ fontSize: '10px' }}>
+                                <div draggable onDragStart={(e) => handleDragStart(e, appt.id)} title="Arrastra para mover" style={{ fontSize: '10px' }}>
                                   <div style={{ color: '#d4af37', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span>{appt.clientName}</span>
                                     <button onClick={(e) => handleDeleteAppointment(appt.id, e)} style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '10px', cursor: 'pointer' }}>X</button>
@@ -1575,119 +1587,130 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 2: CONFIGURACIÓN (CON EL DISEÑO EXACTO DE TU IMAGEN) */}
+          {/* TAB 2: CONFIGURACIÓN (CON LAS SUBPESTAÑAS DE MARCA, GENERAL, HORARIOS Y SEGURIDAD PIN) */}
           {adminTab === 'config' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '10px', flexWrap: 'wrap' }}>
-                <button onClick={() => setConfigSubTab('marca')} style={{ background: configSubTab === 'marca' ? '#d4af37' : '#1a1a1a', color: configSubTab === 'marca' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 14px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Marca & Identidad</button>
-                <button onClick={() => setConfigSubTab('general')} style={{ background: configSubTab === 'general' ? '#d4af37' : '#1a1a1a', color: configSubTab === 'general' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 14px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>General, Redes & Ubicación</button>
-                <button onClick={() => setConfigSubTab('schedule')} style={{ background: configSubTab === 'schedule' ? '#d4af37' : '#1a1a1a', color: configSubTab === 'schedule' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 14px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Horarios & Zona Horaria</button>
+                <button onClick={() => setConfigSubTab('marca')} style={{ background: configSubTab === 'marca' ? '#d4af37' : 'transparent', color: configSubTab === 'marca' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Marca & Identidad</button>
+                <button onClick={() => setConfigSubTab('general')} style={{ background: configSubTab === 'general' ? '#d4af37' : 'transparent', color: configSubTab === 'general' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>General, Redes & Ubicación</button>
+                <button onClick={() => setConfigSubTab('schedule')} style={{ background: configSubTab === 'schedule' ? '#d4af37' : 'transparent', color: configSubTab === 'schedule' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Horarios & Zona Horaria</button>
+                <button onClick={() => setConfigSubTab('security')} style={{ background: configSubTab === 'security' ? '#d4af37' : 'transparent', color: configSubTab === 'security' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Seguridad & PIN Maestro</button>
               </div>
-
               {savedMsg && (
                 <div style={{ padding: '10px', backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }}>
                   {savedMsg}
                 </div>
               )}
-
+              
+              {/* SUBPESTAÑA DE MARCA & IDENTIDAD IDÉNTICA A LA CAPTURA */}
               {configSubTab === 'marca' && (
-                <div style={{ display: 'flex', gap: '25px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-                  {/* COLUMNA IZQUIERDA: GESTOR DE MARCA */}
-                  <div style={{ flex: 1, minWidth: '420px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0, letterSpacing: '1px' }}>Gestor de Marca</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Gestor de Marca</h3>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 280px', gap: '15px', alignItems: 'stretch' }}>
                     
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                      <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ color: '#aaa', fontSize: '11px', alignSelf: 'flex-start' }}>Logotipo de la Marca</span>
-                        <div style={{ width: '65px', height: '65px', borderRadius: '50%', border: '1px solid #d4af37', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#000' }}>
-                          <span style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', fontWeight: 'bold' }}>L'A</span>
-                        </div>
-                        <button style={{ background: '#1c1c1c', border: '1px solid #444', color: '#ccc', padding: '4px 12px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>✎ Editar</button>
+                    {/* Logotipo de la Marca */}
+                    <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
+                      <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', alignSelf: 'flex-start' }}>Logotipo de la Marca</span>
+                      <div style={{ width: '80px', height: '80px', borderRadius: '50%', border: '1px solid #d4af37', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d4af37', fontSize: '20px', fontFamily: 'serif' }}>
+                        L'A
                       </div>
+                      <button type="button" onClick={() => alert('Función de subida de logotipo')} style={{ backgroundColor: 'transparent', border: '1px solid rgba(212,175,55,0.4)', color: '#d4af37', padding: '6px 16px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>
+                        ✎ Editar
+                      </button>
+                    </div>
 
-                      <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-                        <span style={{ color: '#aaa', fontSize: '11px', alignSelf: 'flex-start' }}>Cabecera Principal</span>
-                        <div style={{ height: '65px', width: '100%', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#121212' }}>
-                          <span style={{ color: '#d4af37', fontSize: '12px', fontFamily: 'serif', letterSpacing: '2px' }}>L'STUDIO</span>
+                    {/* Cabecera Principal */}
+                    <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
+                      <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', alignSelf: 'flex-start' }}>Cabecera Principal</span>
+                      <div style={{ width: '100%', height: '70px', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d4af37', fontSize: '14px', letterSpacing: '2px', fontFamily: 'serif' }}>
+                        L'STUDIO
+                      </div>
+                      <button type="button" onClick={() => alert('Función de edición de cabecera')} style={{ backgroundColor: 'transparent', border: '1px solid rgba(212,175,55,0.4)', color: '#d4af37', padding: '6px 16px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>
+                        ✎ Editar
+                      </button>
+                    </div>
+
+                    {/* Vista Previa del Portal */}
+                    <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold', marginBottom: '5px' }}>Vista Previa del Portal</span>
+                      <div style={{ width: '100%', backgroundColor: '#000', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '10px', padding: '12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ textAlign: 'center', fontSize: '11px', color: '#d4af37', fontFamily: 'serif', fontWeight: 'bold' }}>L'STUDIO ANA</div>
+                        <div style={{ textAlign: 'center', fontSize: '8px', color: '#888', letterSpacing: '1px' }}>PORTAL PRIVADO</div>
+                        <div style={{ backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '6px', padding: '8px' }}>
+                          <div style={{ fontSize: '10px', color: '#d4af37', fontWeight: 'bold' }}>{tempConfig.name}</div>
+                          <div style={{ fontSize: '8px', color: '#aaa' }}>{tempConfig.location}</div>
                         </div>
-                        <button style={{ background: '#1c1c1c', border: '1px solid #444', color: '#ccc', padding: '4px 12px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>✎ Editar</button>
+                        <div style={{ height: '4px', backgroundColor: '#333', borderRadius: '2px', width: '80%' }}></div>
+                        <div style={{ height: '4px', backgroundColor: '#333', borderRadius: '2px', width: '60%' }}></div>
+                        <div style={{ backgroundColor: '#d4af37', color: '#000', textAlign: 'center', fontSize: '9px', fontWeight: 'bold', padding: '6px', borderRadius: '4px', marginTop: '4px' }}>
+                          Reservar Cita
+                        </div>
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0, fontFamily: 'serif' }}>Detalles del Salón</h4>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ color: '#aaa', fontSize: '11px' }}>Nombre oficial</label>
-                        <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig({ ...tempConfig, name: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <label style={{ color: '#aaa', fontSize: '11px' }}>Descripción Corporativa</label>
-                        <textarea value={tempConfig.description} onChange={(e) => setTempConfig({ ...tempConfig, description: e.target.value })} onFocus={(e) => e.target.select()} rows={3} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px', resize: 'none' }} />
-                      </div>
+                  </div>
+
+                  {/* Detalles del Salón */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px' }}>
+                    <span style={{ color: '#d4af37', fontSize: '13px', fontWeight: 'bold' }}>Detalles del Salón</span>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <label style={{ color: '#aaa', fontSize: '11px' }}>Nombre oficial</label>
+                      <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig({ ...tempConfig, name: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#121212', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0, fontFamily: 'serif' }}>Tema Visual</h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11px', color: '#ccc' }}>
-                          <div style={{ color: '#d4af37', fontWeight: 'bold' }}>• Modo Oscuro (Dark Luxury - activo)</div>
-                          <div style={{ color: '#777' }}>• Modo Claro</div>
-                          <div style={{ color: '#aaa' }}>• Paleta de Acentos (Dorado, Marfil)</div>
-                        </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                      <label style={{ color: '#aaa', fontSize: '11px' }}>Descripción Corporativa</label>
+                      <textarea value={tempConfig.description} onChange={(e) => setTempConfig({ ...tempConfig, description: e.target.value })} onFocus={(e) => e.target.select()} rows={3} style={{ padding: '10px', backgroundColor: '#121212', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} />
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', marginTop: '5px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>Tema Visual</span>
+                        <span style={{ color: '#d4af37', fontSize: '11px' }}>• Modo Oscuro (Dark Luxury - activo)</span>
+                        <span style={{ color: '#888', fontSize: '11px' }}>• Modo Claro</span>
+                        <span style={{ color: '#888', fontSize: '11px' }}>• Paleta de Acentos (Dorado, Marfil)</span>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0, fontFamily: 'serif' }}>Galería de Fotos</h4>
-                          <span style={{ fontSize: '10px', color: '#d4af37', cursor: 'pointer' }}>+ Añadir  🗑️ Eliminar</span>
+                          <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>Galería de Fotos</span>
+                          <div style={{ display: 'flex', gap: '10px', fontSize: '10px' }}>
+                            <button type="button" onClick={() => alert('Añadir foto a galería')} style={{ background: 'none', border: 'none', color: '#d4af37', cursor: 'pointer' }}>+ Añadir</button>
+                            <button type="button" onClick={() => alert('Eliminar foto')} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer' }}>🗑 Eliminar</button>
+                          </div>
                         </div>
-                        <div style={{ display: 'flex', gap: '6px', overflowX: 'auto', paddingBottom: '4px' }}>
-                          {[1, 2, 3, 4, 5].map((_, i) => (
-                            <div key={i} style={{ width: '45px', height: '45px', backgroundColor: '#222', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '4px', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', color: '#d4af37' }}>
-                              Img {i+1}
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                          {[1, 2, 3, 4, 5].map((imgNum) => (
+                            <div key={imgNum} style={{ width: '45px', height: '45px', backgroundColor: '#1c1c1c', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: '10px' }}>
+                              Img {imgNum}
                             </div>
                           ))}
                         </div>
                       </div>
                     </div>
 
-                    <button onClick={() => handleSaveSection('Cambios de Marca')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', width: '100%', marginTop: '5px' }}>
-                      Guardar Cambios de Marca
-                    </button>
                   </div>
 
-                  {/* COLUMNA DERECHA: VISTA PREVIA DEL PORTAL (MÓVIL) */}
-                  <div style={{ width: '260px', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px', alignSelf: 'center', margin: '0 auto' }}>
-                    <span style={{ color: '#d4af37', fontSize: '11px', fontFamily: 'serif', fontWeight: 'bold', textAlign: 'center' }}>Vista Previa del Portal</span>
-                    <div style={{ backgroundColor: '#000', border: '2px solid #333', borderRadius: '24px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px', height: '340px', boxSizing: 'border-box' }}>
-                      <div style={{ textAlign: 'center', borderBottom: '1px solid #222', paddingBottom: '6px' }}>
-                        <div style={{ color: '#d4af37', fontSize: '11px', fontFamily: 'serif', letterSpacing: '2px' }}>L'STUDIO ANA</div>
-                        <div style={{ color: '#666', fontSize: '8px' }}>PORTAL PRIVADO</div>
-                      </div>
-                      <div style={{ backgroundColor: '#141414', padding: '8px', borderRadius: '6px', border: '1px solid rgba(212,175,55,0.2)' }}>
-                        <div style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold' }}>{tempConfig.name}</div>
-                        <div style={{ color: '#888', fontSize: '8px', marginTop: '2px' }}>{tempConfig.location}</div>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <div style={{ height: '8px', backgroundColor: '#222', borderRadius: '4px', width: '80%' }}></div>
-                        <div style={{ height: '8px', backgroundColor: '#222', borderRadius: '4px', width: '60%' }}></div>
-                        <div style={{ height: '8px', backgroundColor: '#222', borderRadius: '4px', width: '90%' }}></div>
-                      </div>
-                      <div style={{ marginTop: 'auto', backgroundColor: '#d4af37', color: '#000', textAlign: 'center', padding: '6px', borderRadius: '4px', fontSize: '9px', fontWeight: 'bold' }}>
-                        Reservar Cita
-                      </div>
-                    </div>
-                  </div>
+                  <button onClick={() => handleSaveSection('Cambios de Marca')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', textAlign: 'center' }}>
+                    Guardar Cambios de Marca
+                  </button>
                 </div>
               )}
 
               {configSubTab === 'general' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#aaa', fontSize: '11px' }}>Ubicación (Texto visible):</label>
+                    <label style={{ color: '#aaa', fontSize: '11px' }}>Nombre del Salón:</label>
+                    <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig({ ...tempConfig, name: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    <label style={{ color: '#aaa', fontSize: '11px' }}>Ubicación:</label>
                     <input type="text" value={tempConfig.location} onChange={(e) => setTempConfig({ ...tempConfig, location: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#aaa', fontSize: '11px' }}>Enlace Google Maps (Ubicación):</label>
+                    <label style={{ color: '#aaa', fontSize: '11px' }}>Enlace Google Maps:</label>
                     <input type="text" value={tempConfig.googleMapsUrl} onChange={(e) => setTempConfig({ ...tempConfig, googleMapsUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -1719,6 +1742,35 @@ export default function App() {
                   <button onClick={() => handleSaveSection('Horarios')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Guardar Horarios</button>
                 </div>
               )}
+
+              {/* SEGURIDAD & PIN MAESTRO CONSERVADO */}
+              {configSubTab === 'security' && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                  <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <h4 style={{ color: '#d4af37', fontSize: '14px', margin: 0, fontFamily: 'serif' }}>Gestión de Contraseña PIN de Administrador</h4>
+                    <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Modifica el PIN maestro de 4 dígitos para acceder al panel de gestión y control de la app.</p>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '5px' }}>
+                      <input type="password" maxLength={4} placeholder="Nuevo PIN" id="inputNuevoMasterPin" style={{ padding: '10px', backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', borderRadius: '6px', fontSize: '14px', width: '160px', textAlign: 'center', letterSpacing: '6px' }} />
+                      <button type="button" onClick={() => {
+                        const inputEl = document.getElementById('inputNuevoMasterPin') as HTMLInputElement;
+                        const val = inputEl?.value;
+                        if (val && val.length === 4 && !isNaN(Number(val))) {
+                          setTempConfig(prev => ({ ...prev, masterPin: val }));
+                          setBizConfig(prev => ({ ...prev, masterPin: val }));
+                          setSavedMsg('¡PIN maestro actualizado con éxito!');
+                          inputEl.value = '';
+                          setTimeout(() => setSavedMsg(null), 3000);
+                        } else {
+                          alert('Introduce un PIN válido compuesto estrictamente por 4 números.');
+                        }
+                      }} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+                        Actualizar PIN Maestro
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
             </div>
           )}
 
@@ -1938,7 +1990,7 @@ export default function App() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
                 <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Buzón Privado de Detractores y Reclamaciones</h3>
-                <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Aquí puedes ver de forma privada las valoraciones negativas o sugerencias de mejora enviadas por clientas.</p>
+                <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Aquí puedes ver de forma privada las valoraciones negativas o sugerencias de mejora.</p>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {feedbackList.filter(f => f.type === 'detractor').length === 0 ? (
@@ -1984,32 +2036,6 @@ export default function App() {
                 <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <div style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase' }}>Demanda Perdida Total</div>
                   <div style={{ color: '#ff4444', fontSize: '32px', fontWeight: 'bold', fontFamily: 'serif', padding: '6px' }}>{lostDemandsList.length}</div>
-                </div>
-              </div>
-              <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0, fontFamily: 'serif' }}>Desglose de Intentos y Oportunidades No Concretadas:</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {lostDemandsList.map((item) => {
-                    let badgeLabel = 'Otro';
-                    let badgeColor = '#888';
-                    if (item.reason === 'sin_disponibilidad') { badgeLabel = 'Sin disponibilidad horaria'; badgeColor = '#ffaa00'; }
-                    else if (item.reason === 'abandono_sin_servicio') { badgeLabel = 'Entró pero no cogió servicio'; badgeColor = '#ff4444'; }
-                    else if (item.reason === 'intento_fallido') { badgeLabel = 'Intento de cita fallido / Error'; badgeColor = '#cc44ff'; }
-                    return (
-                      <div key={item.id} style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '10px 14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                          <span style={{ backgroundColor: '#121212', color: badgeColor, border: `1px solid ${badgeColor}`, padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', width: 'fit-content' }}>
-                            {badgeLabel}
-                          </span>
-                          <span style={{ color: '#fff', fontSize: '12px' }}>{item.clientNote}</span>
-                        </div>
-                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                          <span style={{ color: '#888', fontSize: '10px' }}>{item.date}</span>
-                          <button onClick={() => setLostDemandsList(lostDemandsList.filter(l => l.id !== item.id))} style={{ background: 'transparent', border: 'none', color: '#ff4444', fontSize: '11px', cursor: 'pointer' }}>X</button>
-                        </div>
-                      </div>
-                    );
-                  })}
                 </div>
               </div>
             </div>
