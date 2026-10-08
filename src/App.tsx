@@ -26,7 +26,7 @@ const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
   subtitle: "PORTAL PRIVADO DE CLIENTAS",
   location: "Centro de Elche, Alicante",
   phone: "600000000",
-  description: "L'Studio Ana - Hair Experience es una peluquería premium en el centro de Elche, especializada en Balayage de Autor, mechas personalizadas, Babylights, coloración personalizada, técnicas de iluminación y incluso terapias orgánicas de Alizado y Botox capilar.",
+  description: "L'Studio Ana - Hair Experience es una peluquería premium en el centro de Elche, especializada en Balayage de Autor, mechas personalizadas, Babylights, coloración personalizada, técnicas de iluminación y terapias orgánicas.",
   scheduleMonday: "10:00h a 13:30h",
   scheduleTueWed: "10:00h a 18:00h",
   scheduleThuFri: "10:00h a 19:00h",
@@ -331,7 +331,7 @@ export default function App() {
   const [adminError, setAdminError] = useState<boolean>(false);
   
   const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm'>('agenda');
-  const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule' | 'security'>('marca');
+  const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule'>('marca');
   
   const [bizConfig, setBizConfig] = useState<BusinessConfig>(() => {
     const saved = localStorage.getItem('lst_business_config');
@@ -487,6 +487,11 @@ export default function App() {
   const [editAdminUltimaVisita, setEditAdminUltimaVisita] = useState('');
   const [editAdminProxima, setEditAdminProxima] = useState('');
   const [editAdminFormulas, setEditAdminFormulas] = useState('');
+
+  // Estado para modificar hora de cita activa tanto en Admin como en Portal Clienta
+  const [rescheduleModalAppt, setRescheduleModalAppt] = useState<Appointment | null>(null);
+  const [newRescheduleTime, setNewRescheduleTime] = useState<string>('10:00');
+  const [newRescheduleDate, setNewRescheduleDate] = useState<string>(formatDateKey(new Date()));
 
   useEffect(() => {
     localStorage.setItem('lst_studio_clientes_ids', JSON.stringify(listaClientes));
@@ -718,6 +723,7 @@ export default function App() {
     e.preventDefault();
   };
 
+  // Movimiento fluido de citas tanto a otro día como a otra hora en el mismo día
   const handleDrop = (e: React.DragEvent, targetDate: Date, dayName: string, time: string) => {
     e.preventDefault();
     const id = e.dataTransfer.getData('text/plain') || draggedApptId;
@@ -725,10 +731,10 @@ export default function App() {
     const targetDateKey = formatDateKey(targetDate);
     const existing = appointments.find(a => a.dateKey === targetDateKey && a.time === time && a.id !== id);
     if (existing) {
-      window.alert('Ese hueco horario ya está ocupado por otra cita en esta fecha.');
+      window.alert('Ese hueco horario ya está ocupado por otra cita en esta fecha y hora.');
       return;
     }
-    setAppointments(prev => prev.map(a => a.id === id ? { ...a, dateKey: targetDateKey, dayName } : a));
+    setAppointments(prev => prev.map(a => a.id === id ? { ...a, dateKey: targetDateKey, dayName, time } : a));
     setDraggedApptId(null);
   };
 
@@ -1119,9 +1125,20 @@ export default function App() {
                 <div style={{ color: '#fff' }}><strong style={{ color: '#d4af37' }}>Servicio:</strong> {clientNextAppointment?.serviceSubcategory || 'Coloración Global'}</div>
                 <div style={{ color: '#888', fontSize: '11px' }}>Stylist: Ana</div>
               </div>
-              <button onClick={() => setCurrentScreen('catalogBooking')} style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '8px 14px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
-                Gestionar Cita
-              </button>
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                {clientNextAppointment && (
+                  <button onClick={() => {
+                    setRescheduleModalAppt(clientNextAppointment);
+                    setNewRescheduleTime(clientNextAppointment.time);
+                    setNewRescheduleDate(clientNextAppointment.dateKey);
+                  }} style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '8px 12px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
+                    Modificar Hora
+                  </button>
+                )}
+                <button onClick={() => setCurrentScreen('catalogBooking')} style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '8px 14px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
+                  Gestionar Cita
+                </button>
+              </div>
             </div>
           </div>
           <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1308,7 +1325,15 @@ export default function App() {
               <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '8px', padding: '6px 12px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <span style={{ color: '#d4af37', fontSize: '9px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '2px' }}>GESTIONAR CITA ACTUAL</span>
                 <div style={{ display: 'flex', gap: '10px', fontSize: '10px' }}>
-                  <button onClick={() => alert('Modo modificación de cita activa. Selecciona un nuevo hueco libre.')} style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', textDecoration: 'underline' }}>Modificar Cita</button>
+                  <button onClick={() => {
+                    if (clientNextAppointment) {
+                      setRescheduleModalAppt(clientNextAppointment);
+                      setNewRescheduleTime(clientNextAppointment.time);
+                      setNewRescheduleDate(clientNextAppointment.dateKey);
+                    } else {
+                      alert('No hay cita actual activa.');
+                    }
+                  }} style={{ background: 'none', border: 'none', color: '#d4af37', cursor: 'pointer', textDecoration: 'underline', fontWeight: 'bold' }}>Modificar Hora</button>
                   <span style={{ color: '#444' }}>|</span>
                   <button onClick={() => {
                     if (clientNextAppointment) {
@@ -1564,7 +1589,7 @@ export default function App() {
                           return (
                             <div key={dIdx} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, day.dateObj, day.name, time)} onClick={() => handleCellClick(day.dateObj, day.name, time)} style={{ backgroundColor: appt ? '#221e10' : (occupiedByDuration ? '#1a1510' : '#1a1a1a'), border: appt ? '1px solid #d4af37' : (occupiedByDuration ? '1px dashed #554422' : '1px dashed #2c2c2c'), borderRadius: '6px', padding: '6px', minHeight: '35px', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                               {appt ? (
-                                <div draggable onDragStart={(e) => handleDragStart(e, appt.id)} title="Arrastra para mover" style={{ fontSize: '10px' }}>
+                                <div draggable onDragStart={(e) => handleDragStart(e, appt.id)} title="Arrastra para mover a cualquier hora u otro día" style={{ fontSize: '10px' }}>
                                   <div style={{ color: '#d4af37', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                     <span>{appt.clientName}</span>
                                     <button onClick={(e) => handleDeleteAppointment(appt.id, e)} style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '10px', cursor: 'pointer' }}>X</button>
@@ -1587,14 +1612,13 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 2: CONFIGURACIÓN (CON LAS SUBPESTAÑAS DE MARCA, GENERAL, HORARIOS Y SEGURIDAD PIN) */}
+          {/* TAB 2: CONFIGURACIÓN (CON MARCA, GENERAL/REDES/PIN Y HORARIOS) */}
           {adminTab === 'config' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '10px', flexWrap: 'wrap' }}>
                 <button onClick={() => setConfigSubTab('marca')} style={{ background: configSubTab === 'marca' ? '#d4af37' : 'transparent', color: configSubTab === 'marca' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Marca & Identidad</button>
-                <button onClick={() => setConfigSubTab('general')} style={{ background: configSubTab === 'general' ? '#d4af37' : 'transparent', color: configSubTab === 'general' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>General, Redes & Ubicación</button>
+                <button onClick={() => setConfigSubTab('general')} style={{ background: configSubTab === 'general' ? '#d4af37' : 'transparent', color: configSubTab === 'general' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>General, Redes & PIN Maestro</button>
                 <button onClick={() => setConfigSubTab('schedule')} style={{ background: configSubTab === 'schedule' ? '#d4af37' : 'transparent', color: configSubTab === 'schedule' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Horarios & Zona Horaria</button>
-                <button onClick={() => setConfigSubTab('security')} style={{ background: configSubTab === 'security' ? '#d4af37' : 'transparent', color: configSubTab === 'security' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Seguridad & PIN Maestro</button>
               </div>
               {savedMsg && (
                 <div style={{ padding: '10px', backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }}>
@@ -1602,36 +1626,24 @@ export default function App() {
                 </div>
               )}
               
-              {/* SUBPESTAÑA DE MARCA & IDENTIDAD IDÉNTICA A LA CAPTURA */}
+              {/* SUBPESTAÑA DE MARCA & IDENTIDAD */}
               {configSubTab === 'marca' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Gestor de Marca</h3>
                   
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 280px', gap: '15px', alignItems: 'stretch' }}>
-                    
-                    {/* Logotipo de la Marca */}
                     <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
                       <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', alignSelf: 'flex-start' }}>Logotipo de la Marca</span>
-                      <div style={{ width: '80px', height: '80px', borderRadius: '50%', border: '1px solid #d4af37', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d4af37', fontSize: '20px', fontFamily: 'serif' }}>
-                        L'A
-                      </div>
-                      <button type="button" onClick={() => alert('Función de subida de logotipo')} style={{ backgroundColor: 'transparent', border: '1px solid rgba(212,175,55,0.4)', color: '#d4af37', padding: '6px 16px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>
-                        ✎ Editar
-                      </button>
+                      <div style={{ width: '80px', height: '80px', borderRadius: '50%', border: '1px solid #d4af37', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d4af37', fontSize: '20px', fontFamily: 'serif' }}>L'A</div>
+                      <button type="button" onClick={() => alert('Función de subida de logotipo')} style={{ backgroundColor: 'transparent', border: '1px solid rgba(212,175,55,0.4)', color: '#d4af37', padding: '6px 16px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>✎ Editar</button>
                     </div>
 
-                    {/* Cabecera Principal */}
                     <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
                       <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', alignSelf: 'flex-start' }}>Cabecera Principal</span>
-                      <div style={{ width: '100%', height: '70px', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d4af37', fontSize: '14px', letterSpacing: '2px', fontFamily: 'serif' }}>
-                        L'STUDIO
-                      </div>
-                      <button type="button" onClick={() => alert('Función de edición de cabecera')} style={{ backgroundColor: 'transparent', border: '1px solid rgba(212,175,55,0.4)', color: '#d4af37', padding: '6px 16px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>
-                        ✎ Editar
-                      </button>
+                      <div style={{ width: '100%', height: '70px', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d4af37', fontSize: '14px', letterSpacing: '2px', fontFamily: 'serif' }}>L'STUDIO</div>
+                      <button type="button" onClick={() => alert('Función de edición de cabecera')} style={{ backgroundColor: 'transparent', border: '1px solid rgba(212,175,55,0.4)', color: '#d4af37', padding: '6px 16px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>✎ Editar</button>
                     </div>
 
-                    {/* Vista Previa del Portal */}
                     <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                       <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold', marginBottom: '5px' }}>Vista Previa del Portal</span>
                       <div style={{ width: '100%', backgroundColor: '#000', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '10px', padding: '12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -1643,54 +1655,21 @@ export default function App() {
                         </div>
                         <div style={{ height: '4px', backgroundColor: '#333', borderRadius: '2px', width: '80%' }}></div>
                         <div style={{ height: '4px', backgroundColor: '#333', borderRadius: '2px', width: '60%' }}></div>
-                        <div style={{ backgroundColor: '#d4af37', color: '#000', textAlign: 'center', fontSize: '9px', fontWeight: 'bold', padding: '6px', borderRadius: '4px', marginTop: '4px' }}>
-                          Reservar Cita
-                        </div>
+                        <div style={{ backgroundColor: '#d4af37', color: '#000', textAlign: 'center', fontSize: '9px', fontWeight: 'bold', padding: '6px', borderRadius: '4px', marginTop: '4px' }}>Reservar Cita</div>
                       </div>
                     </div>
-
                   </div>
 
-                  {/* Detalles del Salón */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px' }}>
                     <span style={{ color: '#d4af37', fontSize: '13px', fontWeight: 'bold' }}>Detalles del Salón</span>
-                    
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                       <label style={{ color: '#aaa', fontSize: '11px' }}>Nombre oficial</label>
                       <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig({ ...tempConfig, name: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#121212', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                     </div>
-
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                       <label style={{ color: '#aaa', fontSize: '11px' }}>Descripción Corporativa</label>
                       <textarea value={tempConfig.description} onChange={(e) => setTempConfig({ ...tempConfig, description: e.target.value })} onFocus={(e) => e.target.select()} rows={3} style={{ padding: '10px', backgroundColor: '#121212', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} />
                     </div>
-
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px', marginTop: '5px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>Tema Visual</span>
-                        <span style={{ color: '#d4af37', fontSize: '11px' }}>• Modo Oscuro (Dark Luxury - activo)</span>
-                        <span style={{ color: '#888', fontSize: '11px' }}>• Modo Claro</span>
-                        <span style={{ color: '#888', fontSize: '11px' }}>• Paleta de Acentos (Dorado, Marfil)</span>
-                      </div>
-
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>Galería de Fotos</span>
-                          <div style={{ display: 'flex', gap: '10px', fontSize: '10px' }}>
-                            <button type="button" onClick={() => alert('Añadir foto a galería')} style={{ background: 'none', border: 'none', color: '#d4af37', cursor: 'pointer' }}>+ Añadir</button>
-                            <button type="button" onClick={() => alert('Eliminar foto')} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer' }}>🗑 Eliminar</button>
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: '8px' }}>
-                          {[1, 2, 3, 4, 5].map((imgNum) => (
-                            <div key={imgNum} style={{ width: '45px', height: '45px', backgroundColor: '#1c1c1c', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#888', fontSize: '10px' }}>
-                              Img {imgNum}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
                   </div>
 
                   <button onClick={() => handleSaveSection('Cambios de Marca')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', textAlign: 'center' }}>
@@ -1699,6 +1678,7 @@ export default function App() {
                 </div>
               )}
 
+              {/* SUBPESTAÑA GENERAL, REDES & PIN MAESTRO */}
               {configSubTab === 'general' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -1717,7 +1697,32 @@ export default function App() {
                     <label style={{ color: '#aaa', fontSize: '11px' }}>Enlace Reseñas Google My Business:</label>
                     <input type="text" value={tempConfig.googleReviewUrl} onChange={(e) => setTempConfig({ ...tempConfig, googleReviewUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
-                  <button onClick={() => handleSaveSection('Datos Generales y Redes')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Guardar Cambios Generales</button>
+                  
+                  {/* BLOQUE PIN MAESTRO INTEGRADO AQUÍ */}
+                  <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '10px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                    <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0, fontFamily: 'serif' }}>Gestión de Contraseña PIN de Administrador (Maestro)</h4>
+                    <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Modifica el PIN de 4 dígitos para acceder al panel de gestión.</p>
+                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                      <input type="password" maxLength={4} placeholder="Nuevo PIN" id="inputNuevoMasterPin" style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', borderRadius: '6px', fontSize: '14px', width: '140px', textAlign: 'center', letterSpacing: '6px' }} />
+                      <button type="button" onClick={() => {
+                        const inputEl = document.getElementById('inputNuevoMasterPin') as HTMLInputElement;
+                        const val = inputEl?.value;
+                        if (val && val.length === 4 && !isNaN(Number(val))) {
+                          setTempConfig(prev => ({ ...prev, masterPin: val }));
+                          setBizConfig(prev => ({ ...prev, masterPin: val }));
+                          setSavedMsg('¡PIN maestro actualizado con éxito!');
+                          inputEl.value = '';
+                          setTimeout(() => setSavedMsg(null), 3000);
+                        } else {
+                          alert('Introduce un PIN válido compuesto estrictamente por 4 números.');
+                        }
+                      }} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
+                        Actualizar PIN
+                      </button>
+                    </div>
+                  </div>
+
+                  <button onClick={() => handleSaveSection('Datos Generales, Redes y PIN')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', marginTop: '10px' }}>Guardar Cambios Generales</button>
                 </div>
               )}
 
@@ -1740,34 +1745,6 @@ export default function App() {
                     <input type="text" value={tempConfig.scheduleSaturday} onChange={(e) => setTempConfig({ ...tempConfig, scheduleSaturday: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <button onClick={() => handleSaveSection('Horarios')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Guardar Horarios</button>
-                </div>
-              )}
-
-              {/* SEGURIDAD & PIN MAESTRO CONSERVADO */}
-              {configSubTab === 'security' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                  <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <h4 style={{ color: '#d4af37', fontSize: '14px', margin: 0, fontFamily: 'serif' }}>Gestión de Contraseña PIN de Administrador</h4>
-                    <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Modifica el PIN maestro de 4 dígitos para acceder al panel de gestión y control de la app.</p>
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '5px' }}>
-                      <input type="password" maxLength={4} placeholder="Nuevo PIN" id="inputNuevoMasterPin" style={{ padding: '10px', backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', borderRadius: '6px', fontSize: '14px', width: '160px', textAlign: 'center', letterSpacing: '6px' }} />
-                      <button type="button" onClick={() => {
-                        const inputEl = document.getElementById('inputNuevoMasterPin') as HTMLInputElement;
-                        const val = inputEl?.value;
-                        if (val && val.length === 4 && !isNaN(Number(val))) {
-                          setTempConfig(prev => ({ ...prev, masterPin: val }));
-                          setBizConfig(prev => ({ ...prev, masterPin: val }));
-                          setSavedMsg('¡PIN maestro actualizado con éxito!');
-                          inputEl.value = '';
-                          setTimeout(() => setSavedMsg(null), 3000);
-                        } else {
-                          alert('Introduce un PIN válido compuesto estrictamente por 4 números.');
-                        }
-                      }} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
-                        Actualizar PIN Maestro
-                      </button>
-                    </div>
-                  </div>
                 </div>
               )}
 
@@ -2086,7 +2063,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL VER / ELIMINAR CITA EXISTENTE */}
+      {/* MODAL VER / ELIMINAR / RECORDATORIOS DE CITA EXISTENTE */}
       {viewApptModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
           <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '380px', width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
@@ -2095,8 +2072,19 @@ export default function App() {
               <div><strong style={{ color: '#fff' }}>Clienta:</strong> {viewApptModal.clientName}</div>
               <div><strong style={{ color: '#fff' }}>Teléfono:</strong> {viewApptModal.phone}</div>
               <div><strong style={{ color: '#fff' }}>Email:</strong> {viewApptModal.email}</div>
-              <div><strong style={{ color: '#fff' }}>Día y Hora:</strong> {viewApptModal.dayName} a las {viewApptModal.time} ({viewApptModal.durationMinutes || 45} min)</div>
+              <div><strong style={{ color: '#fff' }}>Día y Hora:</strong> {viewApptModal.dayName} ({viewApptModal.dateKey}) a las {viewApptModal.time} ({viewApptModal.durationMinutes || 45} min)</div>
               <div><strong style={{ color: '#fff' }}>Servicio:</strong> {viewApptModal.serviceSubcategory}</div>
+              
+              {/* BOTONES DE WHATSAPP E EMAIL PARA ENVÍO DE RECORDATORIO */}
+              <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                <a href={`https://wa.me/34${viewApptModal.phone.replace(/\D/g,'')}?text=${encodeURIComponent(`Hola ${viewApptModal.clientName}, te recordamos tu cita en L'Studio Ana para el ${viewApptModal.dateKey} a las${viewApptModal.time}. ¡Te esperamos!`)}`} target="_blank" rel="noreferrer" style={{ flex: 1, backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', padding: '8px', borderRadius: '6px', textAlign: 'center', textDecoration: 'none', fontSize: '11px', fontWeight: 'bold' }}>
+                  💬 Enviar WhatsApp
+                </a>
+                <a href={`mailto:${viewApptModal.email}?subject=${encodeURIComponent("Recordatorio de Cita - L'Studio Ana")}&body=${encodeURIComponent(`Hola ${viewApptModal.clientName},\n\nTe recordamos tu cita reservada en L'Studio Ana para el día ${viewApptModal.dateKey} a las ${viewApptModal.time}.\n\nServicio:${viewApptModal.serviceSubcategory}\n\n¡Gracias por confiar en nosotros!`)}`} style={{ flex: 1, backgroundColor: '#1a2233', border: '1px solid #4488ff', color: '#4488ff', padding: '8px', borderRadius: '6px', textAlign: 'center', textDecoration: 'none', fontSize: '11px', fontWeight: 'bold' }}>
+                  ✉️ Enviar Email
+                </a>
+              </div>
+
               <div style={{ backgroundColor: '#1a1a1a', padding: '10px', borderRadius: '6px', border: '1px solid #333', marginTop: '5px' }}>
                 <div style={{ color: '#d4af37', fontWeight: 'bold', marginBottom: '4px' }}>Estado de Automatizaciones:</div>
                 <div style={{ fontSize: '11px', color: '#44bb44' }}>Email 48h antes: Programado</div>
@@ -2106,8 +2094,56 @@ export default function App() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', marginTop: '10px' }}>
-              <button onClick={(e) => handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#2a1212', border: '1px solid #ff4444', color: '#ff4444', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar Cita</button>
-              <button onClick={() => setViewApptModal(null)} style={{ background: '#1c1c1c', border: '1px solid #444', color: '#fff', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Cerrar</button>
+              <button onClick={(e) => handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#2a1212', border: '1px solid #ff4444', color: '#ff4444', padding: '8px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar Cita</button>
+              <button onClick={() => {
+                const apptToChange = viewApptModal;
+                setViewApptModal(null);
+                setRescheduleModalAppt(apptToChange);
+                setNewRescheduleTime(apptToChange.time);
+                setNewRescheduleDate(apptToChange.dateKey);
+              }} style={{ backgroundColor: '#2a2212', border: '1px solid #d4af37', color: '#d4af37', padding: '8px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Modificar Hora</button>
+              <button onClick={() => setViewApptModal(null)} style={{ background: '#1c1c1c', border: '1px solid #444', color: '#fff', padding: '8px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL PARA MODIFICAR HORA DE CITA (ADMIN Y CLIENTA) */}
+      {rescheduleModalAppt && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1100 }}>
+          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '380px', width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Modificar Horario de Cita</h3>
+            <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Clienta: <strong style={{ color: '#fff' }}>{rescheduleModalAppt.clientName}</strong></p>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Nueva Fecha:</label>
+              <input type="date" value={newRescheduleDate} onChange={(e) => setNewRescheduleDate(e.target.value)} style={{ padding: '8px', backgroundColor: '#1c1c1c', border: '1px solid #d4af37', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Nueva Hora:</label>
+              <select value={newRescheduleTime} onChange={(e) => setNewRescheduleTime(e.target.value)} style={{ padding: '8px', backgroundColor: '#1c1c1c', border: '1px solid #d4af37', color: '#fff', borderRadius: '6px', fontSize: '12px' }}>
+                {hoursList.map(h => (
+                  <option key={h} value={h}>{h}h</option>
+                ))}
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
+              <button type="button" onClick={() => setRescheduleModalAppt(null)} style={{ background: 'none', border: '1px solid #444', color: '#aaa', padding: '8px 14px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>Cancelar</button>
+              <button type="button" onClick={() => {
+                const dayNamesMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+                const parts = newRescheduleDate.split('-');
+                let dayNameStr = rescheduleModalAppt.dayName;
+                if (parts.length === 3) {
+                  const dObj = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+                  dayNameStr = dayNamesMap[dObj.getDay()];
+                }
+                
+                setAppointments(appointments.map(a => a.id === rescheduleModalAppt.id ? { ...a, dateKey: newRescheduleDate, dayName: dayNameStr, time: newRescheduleTime } : a));
+                setRescheduleModalAppt(null);
+                alert('¡Cita modificada de hora y fecha con éxito!');
+              }} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Guardar Cambio</button>
             </div>
           </div>
         </div>
