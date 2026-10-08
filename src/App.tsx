@@ -350,7 +350,7 @@ export default function App() {
   const [adminPin, setAdminPin] = useState<string>('');
   const [adminError, setAdminError] = useState<boolean>(false);
 
-  const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm'>('crm');
+  const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm'>('detractors');
   const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule'>('marca');
 
   const [bizConfig, setBizConfig] = useState<BusinessConfig>(() => {
@@ -421,6 +421,11 @@ export default function App() {
     localStorage.setItem('lst_feedback_list', JSON.stringify(feedbackList));
   }, [feedbackList]);
 
+  // Estado para las respuestas de los detractores indexadas por ID
+  const [detractorReplies, setDetractorReplies] = useState<{ [key: string]: string }>({
+    '1': "Hola María, lamentamos mucho el tiempo de espera en el lavado. En L'Studio Ana cuidamos cada detalle y queremos compensarte en tu próxima visita con un ritual exclusivo de hidratación."
+  });
+
   const [selectedRating, setSelectedRating] = useState<number>(5);
   const [feedbackComment, setFeedbackComment] = useState<string>('¡Excelente experiencia! El servicio de autor y la atención de Ana han sido impecables.');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState<boolean>(false);
@@ -446,6 +451,12 @@ export default function App() {
       type
     };
     setFeedbackList([newRecord, ...feedbackList]);
+    if (type === 'detractor') {
+      setDetractorReplies(prev => ({
+        ...prev,
+        [newRecord.id]: `Hola ${currentClientRecord?.nombre || 'estimada clienta'}, hemos leído tu comentario y queremos pedirte disculpas. Nos encantaría invitarte a un protocolo de mejora en tu próxima cita.`
+      }));
+    }
     setFeedbackSubmitted(true);
   };
 
@@ -481,22 +492,6 @@ export default function App() {
           { date: "5 Agosto, 2026", service: "Color Atelier", stylist: "Ana", notes: "Balayage efecto sol, sellado de cutícula." },
           { date: "20 Junio, 2026", service: "Visagismo & Diagnóstico", stylist: "Ana", notes: "Diagnóstico: porosidad media, hidratación profunda." }
         ]
-      },
-      {
-        idNum: 2,
-        registroId: "LSTUDIO-002",
-        nombre: "Carmen",
-        apellidos: "Martínez Ruiz",
-        fechaNacimiento: "22/11/1990",
-        telefono: "+34 633 444 555",
-        email: "carmen@gmail.com",
-        pinAcceso: "1234",
-        diagnostico: "Melt & Lights avellana / Hidratación Profunda",
-        ultimaVisita: "01/09/2026",
-        proximaVisitaSugerida: "01/10/2026",
-        formulasAplicadas: "Balayage enriquecido con proteínas Revivre",
-        dniCapilar: "Porosidad: Baja | Hidratación: Óptima",
-        prescripcionCasa: "Champú Revivre"
       }
     ];
   });
@@ -2090,33 +2085,83 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 5: BUZÓN DE DETRACTORES */}
+          {/* TAB 5: BUZÓN DE DETRACTORES CON IA Y RESPUESTA MANUAL */}
           {adminTab === 'detractors' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Buzón Privado de Detractores y Reclamaciones</h3>
-                <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Aquí puedes ver de forma privada las valoraciones negativas o sugerencias de mejora.</p>
+                <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Buzón Privado de Detractores y Reclamaciones & Recuperación IA</h3>
+                <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Gestiona valoraciones negativas, genera respuestas automáticas con IA y recupera clientas.</p>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                 {feedbackList.filter(f => f.type === 'detractor').length === 0 ? (
                   <div style={{ backgroundColor: '#161616', padding: '20px', borderRadius: '8px', textAlign: 'center', color: '#777', fontSize: '12px' }}>
-                    No hay reclamaciones ni detractores registrados. ¡Excelente trabajo!
+                    No hay reclamaciones ni detractores registrados. ¡Excelente trabajo en el salón!
                   </div>
                 ) : (
-                  feedbackList.filter(f => f.type === 'detractor').map((fb) => (
-                    <div key={fb.id} style={{ backgroundColor: '#1a1414', border: '1px solid #ff4444', borderRadius: '8px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ color: '#ff4444', fontWeight: 'bold', fontSize: '12px' }}>Valoración: {fb.rating} ({fb.clientName})</span>
-                        <span style={{ color: '#888', fontSize: '10px' }}>{fb.date}</span>
+                  feedbackList.filter(f => f.type === 'detractor').map((fb) => {
+                    const currentReply = detractorReplies[fb.id] || '';
+                    return (
+                      <div key={fb.id} style={{ backgroundColor: '#1a1414', border: '1px solid #ff4444', borderRadius: '10px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ color: '#ff4444', fontWeight: 'bold', fontSize: '12px' }}>Valoración: ★{fb.rating} — {fb.clientName}</span>
+                          <span style={{ color: '#888', fontSize: '10px' }}>{fb.date}</span>
+                        </div>
+                        <p style={{ color: '#fff', fontSize: '12px', margin: 0, fontStyle: 'italic', backgroundColor: '#121212', padding: '10px', borderRadius: '6px', borderLeft: '3px solid #ff4444' }}>
+                          "{fb.comment}"
+                        </p>
+
+                        {/* SECCIÓN DE RESPUESTA ASISTIDA POR IA Y MANUAL */}
+                        <div style={{ backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>🤖 Respuesta Asistida por IA / Manual:</span>
+                            <button 
+                              type="button" 
+                              onClick={() => {
+                                const generated = `Hola ${fb.clientName.split(' ')[0]}, lamentamos profundamente tu experiencia respecto a "${fb.comment}". En L'Studio Ana nos importa tu satisfacción; nos encantaría invitarte a un protocolo especial de cuidado en tu próxima cita para compensarte.`;
+                                setDetractorReplies(prev => ({ ...prev, [fb.id]: generated }));
+                              }}
+                              style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}
+                            >
+                              ⚡ Generar Respuesta IA
+                            </button>
+                          </div>
+                          <textarea 
+                            value={currentReply} 
+                            onChange={(e) => setDetractorReplies(prev => ({ ...prev, [fb.id]: e.target.value }))} 
+                            rows={3} 
+                            placeholder="Escribe tu respuesta personalizada aquí..."
+                            style={{ backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', padding: '8px', fontSize: '11px', resize: 'vertical' }} 
+                          />
+                          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                            <a 
+                              href={`https://wa.me/?text=${encodeURIComponent(currentReply)}`} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              style={{ backgroundColor: '#25D366', color: '#000', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
+                            >
+                              💬 Enviar por WhatsApp
+                            </a>
+                            <button 
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(currentReply);
+                                alert('¡Respuesta copiada al portapapeletas!');
+                              }}
+                              style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                            >
+                              📋 Copiar Respuesta
+                            </button>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '5px' }}>
+                          <button onClick={() => setFeedbackList(feedbackList.filter(item => item.id !== fb.id))} style={{ backgroundColor: '#222', border: '1px solid #444', color: '#aaa', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>
+                            Resolver e Incidencia Cerrada
+                          </button>
+                        </div>
                       </div>
-                      <p style={{ color: '#fff', fontSize: '12px', margin: 0, fontStyle: 'italic' }}>"{fb.comment}"</p>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '5px' }}>
-                        <button onClick={() => setFeedbackList(feedbackList.filter(item => item.id !== fb.id))} style={{ background: 'transparent', border: '1px solid #444', color: '#aaa', padding: '4px 10px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer' }}>
-                          Resolver/Borrar
-                        </button>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>
@@ -2322,7 +2367,7 @@ export default function App() {
               <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Enviar Recordatorio Rápido:</span>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <a 
-                  href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola ${viewApptModal.clientName}, te recordamos tu cita en L'Studio Ana el próximo ${viewApptModal.dateKey} a las${viewApptModal.time}. ¡Te esperamos!`)}`} 
+                  href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola ${viewApptModal.clientName}, te recordamos tu cita en L'Studio Ana el próximo ${viewApptModal.dateKey} a las ${viewApptModal.time}. ¡Te esperamos!`)}`} 
                   target="_blank" 
                   rel="noreferrer" 
                   style={{ backgroundColor: '#25D366', color: '#000', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
