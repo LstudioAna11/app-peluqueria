@@ -136,12 +136,12 @@ const INITIAL_CATALOG: CatalogCategory[] = [
       {
         id: 's1',
         name: 'DNI Capilar & Estudio Facial',
-        description: 'Análisis minucioso de la salud capilar y proporciones del rostro para visagismo[cite: 137].',
+        description: 'Análisis minucioso de la salud capilar y proporciones del rostro para visagismo.',
         duration: '30 min',
         price: 'Desde 30 €',
         bufferTime: '10 min prep',
-        includesText: 'Escaneo capilar digital, test de porosidad y estudio de visagismo facial[cite: 137].',
-        achievedText: 'Obtienes tu DNI capilar personalizado y la pauta exacta de cuidado y corte adaptada a tus facciones[cite: 137].',
+        includesText: 'Escaneo capilar digital, test de porosidad y estudio de visagismo facial.',
+        achievedText: 'Obtienes tu DNI capilar personalizado y la pauta exacta de cuidado y corte adaptada a tus facciones.',
         priceType: 'desde'
       }
     ]
@@ -155,12 +155,12 @@ const INITIAL_CATALOG: CatalogCategory[] = [
       {
         id: 's2',
         name: 'Corte de Autor & Visagismo',
-        description: 'Corte arquitectónico adaptado a la morfología y estilo de vida[cite: 138].',
+        description: 'Corte arquitectónico adaptado a la morfología y estilo de vida.',
         duration: '60 min',
         price: 'Desde 45 €',
         bufferTime: '10 min prep',
-        includesText: 'Lavado sensorial, asesoría de visagismo, corte técnico arquitectónico y acabado profesional[cite: 138].',
-        achievedText: 'Un estilo único que realza tus facciones y facilita el mantenimiento diario en casa[cite: 138].',
+        includesText: 'Lavado sensorial, asesoría de visagismo, corte técnico arquitectónico y acabado profesional.',
+        achievedText: 'Un estilo único que realza tus facciones y facilita el mantenimiento diario en casa.',
         priceType: 'desde'
       }
     ]
@@ -174,12 +174,12 @@ const INITIAL_CATALOG: CatalogCategory[] = [
       {
         id: 's3',
         name: 'Brushing & Styling de Alta Gama',
-        description: 'Secado y acabado con ondas o pulido perfecto[cite: 138].',
+        description: 'Secado y acabado con ondas o pulido perfecto.',
         duration: '45 min',
         price: 'Desde 35 €',
         bufferTime: '10 min prep',
-        includesText: 'Lavado sensorial con champú orgánico, protector térmico y peinado pulido o de ondas de autor[cite: 138].',
-        achievedText: 'Melena con brillo espejo, volumen controlado y duración prolongada[cite: 138].',
+        includesText: 'Lavado sensorial con champú orgánico, protector térmico y peinado pulido o de ondas de autor.',
+        achievedText: 'Melena con brillo espejo, volumen controlado y duración prolongada.',
         priceType: 'desde'
       }
     ]
@@ -193,12 +193,12 @@ const INITIAL_CATALOG: CatalogCategory[] = [
       {
         id: 's4',
         name: 'Coloración Global & Raíces',
-        description: 'Técnica de color de alta precisión con pigmentos de autor[cite: 138, 139].',
+        description: 'Técnica de color de alta precisión con pigmentos de autor.',
         duration: '90 min',
         price: 'Desde 55 €',
         bufferTime: '10 min prep',
-        includesText: 'Diagnóstico de color, aplicación de pigmentos de alta fidelidad, emulsión y lavado protector[cite: 139].',
-        achievedText: 'Color vibrante, cobertura perfecta y respeto absoluto de la fibra capilar[cite: 139].',
+        includesText: 'Diagnóstico de color, aplicación de pigmentos de alta fidelidad, emulsión y lavado protector.',
+        achievedText: 'Color vibrante, cobertura perfecta y respeto absoluto de la fibra capilar.',
         priceType: 'desde'
       }
     ]
@@ -212,12 +212,12 @@ const INITIAL_CATALOG: CatalogCategory[] = [
       {
         id: 's5',
         name: 'Balayage & Melt & Lights',
-        description: 'Fundidos de luz tridimensionales personalizados[cite: 139].',
+        description: 'Fundidos de luz tridimensionales personalizados.',
         duration: '150 min',
         price: 'Consultar',
         bufferTime: '10 min prep',
-        includesText: 'Diseño personalizado de mechas, técnica de fundido de luz, matizador dual y tratamiento sellador[cite: 139].',
-        achievedText: 'Transiciones de luz naturales y tridimensionales sin efecto raíz marcado[cite: 139].',
+        includesText: 'Diseño personalizado de mechas, técnica de fundido de luz, matizador dual y tratamiento sellador.',
+        achievedText: 'Transiciones de luz naturales y tridimensionales sin efecto raíz marcado.',
         priceType: 'consultar',
         hasVariants: true,
         variants: [
@@ -237,12 +237,12 @@ const INITIAL_CATALOG: CatalogCategory[] = [
       {
         id: 's6',
         name: 'Protocolo Revivre / Reconstrucción',
-        description: 'Tratamiento profundo de nutrición y salud capilar[cite: 139].',
+        description: 'Tratamiento profundo de nutrición y salud capilar.',
         duration: '60 min',
         price: 'Desde 50 €',
         bufferTime: '10 min prep',
-        includesText: 'Baño purificante, infusión de principios activos Revivre y masaje relajante de absorción profunda[cite: 139, 140].',
-        achievedText: 'Recuperación de la elasticidad, cuerpo, nutrición y brillo extremo en cabellos castigados[cite: 140].',
+        includesText: 'Baño purificante, infusión de principios activos Revivre y masaje relajante de absorción profunda.',
+        achievedText: 'Recuperación de la elasticidad, cuerpo, nutrición y brillo extremo en cabellos castigados.',
         priceType: 'desde'
       }
     ]
@@ -256,12 +256,12 @@ const INITIAL_CATALOG: CatalogCategory[] = [
       {
         id: 's7',
         name: 'Moldeado u Ondeado Orgánico',
-        description: 'Texturización respetuosa con la fibra capilar[cite: 140].',
+        description: 'Texturización respetuosa con la fibra capilar.',
         duration: '120 min',
         price: 'Desde 80 €',
         bufferTime: '10 min prep',
-        includesText: 'Preparación de la fibra, moldeado orgánico sin amoníaco y fijación con tratamiento de hidratación[cite: 140].',
-        achievedText: 'Ondas elásticas, definidas y con movimiento natural sin encrespamiento[cite: 140].',
+        includesText: 'Preparación de la fibra, moldeado orgánico sin amoníaco y fijación con tratamiento de hidratación.',
+        achievedText: 'Ondas elásticas, definidas y con movimiento natural sin encrespamiento.',
         priceType: 'desde'
       }
     ]
@@ -275,12 +275,12 @@ const INITIAL_CATALOG: CatalogCategory[] = [
       {
         id: 's8',
         name: 'Corte & Estilismo Masculino',
-        description: 'Corte de precisión y acabado para hombre[cite: 140].',
+        description: 'Corte de precisión y acabado para hombre.',
         duration: '40 min',
         price: 'Desde 28 €',
         bufferTime: '10 min prep',
-        includesText: 'Lavado vigorizante, corte a tijera/máquina adaptado y acabado con productos de barbería de autor[cite: 140].',
-        achievedText: 'Look pulcro, fácil mantenimiento y definición impecable[cite: 140].',
+        includesText: 'Lavado vigorizante, corte a tijera/máquina adaptado y acabado con productos de barbería de autor.',
+        achievedText: 'Look pulcro, fácil mantenimiento y definición impecable.',
         priceType: 'desde'
       }
     ]
@@ -294,12 +294,12 @@ const INITIAL_CATALOG: CatalogCategory[] = [
       {
         id: 's9',
         name: 'Gloss / Baño de Brillo Exprés',
-        description: 'Matizador o brillo instantáneo para sellar cutícula[cite: 141].',
+        description: 'Matizador o brillo instantáneo para sellar cutícula.',
         duration: '20 min',
         price: 'Desde 20 €',
         bufferTime: '10 min prep',
-        includesText: 'Aplicación rápida de baño de brillo o matiz en lavacabezas con tiempo de exposición exprés[cite: 141].',
-        achievedText: 'Revitalización instantánea del reflejo y sellado de cutícula para un brillo espejo[cite: 141].',
+        includesText: 'Aplicación rápida de baño de brillo o matiz en lavacabezas con tiempo de exposición exprés.',
+        achievedText: 'Revitalización instantánea del reflejo y sellado de cutícula para un brillo espejo.',
         priceType: 'desde'
       }
     ]
@@ -428,7 +428,7 @@ export default function App() {
   const handleRatingSelect = (rating: number) => {
     setSelectedRating(rating);
     if (rating <= 2) {
-      setFeedbackComment('Lamento que algo no haya sido perfecto. Por favor, explícanos qué ha ocurrido para solucionarlo en privado[cite: 144, 145].');
+      setFeedbackComment('Lamento que algo no haya sido perfecto. Por favor, explícanos qué ha ocurrido para solucionarlo en privado.');
     } else {
       setFeedbackComment('¡Excelente experiencia! El servicio de autor y la atención de Ana han sido impecables.');
     }
@@ -566,17 +566,17 @@ export default function App() {
     e.preventDefault();
     if (!clientWishText.trim()) return;
     const query = clientWishText.toLowerCase();
-    let bestMatch = { serviceName: 'DNI Capilar & Estudio Facial', reason: 'Recomendamos un diagnóstico de autor previo para evaluar la fibra capilar antes de realizar cualquier cambio[cite: 147].', category: 'VISAGISMO & DIAGNÓSTICO' };
+    let bestMatch = { serviceName: 'DNI Capilar & Estudio Facial', reason: 'Recomendamos un diagnóstico de autor previo para evaluar la fibra capilar antes de realizar cualquier cambio.', category: 'VISAGISMO & DIAGNÓSTICO' };
     if (query.includes('balayage') || query.includes('mechas') || query.includes('luz') || query.includes('rubio')) {
-      bestMatch = { serviceName: 'Balayage & Melt & Lights', reason: 'Ideal para conseguir fundidos de luz tridimensionales personalizados respetando la salud capilar[cite: 147].', category: 'MÉTODO DE AUTOR & ILUMINACIÓN' };
+      bestMatch = { serviceName: 'Balayage & Melt & Lights', reason: 'Ideal para conseguir fundidos de luz tridimensionales personalizados respetando la salud capilar.', category: 'MÉTODO DE AUTOR & ILUMINACIÓN' };
     } else if (query.includes('corte') || query.includes('cambio de look') || query.includes('estilo')) {
-      bestMatch = { serviceName: 'Corte de Autor & Visagismo', reason: 'Corte arquitectónico adaptado exactamente a la morfología y proporciones de tu rostro[cite: 147].', category: 'VISAGISMO & CORTE' };
+      bestMatch = { serviceName: 'Corte de Autor & Visagismo', reason: 'Corte arquitectónico adaptado exactamente a la morfología y proporciones de tu rostro.', category: 'VISAGISMO & CORTE' };
     } else if (query.includes('color') || query.includes('raíces') || query.includes('tinte')) {
-      bestMatch = { serviceName: 'Coloración Global & Raíces', reason: 'Técnica de color de alta precisión con pigmentos y aceites de autor[cite: 147, 148].', category: 'COLOR ATELIER' };
+      bestMatch = { serviceName: 'Coloración Global & Raíces', reason: 'Técnica de color de alta precisión con pigmentos y aceites de autor.', category: 'COLOR ATELIER' };
     } else if (query.includes('hidrata') || query.includes('reconstrucción') || query.includes('seco') || query.includes('roto')) {
-      bestMatch = { serviceName: 'Protocolo Revivre / Reconstrucción', reason: 'Tratamiento profundo y exclusivo de nutrición para devolver la salud y brillo extremo al cabello[cite: 148].', category: 'SALUD CAPILAR & RECONSTRUCCIÓN' };
+      bestMatch = { serviceName: 'Protocolo Revivre / Reconstrucción', reason: 'Tratamiento profundo y exclusivo de nutrición para devolver la salud y brillo extremo al cabello.', category: 'SALUD CAPILAR & RECONSTRUCCIÓN' };
     } else if (query.includes('brillo') || query.includes('gloss') || query.includes('matiz')) {
-      bestMatch = { serviceName: 'Gloss / Baño de Brillo Exprés', reason: 'Baño de brillo instantáneo para sellar la cutícula y revitalizar el tono al instante[cite: 148].', category: 'ADD-ONS & COMPLEMENTOS' };
+      bestMatch = { serviceName: 'Gloss / Baño de Brillo Exprés', reason: 'Baño de brillo instantáneo para sellar la cutícula y revitalizar el tono al instante.', category: 'ADD-ONS & COMPLEMENTOS' };
     }
     setAiRecommendation(bestMatch);
   };
@@ -756,7 +756,7 @@ export default function App() {
     const targetDateKey = formatDateKey(targetDate);
     const existing = appointments.find(a => a.dateKey === targetDateKey && a.time === time && a.id !== id);
     if (existing) {
-      window.alert('Ese hueco horario ya está ocupado por otra cita en esta fecha y hora[cite: 152].');
+      window.alert('Ese hueco horario ya está ocupado por otra cita en esta fecha y hora.');
       return;
     }
     setAppointments(prev => prev.map(a => a.id === id ? { ...a, dateKey: targetDateKey, dayName, time } : a));
@@ -801,7 +801,6 @@ export default function App() {
       const durMatch = selectedSub.duration.match(/\d+/);
       if (durMatch) durationMin = parseInt(durMatch[0], 10);
     }
-    // SIN LA PALABRA LARGO
     const varText = modalSelectedVariant ? ` (${modalSelectedVariant.name} - ${modalSelectedVariant.price})` : '';
     
     const newApp: Appointment = {
@@ -825,7 +824,7 @@ export default function App() {
 
   const handleConfirmarCitaVisual = () => {
     if (selectedServicesToBook.length === 0) {
-      alert('Por favor, selecciona al menos un servicio del catálogo[cite: 153].');
+      alert('Por favor, selecciona al menos un servicio del catálogo.');
       return;
     }
     for (const item of selectedServicesToBook) {
@@ -838,7 +837,6 @@ export default function App() {
     const dayNameStr = dayNamesMap[bookingDate.getDay()];
     const dateKeyStr = formatDateKey(bookingDate);
 
-    // SIN LA PALABRA LARGO EN LA RESERVA ONLINE
     const subNames = selectedServicesToBook.map(s => {
       return s.variant ? `${s.sub.name} (${s.variant.name})` : s.sub.name;
     }).join(', ');
@@ -870,7 +868,7 @@ export default function App() {
     };
 
     setAppointments([...appointments, newApp]);
-    setBookingSuccessMsg(`¡Cita confirmada correctamente para el ${bookingDate.toLocaleDateString('es-ES')} a las ${selectedVisualTime}! Sincronizado con la intranet maestra[cite: 153, 154].`);
+    setBookingSuccessMsg(`¡Cita confirmada correctamente para el ${bookingDate.toLocaleDateString('es-ES')} a las ${selectedVisualTime}! Sincronizado con la intranet maestra.`);
     setSelectedServicesToBook([]);
     setCurrentScreen('catalogBooking');
     setTimeout(() => setBookingSuccessMsg(null), 5000);
@@ -878,7 +876,7 @@ export default function App() {
 
   const handleDeleteAppointment = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    if (window.confirm('¿Deseas cancelar esta cita de la agenda?[cite: 154]')) {
+    if (window.confirm('¿Deseas cancelar esta cita de la agenda?')) {
       setAppointments(appointments.filter(a => a.id !== id));
       if (viewApptModal?.id === id) setViewApptModal(null);
     }
@@ -974,7 +972,7 @@ export default function App() {
   };
 
   const handleDeleteCategory = (catId: string) => {
-    if (window.confirm('¿Estás segura de eliminar esta categoría principal y todos sus servicios asociados?[cite: 154]')) {
+    if (window.confirm('¿Estás segura de eliminar esta categoría principal y todos sus servicios asociados?')) {
       setCatalog(catalog.filter(cat => cat.id !== catId));
     }
   };
@@ -1036,7 +1034,7 @@ export default function App() {
   };
 
   const handleDeleteSubservice = (catId: string, subId: string) => {
-    if (window.confirm('¿Eliminar este servicio del catálogo?[cite: 156]')) {
+    if (window.confirm('¿Eliminar este servicio del catálogo?')) {
       setCatalog(catalog.map(cat => {
         if (cat.id === catId) {
           return { ...cat, subservices: cat.subservices.filter(s => s.id !== subId) };
@@ -1119,7 +1117,7 @@ export default function App() {
             <p style={{ color: '#888888', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '3px', margin: 0 }}>{bizConfig.subtitle}</p>
           </div>
           <p style={{ color: pinError ? '#ff4444' : '#cccccc', fontSize: '14px', marginBottom: '15px', letterSpacing: '1px', textAlign: 'center' }}>
-            {pinError ? 'PIN incorrecto[cite: 158]' : 'Introduce tu PIN de acceso[cite: 158]'}
+            {pinError ? 'PIN incorrecto' : 'Introduce tu PIN de acceso'}
           </p>
           <div style={{ display: 'flex', gap: '15px', marginBottom: '25px' }}>
             {[0, 1, 2, 3].map((i) => (
@@ -1589,7 +1587,7 @@ export default function App() {
 
           {/* Asistente IA de Visagismo */}
           <div style={{ backgroundColor: '#161616', border: '1px solid #d4af37', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0 }}>Asistente IA de Visagismo & Recomendación[cite: 172, 173]</h3>
+            <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0 }}>Asistente IA de Visagismo & Recomendación</h3>
             <form onSubmit={handleRunAiRecommendation} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <textarea value={clientWishText} onChange={(e) => setClientWishText(e.target.value)} onFocus={(e) => e.target.select()} placeholder="Ej. Quiero matizar mi rubio..." rows={2} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '8px', padding: '10px', fontSize: '11px', resize: 'none' }} />
               <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
@@ -1678,10 +1676,10 @@ export default function App() {
               </div>
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px', minWidth: '600px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>Agenda Maestra (Control Total & Sincronizada)[cite: 176]</h3>
+                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>Agenda Maestra (Control Total & Sincronizada)</h3>
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                     <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() - 7); setFechaSeleccionada(d); }} style={{ background: '#1a1a1a', border: '1px solid #444', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>◄ Anterior</button>
-                    <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>Semana del {semanaActual[0].dateFormatted}[cite: 176]</span>
+                    <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>Semana del {semanaActual[0].dateFormatted}</span>
                     <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() + 7); setFechaSeleccionada(d); }} style={{ background: '#1a1a1a', border: '1px solid #444', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>Siguiente ►</button>
                   </div>
                 </div>
@@ -1714,9 +1712,9 @@ export default function App() {
                                   <div style={{ color: '#bbb', fontSize: '9px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appt.serviceSubcategory}</div>
                                 </div>
                               ) : occupiedByDuration ? (
-                                <div style={{ color: '#a68a4c', fontSize: '9px', textAlign: 'center', fontStyle: 'italic' }}>Ocupado[cite: 177]</div>
+                                <div style={{ color: '#a68a4c', fontSize: '9px', textAlign: 'center', fontStyle: 'italic' }}>Ocupado</div>
                               ) : (
-                                <div style={{ color: '#444', fontSize: '9px', textAlign: 'center' }}>+ Libre[cite: 177]</div>
+                                <div style={{ color: '#444', fontSize: '9px', textAlign: 'center' }}>+ Libre</div>
                               )}
                             </div>
                           );
@@ -1733,9 +1731,9 @@ export default function App() {
           {adminTab === 'config' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', gap: '10px', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '10px', flexWrap: 'wrap' }}>
-                <button onClick={() => setConfigSubTab('marca')} style={{ backgroundColor: configSubTab === 'marca' ? '#d4af37' : 'transparent', color: configSubTab === 'marca' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Marca & Identidad[cite: 178]</button>
-                <button onClick={() => setConfigSubTab('general')} style={{ backgroundColor: configSubTab === 'general' ? '#d4af37' : 'transparent', color: configSubTab === 'general' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>General, Redes & PIN Maestro[cite: 178]</button>
-                <button onClick={() => setConfigSubTab('schedule')} style={{ backgroundColor: configSubTab === 'schedule' ? '#d4af37' : 'transparent', color: configSubTab === 'schedule' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Horarios & Zona Horaria[cite: 178]</button>
+                <button onClick={() => setConfigSubTab('marca')} style={{ backgroundColor: configSubTab === 'marca' ? '#d4af37' : 'transparent', color: configSubTab === 'marca' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Marca & Identidad</button>
+                <button onClick={() => setConfigSubTab('general')} style={{ backgroundColor: configSubTab === 'general' ? '#d4af37' : 'transparent', color: configSubTab === 'general' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>General, Redes & PIN Maestro</button>
+                <button onClick={() => setConfigSubTab('schedule')} style={{ backgroundColor: configSubTab === 'schedule' ? '#d4af37' : 'transparent', color: configSubTab === 'schedule' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Horarios & Zona Horaria</button>
               </div>
               {savedMsg && (
                 <div style={{ padding: '10px', backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }}>
@@ -1744,20 +1742,20 @@ export default function App() {
               )}
               {configSubTab === 'marca' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Gestor de Marca[cite: 178]</h3>
+                  <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Gestor de Marca</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 280px', gap: '15px', alignItems: 'stretch' }}>
                     <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
-                      <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', alignSelf: 'flex-start' }}>Logotipo de la Marca[cite: 178]</span>
+                      <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', alignSelf: 'flex-start' }}>Logotipo de la Marca</span>
                       <div style={{ width: '80px', height: '80px', borderRadius: '50%', border: '1px solid #d4af37', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d4af37', fontSize: '20px', fontFamily: 'serif' }}>L'A</div>
                       <button type="button" onClick={() => alert('Función de subida de logotipo')} style={{ backgroundColor: 'transparent', border: '1px solid rgba(212,175,55,0.4)', color: '#d4af37', padding: '6px 16px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Editar</button>
                     </div>
                     <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
-                      <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', alignSelf: 'flex-start' }}>Cabecera Principal[cite: 178, 179]</span>
+                      <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', alignSelf: 'flex-start' }}>Cabecera Principal</span>
                       <div style={{ width: '100%', height: '70px', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d4af37', fontSize: '14px', letterSpacing: '2px', fontFamily: 'serif' }}>L'STUDIO</div>
                       <button type="button" onClick={() => alert('Función de edición de cabecera')} style={{ backgroundColor: 'transparent', border: '1px solid rgba(212,175,55,0.4)', color: '#d4af37', padding: '6px 16px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Editar</button>
                     </div>
                     <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold', marginBottom: '5px' }}>Vista Previa del Portal[cite: 179]</span>
+                      <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold', marginBottom: '5px' }}>Vista Previa del Portal</span>
                       <div style={{ width: '100%', backgroundColor: '#000', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '10px', padding: '12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <div style={{ textAlign: 'center', fontSize: '11px', color: '#d4af37', fontFamily: 'serif', fontWeight: 'bold' }}>L'STUDIO ANA</div>
                         <div style={{ textAlign: 'center', fontSize: '8px', color: '#888', letterSpacing: '1px' }}>PORTAL PRIVADO</div>
@@ -1772,13 +1770,13 @@ export default function App() {
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px' }}>
-                    <span style={{ color: '#d4af37', fontSize: '13px', fontWeight: 'bold' }}>Detalles del Salón[cite: 179]</span>
+                    <span style={{ color: '#d4af37', fontSize: '13px', fontWeight: 'bold' }}>Detalles del Salón</span>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                       <label style={{ color: '#aaa', fontSize: '11px' }}>Nombre oficial</label>
                       <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig({ ...tempConfig, name: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#121212', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                      <label style={{ color: '#aaa', fontSize: '11px' }}>Descripción Corporativa[cite: 180]</label>
+                      <label style={{ color: '#aaa', fontSize: '11px' }}>Descripción Corporativa</label>
                       <textarea value={tempConfig.description} onChange={(e) => setTempConfig({ ...tempConfig, description: e.target.value })} onFocus={(e) => e.target.select()} rows={3} style={{ padding: '10px', backgroundColor: '#121212', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} />
                     </div>
                   </div>
@@ -1802,12 +1800,12 @@ export default function App() {
                     <input type="text" value={tempConfig.googleMapsUrl} onChange={(e) => setTempConfig({ ...tempConfig, googleMapsUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#aaa', fontSize: '11px' }}>Enlace Reseñas Google My Business[cite: 180, 181]:</label>
+                    <label style={{ color: '#aaa', fontSize: '11px' }}>Enlace Reseñas Google My Business:</label>
                     <input type="text" value={tempConfig.googleReviewUrl} onChange={(e) => setTempConfig({ ...tempConfig, googleReviewUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '10px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
-                    <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0, fontFamily: 'serif' }}>Gestión de Contraseña PIN de Administrador (Maestro)[cite: 181]</h4>
-                    <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Modifica el PIN de 4 dígitos para acceder al panel de gestión[cite: 181].</p>
+                    <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0, fontFamily: 'serif' }}>Gestión de Contraseña PIN de Administrador (Maestro)</h4>
+                    <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Modifica el PIN de 4 dígitos para acceder al panel de gestión.</p>
                     <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                       <input type="password" maxLength={4} placeholder="Nuevo PIN" id="inputNuevoMasterPin" style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', borderRadius: '6px', fontSize: '14px', width: '140px', textAlign: 'center', letterSpacing: '6px' }} />
                       <button type="button" onClick={() => {
@@ -1833,19 +1831,19 @@ export default function App() {
               {configSubTab === 'schedule' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#aaa', fontSize: '11px' }}>Horario Lunes[cite: 181, 182]:</label>
+                    <label style={{ color: '#aaa', fontSize: '11px' }}>Horario Lunes:</label>
                     <input type="text" value={tempConfig.scheduleMonday} onChange={(e) => setTempConfig({ ...tempConfig, scheduleMonday: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#aaa', fontSize: '11px' }}>Horario Martes y Miércoles[cite: 182]:</label>
+                    <label style={{ color: '#aaa', fontSize: '11px' }}>Horario Martes y Miércoles:</label>
                     <input type="text" value={tempConfig.scheduleTueWed} onChange={(e) => setTempConfig({ ...tempConfig, scheduleTueWed: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#aaa', fontSize: '11px' }}>Horario Jueves y Viernes[cite: 182]:</label>
+                    <label style={{ color: '#aaa', fontSize: '11px' }}>Horario Jueves y Viernes:</label>
                     <input type="text" value={tempConfig.scheduleThuFri} onChange={(e) => setTempConfig({ ...tempConfig, scheduleThuFri: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#aaa', fontSize: '11px' }}>Horario Sábados[cite: 182]:</label>
+                    <label style={{ color: '#aaa', fontSize: '11px' }}>Horario Sábados:</label>
                     <input type="text" value={tempConfig.scheduleSaturday} onChange={(e) => setTempConfig({ ...tempConfig, scheduleSaturday: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <button onClick={() => handleSaveSection('Horarios')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}>Guardar Horarios</button>
@@ -1863,7 +1861,7 @@ export default function App() {
               </div>
               {isAddingCategory && (
                 <form onSubmit={handleAddCategorySubmit} style={{ backgroundColor: '#181818', border: '1px solid #d4af37', borderRadius: '8px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0 }}>Añadir Categoría Principal[cite: 183]</h4>
+                  <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0 }}>Añadir Categoría Principal</h4>
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <input type="text" placeholder="Código (ej. 0.10)" value={newCatCode} onChange={(e) => setNewCatCode(e.target.value)} onFocus={(e) => e.target.select()} style={{ width: '120px', padding: '8px', backgroundColor: '#141414', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
                     <input type="text" placeholder="Título de la Categoría" value={newCatTitle} onChange={(e) => setNewCatTitle(e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '8px', backgroundColor: '#141414', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
@@ -1923,7 +1921,6 @@ export default function App() {
                                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                       {sub.variants?.map((v) => (
                                         <div key={v.id} style={{ backgroundColor: '#1c1c1c', border: '1px solid #d4af37', borderRadius: '4px', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: '#fff' }}>
-                                          {/* SIN LA PALABRA LARGO AQUÍ */}
                                           <span><strong>{v.name}</strong>: {v.price} / {v.duration}</span>
                                           <button onClick={() => handleDeleteVariant(cat.id, sub.id, v.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontSize: '11px' }}>x</button>
                                         </div>
@@ -1990,8 +1987,8 @@ export default function App() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
-                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Base de Clientes & Fichas Técnicas de Autor[cite: 186]</h3>
-                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Consulta rápida, historial, fórmulas aplicadas y control de PIN de acceso[cite: 186].</p>
+                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Base de Clientes & Fichas Técnicas de Autor</h3>
+                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Consulta rápida, historial, fórmulas aplicadas y control de PIN de acceso.</p>
                 </div>
                 <button onClick={() => setIsAddingClient(!isAddingClient)} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
                   {isAddingClient ? 'Cancelar' : '+ Dar de Alta Clienta'}
@@ -2097,8 +2094,8 @@ export default function App() {
           {adminTab === 'detractors' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Buzón Privado de Detractores y Reclamaciones[cite: 190]</h3>
-                <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Aquí puedes ver de forma privada las valoraciones negativas o sugerencias de mejora[cite: 190].</p>
+                <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Buzón Privado de Detractores y Reclamaciones</h3>
+                <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Aquí puedes ver de forma privada las valoraciones negativas o sugerencias de mejora.</p>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {feedbackList.filter(f => f.type === 'detractor').length === 0 ? (
@@ -2130,8 +2127,8 @@ export default function App() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
                 <div>
-                  <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Panel CRM & Analítica de Demanda[cite: 191]</h3>
-                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Monitorización de conversiones, oportunidades recuperables e insights de negocio[cite: 191].</p>
+                  <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Panel CRM & Analítica de Demanda</h3>
+                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Monitorización de conversiones, oportunidades recuperables e insights de negocio.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '6px', backgroundColor: '#181818', padding: '4px', borderRadius: '8px', border: '1px solid rgba(212,175,55,0.3)' }}>
                   {(['hoy', '7d', '30d', 'personalizado'] as const).map((p) => (
@@ -2143,7 +2140,7 @@ export default function App() {
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', backgroundColor: '#161616', padding: '12px', borderRadius: '10px', border: '1px solid rgba(212,175,55,0.2)' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold' }}>Filtrar por Servicio[cite: 191, 192]:</label>
+                  <label style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold' }}>Filtrar por Servicio:</label>
                   <select value={crmFilterService} onChange={(e) => setCrmFilterService(e.target.value)} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '6px', borderRadius: '6px', fontSize: '11px' }}>
                     <option value="todos">Todos los servicios</option>
                     <option value="Balayage">Balayage & Melt & Lights</option>
@@ -2152,7 +2149,7 @@ export default function App() {
                   </select>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold' }}>Filtrar por Motivo de Pérdida[cite: 192]:</label>
+                  <label style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold' }}>Filtrar por Motivo de Pérdida:</label>
                   <select value={crmFilterReason} onChange={(e) => setCrmFilterReason(e.target.value)} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '6px', borderRadius: '6px', fontSize: '11px' }}>
                     <option value="todos">Todos los motivos</option>
                     <option value="sin_disponibilidad">Sin disponibilidad</option>
@@ -2161,7 +2158,7 @@ export default function App() {
                   </select>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold' }}>Rango de Fechas[cite: 192]:</label>
+                  <label style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold' }}>Rango de Fechas:</label>
                   <input type="date" style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '6px', borderRadius: '6px', fontSize: '11px' }} />
                 </div>
               </div>
@@ -2171,22 +2168,22 @@ export default function App() {
                   <input type="number" value={appVisitsCount} onChange={(e) => setAppVisitsCount(parseInt(e.target.value) || 0)} onFocus={(e) => e.target.select()} style={{ backgroundColor: '#1c1c1c', border: '1px solid #d4af37', color: '#d4af37', fontSize: '24px', fontWeight: 'bold', fontFamily: 'serif', textAlign: 'center', padding: '4px', borderRadius: '6px', width: '100%', boxSizing: 'border-box' }} />
                 </div>
                 <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '18px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase' }}>Citas Agendadas[cite: 192, 193]</div>
+                  <div style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase' }}>Citas Agendadas</div>
                   <div style={{ color: '#d4af37', fontSize: '28px', fontWeight: 'bold', fontFamily: 'serif', padding: '4px' }}>{appointments.length}</div>
                 </div>
                 <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '18px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase' }}>Tasa de Conversión[cite: 193]</div>
+                  <div style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase' }}>Tasa de Conversión</div>
                   <div style={{ color: '#44bb44', fontSize: '28px', fontWeight: 'bold', fontFamily: 'serif', padding: '4px' }}>
                     {appVisitsCount > 0 ? `${((appointments.length / appVisitsCount) * 100).toFixed(1)}%` : '0%'}
                   </div>
                 </div>
                 <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '18px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <div style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase' }}>Demanda Perdida[cite: 193]</div>
+                  <div style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase' }}>Demanda Perdida</div>
                   <div style={{ color: '#ff4444', fontSize: '28px', fontWeight: 'bold', fontFamily: 'serif', padding: '4px' }}>{lostDemandsList.length}</div>
                 </div>
               </div>
               <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <h4 style={{ color: '#d4af37', fontSize: '13px', fontFamily: 'serif', margin: 0 }}>Evolución Semanal (Visitas vs Citas vs Demanda Perdida)[cite: 193]</h4>
+                <h4 style={{ color: '#d4af37', fontSize: '13px', fontFamily: 'serif', margin: 0 }}>Evolución Semanal (Visitas vs Citas vs Demanda Perdida)</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px' }}>
                   {[
                     { label: 'Lunes', visits: 12, appts: 3, lost: 1 },
@@ -2203,34 +2200,34 @@ export default function App() {
                         <div style={{ width: `${item.appts * 5}%`, backgroundColor: '#44bb44' }} />
                         <div style={{ width: `${item.lost * 5}%`, backgroundColor: '#ff4444' }} />
                       </div>
-                      <span style={{ color: '#888', width: '90px', textAlign: 'right' }}>{item.visits}v / {item.appts}c[cite: 194]</span>
+                      <span style={{ color: '#888', width: '90px', textAlign: 'right' }}>{item.visits}v / {item.appts}c</span>
                     </div>
                   ))}
                 </div>
               </div>
               <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <h4 style={{ color: '#d4af37', fontSize: '13px', fontFamily: 'serif', margin: 0 }}>Motivos de Demanda Perdida Agrupados[cite: 194]</h4>
+                <h4 style={{ color: '#d4af37', fontSize: '13px', fontFamily: 'serif', margin: 0 }}>Motivos de Demanda Perdida Agrupados</h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
                   <div style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>Sin disponibilidad</div>
-                    <div style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>{lostDemandsList.filter(l => l.reason === 'sin_disponibilidad').length + 2} casos[cite: 194]</div>
-                    <div style={{ color: '#888', fontSize: '10px' }}>Principalmente sábados por la mañana[cite: 194]</div>
+                    <div style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>{lostDemandsList.filter(l => l.reason === 'sin_disponibilidad').length + 2} casos</div>
+                    <div style={{ color: '#888', fontSize: '10px' }}>Principalmente sábados por la mañana</div>
                   </div>
                   <div style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>Abandono de reserva[cite: 194, 195]</div>
-                    <div style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>{lostDemandsList.filter(l => l.reason === 'abandono_sin_servicio').length + 1} casos[cite: 195]</div>
-                    <div style={{ color: '#888', fontSize: '10px' }}>Salieron en la selección de servicios[cite: 195]</div>
+                    <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>Abandono de reserva</div>
+                    <div style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>{lostDemandsList.filter(l => l.reason === 'abandono_sin_servicio').length + 1} casos</div>
+                    <div style={{ color: '#888', fontSize: '10px' }}>Salieron en la selección de servicios</div>
                   </div>
                   <div style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>Error / problema técnico[cite: 195]</div>
-                    <div style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>{lostDemandsList.filter(l => l.reason === 'intento_fallido').length} casos[cite: 195]</div>
-                    <div style={{ color: '#888', fontSize: '10px' }}>Dificultades con PIN o flujo[cite: 195]</div>
+                    <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>Error / problema técnico</div>
+                    <div style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>{lostDemandsList.filter(l => l.reason === 'intento_fallido').length} casos</div>
+                    <div style={{ color: '#888', fontSize: '10px' }}>Dificultades con PIN o flujo</div>
                   </div>
                 </div>
               </div>
               <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h4 style={{ color: '#d4af37', fontSize: '13px', fontFamily: 'serif', margin: 0 }}>Oportunidades Recuperables (Valor Potencial Total: <strong style={{ color: '#44bb44' }}>195 €</strong>)[cite: 195]</h4>
+                  <h4 style={{ color: '#d4af37', fontSize: '13px', fontFamily: 'serif', margin: 0 }}>Oportunidades Recuperables (Valor Potencial Total: <strong style={{ color: '#44bb44' }}>195 €</strong>)</h4>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   {lostDemandsList.map((item) => (
@@ -2241,7 +2238,7 @@ export default function App() {
                           <span style={{ color: '#44bb44', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#1a261a', padding: '2px 8px', borderRadius: '4px' }}>Valor: {item.potentialValue} €</span>
                         </div>
                         <div style={{ color: '#d4af37', fontSize: '11px' }}>Servicio: {item.serviceName}</div>
-                        <div style={{ color: '#888', fontSize: '10px' }}>Motivo: {item.reason} | Nota: "{item.clientNote}"[cite: 195]</div>
+                        <div style={{ color: '#888', fontSize: '10px' }}>Motivo: {item.reason} | Nota: "{item.clientNote}"</div>
                       </div>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button onClick={() => alert(`Abriendo ficha de cliente para ${item.clientName}`)} style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '6px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}>
@@ -2264,7 +2261,7 @@ export default function App() {
       {isModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
           <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '400px', width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Nueva Cita: {targetDayName} a las {targetTime}[cite: 197]</h3>
+            <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Nueva Cita: {targetDayName} a las {targetTime}</h3>
             <form onSubmit={handleSaveModalAppointment} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <input type="text" placeholder="Nombre y Apellidos" value={modalClientName} onChange={(e) => setModalClientName(e.target.value)} required style={{ padding: '8px', backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
               
@@ -2307,65 +2304,59 @@ export default function App() {
         </div>
       )}
 
-      
-            <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', marginTop: '10px' }}>
-              <button onClick={(e) => handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#2a1212', border: '1px solid #ff4444', color: '#ff4444', padding: '8px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar Cita[cite: 199]</button>
-              <button onClick={() => setViewApptModal(null)} style={{ background: '#1c1c1c', border: '1px solid #444', color: '#fff', padding: '8px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Cerrar[cite: 199]</button>
+      {/* MODAL DETALLE CITA CON BOTONES DIRECTOS DE WHATSAPP Y COPIA DE EMAIL */}
+      {viewApptModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
+          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '400px', width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Detalle de Cita</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', color: '#ccc' }}>
+              <div><strong style={{ color: '#fff' }}>Clienta:</strong> {viewApptModal.clientName}</div>
+              <div><strong style={{ color: '#fff' }}>Teléfono:</strong> <a href={`tel:${viewApptModal.phone}`} style={{ color: '#d4af37', textDecoration: 'none' }}>{viewApptModal.phone}</a></div>
+              <div><strong style={{ color: '#fff' }}>Email:</strong> {viewApptModal.email}</div>
+              <div><strong style={{ color: '#fff' }}>Fecha y Hora:</strong> {viewApptModal.dateKey} a las {viewApptModal.time}</div>
+              <div><strong style={{ color: '#fff' }}>Servicio & Variante:</strong> {viewApptModal.serviceSubcategory}</div>
             </div>
 
-    {/* MODAL DETALLE CITA CON BOTONES DE WHATSAPP Y COPIA DE EMAIL */}
-{viewApptModal && (
-  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
-    <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '400px', width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-      <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Detalle de Cita</h3>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px', color: '#ccc' }}>
-        <div><strong style={{ color: '#fff' }}>Clienta:</strong> {viewApptModal.clientName}</div>
-        <div><strong style={{ color: '#fff' }}>Teléfono:</strong> <a href={`tel:${viewApptModal.phone}`} style={{ color: '#d4af37', textDecoration: 'none' }}>{viewApptModal.phone}</a></div>
-        <div><strong style={{ color: '#fff' }}>Email:</strong> {viewApptModal.email}</div>
-        <div><strong style={{ color: '#fff' }}>Fecha y Hora:</strong> {viewApptModal.dateKey} a las {viewApptModal.time}</div>
-        <div><strong style={{ color: '#fff' }}>Servicio & Variante:</strong> {viewApptModal.serviceSubcategory}</div>
-      </div>
+            {/* BOTONES DIRECTOS DE RECORDATORIO (WHATSAPP & COPIA EMAIL) */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px', borderTop: '1px solid rgba(212,175,55,0.2)', paddingTop: '12px' }}>
+              <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Enviar Recordatorio Rápido:</span>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <a 
+                  href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola ${viewApptModal.clientName}, te recordamos tu cita en L'Studio Ana el próximo ${viewApptModal.dateKey} a las${viewApptModal.time}. ¡Te esperamos!`)}`} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  style={{ backgroundColor: '#25D366', color: '#000', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                >
+                  💬 WhatsApp
+                </a>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    const textoEmail = `Hola ${viewApptModal.clientName},\n\nTe recordamos tu cita en L'Studio Ana para el día ${viewApptModal.dateKey} a las ${viewApptModal.time}.\n\nServicio: ${viewApptModal.serviceSubcategory}\n\n¡Gracias por confiar en nosotros!`;
+                    navigator.clipboard.writeText(textoEmail);
+                    alert('¡Texto del recordatorio copiado al portapapeletas! Ya puedes pegarlo en tu correo o app de mensajería.');
+                  }}
+                  style={{ backgroundColor: '#d4af37', color: '#000', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', textAlign: 'center', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                >
+                  📋 Copiar Email
+                </button>
+              </div>
+            </div>
 
-      {/* BOTONES DIRECTOS DE RECORDATORIO (WHATSAPP & EMAIL / COPIA) */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px', borderTop: '1px solid rgba(212,175,55,0.2)', paddingTop: '12px' }}>
-        <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Enviar Recordatorio Rápido:</span>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-          <a 
-            href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola ${viewApptModal.clientName}, te recordamos tu cita en L'Studio Ana el próximo ${viewApptModal.dateKey} a las${viewApptModal.time}. ¡Te esperamos!`)}`} 
-            target="_blank" 
-            rel="noreferrer" 
-            style={{ backgroundColor: '#25D366', color: '#000', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-          >
-            💬 WhatsApp
-          </a>
-          <button 
-            type="button"
-            onClick={() => {
-              const textoEmail = `Hola ${viewApptModal.clientName},\n\nTe recordamos tu cita en L'Studio Ana para el día ${viewApptModal.dateKey} a las ${viewApptModal.time}.\n\nServicio: ${viewApptModal.serviceSubcategory}\n\n¡Gracias por confiar en nosotros!`;
-              navigator.clipboard.writeText(textoEmail);
-              alert('¡Texto del recordatorio copiado al portapapeletas! Ya puedes pegarlo en tu correo o app de mensajería.');
-            }}
-            style={{ backgroundColor: '#d4af37', color: '#000', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', textAlign: 'center', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-          >
-            📋 Copiar Email
-          </button>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', marginTop: '10px' }}>
+              <button onClick={(e) => handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#2a1212', border: '1px solid #ff4444', color: '#ff4444', padding: '8px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar Cita</button>
+              <button onClick={() => setViewApptModal(null)} style={{ background: '#1c1c1c', border: '1px solid #444', color: '#fff', padding: '8px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Cerrar</button>
+            </div>
+          </div>
         </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', marginTop: '10px' }}>
-        <button onClick={(e) => handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#2a1212', border: '1px solid #ff4444', color: '#ff4444', padding: '8px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar Cita</button>
-        <button onClick={() => setViewApptModal(null)} style={{ background: '#1c1c1c', border: '1px solid #444', color: '#fff', padding: '8px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Cerrar</button>
-      </div>
-    </div>
-  </div>
-)}
+      )}
 
       {/* MODAL PARA MODIFICAR HORA DE CITA */}
       {rescheduleModalAppt && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1100 }}>
           <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '380px', width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Modificar Horario de Cita[cite: 200]</h3>
-            <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Clienta: <strong style={{ color: '#fff' }}>{rescheduleModalAppt.clientName}</strong>[cite: 200]</p>
+            <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Modificar Horario de Cita</h3>
+            <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Clienta: <strong style={{ color: '#fff' }}>{rescheduleModalAppt.clientName}</strong></p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Nueva Fecha:</label>
               <input type="date" value={newRescheduleDate} onChange={(e) => setNewRescheduleDate(e.target.value)} style={{ padding: '8px', backgroundColor: '#1c1c1c', border: '1px solid #d4af37', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
@@ -2390,8 +2381,8 @@ export default function App() {
                 }
                 setAppointments(appointments.map(a => a.id === rescheduleModalAppt.id ? { ...a, dateKey: newRescheduleDate, dayName: dayNameStr, time: newRescheduleTime } : a));
                 setRescheduleModalAppt(null);
-                alert('¡Cita modificada de hora y fecha con éxito![cite: 201]');
-              }} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Guardar Cambio[cite: 201]</button>
+                alert('¡Cita modificada de hora y fecha con éxito!');
+              }} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Guardar Cambio</button>
             </div>
           </div>
         </div>
