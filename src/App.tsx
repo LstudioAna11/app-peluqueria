@@ -20,7 +20,12 @@ interface BusinessConfig {
   tiktokUrl: string;
   googleMapsUrl: string;
   googleReviewUrl: string;
-}
+  minAdvanceDays: number;
+  maxBookingMonths: number;
+  slotIntervalMinutes: number;
+  bizumNumber: string;
+  depositAmount: string;
+  saturdayNoticeMessage: string;}
 
 const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
   name: "L'Studio Ana",
@@ -38,7 +43,12 @@ const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
   facebookUrl: "https://facebook.com",
   tiktokUrl: "https://tiktok.com",
   googleMapsUrl: "https://maps.google.com",
-  googleReviewUrl: "https://g.page/r/CRLx1fxwplAYEBM/review"
+  googleReviewUrl: "https://g.page/r/CRLx1fxwplAYEBM/review",minAdvanceDays: 2,
+  maxBookingMonths: 3,
+  slotIntervalMinutes: 15,
+  bizumNumber: "672163485",
+  depositAmount: "30 €",
+  saturdayNoticeMessage: "SÁBADOS: El Studio abrirá los sábados únicamente para atender servicios de larga duración y eventos agendados con antelación bajo demanda de Ana."
 };
 
 interface ServiceVariant {
@@ -2182,86 +2192,108 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 5: BUZÓN DE DETRACTORES CON IA Y RESPUESTA MANUAL */}
-          {adminTab === 'detractors' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div>
-                <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Buzón Privado de Detractores y Reclamaciones & Recuperación IA</h3>
-                <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Gestiona valoraciones negativas, genera respuestas automáticas con IA y recupera clientas.</p>
+{/* TAB 5: BUZÓN DE DETRACTORES Y RESEÑAS GOOGLE MY BUSINESS */}
+{adminTab === 'detractors' && (
+  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+      <div>
+        <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>
+          Buzón de Detractores & Reseñas Google My Business
+        </h3>
+        <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>
+          Control de valoraciones, gestión de incidencias y derivación a Google Reviews ({bizConfig.name}).
+        </p>
+      </div>
+      <a 
+        href={bizConfig.googleReviewUrl} 
+        target="_blank" 
+        rel="noreferrer" 
+        style={{ backgroundColor: '#181818', border: '1px solid #d4af37', color: '#d4af37', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}
+      >
+        ★ Ver Enlace en Google My Business
+      </a>
+    </div>
+
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+      {feedbackList.filter(f => f.type === 'detractor').length === 0 ? (
+        <div style={{ backgroundColor: '#161616', padding: '20px', borderRadius: '8px', textAlign: 'center', color: '#777', fontSize: '12px', border: '1px solid rgba(212,175,55,0.2)' }}>
+          No hay incidencias ni detractores pendientes. ¡El servicio en el Studio es impecable!
+        </div>
+      ) : (
+        feedbackList.filter(f => f.type === 'detractor').map((fb) => {
+          const currentReply = detractorReplies[fb.id] || '';
+          return (
+            <div key={fb.id} style={{ backgroundColor: '#1a1414', border: '1px solid #ff4444', borderRadius: '10px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#ff4444', fontWeight: 'bold', fontSize: '12px' }}>
+                  Valoración: {fb.rating} ★ | {fb.clientName}
+                </span>
+                <span style={{ color: '#888', fontSize: '10px' }}>{fb.date}</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                {feedbackList.filter(f => f.type === 'detractor').length === 0 ? (
-                  <div style={{ backgroundColor: '#161616', padding: '20px', borderRadius: '8px', textAlign: 'center', color: '#777', fontSize: '12px' }}>
-                    No hay reclamaciones ni detractores registrados. ¡Excelente trabajo en el salón!
-                  </div>
-                ) : (
-                  feedbackList.filter(f => f.type === 'detractor').map((fb) => {
-                    const currentReply = detractorReplies[fb.id] || '';
-                    return (
-                      <div key={fb.id} style={{ backgroundColor: '#1a1414', border: '1px solid #ff4444', borderRadius: '10px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ color: '#ff4444', fontWeight: 'bold', fontSize: '12px' }}>Valoración: ★{fb.rating} — {fb.clientName}</span>
-                          <span style={{ color: '#888', fontSize: '10px' }}>{fb.date}</span>
-                        </div>
-                        <p style={{ color: '#fff', fontSize: '12px', margin: 0, fontStyle: 'italic', backgroundColor: '#121212', padding: '10px', borderRadius: '6px', borderLeft: '3px solid #ff4444' }}>
-                          "{fb.comment}"
-                        </p>
+              <p style={{ color: '#fff', fontSize: '12px', margin: 0, fontStyle: 'italic', backgroundColor: '#121212', padding: '10px', borderRadius: '6px', borderLeft: '3px solid #ff4444' }}>
+                "{fb.comment}"
+              </p>
+              
+              <div style={{ backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>
+                    Respuesta Asistida para Recuperación:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const generated = `Hola ${fb.clientName.split(" ")[0]}, lamentamos profundamente tu experiencia respecto a "${fb.comment}". En L'Studio Ana cuidamos cada detalle y nos encantaría invitarte a un protocolo exclusivo de mejora en tu próxima visita.`;
+                      setDetractorReplies(prev => ({ ...prev, [fb.id]: generated }));
+                    }}
+                    style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}
+                  >
+                    Generar Respuesta IA
+                  </button>
+                </div>
+                <textarea
+                  value={currentReply}
+                  onChange={(e) => setDetractorReplies(prev => ({ ...prev, [fb.id]: e.target.value }))}
+                  rows={3}
+                  placeholder="Escribe tu respuesta personalizada o sugerencia para canalizar la reseña hacia Google..."
+                  style={{ backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', padding: '8px', fontSize: '11px', resize: 'vertical' }}
+                />
+                <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                  <a
+                    href={`https://wa.me/?text=${encodeURIComponent(currentReply)}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ backgroundColor: '#25D366', color: '#000', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  >
+                    Enviar por WhatsApp
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(currentReply);
+                      alert('¡Respuesta copiada al portapapeletas!');
+                    }}
+                    style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                  >
+                    Copiar Respuesta
+                  </button>
+                </div>
+              </div>
 
-                        <div style={{ backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>🤖 Respuesta Asistida por IA / Manual:</span>
-                            <button 
-                              type="button" 
-                              onClick={() => {
-                                const generated = `Hola ${fb.clientName.split(' ')[0]}, lamentamos profundamente tu experiencia respecto a "${fb.comment}". En L'Studio Ana nos importa tu satisfacción; nos encantaría invitarte a un protocolo especial de cuidado en tu próxima cita para compensarte.`;
-                                setDetractorReplies(prev => ({ ...prev, [fb.id]: generated }));
-                              }}
-                              style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}
-                            >
-                              ⚡ Generar Respuesta IA
-                            </button>
-                          </div>
-                          <textarea 
-                            value={currentReply} 
-                            onChange={(e) => setDetractorReplies(prev => ({ ...prev, [fb.id]: e.target.value }))} 
-                            rows={3} 
-                            placeholder="Escribe tu respuesta personalizada aquí..."
-                            style={{ backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', padding: '8px', fontSize: '11px', resize: 'vertical' }} 
-                          />
-                          <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                            <a 
-                              href={`https://wa.me/?text=${encodeURIComponent(currentReply)}`} 
-                              target="_blank" 
-                              rel="noreferrer" 
-                              style={{ backgroundColor: '#25D366', color: '#000', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}
-                            >
-                              💬 Enviar por WhatsApp
-                            </a>
-                            <button 
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(currentReply);
-                                alert('¡Respuesta copiada al portapapeletas!');
-                              }}
-                              style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
-                            >
-                              📋 Copiar Respuesta
-                            </button>
-                          </div>
-                        </div>
-
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '5px' }}>
-                          <button onClick={() => setFeedbackList(feedbackList.filter(item => item.id !== fb.id))} style={{ backgroundColor: '#222', border: '1px solid #444', color: '#aaa', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>
-                            Resolver e Incidencia Cerrada
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })
-                )}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '5px' }}>
+                <button 
+                  onClick={() => setFeedbackList(feedbackList.filter(item => item.id !== fb.id))} 
+                  style={{ backgroundColor: '#222', border: '1px solid #444', color: '#aaa', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}
+                >
+                  Resolver e Incidencia Cerrada
+                </button>
               </div>
             </div>
-          )}
+          );
+        })
+      )}
+    </div>
+  </div>
+)}
 
           {/* TAB 6: CRM & KPIS */}
           {adminTab === 'crm' && (
