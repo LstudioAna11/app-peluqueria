@@ -583,6 +583,7 @@ export default function App() {
   const [adminError, setAdminError] = useState<boolean>(false);
   const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'holidays'>('agenda');
   const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule'>('marca');
+  const [catalogSavedMsg, setCatalogSavedMsg] = useState<string | null>(null);
 
   // ESTADOS PARA CONTROL LATERAL DE AGENDA & GOOGLE CALENDAR
   const [enableOutOfHours, setEnableOutOfHours] = useState<boolean>(true);
@@ -606,6 +607,12 @@ export default function App() {
     const saved = localStorage.getItem('lst_master_catalog');
     return saved ? JSON.parse(saved) : INITIAL_CATALOG;
   });
+
+  const handleSaveCatalogMaster = () => {
+    localStorage.setItem('lst_master_catalog', JSON.stringify(catalog));
+    setCatalogSavedMsg('¡Catálogo y textos guardados y sincronizados con éxito con el portal!');
+    setTimeout(() => setCatalogSavedMsg(null), 3500);
+  };
 
   const [holidaysList, setHolidaysList] = useState<HolidayBlock[]>(() => {
     const saved = localStorage.getItem('lst_holidays_list');
@@ -649,8 +656,6 @@ export default function App() {
   });
 
   const [crmPeriod, setCrmPeriod] = useState<'hoy' | '7d' | '30d' | 'personalizado'>('7d');
-  const [crmFilterService, setCrmFilterService] = useState<string>('todos');
-  const [crmFilterReason, setCrmFilterReason] = useState<string>('todos');
 
   const [lostDemandsList, setLostDemandsList] = useState<LostDemandRecord[]>(() => {
     const saved = localStorage.getItem('lst_lost_demands_detailed');
@@ -770,7 +775,6 @@ export default function App() {
     localStorage.setItem('lst_studio_clientes_ids', JSON.stringify(listaClientes));
   }, [listaClientes]);
 
-  // Mantener actualizado el currentClientRecord si cambia la base de datos de clientes
   useEffect(() => {
     if (currentClientRecord) {
       const updated = listaClientes.find(c => c.idNum === currentClientRecord.idNum);
@@ -914,10 +918,6 @@ export default function App() {
       setShowInstallBanner(true);
     }
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem('lst_master_catalog', JSON.stringify(catalog));
-  }, [catalog]);
 
   useEffect(() => {
     localStorage.setItem('lst_business_config', JSON.stringify(bizConfig));
@@ -1776,7 +1776,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 2.3. PASAPORTE DE EXPERIENCIAS DE AUTOR (VISTA CLIENTE - SIN FÓRMULAS INTERNAS, SINCRONIZADO) */}
+      {/* 2.3. PASAPORTE DE EXPERIENCIAS DE AUTOR */}
       {currentScreen === 'clientHistoryPage' && (
         <div style={{ maxWidth: '700px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
@@ -1790,7 +1790,6 @@ export default function App() {
             </button>
           </div>
 
-          {/* Línea de tiempo / Historial limpio */}
           <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0 }}>{t('myHistoryTitle')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
@@ -1814,7 +1813,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Bloques de DNI Capilar y Mantenimiento sincronizados con la Intranet */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '14px' }}>
               <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>{t('hairDni')}</div>
@@ -1832,7 +1830,6 @@ export default function App() {
             </div>
           )}
 
-          {/* Apartado para que la clienta vea su próxima visita sugerida */}
           <form onSubmit={handleGuardarCambiosFichaClienta} style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0, borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '8px' }}>
               Próxima Visita Sugerida
@@ -1854,7 +1851,6 @@ export default function App() {
             </div>
           </form>
 
-          {/* Asistente IA de Visagismo */}
           <div style={{ backgroundColor: '#161616', border: '1px solid #d4af37', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0 }}>{t('aiAssistant')}</h3>
             <form onSubmit={handleRunAiRecommendation} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -2181,13 +2177,26 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 3: CATÁLOGO */}
+          {/* TAB 3: CATÁLOGO CON BOTÓN DE GUARDADO MANUAL EXplícito */}
           {adminTab === 'catalog' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>Gestión de Catálogo y Activación de Variantes (M, L, XL)</h3>
-                <button onClick={() => setIsAddingCategory(true)} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>+ Nueva Categoría</button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                <div>
+                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Gestión de Catálogo & Textos de Servicios</h3>
+                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Modifica precios, títulos, variantes y descripciones. Pulsa el botón de abajo para guardar todo.</p>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <button onClick={() => setIsAddingCategory(true)} style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>+ Nueva Categoría</button>
+                  <button onClick={handleSaveCatalogMaster} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 0 10px rgba(212,175,55,0.4)' }}>💾 Guardar Catálogo Completo</button>
+                </div>
               </div>
+
+              {catalogSavedMsg && (
+                <div style={{ padding: '12px', backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', borderRadius: '8px', fontSize: '12px', textAlign: 'center', fontWeight: 'bold' }}>
+                  {catalogSavedMsg}
+                </div>
+              )}
+
               {isAddingCategory && (
                 <form onSubmit={handleAddCategorySubmit} style={{ backgroundColor: '#181818', border: '1px solid #d4af37', borderRadius: '8px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0 }}>Añadir Categoría Principal</h4>
@@ -2227,17 +2236,27 @@ export default function App() {
                             return (
                               <div key={sub.id} style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                                  <div style={{ flex: 1 }}>
-                                    <span style={{ color: '#fff', fontWeight: 'bold', fontSize: '12px' }}>{sub.name}</span>
-                                    <span style={{ color: '#888', fontSize: '11px', marginLeft: '10px' }}>({sub.duration} - {sub.price})</span>
+                                  <div style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                    <input type="text" value={sub.name} onChange={(e) => {
+                                      const updatedName = e.target.value;
+                                      setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, name: updatedName } : s) } : c));
+                                    }} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', flex: 1 }} />
+                                    <input type="text" value={sub.price} onChange={(e) => {
+                                      const updatedPrice = e.target.value;
+                                      setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, price: updatedPrice } : s) } : c));
+                                    }} style={{ backgroundColor: '#121212', border: '1px solid #d4af37', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', width: '100px' }} />
+                                    <input type="text" value={sub.duration} onChange={(e) => {
+                                      const updatedDur = e.target.value;
+                                      setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, duration: updatedDur } : s) } : c));
+                                    }} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#aaa', padding: '4px 8px', borderRadius: '4px', fontSize: '11px', width: '80px' }} />
                                   </div>
                                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                     <label style={{ color: '#d4af37', fontSize: '11px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                                       <input type="checkbox" checked={!!sub.hasVariants} onChange={() => handleToggleVariants(cat.id, sub.id)} style={{ accentColor: '#d4af37' }} />
-                                      Activar Variantes (M, L, XL)
+                                      Variantes M/L/XL
                                     </label>
                                     <button onClick={() => setExpandedSubDetails({ ...expandedSubDetails, [`admin_${sub.id}`]: !isExpandedAdmin })} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', fontSize: '10px', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer' }}>
-                                      {isExpandedAdmin ? 'Ocultar info' : 'Ver info ▼'}
+                                      {isExpandedAdmin ? 'Ocultar textos' : 'Editar textos ▼'}
                                     </button>
                                     <button onClick={() => handleDeleteSubservice(cat.id, sub.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontSize: '11px' }}>X</button>
                                   </div>
@@ -2262,10 +2281,28 @@ export default function App() {
                                   </div>
                                 )}
                                 {isExpandedAdmin && (
-                                  <div style={{ backgroundColor: '#141414', padding: '8px', borderRadius: '4px', fontSize: '10px', color: '#ccc', display: 'flex', flexDirection: 'column', gap: '3px', borderLeft: '2px solid #d4af37', marginTop: '4px' }}>
-                                    <div><strong style={{ color: '#d4af37' }}>Descripción:</strong> {sub.description}</div>
-                                    {sub.includesText && <div><strong style={{ color: '#d4af37' }}>Incluye:</strong> {sub.includesText}</div>}
-                                    {sub.achievedText && <div><strong style={{ color: '#d4af37' }}>Se consigue:</strong> {sub.achievedText}</div>}
+                                  <div style={{ backgroundColor: '#141414', padding: '10px', borderRadius: '6px', fontSize: '11px', color: '#ccc', display: 'flex', flexDirection: 'column', gap: '6px', borderLeft: '2px solid #d4af37', marginTop: '4px' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                      <label style={{ color: '#d4af37', fontSize: '10px' }}>Descripción:</label>
+                                      <textarea value={sub.description} onChange={(e) => {
+                                        const val = e.target.value;
+                                        setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, description: val } : s) } : c));
+                                      }} rows={2} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '6px', borderRadius: '4px', fontSize: '11px' }} />
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                      <label style={{ color: '#d4af37', fontSize: '10px' }}>Qué incluye:</label>
+                                      <input type="text" value={sub.includesText || ''} onChange={(e) => {
+                                        const val = e.target.value;
+                                        setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, includesText: val } : s) } : c));
+                                      }} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '6px', borderRadius: '4px', fontSize: '11px' }} />
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                      <label style={{ color: '#d4af37', fontSize: '10px' }}>Qué se consigue:</label>
+                                      <input type="text" value={sub.achievedText || ''} onChange={(e) => {
+                                        const val = e.target.value;
+                                        setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, achievedText: val } : s) } : c));
+                                      }} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '6px', borderRadius: '4px', fontSize: '11px' }} />
+                                    </div>
                                   </div>
                                 )}
                               </div>
@@ -2304,10 +2341,14 @@ export default function App() {
                   );
                 })}
               </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+                <button onClick={handleSaveCatalogMaster} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px 24px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 0 10px rgba(212,175,55,0.4)' }}>💾 Guardar Catálogo Completo</button>
+              </div>
             </div>
           )}
 
-          {/* TAB 4: CLIENTES & ADN CAPILAR (SINCRONIZADO CON PASAPORTE) */}
+          {/* TAB 4: CLIENTES & ADN CAPILAR */}
           {adminTab === 'clients' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
