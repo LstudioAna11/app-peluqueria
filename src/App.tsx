@@ -26,6 +26,7 @@ interface BusinessConfig {
   bizumNumber: string;
   depositAmount: string;
   saturdayNoticeMessage: string;
+  whatsappTemplate: string;
 }
 
 const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
@@ -50,7 +51,8 @@ const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
   slotIntervalMinutes: 15,
   bizumNumber: "672163485",
   depositAmount: "30 €",
-  saturdayNoticeMessage: "SÁBADOS: El Studio abrirá los sábados únicamente para atender servicios de larga duración y eventos agendados con antelación bajo demanda de Ana."
+  saturdayNoticeMessage: "SÁBADOS: El Studio abrirá los sábados únicamente para atender servicios de larga duración y eventos agendados con antelación bajo demanda de Ana.",
+  whatsappTemplate: "Hola {nombre}. Te recordamos tu cita en L’Studio Ana el {fecha} a las {hora}. ¡Te esperamos en el Studio!"
 };
 
 // ======
@@ -156,106 +158,6 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     tabMailbox: "⚠️ Mailbox",
     tabCrm: "CRM & KPIs",
     tabHolidays: "🏖️ Holidays & Closures"
-  },
-  de: {
-    subtitle: "PRIVATES KUNDENPORTAL",
-    enterPin: "Geben Sie Ihre PIN ein",
-    logout: "Abmelden",
-    catalog: "Katalog & Buchen",
-    history: "Mein Pass & Verlauf",
-    adminIntranet: "HAUPT-INTRANET",
-    backToPortal: "Zurück zum Portal",
-    nextAppt: "Nächster Termin",
-    salonHours: "Salonöffnungszeiten:",
-    leaveReview: "Hinterlassen Sie Ihre Bewertung & Google-Rezension",
-    sendReview: "Bewertung senden",
-    selectServices: "1. Wählen Sie Ihre gewünschten Services:",
-    selectDate: "2. Wählen Sie Datum & Uhrzeit:",
-    openVisualAgenda: "Interaktive visuelle Agenda öffnen",
-    myHistoryTitle: "Mein Signatur-Erlebnispass",
-    hairDni: "Aktive Haaranalyse",
-    homeMaintenance: "Heimpflege",
-    aiAssistant: "Visagismus & Empfehlungs-KI-Assistent",
-    consultAi: "Mit KI beraten",
-    firstTimeRegister: "Das erste Mal hier? Hier registrieren",
-    installApp: "App installieren",
-    installDesc: "Zum Startbildschirm hinzufügen.",
-    clientRegistrationTitle: "Neukundenregistrierung",
-    clientRegistrationDesc: "Geben Sie Ihre Daten ein. Sie werden mit Ihrer E-Mail registriert.",
-    nameLabel: "Name *",
-    surnamesLabel: "Nachname",
-    birthDateLabel: "Geburtsdatum",
-    phoneLabel: "Handynummer",
-    emailLabel: "E-Mail (Ihre eindeutige Kennung) *",
-    pinLabel: "Zugangs-PIN wählen (4 Ziffern) *",
-    completeRegisterBtn: "Registrierung abschließen",
-    backToPin: "Bereits registriert, zurück zur PIN",
-    callSalon: "Salon anrufen",
-    whatsapp: "WhatsApp",
-    manageAppointment: "Termin verwalten",
-    changeTime: "Zeit ändern",
-    servicesSelectionTitle: "SERVICE- & VARIANTENAUSWAHL",
-    selectVariantTitle: "Variante wählen:",
-    activeHairId: "Aktives Haar-ID",
-    adminMasterTitle: "L'STUDIO - HAUPTPORTAL (INTRANET)",
-    adminSubtitle: "In Echtzeit synchronisiert",
-    tabMasterAgenda: "Hauptagenda",
-    tabConfig: "Konfiguration",
-    tabCatalog: "Katalog",
-    tabClients: "Kunden",
-    tabMailbox: "⚠️ Postfach",
-    tabCrm: "CRM & KPIs",
-    tabHolidays: "🏖️ Urlaub & Feiertage"
-  },
-  fr: {
-    subtitle: "PORTAIL CLIENT PRIVÉ",
-    enterPin: "Entrez votre PIN d'accès",
-    logout: "Déconnexion",
-    catalog: "Catalogue & Réserver",
-    history: "Mon Passeport & Historique",
-    adminIntranet: "INTRANET MAÎTRE",
-    backToPortal: "Retour au portail",
-    nextAppt: "Prochain Rendez-vous",
-    salonHours: "Horaires du Salon :",
-    leaveReview: "Laissez votre avis & Note Google",
-    sendReview: "Envoyer l'avis",
-    selectServices: "1. Sélectionnez vos services souhaités :",
-    selectDate: "2. Sélectionnez la date et l'heure :",
-    openVisualAgenda: "Ouvrir l'agenda visuel interactif",
-    myHistoryTitle: "Mon Passeport d'Expérience Signature",
-    hairDni: "ID Capillaire Actif",
-    homeMaintenance: "Entretien à Domicile",
-    aiAssistant: "Assistant IA Visagisme & Recommandation",
-    consultAi: "Consulter l'IA",
-    firstTimeRegister: "Première visite ? Inscrivez-vous ici",
-    installApp: "Installer l'App",
-    installDesc: "Ajouter à l'écran d'accueil.",
-    clientRegistrationTitle: "Enregistrement Nouvelle Cliente",
-    clientRegistrationDesc: "Entrez vos coordonnées. Vous serez enregistrée avec votre e-mail.",
-    nameLabel: "Prénom *",
-    surnamesLabel: "Nom",
-    birthDateLabel: "Date de Naissance",
-    phoneLabel: "Téléphone portable",
-    emailLabel: "E-mail (Identifiant unique) *",
-    pinLabel: "Choisissez votre PIN (4 chiffres) *",
-    completeRegisterBtn: "Terminer l'inscription et accéder",
-    backToPin: "Déjà inscrite, retour au PIN",
-    callSalon: "Appeler le salon",
-    whatsapp: "WhatsApp",
-    manageAppointment: "Gérer le rendez-vous",
-    changeTime: "Modifier l'heure",
-    servicesSelectionTitle: "SÉLECTION DE SERVICES & VARIANTES",
-    selectVariantTitle: "Sélectionnez la variante :",
-    activeHairId: "ID Capillaire Actif",
-    adminMasterTitle: "L'STUDIO - PORTAL MAÎTRE (INTRANET)",
-    adminSubtitle: "Synchronisé en temps réel",
-    tabMasterAgenda: "Agenda Maître",
-    tabConfig: "Configuration",
-    tabCatalog: "Catalogue",
-    tabClients: "Clientes",
-    tabMailbox: "⚠️ Boîte de réception",
-    tabCrm: "CRM & KPIs",
-    tabHolidays: "🏖️ Vacances & Fériés"
   }
 };
 
@@ -621,6 +523,7 @@ export default function App() {
     setTempConfig(bizConfig);
   }, [bizConfig]);
 
+  // CATÁLOGO UNIFICADO Y SINCRONIZADO EN TIEMPO REAL
   const [catalog, setCatalog] = useState<CatalogCategory[]>(() => {
     const saved = localStorage.getItem('lst_master_catalog');
     return saved ? JSON.parse(saved) : INITIAL_CATALOG;
@@ -628,7 +531,7 @@ export default function App() {
 
   const handleSaveCatalogMaster = () => {
     localStorage.setItem('lst_master_catalog', JSON.stringify(catalog));
-    setCatalogSavedMsg('¡Catálogo, avisos y descripciones guardados y sincronizados con éxito!');
+    setCatalogSavedMsg('¡Catálogo, avisos y descripciones guardados y sincronizados con éxito con el portal de clientas!');
     setTimeout(() => setCatalogSavedMsg(null), 3500);
   };
 
@@ -1060,6 +963,15 @@ export default function App() {
     setIsModalOpen(true);
   };
 
+  // GENERADOR DE MENSAJE DE WHATSAPP PERSONALIZADO CON PLANTILLA
+  const generateWhatsAppMessage = (clientName: string, dateStr: string, timeStr: string) => {
+    const template = bizConfig.whatsappTemplate || "Hola {nombre}. Te recordamos tu cita en L’Studio Ana el {fecha} a las {hora}. ¡Te esperamos en el Studio!";
+    return template
+      .replace(/{nombre}/g, clientName)
+      .replace(/{fecha}/g, dateStr)
+      .replace(/{hora}/g, timeStr);
+  };
+
   const handleSaveModalAppointment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!modalClientName.trim()) return;
@@ -1079,6 +991,7 @@ export default function App() {
       if (durMatch) durationMin = parseInt(durMatch[0], 10);
     }
     const varText = modalSelectedVariant ? `(${modalSelectedVariant.name} - ${modalSelectedVariant.price})` : "";
+    const dateFormattedStr = `${String(targetDateObj.getDate()).padStart(2, '0')}/${String(targetDateObj.getMonth() + 1).padStart(2, '0')}/${targetDateObj.getFullYear()}`;
     const newApp: Appointment = {
       id: Date.now().toString(),
       dateKey: formatDateKey(targetDateObj),
@@ -1095,7 +1008,13 @@ export default function App() {
     };
     setAppointments([...appointments, newApp]);
     setIsModalOpen(false);
-    window.alert(`¡Cita guardada para ${modalClientName}! Sincronizada con Google Calendar.`);
+
+    // AUTOMATIZACIÓN WHATSAPP AL GUARDAR DESDE INTRANET
+    const cleanPhone = (modalPhone || '600000000').replace(/\s+/g, "");
+    const customMsg = generateWhatsAppMessage(modalClientName, dateFormattedStr, targetTime);
+    window.open(`https://wa.me/34${cleanPhone}?text=${encodeURIComponent(customMsg)}`, '_blank');
+
+    window.alert(`¡Cita guardada para ${modalClientName}! Sincronizada con Google Calendar y WhatsApp listo para enviar.`);
   };
 
   const handleConfirmarCitaVisual = () => {
@@ -1129,14 +1048,19 @@ export default function App() {
         totalDurationMinutes += match ? parseInt(match[0], 10) : 45;
       }
     });
+
+    const clientNameStr = currentClientRecord ? `${currentClientRecord.nombre} ${currentClientRecord.apellidos}` : 'Clienta Web';
+    const clientPhoneStr = currentClientRecord?.telefono || '600000000';
+    const dateFormattedStr = `${String(bookingDate.getDate()).padStart(2, '0')}/${String(bookingDate.getMonth() + 1).padStart(2, '0')}/${bookingDate.getFullYear()}`;
+
     const newApp: Appointment = {
       id: Date.now().toString(),
       dateKey: dateKeyStr,
       dayName: dayNameStr,
       time: selectedVisualTime,
       durationMinutes: totalDurationMinutes || 45,
-      clientName: currentClientRecord ? `${currentClientRecord.nombre} ${currentClientRecord.apellidos}` : 'Clienta Web',
-      phone: currentClientRecord?.telefono || '600000000',
+      clientName: clientNameStr,
+      phone: clientPhoneStr,
       email: currentClientRecord?.email || 'cliente@gmail.com',
       serviceCategory: 'CATÁLOGO DE AUTOR ONLINE',
       serviceSubcategory: `RESERVADO ${subNames}`,
@@ -1147,6 +1071,12 @@ export default function App() {
     setBookingSuccessMsg(`¡Cita confirmada correctamente para el ${bookingDate.toLocaleDateString('es-ES')} a las ${selectedVisualTime}! Sincronizado con la intranet y Google Calendar.`);
     setSelectedServicesToBook([]);
     setCurrentScreen('catalogBooking');
+
+    // AUTOMATIZACIÓN WHATSAPP AL CONFIRMAR DESDE EL PORTAL DE CLIENTAS
+    const cleanPhone = clientPhoneStr.replace(/\s+/g, "");
+    const customMsg = generateWhatsAppMessage(clientNameStr, dateFormattedStr, selectedVisualTime);
+    window.open(`https://wa.me/34${cleanPhone}?text=${encodeURIComponent(customMsg)}`, '_blank');
+
     setTimeout(() => setBookingSuccessMsg(null), 5000);
   };
 
@@ -1406,8 +1336,6 @@ export default function App() {
         >
           <option value="es">🇪🇸 Español</option>
           <option value="en">🇬🇧 English</option>
-          <option value="de">🇩🇪 Deutsch</option>
-          <option value="fr">🇫🇷 Français</option>
         </select>
       </div>
 
@@ -1616,7 +1544,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 2.2. CATÁLOGO & RESERVA CON VARIANTES & AVISO MANUAL ACTIVABLE */}
+      {/* 2.2. CATÁLOGO & RESERVA SINCRONIZADO CON LA INTRANET */}
       {currentScreen === 'catalogBooking' && (
         <div style={{ maxWidth: '700px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
@@ -1635,7 +1563,7 @@ export default function App() {
           )}
           <div>
             <h1 style={{ fontSize: '16px', fontFamily: 'serif', color: '#fff', marginBottom: '4px' }}>{t('selectServices')}</h1>
-            <p style={{ color: '#888', fontSize: '10px', margin: 0 }}>Si el servicio cuenta con variantes, selecciona tu opción preferida.</p>
+            <p style={{ color: '#888', fontSize: '10px', margin: 0 }}>Catálogo sincronizado en tiempo real con la intranet de Ana.</p>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -2103,7 +2031,21 @@ export default function App() {
               )}
               {configSubTab === 'marca' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Gestor de Marca, Dirección y Teléfono</h3>
+                  <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Gestor de Marca, Dirección y Plantilla WhatsApp</h3>
+                  
+                  {/* NUEVA SECCIÓN: PLANTILLA WHATSAPP */}
+                  <div style={{ backgroundColor: '#161616', border: '1px solid #d4af37', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <span style={{ color: '#d4af37', fontSize: '13px', fontWeight: 'bold' }}>💬 Plantilla Personalizada de WhatsApp</span>
+                    <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Puedes editar el mensaje que se enviará automáticamente. Usa las etiquetas <code style={{ color: '#d4af37' }}>{'{nombre}'}</code>, <code style={{ color: '#d4af37' }}>{'{fecha}'}</code> y <code style={{ color: '#d4af37' }}>{'{hora}'}</code>.</p>
+                    <textarea 
+                      value={tempConfig.whatsappTemplate} 
+                      onChange={(e) => setTempConfig({ ...tempConfig, whatsappTemplate: e.target.value })} 
+                      onFocus={(e) => e.target.select()} 
+                      rows={3} 
+                      style={{ padding: '10px', backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} 
+                    />
+                  </div>
+
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 280px', gap: '15px', alignItems: 'stretch' }}>
                     <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
                       <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', alignSelf: 'flex-start' }}>Logotipo de la Marca</span>
@@ -2150,7 +2092,7 @@ export default function App() {
                       <textarea value={tempConfig.description} onChange={(e) => setTempConfig({ ...tempConfig, description: e.target.value })} onFocus={(e) => e.target.select()} rows={3} style={{ padding: '10px', backgroundColor: '#121212', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} />
                     </div>
                   </div>
-                  <button onClick={() => handleSaveSection('Cambios de Marca')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', textAlign: 'center' }}>
+                  <button onClick={() => handleSaveSection('Cambios de Marca y Plantilla WhatsApp')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '14px', borderRadius: '8px', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', textAlign: 'center' }}>
                     Guardar Cambios de Marca
                   </button>
                 </div>
@@ -2215,17 +2157,17 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 3: CATÁLOGO CON PESTAÑA / CHECKBOX DE AVISO MANUAL EN CADA SERVICIO */}
+          {/* TAB 3: CATÁLOGO UNIFICADO INTRANET / PORTAL */}
           {adminTab === 'catalog' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
-                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Gestión de Catálogo & Avisos Manuales por Servicio</h3>
-                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Marca la casilla de aviso en cualquier servicio para mostrarle una nota destacada a la clienta.</p>
+                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Gestión de Catálogo & Sincronización con Portal de Clientas</h3>
+                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Modifica servicios, precios o variantes. Al pulsar en guardar, se actualizará al instante en el portal web.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <button onClick={() => setIsAddingCategory(true)} style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>+ Nueva Categoría</button>
-                  <button onClick={handleSaveCatalogMaster} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 0 10px rgba(212,175,55,0.4)' }}>💾 Guardar Catálogo Completo</button>
+                  <button onClick={handleSaveCatalogMaster} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 0 10px rgba(212,175,55,0.4)' }}>💾 Guardar & Sincronizar Catálogo</button>
                 </div>
               </div>
 
@@ -2414,7 +2356,7 @@ export default function App() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-                <button onClick={handleSaveCatalogMaster} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px 24px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 0 10px rgba(212,175,55,0.4)' }}>💾 Guardar Catálogo Completo</button>
+                <button onClick={handleSaveCatalogMaster} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px 24px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 0 10px rgba(212,175,55,0.4)' }}>💾 Guardar & Sincronizar Catálogo</button>
               </div>
             </div>
           )}
@@ -2793,15 +2735,15 @@ export default function App() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px', borderTop: '1px solid rgba(212,175,55,0.2)', paddingTop: '12px' }}>
               <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Enviar Recordatorio Rápido:</span>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <a href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, "")}?text=${encodeURIComponent(`Hola ${viewApptModal.clientName}, te recordamos tu cita en L'Studio Ana el próximo ${viewApptModal.dateKey} a las ${viewApptModal.time}. ¡Te esperamos!`)}`} target="_blank" rel="noreferrer" style={{ backgroundColor: '#25D366', color: '#000', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                <a href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, "")}?text=${encodeURIComponent(generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time))}`} target="_blank" rel="noreferrer" style={{ backgroundColor: '#25D366', color: '#000', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                   WhatsApp
                 </a>
                 <button type="button" onClick={() => {
-                  const textoEmail = `Hola ${viewApptModal.clientName},\n\nTe recordamos tu cita en L'Studio Ana para el día ${viewApptModal.dateKey} a las ${viewApptModal.time}.\n\nServicio: ${viewApptModal.serviceSubcategory}\n\n¡Gracias por confiar en nosotros!`;
+                  const textoEmail = generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time);
                   navigator.clipboard.writeText(textoEmail);
                   alert('¡Texto del recordatorio copiado al portapapeletas!');
                 }} style={{ backgroundColor: '#d4af37', color: '#000', padding: '10px', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold', textAlign: 'center', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                  Copiar Email
+                  Copiar Mensaje
                 </button>
               </div>
             </div>
