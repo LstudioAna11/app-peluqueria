@@ -298,6 +298,9 @@ interface SubService {
   priceType?: 'desde' | 'aprox' | 'fijo' | 'consultar';
   hasVariants?: boolean;
   variants?: ServiceVariant[];
+  // NUEVO: Propiedades para activar el aviso manual de autor en cada servicio
+  showAlertBadge?: boolean;
+  alertText?: string;
 }
 
 interface CatalogCategory {
@@ -370,7 +373,9 @@ const INITIAL_CATALOG: CatalogCategory[] = [
         bufferTime: '10 min prep',
         includesText: 'Escaneo capilar digital, test de porosidad y estudio de visagismo facial.',
         achievedText: 'Obtienes tu DNI capilar personalizado y la pauta exacta de cuidado y corte adaptada a tus facciones.',
-        priceType: 'desde'
+        priceType: 'desde',
+        showAlertBadge: false,
+        alertText: ''
       }
     ]
   },
@@ -389,7 +394,9 @@ const INITIAL_CATALOG: CatalogCategory[] = [
         bufferTime: '10 min prep',
         includesText: 'Lavado sensorial, asesoría de visagismo, corte técnico arquitectónico y acabado profesional.',
         achievedText: 'Un estilo único que realza tus facciones y facilita el mantenimiento diario en casa.',
-        priceType: 'desde'
+        priceType: 'desde',
+        showAlertBadge: false,
+        alertText: ''
       }
     ]
   },
@@ -408,7 +415,9 @@ const INITIAL_CATALOG: CatalogCategory[] = [
         bufferTime: '10 min prep',
         includesText: 'Lavado sensorial con champú orgánico, protector térmico y peinado pulido o de ondas de autor.',
         achievedText: 'Melena con brillo espejo, volumen controlado y duración prolongada.',
-        priceType: 'desde'
+        priceType: 'desde',
+        showAlertBadge: false,
+        alertText: ''
       }
     ]
   },
@@ -427,7 +436,9 @@ const INITIAL_CATALOG: CatalogCategory[] = [
         bufferTime: '10 min prep',
         includesText: 'Diagnóstico de color, aplicación de pigmentos de alta fidelidad, emulsión y lavado protector.',
         achievedText: 'Color vibrante, cobertura perfecta y respeto absoluto de la fibra capilar.',
-        priceType: 'desde'
+        priceType: 'desde',
+        showAlertBadge: true,
+        alertText: '⚠️ Recuerda añadir tu Brushing o Styling para asegurar el tiempo exacto en agenda.'
       }
     ]
   },
@@ -452,7 +463,9 @@ const INITIAL_CATALOG: CatalogCategory[] = [
           { id: 'v1', name: 'M', price: '244,00 €', duration: '150 min' },
           { id: 'v2', name: 'L', price: '274,00 €', duration: '180 min' },
           { id: 'v3', name: 'XL', price: '298,00 €', duration: '210 min' }
-        ]
+        ],
+        showAlertBadge: true,
+        alertText: '⚠️ Recuerda añadir tu Brushing o Styling para asegurar el tiempo exacto en agenda.'
       }
     ]
   },
@@ -471,7 +484,9 @@ const INITIAL_CATALOG: CatalogCategory[] = [
         bufferTime: '10 min prep',
         includesText: 'Baño purificante, infusión de principios activos Revivre y masaje relajante de absorción profunda.',
         achievedText: 'Recuperación de la elasticidad, cuerpo, nutrición y brillo extremo en cabellos castigados.',
-        priceType: 'desde'
+        priceType: 'desde',
+        showAlertBadge: false,
+        alertText: ''
       }
     ]
   },
@@ -490,7 +505,9 @@ const INITIAL_CATALOG: CatalogCategory[] = [
         bufferTime: '10 min prep',
         includesText: 'Preparación de la fibra, moldeado orgánico sin amoníaco y fijación con tratamiento de hidratación.',
         achievedText: 'Ondas elásticas, definidas y con movimiento natural sin encrespamiento.',
-        priceType: 'desde'
+        priceType: 'desde',
+        showAlertBadge: true,
+        alertText: '⚠️ Recuerda añadir tu Brushing o Styling para asegurar el tiempo exacto en agenda.'
       }
     ]
   },
@@ -509,7 +526,9 @@ const INITIAL_CATALOG: CatalogCategory[] = [
         bufferTime: '10 min prep',
         includesText: 'Lavado vigorizante, corte a tijera/máquina adaptado y acabado con productos de barbería de autor.',
         achievedText: 'Look pulcro, fácil mantenimiento y definición impecable.',
-        priceType: 'desde'
+        priceType: 'desde',
+        showAlertBadge: false,
+        alertText: ''
       }
     ]
   },
@@ -528,7 +547,9 @@ const INITIAL_CATALOG: CatalogCategory[] = [
         bufferTime: '10 min prep',
         includesText: 'Aplicación rápida de baño de brillo o matiz en lavacabezas con tiempo de exposición exprés.',
         achievedText: 'Revitalización instantánea del reflejo y sellado de cutícula para un brillo espejo.',
-        priceType: 'desde'
+        priceType: 'desde',
+        showAlertBadge: false,
+        alertText: ''
       }
     ]
   }
@@ -581,7 +602,7 @@ export default function App() {
   const [logoClicks, setLogoClicks] = useState<number>(0);
   const [adminPin, setAdminPin] = useState<string>("");
   const [adminError, setAdminError] = useState<boolean>(false);
-  const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'holidays'>('agenda');
+  const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'holidays'>('catalog');
   const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule'>('marca');
   const [catalogSavedMsg, setCatalogSavedMsg] = useState<string | null>(null);
 
@@ -610,7 +631,7 @@ export default function App() {
 
   const handleSaveCatalogMaster = () => {
     localStorage.setItem('lst_master_catalog', JSON.stringify(catalog));
-    setCatalogSavedMsg('¡Catálogo y textos guardados y sincronizados con éxito con el portal!');
+    setCatalogSavedMsg('¡Catálogo y avisos de servicios guardados y sincronizados con éxito con el portal!');
     setTimeout(() => setCatalogSavedMsg(null), 3500);
   };
 
@@ -646,6 +667,8 @@ export default function App() {
   const [newSubIncludes, setNewSubIncludes] = useState("");
   const [newSubAchieved, setNewSubAchieved] = useState("");
   const [newSubPriceType, setNewSubPriceType] = useState<'desde' | 'aprox' | 'fijo' | 'consultar'>('desde');
+  const [newSubAlertBadge, setNewSubAlertBadge] = useState<boolean>(false);
+  const [newSubAlertText, setNewSubAlertText] = useState<string>('⚠️ Recuerda añadir tu Brushing o Styling.');
   const [isAddingCategory, setIsAddingCategory] = useState<boolean>(false);
   const [newCatCode, setNewCatCode] = useState("");
   const [newCatTitle, setNewCatTitle] = useState("");
@@ -1270,7 +1293,9 @@ export default function App() {
       includesText: newSubIncludes || 'Lavado sensorial y aplicación técnica profesional.',
       achievedText: newSubAchieved || 'Resultado óptimo de autor con acabado duradero.',
       priceType: newSubPriceType,
-      hasVariants: false
+      hasVariants: false,
+      showAlertBadge: newSubAlertBadge,
+      alertText: newSubAlertText
     };
     setCatalog(catalog.map(cat => {
       if (cat.id === catId) {
@@ -1286,6 +1311,8 @@ export default function App() {
     setNewSubIncludes("");
     setNewSubAchieved("");
     setNewSubPriceType('desde');
+    setNewSubAlertBadge(false);
+    setNewSubAlertText('⚠️ Recuerda añadir tu Brushing o Styling.');
   };
 
   const handleDeleteSubservice = (catId: string, subId: string) => {
@@ -1593,7 +1620,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 2.2. CATÁLOGO & RESERVA CON VARIANTES */}
+      {/* 2.2. CATÁLOGO & RESERVA CON VARIANTES & AVISO MANUAL ACTIVABLE */}
       {currentScreen === 'catalogBooking' && (
         <div style={{ maxWidth: '700px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
@@ -1614,6 +1641,7 @@ export default function App() {
             <h1 style={{ fontSize: '16px', fontFamily: 'serif', color: '#fff', marginBottom: '4px' }}>{t('selectServices')}</h1>
             <p style={{ color: '#888', fontSize: '10px', margin: 0 }}>Si el servicio cuenta con variantes, selecciona tu opción preferida.</p>
           </div>
+
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {catalog.map((cat) => {
               const isCategoryExpanded = !!expandedCategories[cat.id];
@@ -1631,6 +1659,7 @@ export default function App() {
                         const existingSelection = selectedServicesToBook.find(s => s.sub.id === sub.id);
                         const isSelected = !!existingSelection;
                         const isExpanded = !!expandedSubDetails[sub.id];
+
                         return (
                           <div key={sub.id} style={{ backgroundColor: isSelected ? '#252012' : '#141414', border: isSelected ? '1px solid #d4af37' : '1px solid #333', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1661,6 +1690,15 @@ export default function App() {
                                 </div>
                               </div>
                             </div>
+
+                            {/* AVISO MANUAL CONFIGURADO DESDE LA INTRANET */}
+                            {sub.showAlertBadge && (
+                              <div style={{ backgroundColor: '#262010', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '6px', padding: '6px 10px', fontSize: '10px', color: '#d4af37', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <span>💡</span>
+                                <span>{sub.alertText || '⚠️ Recuerda añadir tu Brushing o Styling para asegurar el tiempo en agenda.'}</span>
+                              </div>
+                            )}
+
                             {sub.hasVariants && sub.variants && sub.variants.length > 0 && isSelected && (
                               <div style={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
                                 <span style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }}>{t('selectVariantTitle')}</span>
@@ -2177,13 +2215,13 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 3: CATÁLOGO CON BOTÓN DE GUARDADO MANUAL EXplícito */}
+          {/* TAB 3: CATÁLOGO CON PESTAÑA / CHECKBOX DE AVISO MANUAL EN CADA SERVICIO */}
           {adminTab === 'catalog' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
-                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Gestión de Catálogo & Textos de Servicios</h3>
-                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Modifica precios, títulos, variantes y descripciones. Pulsa el botón de abajo para guardar todo.</p>
+                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Gestión de Catálogo & Avisos Manuales por Servicio</h3>
+                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Marca la casilla de aviso en cualquier servicio para mostrarle una nota destacada a la clienta.</p>
                 </div>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   <button onClick={() => setIsAddingCategory(true)} style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>+ Nueva Categoría</button>
@@ -2256,11 +2294,29 @@ export default function App() {
                                       Variantes M/L/XL
                                     </label>
                                     <button onClick={() => setExpandedSubDetails({ ...expandedSubDetails, [`admin_${sub.id}`]: !isExpandedAdmin })} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', fontSize: '10px', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer' }}>
-                                      {isExpandedAdmin ? 'Ocultar textos' : 'Editar textos ▼'}
+                                      {isExpandedAdmin ? 'Ocultar ajustes' : 'Configurar Aviso & Textos ▼'}
                                     </button>
                                     <button onClick={() => handleDeleteSubservice(cat.id, sub.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontSize: '11px' }}>X</button>
                                   </div>
                                 </div>
+
+                                {/* BLOQUE CONFIGURACIÓN AVISO MANUAL DIRECTO */}
+                                <div style={{ backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    <input type="checkbox" checked={!!sub.showAlertBadge} onChange={(e) => {
+                                      const val = e.target.checked;
+                                      setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, showAlertBadge: val } : s) } : c));
+                                    }} style={{ accentColor: '#d4af37', width: '16px', height: '16px', cursor: 'pointer' }} />
+                                    <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>💡 Activar aviso/advertencia en este servicio</span>
+                                  </div>
+                                  {sub.showAlertBadge && (
+                                    <input type="text" value={sub.alertText || ''} onChange={(e) => {
+                                      const val = e.target.value;
+                                      setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, alertText: val } : s) } : c));
+                                    }} placeholder="Texto del aviso (ej. ⚠️ Recuerda añadir tu Brushing o Styling)" style={{ width: '100%', padding: '6px', backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', borderRadius: '4px', fontSize: '11px', boxSizing: 'border-box' }} />
+                                  )}
+                                </div>
+
                                 {sub.hasVariants && (
                                   <div style={{ backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
                                     <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Variantes configuradas:</span>
@@ -2325,8 +2381,15 @@ export default function App() {
                                 </select>
                                 <input type="text" placeholder="Precio (ej. 45 €)" value={newSubPrice} onChange={(e) => setNewSubPrice(e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '11px' }} />
                               </div>
-                              <input type="text" placeholder="Qué incluye el servicio..." value={newSubIncludes} onChange={(e) => setNewSubIncludes(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '11px' }} />
-                              <input type="text" placeholder="Qué se consigue con él..." value={newSubAchieved} onChange={(e) => setNewSubAchieved(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '11px' }} />
+                              <div style={{ backgroundColor: '#121212', border: '1px solid #333', padding: '8px', borderRadius: '4px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <input type="checkbox" checked={newSubAlertBadge} onChange={(e) => setNewSubAlertBadge(e.target.checked)} style={{ accentColor: '#d4af37' }} />
+                                  <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Activar aviso en este servicio</span>
+                                </div>
+                                {newSubAlertBadge && (
+                                  <input type="text" placeholder="Texto del aviso..." value={newSubAlertText} onChange={(e) => setNewSubAlertText(e.target.value)} style={{ padding: '6px', backgroundColor: '#181818', border: '1px solid #d4af37', color: '#fff', borderRadius: '4px', fontSize: '11px' }} />
+                                )}
+                              </div>
                               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '4px' }}>
                                 <button type="button" onClick={() => setIsAddingSub(null)} style={{ background: 'none', border: 'none', color: '#aaa', fontSize: '11px', cursor: 'pointer' }}>Cancelar</button>
                                 <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '4px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Añadir Subservicio</button>
