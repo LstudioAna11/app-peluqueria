@@ -298,7 +298,6 @@ interface SubService {
   priceType?: 'desde' | 'aprox' | 'fijo' | 'consultar';
   hasVariants?: boolean;
   variants?: ServiceVariant[];
-  // NUEVO: Propiedades para activar el aviso manual de autor en cada servicio
   showAlertBadge?: boolean;
   alertText?: string;
 }
@@ -408,7 +407,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
     subservices: [
       {
         id: 's3',
-        name: 'Brushing & Styling de Alta Gama',
+        name: 'Peinado & Styling de Alta Gama',
         description: 'Secado y acabado con ondas o pulido perfecto.',
         duration: '45 min',
         price: 'Desde 35 €',
@@ -438,7 +437,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
         achievedText: 'Color vibrante, cobertura perfecta y respeto absoluto de la fibra capilar.',
         priceType: 'desde',
         showAlertBadge: true,
-        alertText: '⚠️ Recuerda añadir tu Brushing o Styling para asegurar el tiempo exacto en agenda.'
+        alertText: '⚠️ Recuerda añadir tu peinado para asegurar el tiempo exacto en agenda.'
       }
     ]
   },
@@ -465,7 +464,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
           { id: 'v3', name: 'XL', price: '298,00 €', duration: '210 min' }
         ],
         showAlertBadge: true,
-        alertText: '⚠️ Recuerda añadir tu Brushing o Styling para asegurar el tiempo exacto en agenda.'
+        alertText: '⚠️ Recuerda añadir tu peinado para asegurar el tiempo exacto en agenda.'
       }
     ]
   },
@@ -507,7 +506,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
         achievedText: 'Ondas elásticas, definidas y con movimiento natural sin encrespamiento.',
         priceType: 'desde',
         showAlertBadge: true,
-        alertText: '⚠️ Recuerda añadir tu Brushing o Styling para asegurar el tiempo exacto en agenda.'
+        alertText: '⚠️ Recuerda añadir tu peinado para asegurar el tiempo exacto en agenda.'
       }
     ]
   },
@@ -571,7 +570,6 @@ const INITIAL_APPOINTMENTS: Appointment[] = [
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'clientPin' | 'clientRegistration' | 'clientPortal' | 'catalogBooking' | 'visualAgenda' | 'clientHistoryPage' | 'adminLogin' | 'adminPanel'>('clientPin');
   
-  // Selector de Idioma Global
   const [currentLang, setCurrentLang] = useState<string>('es');
   const t = (key: string) => TRANSLATIONS[currentLang]?.[key] || TRANSLATIONS['es'][key] || key;
 
@@ -606,7 +604,6 @@ export default function App() {
   const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule'>('marca');
   const [catalogSavedMsg, setCatalogSavedMsg] = useState<string | null>(null);
 
-  // ESTADOS PARA CONTROL LATERAL DE AGENDA & GOOGLE CALENDAR
   const [enableOutOfHours, setEnableOutOfHours] = useState<boolean>(true);
   const [enableDoubleBooking, setEnableDoubleBooking] = useState<boolean>(false);
   const [googleCalendarSyncActive, setGoogleCalendarSyncActive] = useState<boolean>(true);
@@ -631,7 +628,7 @@ export default function App() {
 
   const handleSaveCatalogMaster = () => {
     localStorage.setItem('lst_master_catalog', JSON.stringify(catalog));
-    setCatalogSavedMsg('¡Catálogo y avisos de servicios guardados y sincronizados con éxito con el portal!');
+    setCatalogSavedMsg('¡Catálogo, avisos y descripciones guardados y sincronizados con éxito!');
     setTimeout(() => setCatalogSavedMsg(null), 3500);
   };
 
@@ -668,7 +665,7 @@ export default function App() {
   const [newSubAchieved, setNewSubAchieved] = useState("");
   const [newSubPriceType, setNewSubPriceType] = useState<'desde' | 'aprox' | 'fijo' | 'consultar'>('desde');
   const [newSubAlertBadge, setNewSubAlertBadge] = useState<boolean>(false);
-  const [newSubAlertText, setNewSubAlertText] = useState<string>('⚠️ Recuerda añadir tu Brushing o Styling.');
+  const [newSubAlertText, setNewSubAlertText] = useState<string>('⚠️ Recuerda añadir tu peinado.');
   const [isAddingCategory, setIsAddingCategory] = useState<boolean>(false);
   const [newCatCode, setNewCatCode] = useState("");
   const [newCatTitle, setNewCatTitle] = useState("");
@@ -748,7 +745,6 @@ export default function App() {
     localStorage.setItem('lst_studio_appointments', JSON.stringify(appointments));
   }, [appointments]);
 
-  // BASE DE CLIENTES SINCRONIZADA EN LOCALSTORAGE
   const [listaClientes, setListaClientes] = useState<ClientRecord[]>(() => {
     const saved = localStorage.getItem('lst_studio_clientes_ids');
     return saved ? JSON.parse(saved) : [
@@ -1312,7 +1308,7 @@ export default function App() {
     setNewSubAchieved("");
     setNewSubPriceType('desde');
     setNewSubAlertBadge(false);
-    setNewSubAlertText('⚠️ Recuerda añadir tu Brushing o Styling.');
+    setNewSubAlertText('⚠️ Recuerda añadir tu peinado.');
   };
 
   const handleDeleteSubservice = (catId: string, subId: string) => {
@@ -1695,7 +1691,7 @@ export default function App() {
                             {sub.showAlertBadge && (
                               <div style={{ backgroundColor: '#262010', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '6px', padding: '6px 10px', fontSize: '10px', color: '#d4af37', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <span>💡</span>
-                                <span>{sub.alertText || '⚠️ Recuerda añadir tu Brushing o Styling para asegurar el tiempo en agenda.'}</span>
+                                <span>{sub.alertText || '⚠️ Recuerda añadir tu peinado para asegurar el tiempo en agenda.'}</span>
                               </div>
                             )}
 
@@ -2165,6 +2161,10 @@ export default function App() {
                     <label style={{ color: '#aaa', fontSize: '11px' }}>Nombre del Salón:</label>
                     <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig({ ...tempConfig, name: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>PIN Maestro de Administración (4 dígitos):</label>
+                    <input type="password" maxLength={4} value={tempConfig.masterPin} onChange={(e) => setTempConfig({ ...tempConfig, masterPin: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #d4af37', color: '#fff', borderRadius: '6px', fontSize: '14px', textAlign: 'center', letterSpacing: '4px' }} />
+                  </div>
                   <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0, fontFamily: 'serif' }}>Redes Sociales del Salón</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -2188,7 +2188,7 @@ export default function App() {
                     <label style={{ color: '#aaa', fontSize: '11px' }}>Enlace Reseñas Google My Business:</label>
                     <input type="text" value={tempConfig.googleReviewUrl} onChange={(e) => setTempConfig({ ...tempConfig, googleReviewUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#181818', border: '1px solid #333', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
-                  <button onClick={() => handleSaveSection('Datos Generales')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', marginTop: '10px' }}>Guardar Cambios Generales</button>
+                  <button onClick={() => handleSaveSection('Datos Generales & PIN Maestro')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', marginTop: '10px' }}>Guardar Cambios Generales</button>
                 </div>
               )}
               {configSubTab === 'schedule' && (
@@ -2313,7 +2313,7 @@ export default function App() {
                                     <input type="text" value={sub.alertText || ''} onChange={(e) => {
                                       const val = e.target.value;
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, alertText: val } : s) } : c));
-                                    }} placeholder="Texto del aviso (ej. ⚠️ Recuerda añadir tu Brushing o Styling)" style={{ width: '100%', padding: '6px', backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', borderRadius: '4px', fontSize: '11px', boxSizing: 'border-box' }} />
+                                    }} placeholder="Texto del aviso (ej. ⚠️ Recuerda añadir tu peinado)" style={{ width: '100%', padding: '6px', backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', borderRadius: '4px', fontSize: '11px', boxSizing: 'border-box' }} />
                                   )}
                                 </div>
 
@@ -2380,6 +2380,14 @@ export default function App() {
                                   <option value="consultar">Consultar</option>
                                 </select>
                                 <input type="text" placeholder="Precio (ej. 45 €)" value={newSubPrice} onChange={(e) => setNewSubPrice(e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '11px' }} />
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <label style={{ color: '#d4af37', fontSize: '10px' }}>Qué incluye:</label>
+                                <input type="text" placeholder="Ej. Lavado sensorial y protector térmico" value={newSubIncludes} onChange={(e) => setNewSubIncludes(e.target.value)} style={{ padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '11px' }} />
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                <label style={{ color: '#d4af37', fontSize: '10px' }}>Qué se consigue:</label>
+                                <input type="text" placeholder="Ej. Brillo extremo y duración prolongada" value={newSubAchieved} onChange={(e) => setNewSubAchieved(e.target.value)} style={{ padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '11px' }} />
                               </div>
                               <div style={{ backgroundColor: '#121212', border: '1px solid #333', padding: '8px', borderRadius: '4px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -2818,25 +2826,16 @@ export default function App() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Nueva Hora:</label>
               <select value={newRescheduleTime} onChange={(e) => setNewRescheduleTime(e.target.value)} style={{ padding: '8px', backgroundColor: '#1c1c1c', border: '1px solid #d4af37', color: '#fff', borderRadius: '6px', fontSize: '12px' }}>
-                {hoursList.map(h => (
-                  <option key={h} value={h}>{h}h</option>
-                ))}
+                {hoursList.map(h => (<option key={h} value={h}>{h}h</option>))}
               </select>
             </div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
-              <button type="button" onClick={() => setRescheduleModalAppt(null)} style={{ background: 'none', border: '1px solid #444', color: '#aaa', padding: '8px 14px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>Cancelar</button>
+              <button type="button" onClick={() => setRescheduleModalAppt(null)} style={{ background: 'none', border: '1px solid #444', color: '#aaa', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Cancelar</button>
               <button type="button" onClick={() => {
-                const dayNamesMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-                const parts = newRescheduleDate.split('-');
-                let dayNameStr = rescheduleModalAppt.dayName;
-                if (parts.length === 3) {
-                  const dObj = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
-                  dayNameStr = dayNamesMap[dObj.getDay()];
-                }
-                setAppointments(appointments.map(a => a.id === rescheduleModalAppt.id ? { ...a, dateKey: newRescheduleDate, dayName: dayNameStr, time: newRescheduleTime } : a));
+                setAppointments(appointments.map(a => a.id === rescheduleModalAppt.id ? { ...a, dateKey: newRescheduleDate, time: newRescheduleTime } : a));
                 setRescheduleModalAppt(null);
-                alert('¡Cita modificada de hora y fecha con éxito!');
-              }} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Guardar Cambio</button>
+                alert('¡Cita modificada con éxito!');
+              }} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Guardar Cambios</button>
             </div>
           </div>
         </div>
