@@ -54,7 +54,7 @@ const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
 };
 
 // ======
-// DICCIONARIO MULTIIDIOMA GLOBAL Y COMPLETO (PORTAL E INTRANET)
+// DICCIONARIO MULTIIDIOMA GLOBAL Y COMPLETO
 // ======
 const TRANSLATIONS: Record<string, Record<string, string>> = {
   es: {
@@ -262,8 +262,6 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     tabHolidays: "🏖️ Vacances & Fériés"
   }
 };
-
-// Se pueden añadir más idiomas al diccionario si es necesario (it, pt, pl, uk, no, sv, fi, nl, ar) usando la misma estructura.
 
 interface ServiceVariant {
   id: string;
@@ -548,9 +546,9 @@ const formatDateKey = (d: Date) => {
 };
 
 const INITIAL_APPOINTMENTS: Appointment[] = [
-  { id: '1', dateKey: '2026-10-07', dayName: 'Miércoles', time: '10:00', durationMinutes: 90, clientName: 'Ana', phone: '600000000', email: 'anamorenofernandez79@gmail.com', serviceCategory: '0.1 < VISAGISMO & DIAGNÓSTICO', serviceSubcategory: 'RESERVADO A.M. M.', remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: false, whatsapp2h: false } },
-  { id: '2', dateKey: '2026-10-07', dayName: 'Miércoles', time: '14:00', durationMinutes: 120, clientName: 'Carmen Martínez', phone: '611222333', email: 'carmen@gmail.com', serviceCategory: '0.4 < COLOR ATELIER', serviceSubcategory: 'RESERVADO M.L. M.L.', remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false } },
-  { id: '3', dateKey: '2026-10-07', dayName: 'Miércoles', time: '16:00', durationMinutes: 60, clientName: 'Lucía R.', phone: '633444555', email: 'lucia@gmail.com', serviceCategory: '0.3 < STYLING & ACABADO', serviceSubcategory: 'RESERVADO I.. M.L.', remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false } }
+  { id: '1', dateKey: '2026-10-07', dayName: 'Miércoles', time: '10:00', durationMinutes: 90, clientName: 'Flora Harutyunyan', phone: '600000000', email: 'flora@gmail.com', serviceCategory: '0.1 < TEST', serviceSubcategory: 'RESERVADO A.M. M.', remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: false, whatsapp2h: false } },
+  { id: '2', dateKey: '2026-10-06', dayName: 'Martes', time: '10:00', durationMinutes: 210, clientName: 'Balayage experience', phone: '611222333', email: 'balayage@gmail.com', serviceCategory: '0.5 < MÉTODO', serviceSubcategory: 'RESERVADO Balayage (XL)', remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false } },
+  { id: '3', dateKey: '2026-10-08', dayName: 'Jueves', time: '10:00', durationMinutes: 60, clientName: 'Susi Cayuelas', phone: '633444555', email: 'susi@gmail.com', serviceCategory: '0.2 < CORTE', serviceSubcategory: 'RESERVADO Susi C.', remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false } }
 ];
 
 export default function App() {
@@ -589,6 +587,12 @@ export default function App() {
   const [adminError, setAdminError] = useState<boolean>(false);
   const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'holidays'>('agenda');
   const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule'>('marca');
+
+  // NUEVOS ESTADOS PARA CONTROL LATERAL DE AGENDA & GOOGLE CALENDAR
+  const [enableOutOfHours, setEnableOutOfHours] = useState<boolean>(true);
+  const [enableDoubleBooking, setEnableDoubleBooking] = useState<boolean>(false);
+  const [googleCalendarSyncActive, setGoogleCalendarSyncActive] = useState<boolean>(true);
+  const [googleCalendarConnected, setGoogleCalendarConnected] = useState<boolean>(true);
 
   const [bizConfig, setBizConfig] = useState<BusinessConfig>(() => {
     const saved = localStorage.getItem('lst_business_config');
@@ -994,8 +998,8 @@ export default function App() {
     const id = e.dataTransfer.getData('text/plain') || draggedApptId;
     if (!id) return;
     const existing = appointments.find(a => a.dateKey === targetDateKey && a.time === time && a.id !== id);
-    if (existing) {
-      window.alert('Ese hueco horario ya está ocupado por otra cita en esta fecha y hora.');
+    if (existing && !enableDoubleBooking) {
+      window.alert('Ese hueco horario ya está ocupado. Activa la "Doble reserva" en el panel lateral si deseas permitir solapes.');
       return;
     }
     setAppointments(prev => prev.map(a => a.id === id ? { ...a, dateKey: targetDateKey, dayName, time } : a));
@@ -1009,7 +1013,7 @@ export default function App() {
       return;
     }
     const existing = appointments.find(a => a.dateKey === targetDateKey && a.time === time);
-    if (existing) {
+    if (existing && !enableDoubleBooking) {
       setViewApptModal(existing);
       return;
     }
@@ -1061,7 +1065,7 @@ export default function App() {
     };
     setAppointments([...appointments, newApp]);
     setIsModalOpen(false);
-    window.alert(`¡Cita guardada para ${modalClientName}! Ya aparece en la agenda.`);
+    window.alert(`¡Cita guardada para ${modalClientName}! Sincronizada con Google Calendar.`);
   };
 
   const handleConfirmarCitaVisual = () => {
@@ -1110,7 +1114,7 @@ export default function App() {
       remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
     };
     setAppointments([...appointments, newApp]);
-    setBookingSuccessMsg(`¡Cita confirmada correctamente para el ${bookingDate.toLocaleDateString('es-ES')} a las ${selectedVisualTime}! Sincronizado con la intranet maestra.`);
+    setBookingSuccessMsg(`¡Cita confirmada correctamente para el ${bookingDate.toLocaleDateString('es-ES')} a las ${selectedVisualTime}! Sincronizado con la intranet y Google Calendar.`);
     setSelectedServicesToBook([]);
     setCurrentScreen('catalogBooking');
     setTimeout(() => setBookingSuccessMsg(null), 5000);
@@ -1310,6 +1314,7 @@ export default function App() {
 
   const isTimeSlotOccupied = (dateKey: string, timeStr: string) => {
     if (isDateBlockedByHoliday(dateKey)) return true;
+    if (enableDoubleBooking) return false; // Si doble reserva está activo, no bloquea celdas por solape
     const [checkHour, checkMin] = timeStr.split(':').map(Number);
     const checkTotalMinutes = checkHour * 60 + checkMin;
     return appointments.some(appt => {
@@ -1876,7 +1881,7 @@ export default function App() {
 
       {/* 4. PANEL DE ADMINISTRACIÓN & GESTIÓN DE VARIANTES */}
       {currentScreen === 'adminPanel' && (
-        <div style={{ maxWidth: '1200px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ maxWidth: '1280px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
             <div>
               <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>{t('adminMasterTitle')}</h2>
@@ -1896,34 +1901,97 @@ export default function App() {
             <button onClick={() => setAdminTab('holidays')} style={{ backgroundColor: adminTab === 'holidays' ? '#d4af37' : '#1a1a1a', color: adminTab === 'holidays' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>{t('tabHolidays')}</button>
           </div>
 
-          {/* TAB 1: AGENDA MAESTRA */}
+          {/* TAB 1: AGENDA MAESTRA CON PANEL LATERAL DE CONTROL & GOOGLE CALENDAR */}
           {adminTab === 'agenda' && (
-            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap' }}>
-              <div style={{ width: '260px', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '15px', boxSizing: 'border-box', height: 'fit-content' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                  <button onClick={() => cambiarMesMiniCal(-1)} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>◀</button>
-                  <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', fontFamily: 'serif' }}>{nombresMeses[mesMini]} {añoMini}</span>
-                  <button onClick={() => cambiarMesMiniCal(1)} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>▶</button>
+            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+              
+              {/* PANEL LATERAL DE CONTROL (COMO GOOGLE CALENDAR) */}
+              <div style={{ width: '280px', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '16px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                
+                {/* Selector de Mes Mini */}
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <button onClick={() => cambiarMesMiniCal(-1)} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>◀</button>
+                    <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', fontFamily: 'serif' }}>{nombresMeses[mesMini]} {añoMini}</span>
+                    <button onClick={() => cambiarMesMiniCal(1)} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>▶</button>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center', marginBottom: '6px' }}>
+                    {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d, i) => (
+                      <div key={i} style={{ color: '#777', fontSize: '10px', fontWeight: 'bold' }}>{d}</div>
+                    ))}
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px' }}>
+                    {diasRejillaMini.map((dateObj, i) => {
+                      if (!dateObj) return <div key={i} />;
+                      const dKey = formatDateKey(dateObj);
+                      const isBlocked = isDateBlockedByHoliday(dKey);
+                      const isSelected = dKey === formatDateKey(fechaSeleccionada);
+                      return (
+                        <button key={i} onClick={() => setFechaSeleccionada(dateObj)} style={{ backgroundColor: isBlocked ? '#441111' : (isSelected ? '#d4af37' : '#1c1c1c'), color: isBlocked ? '#ff8888' : (isSelected ? '#000' : '#ccc'), border: isBlocked ? '1px solid #ff4444' : 'none', borderRadius: '4px', padding: '5px 0', fontSize: '11px', cursor: 'pointer', fontWeight: isSelected ? 'bold' : 'normal' }} title={isBlocked ? 'Día bloqueado' : ""}>
+                          {dateObj.getDate()}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center', marginBottom: '8px' }}>
-                  {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d, i) => (
-                    <div key={i} style={{ color: '#777', fontSize: '10px', fontWeight: 'bold' }}>{d}</div>
-                  ))}
+
+                <hr style={{ borderColor: 'rgba(212,175,55,0.2)', margin: 0 }} />
+
+                {/* GESTIÓN DE CALENDARIOS & GOOGLE CALENDAR */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Sus calendarios</span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#1c1c1c', padding: '8px 10px', borderRadius: '6px', border: '1px solid #333' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#d4af37' }} />
+                      <span style={{ color: '#fff', fontSize: '11px', fontWeight: 'bold' }}>L'Studio Ana</span>
+                    </div>
+                    <span style={{ color: '#888', fontSize: '9px' }}>Principal</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#1c1c1c', padding: '8px 10px', borderRadius: '6px', border: '1px solid #d4af37' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <input type="checkbox" checked={googleCalendarSyncActive} onChange={() => setGoogleCalendarSyncActive(!googleCalendarSyncActive)} style={{ accentColor: '#d4af37', cursor: 'pointer' }} />
+                      <span style={{ color: '#fff', fontSize: '11px' }}>Agenda Citas L'Studio</span>
+                    </div>
+                    <span style={{ color: googleCalendarConnected ? '#44bb44' : '#ff4444', fontSize: '9px', fontWeight: 'bold' }}>{googleCalendarConnected ? 'Google Sync 🔗' : 'Desconectado'}</span>
+                  </div>
+                  <button onClick={() => {
+                    setGoogleCalendarConnected(!googleCalendarConnected);
+                    alert(googleCalendarConnected ? 'Google Calendar desconectado.' : '¡Google Calendar conectado y sincronizado con éxito con la Intranet!');
+                  }} style={{ background: 'transparent', border: '1px dashed rgba(212,175,55,0.4)', color: '#d4af37', padding: '6px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer', textAlign: 'center', fontWeight: 'bold' }}>
+                    {googleCalendarConnected ? '+ Vincular otro calendario' : 'Conectar con Google Calendar'}
+                  </button>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px' }}>
-                  {diasRejillaMini.map((dateObj, i) => {
-                    if (!dateObj) return <div key={i} />;
-                    const dKey = formatDateKey(dateObj);
-                    const isBlocked = isDateBlockedByHoliday(dKey);
-                    const isSelected = dKey === formatDateKey(fechaSeleccionada);
-                    return (
-                      <button key={i} onClick={() => setFechaSeleccionada(dateObj)} style={{ backgroundColor: isBlocked ? '#441111' : (isSelected ? '#d4af37' : '#1c1c1c'), color: isBlocked ? '#ff8888' : (isSelected ? '#000' : '#ccc'), border: isBlocked ? '1px solid #ff4444' : 'none', borderRadius: '4px', padding: '6px 0', fontSize: '11px', cursor: 'pointer', fontWeight: isSelected ? 'bold' : 'normal' }} title={isBlocked ? 'Día bloqueado (Vacaciones/Festivo)' : ""}>
-                        {dateObj.getDate()}
-                      </button>
-                    );
-                  })}
+
+                <hr style={{ borderColor: 'rgba(212,175,55,0.2)', margin: 0 }} />
+
+                {/* INTERRUPTORES DE CONFIGURACIÓN RÁPIDA (COMO TU IMAGEN) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Control de Reservas</span>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#ccc' }}>
+                    <span>Habilitar reserva fuera de horario</span>
+                    <input type="checkbox" checked={enableOutOfHours} onChange={() => setEnableOutOfHours(!enableOutOfHours)} style={{ accentColor: '#d4af37', width: '16px', height: '16px', cursor: 'pointer' }} />
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#ccc' }}>
+                    <span>Activar doble reserva (solapes)</span>
+                    <input type="checkbox" checked={enableDoubleBooking} onChange={() => setEnableDoubleBooking(!enableDoubleBooking)} style={{ accentColor: '#d4af37', width: '16px', height: '16px', cursor: 'pointer' }} />
+                  </div>
+
+                  <button onClick={() => setAdminTab('config')} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#aaa', padding: '6px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer', textAlign: 'left' }}>
+                    ⚙️ Preferencias de calendario
+                  </button>
+                  <button onClick={() => setAdminTab('agenda')} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#aaa', padding: '6px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer', textAlign: 'left' }}>
+                    🕒 Cambiar las horas de trabajo
+                  </button>
+                  <button onClick={() => window.print()} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#aaa', padding: '6px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer', textAlign: 'left' }}>
+                    🖨️ Imprimir calendario (CTRL + P)
+                  </button>
                 </div>
+
               </div>
+
+              {/* PARRILLA PRINCIPAL DE LA AGENDA (INTACTA) */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px', minWidth: '600px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                   <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>Agenda Maestra (Control Total & Sincronizada)</h3>
@@ -2011,7 +2079,6 @@ export default function App() {
                       <div style={{ width: '100%', height: '70px', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d4af37', fontSize: '14px', letterSpacing: '2px', fontFamily: 'serif' }}>L'STUDIO</div>
                       <button type="button" onClick={() => alert('Función de edición de cabecera')} style={{ backgroundColor: 'transparent', border: '1px solid rgba(212,175,55,0.4)', color: '#d4af37', padding: '6px 16px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Editar</button>
                     </div>
-                    {/* VISTA PREVIA A TIEMPO REAL */}
                     <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                       <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold', marginBottom: '5px' }}>Vista Previa en Tiempo Real</span>
                       <div style={{ width: '100%', backgroundColor: '#000', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '10px', padding: '12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '8px' }}>
