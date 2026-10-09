@@ -38,7 +38,7 @@ const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
   scheduleTueWed: "10:00h a 18:00h",
   scheduleThuFri: "10:00h a 19:00h",
   scheduleSaturday: "10:00h a 19:00h",
-  welcomeMessage: "¡Bienvenida, Ana!",
+  welcomeMessage: "¡Bienvenida!",
   masterPin: "0000",
   instagramUrl: "https://instagram.com",
   facebookUrl: "https://facebook.com",
@@ -62,7 +62,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     enterPin: "Introduce tu PIN de acceso",
     logout: "Cerrar Sesión",
     catalog: "Catálogo & Reservar",
-    history: "Mi Historial & Fórmulas",
+    history: "Mi Pasaporte & Historial",
     adminIntranet: "INTRANET MAESTRA",
     backToPortal: "Volver al Portal",
     nextAppt: "Próxima Cita",
@@ -97,7 +97,6 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     servicesSelectionTitle: "SELECCIÓN DE SERVICIOS & VARIANTES",
     selectVariantTitle: "Selecciona variante:",
     activeHairId: "ID Capilar Activo",
-    saveFormulasAndDate: "Guardar Fórmulas y Fecha",
     adminMasterTitle: "L'STUDIO - PORTAL MAESTRO (INTRANET)",
     adminSubtitle: "Sincronizado en tiempo real",
     tabMasterAgenda: "Agenda Maestra",
@@ -113,7 +112,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     enterPin: "Enter your access PIN",
     logout: "Log out",
     catalog: "Catalog & Book",
-    history: "My History & Formulas",
+    history: "My Passport & History",
     adminIntranet: "MASTER INTRANET",
     backToPortal: "Back to Portal",
     nextAppt: "Next Appointment",
@@ -148,7 +147,6 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     servicesSelectionTitle: "SERVICES & VARIANTS SELECTION",
     selectVariantTitle: "Select variant:",
     activeHairId: "Active Hair ID",
-    saveFormulasAndDate: "Save Formulas & Date",
     adminMasterTitle: "L'STUDIO - MASTER PORTAL (INTRANET)",
     adminSubtitle: "Synchronized in real-time",
     tabMasterAgenda: "Master Agenda",
@@ -164,7 +162,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     enterPin: "Geben Sie Ihre PIN ein",
     logout: "Abmelden",
     catalog: "Katalog & Buchen",
-    history: "Mein Verlauf & Formeln",
+    history: "Mein Pass & Verlauf",
     adminIntranet: "HAUPT-INTRANET",
     backToPortal: "Zurück zum Portal",
     nextAppt: "Nächster Termin",
@@ -199,7 +197,6 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     servicesSelectionTitle: "SERVICE- & VARIANTENAUSWAHL",
     selectVariantTitle: "Variante wählen:",
     activeHairId: "Aktives Haar-ID",
-    saveFormulasAndDate: "Formeln & Datum speichern",
     adminMasterTitle: "L'STUDIO - HAUPTPORTAL (INTRANET)",
     adminSubtitle: "In Echtzeit synchronisiert",
     tabMasterAgenda: "Hauptagenda",
@@ -215,7 +212,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     enterPin: "Entrez votre PIN d'accès",
     logout: "Déconnexion",
     catalog: "Catalogue & Réserver",
-    history: "Mon Historique & Formules",
+    history: "Mon Passeport & Historique",
     adminIntranet: "INTRANET MAÎTRE",
     backToPortal: "Retour au portail",
     nextAppt: "Prochain Rendez-vous",
@@ -250,8 +247,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     servicesSelectionTitle: "SÉLECTION DE SERVICES & VARIANTES",
     selectVariantTitle: "Sélectionnez la variante :",
     activeHairId: "ID Capillaire Actif",
-    saveFormulasAndDate: "Enregistrer Formules & Date",
-    adminMasterTitle: "L'STUDIO - PORTAIL MAÎTRE (INTRANET)",
+    adminMasterTitle: "L'STUDIO - PORTAL MAÎTRE (INTRANET)",
     adminSubtitle: "Synchronisé en temps réel",
     tabMasterAgenda: "Agenda Maître",
     tabConfig: "Configuration",
@@ -588,7 +584,7 @@ export default function App() {
   const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'holidays'>('agenda');
   const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule'>('marca');
 
-  // NUEVOS ESTADOS PARA CONTROL LATERAL DE AGENDA & GOOGLE CALENDAR
+  // ESTADOS PARA CONTROL LATERAL DE AGENDA & GOOGLE CALENDAR
   const [enableOutOfHours, setEnableOutOfHours] = useState<boolean>(true);
   const [enableDoubleBooking, setEnableDoubleBooking] = useState<boolean>(false);
   const [googleCalendarSyncActive, setGoogleCalendarSyncActive] = useState<boolean>(true);
@@ -724,17 +720,18 @@ export default function App() {
     localStorage.setItem('lst_studio_appointments', JSON.stringify(appointments));
   }, [appointments]);
 
+  // BASE DE CLIENTES SINCRONIZADA EN LOCALSTORAGE
   const [listaClientes, setListaClientes] = useState<ClientRecord[]>(() => {
     const saved = localStorage.getItem('lst_studio_clientes_ids');
     return saved ? JSON.parse(saved) : [
       {
         idNum: 1,
         registroId: "LSTUDIO-001",
-        nombre: "Ana",
-        apellidos: "Moreno Fernández",
+        nombre: "María Dolores",
+        apellidos: "Navarro Sánchez",
         fechaNacimiento: "12/05/1988",
         telefono: "600000000",
-        email: "anamorenofernandez79@gmail.com",
+        email: "mariadolores@gmail.com",
         pinAcceso: "7009",
         diagnostico: "Balayage manteca / Cabello sensibilizado",
         ultimaVisita: "15/08/2026",
@@ -762,6 +759,9 @@ export default function App() {
   const [editAdminUltimaVisita, setEditAdminUltimaVisita] = useState("");
   const [editAdminProxima, setEditAdminProxima] = useState("");
   const [editAdminFormulas, setEditAdminFormulas] = useState("");
+  const [editAdminDniCapilar, setEditAdminDniCapilar] = useState("");
+  const [editAdminPrescripcionCasa, setEditAdminPrescripcionCasa] = useState("");
+  
   const [rescheduleModalAppt, setRescheduleModalAppt] = useState<Appointment | null>(null);
   const [newRescheduleTime, setNewRescheduleTime] = useState<string>('10:00');
   const [newRescheduleDate, setNewRescheduleDate] = useState<string>(formatDateKey(new Date()));
@@ -770,12 +770,17 @@ export default function App() {
     localStorage.setItem('lst_studio_clientes_ids', JSON.stringify(listaClientes));
   }, [listaClientes]);
 
+  // Mantener actualizado el currentClientRecord si cambia la base de datos de clientes
   useEffect(() => {
     if (currentClientRecord) {
-      setEditProximaVisita(currentClientRecord.proximaVisitaSugerida || "");
-      setEditFormulas(currentClientRecord.formulasAplicadas || "");
+      const updated = listaClientes.find(c => c.idNum === currentClientRecord.idNum);
+      if (updated) {
+        setCurrentClientRecord(updated);
+        setEditProximaVisita(updated.proximaVisitaSugerida || "");
+        setEditFormulas(updated.formulasAplicadas || "");
+      }
     }
-  }, [currentClientRecord]);
+  }, [listaClientes]);
 
   const handleGuardarCambiosFichaClienta = (e: React.FormEvent) => {
     e.preventDefault();
@@ -788,7 +793,7 @@ export default function App() {
     const nuevaLista = listaClientes.map(c => c.idNum === clienteActualizado.idNum ? clienteActualizado : c);
     setListaClientes(nuevaLista);
     setCurrentClientRecord(clienteActualizado);
-    setEditMsg('¡Ficha, fórmulas y fecha guardadas correctamente!');
+    setEditMsg('¡Fecha y datos guardados correctamente!');
     setTimeout(() => setEditMsg(null), 3000);
   };
 
@@ -799,7 +804,9 @@ export default function App() {
           ...c,
           ultimaVisita: editAdminUltimaVisita,
           proximaVisitaSugerida: editAdminProxima,
-          formulasAplicadas: editAdminFormulas
+          formulasAplicadas: editAdminFormulas,
+          dniCapilar: editAdminDniCapilar,
+          prescripcionCasa: editAdminPrescripcionCasa
         };
       }
       return c;
@@ -844,7 +851,9 @@ export default function App() {
       diagnostico: novoDiagnostico.trim() || 'Diagnóstico inicial pendiente',
       ultimaVisita: 'Nuevo registro',
       proximaVisitaSugerida: 'Pendiente de agendar',
-      formulasAplicadas: 'Sin fórmulas registradas'
+      formulasAplicadas: 'Sin fórmulas registradas',
+      dniCapilar: 'Porosidad: Pendiente | Hidratación: Pendiente',
+      prescripcionCasa: 'Pendiente de recomendación'
     };
     setListaClientes([...listaClientes, nuevoCliente]);
     setNovoNombre(""); setNovoApellidos(""); setNovoNacimiento(""); setNovoTelefono(""); setNovoEmail(""); setNovoPin(""); setNovoDiagnostico("");
@@ -868,7 +877,9 @@ export default function App() {
       diagnostico: 'Primera visita registrada desde app',
       ultimaVisita: 'Nuevo registro',
       proximaVisitaSugerida: 'Pendiente',
-      formulasAplicadas: 'Registro inicial completado'
+      formulasAplicadas: 'Registro inicial completado',
+      dniCapilar: 'Porosidad: Media | Hidratación: En estudio',
+      prescripcionCasa: 'Champú Orgánico & Cuidado Inicial'
     };
     setListaClientes([...listaClientes, nuevaClienta]);
     setCurrentClientRecord(nuevaClienta);
@@ -1314,7 +1325,7 @@ export default function App() {
 
   const isTimeSlotOccupied = (dateKey: string, timeStr: string) => {
     if (isDateBlockedByHoliday(dateKey)) return true;
-    if (enableDoubleBooking) return false; // Si doble reserva está activo, no bloquea celdas por solape
+    if (enableDoubleBooking) return false;
     const [checkHour, checkMin] = timeStr.split(':').map(Number);
     const checkTotalMinutes = checkHour * 60 + checkMin;
     return appointments.some(appt => {
@@ -1352,9 +1363,7 @@ export default function App() {
   return (
     <div style={{ backgroundColor: '#000000', color: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', margin: 0, padding: '20px', position: 'relative' }}>
       
-      {/* ========================================================= */}
-      {/* PESTAÑA DESPLEGABLE MULTIIDIOMA (ESQUINA SUPERIOR DERECHA) */}
-      {/* ========================================================= */}
+      {/* PESTAÑA DESPLEGABLE MULTIIDIOMA */}
       <div style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 1000 }}>
         <select 
           value={currentLang} 
@@ -1478,12 +1487,12 @@ export default function App() {
           <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
               <div>
-                <p style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0', fontWeight: 'bold' }}>{bizConfig.welcomeMessage}</p>
-                <p style={{ color: '#888', fontSize: '10px', margin: 0 }}>Email: {currentClientRecord?.email || 'anamorenofernandez79@gmail.com'} | ID: #{currentClientRecord?.idNum || '1'}</p>
+                <p style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0', fontWeight: 'bold' }}>¡Bienvenida, {currentClientRecord?.nombre || 'María Dolores'}!</p>
+                <p style={{ color: '#888', fontSize: '10px', margin: 0 }}>Email: {currentClientRecord?.email || 'mariadolores@gmail.com'} | ID: #{currentClientRecord?.idNum || '1'} ({currentClientRecord?.registroId || 'LSTUDIO-001'})</p>
                 <p style={{ color: '#aaa', fontSize: '10px', margin: '3px 0 0 0' }}>{bizConfig.location} | {bizConfig.phone}</p>
               </div>
               <button onClick={() => setCurrentScreen('clientHistoryPage')} style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '6px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}>
-                Editar Perfil
+                Ver Pasaporte
               </button>
             </div>
             <div style={{ display: 'flex', gap: '15px', fontSize: '11px', borderTop: '1px solid rgba(212,175,55,0.15)', paddingTop: '10px' }}>
@@ -1767,38 +1776,45 @@ export default function App() {
         </div>
       )}
 
-      {/* 2.3. HISTORIAL DE CLIENTE */}
+      {/* 2.3. PASAPORTE DE EXPERIENCIAS DE AUTOR (VISTA CLIENTE - SIN FÓRMULAS INTERNAS, SINCRONIZADO) */}
       {currentScreen === 'clientHistoryPage' && (
         <div style={{ maxWidth: '700px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '30px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
             <div>
-              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>Hola, {currentClientRecord?.nombre || 'Clienta'}</h2>
-              <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>ID #{currentClientRecord?.idNum || '1'} ({currentClientRecord?.registroId || 'LSTUDIO-001'}) - Ficha Personal y Fórmulas</p>
+              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>Hola, {currentClientRecord?.nombre || 'María Dolores'}</h2>
+              <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>ID #{currentClientRecord?.idNum || '1'} ({currentClientRecord?.registroId || 'LSTUDIO-001'}) - Pasaporte de Experiencias</p>
             </div>
             <button onClick={() => setCurrentScreen('clientPortal')} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
               {t('backToPortal')}
             </button>
           </div>
+
+          {/* Línea de tiempo / Historial limpio */}
           <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>{t('myHistoryTitle')}</h3>
+            <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0 }}>{t('myHistoryTitle')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
               {currentClientRecord?.pastVisits && currentClientRecord.pastVisits.length > 0 ? (
                 currentClientRecord.pastVisits.map((v, i) => (
-                  <div key={i} style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', fontSize: '11px', color: '#ccc', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <div><strong style={{ color: '#d4af37' }}>Visita:</strong> {v.date}</div>
-                    <div><strong style={{ color: '#d4af37' }}>Servicio:</strong> {v.service}</div>
+                  <div key={i} style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', fontSize: '11px', color: '#ccc', display: 'flex', flexDirection: 'column', gap: '4px', borderLeft: '3px solid #d4af37' }}>
+                    <div><strong style={{ color: '#d4af37' }}>Fecha:</strong> {v.date}</div>
+                    <div><strong style={{ color: '#d4af37' }}>Ritual / Servicio:</strong> {v.service}</div>
                     <div><strong style={{ color: '#d4af37' }}>Estilista:</strong> {v.stylist}</div>
                     <div><strong style={{ color: '#d4af37' }}>Notas de Estilo:</strong> {v.notes}</div>
                   </div>
                 ))
               ) : (
-                <div style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', fontSize: '11px', color: '#ccc', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', fontSize: '11px', color: '#ccc', display: 'flex', flexDirection: 'column', gap: '4px', borderLeft: '3px solid #d4af37' }}>
+                  <div><strong style={{ color: '#d4af37' }}>Fecha:</strong> 15 Septiembre, 2026</div>
+                  <div><strong style={{ color: '#d4af37' }}>Ritual / Servicio:</strong> Balayage & Melt & Lights</div>
                   <div><strong style={{ color: '#d4af37' }}>Estilista:</strong> Ana</div>
                   <div><strong style={{ color: '#d4af37' }}>Notas de Estilo:</strong> Matizado en tonos perla, corte capeado orgánico.</div>
                 </div>
               )}
             </div>
           </div>
+
+          {/* Bloques de DNI Capilar y Mantenimiento sincronizados con la Intranet */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '14px' }}>
               <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>{t('hairDni')}</div>
@@ -1809,14 +1825,17 @@ export default function App() {
               <div style={{ color: '#ccc', fontSize: '11px' }}>{currentClientRecord?.prescripcionCasa || 'Champú Hidratante | Acondicionador Sellador'}</div>
             </div>
           </div>
+
           {editMsg && (
             <div style={{ padding: '10px', backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }}>
               {editMsg}
             </div>
           )}
+
+          {/* Apartado para que la clienta vea su próxima visita sugerida */}
           <form onSubmit={handleGuardarCambiosFichaClienta} style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0, borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '8px' }}>
-              Fórmulas y Próxima Visita (Modo Manual)
+              Próxima Visita Sugerida
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -1824,20 +1843,17 @@ export default function App() {
                 <input type="text" value={currentClientRecord?.ultimaVisita || ""} disabled style={{ backgroundColor: '#121212', border: '1px solid #333', color: '#888', padding: '8px', borderRadius: '6px', fontSize: '11px' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Próxima Visita Sugerida:</label>
+                <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Próxima Visita:</label>
                 <input type="text" value={editProximaVisita} onChange={(e) => setEditProximaVisita(e.target.value)} onFocus={(e) => e.target.select()} placeholder="Ej. 15/10/2026" style={{ backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', padding: '8px', borderRadius: '6px', fontSize: '11px' }} />
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Fórmulas Aplicadas & Diagnóstico:</label>
-              <textarea value={editFormulas} onChange={(e) => setEditFormulas(e.target.value)} onFocus={(e) => e.target.select()} rows={2} placeholder="Introduce fórmulas..." style={{ backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', padding: '8px', borderRadius: '6px', fontSize: '11px', resize: 'none' }} />
-            </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 16px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
-                {t('saveFormulasAndDate')}
+                Guardar Fecha
               </button>
             </div>
           </form>
+
           {/* Asistente IA de Visagismo */}
           <div style={{ backgroundColor: '#161616', border: '1px solid #d4af37', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0 }}>{t('aiAssistant')}</h3>
@@ -1855,6 +1871,7 @@ export default function App() {
               </div>
             )}
           </div>
+
           <button onClick={() => setCurrentScreen('clientPortal')} style={{ width: '100%', backgroundColor: '#1a1a1a', border: '1px solid #444', color: '#ccc', padding: '12px', borderRadius: '10px', fontSize: '12px', cursor: 'pointer' }}>
             {t('backToPortal')}
           </button>
@@ -1879,7 +1896,7 @@ export default function App() {
         </div>
       )}
 
-      {/* 4. PANEL DE ADMINISTRACIÓN & GESTIÓN DE VARIANTES */}
+      {/* 4. PANEL DE ADMINISTRACIÓN */}
       {currentScreen === 'adminPanel' && (
         <div style={{ maxWidth: '1280px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
@@ -1901,14 +1918,10 @@ export default function App() {
             <button onClick={() => setAdminTab('holidays')} style={{ backgroundColor: adminTab === 'holidays' ? '#d4af37' : '#1a1a1a', color: adminTab === 'holidays' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '8px 14px', borderRadius: '8px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>{t('tabHolidays')}</button>
           </div>
 
-          {/* TAB 1: AGENDA MAESTRA CON PANEL LATERAL DE CONTROL & GOOGLE CALENDAR */}
+          {/* TAB 1: AGENDA MAESTRA */}
           {adminTab === 'agenda' && (
             <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-              
-              {/* PANEL LATERAL DE CONTROL (COMO GOOGLE CALENDAR) */}
               <div style={{ width: '280px', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '16px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                
-                {/* Selector de Mes Mini */}
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <button onClick={() => cambiarMesMiniCal(-1)} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>◀</button>
@@ -1927,7 +1940,7 @@ export default function App() {
                       const isBlocked = isDateBlockedByHoliday(dKey);
                       const isSelected = dKey === formatDateKey(fechaSeleccionada);
                       return (
-                        <button key={i} onClick={() => setFechaSeleccionada(dateObj)} style={{ backgroundColor: isBlocked ? '#441111' : (isSelected ? '#d4af37' : '#1c1c1c'), color: isBlocked ? '#ff8888' : (isSelected ? '#000' : '#ccc'), border: isBlocked ? '1px solid #ff4444' : 'none', borderRadius: '4px', padding: '5px 0', fontSize: '11px', cursor: 'pointer', fontWeight: isSelected ? 'bold' : 'normal' }} title={isBlocked ? 'Día bloqueado' : ""}>
+                        <button key={i} onClick={() => setFechaSeleccionada(dateObj)} style={{ backgroundColor: isBlocked ? '#441111' : (isSelected ? '#d4af37' : '#1c1c1c'), color: isBlocked ? '#ff8888' : (isSelected ? '#000' : '#ccc'), border: isBlocked ? '1px solid #ff4444' : 'none', borderRadius: '4px', padding: '5px 0', fontSize: '11px', cursor: 'pointer', fontWeight: isSelected ? 'bold' : 'normal' }}>
                           {dateObj.getDate()}
                         </button>
                       );
@@ -1937,7 +1950,6 @@ export default function App() {
 
                 <hr style={{ borderColor: 'rgba(212,175,55,0.2)', margin: 0 }} />
 
-                {/* GESTIÓN DE CALENDARIOS & GOOGLE CALENDAR */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Sus calendarios</span>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#1c1c1c', padding: '8px 10px', borderRadius: '6px', border: '1px solid #333' }}>
@@ -1964,20 +1976,16 @@ export default function App() {
 
                 <hr style={{ borderColor: 'rgba(212,175,55,0.2)', margin: 0 }} />
 
-                {/* INTERRUPTORES DE CONFIGURACIÓN RÁPIDA (COMO TU IMAGEN) */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Control de Reservas</span>
-                  
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#ccc' }}>
                     <span>Habilitar reserva fuera de horario</span>
                     <input type="checkbox" checked={enableOutOfHours} onChange={() => setEnableOutOfHours(!enableOutOfHours)} style={{ accentColor: '#d4af37', width: '16px', height: '16px', cursor: 'pointer' }} />
                   </div>
-
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#ccc' }}>
                     <span>Activar doble reserva (solapes)</span>
                     <input type="checkbox" checked={enableDoubleBooking} onChange={() => setEnableDoubleBooking(!enableDoubleBooking)} style={{ accentColor: '#d4af37', width: '16px', height: '16px', cursor: 'pointer' }} />
                   </div>
-
                   <button onClick={() => setAdminTab('config')} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#aaa', padding: '6px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer', textAlign: 'left' }}>
                     ⚙️ Preferencias de calendario
                   </button>
@@ -1988,10 +1996,8 @@ export default function App() {
                     🖨️ Imprimir calendario (CTRL + P)
                   </button>
                 </div>
-
               </div>
 
-              {/* PARRILLA PRINCIPAL DE LA AGENDA (INTACTA) */}
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px', minWidth: '600px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                   <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>Agenda Maestra (Control Total & Sincronizada)</h3>
@@ -2175,7 +2181,7 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 3: CATÁLOGO & VARIANTES */}
+          {/* TAB 3: CATÁLOGO */}
           {adminTab === 'catalog' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -2301,13 +2307,13 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 4: CLIENTES */}
+          {/* TAB 4: CLIENTES & ADN CAPILAR (SINCRONIZADO CON PASAPORTE) */}
           {adminTab === 'clients' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
-                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Base de Clientes & Fichas Técnicas de Autor</h3>
-                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Consulta rápida, historial, fórmulas aplicadas y control de PIN de acceso.</p>
+                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Base de Clientes, DNI Capilar & Fichas de Autor</h3>
+                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Cualquier cambio aquí se sincroniza automáticamente con el Pasaporte de la clienta.</p>
                 </div>
                 <button onClick={() => setIsAddingClient(!isAddingClient)} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
                   {isAddingClient ? 'Cancelar' : '+ Dar de Alta Clienta'}
@@ -2362,9 +2368,11 @@ export default function App() {
                                 setEditAdminUltimaVisita(c.ultimaVisita);
                                 setEditAdminProxima(c.proximaVisitaSugerida);
                                 setEditAdminFormulas(c.formulasAplicadas);
+                                setEditAdminDniCapilar(c.dniCapilar || '');
+                                setEditAdminPrescripcionCasa(c.prescripcionCasa || '');
                               }
                             }} style={{ background: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '4px 10px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}>
-                              {isEditing ? 'Cerrar Edición' : 'Editar Ficha / Fórmulas'}
+                              {isEditing ? 'Cerrar Edición' : 'Editar Ficha, DNI Capilar & Fórmulas'}
                             </button>
                             <button onClick={() => handleBorrarCliente(c.idNum)} title="Eliminar clienta" style={{ background: 'transparent', border: 'none', color: '#ff4444', fontSize: '14px', cursor: 'pointer' }}> X </button>
                           </div>
@@ -2376,7 +2384,7 @@ export default function App() {
                           <div><strong>F. Nacimiento:</strong> {c.fechaNacimiento}</div>
                         </div>
                         {isEditing ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#1f1a10', padding: '12px', borderRadius: '8px', border: '1px solid #d4af37' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#1f1a10', padding: '14px', borderRadius: '8px', border: '1px solid #d4af37' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                               <div>
                                 <label style={{ color: '#d4af37', fontSize: '10px', display: 'block', marginBottom: '2px' }}>Última Visita:</label>
@@ -2388,18 +2396,28 @@ export default function App() {
                               </div>
                             </div>
                             <div>
-                              <label style={{ color: '#d4af37', fontSize: '10px', display: 'block', marginBottom: '2px' }}>Fórmulas Aplicadas & Diagnóstico:</label>
+                              <label style={{ color: '#d4af37', fontSize: '10px', display: 'block', marginBottom: '2px' }}>DNI Capilar Activo (Visible en Pasaporte de la clienta):</label>
+                              <input type="text" value={editAdminDniCapilar} onChange={(e) => setEditAdminDniCapilar(e.target.value)} placeholder="Ej. Porosidad: Media | Hidratación: Necesaria" style={{ width: '100%', padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '11px' }} />
+                            </div>
+                            <div>
+                              <label style={{ color: '#d4af37', fontSize: '10px', display: 'block', marginBottom: '2px' }}>Mantenimiento en Casa (Visible en Pasaporte de la clienta):</label>
+                              <input type="text" value={editAdminPrescripcionCasa} onChange={(e) => setEditAdminPrescripcionCasa(e.target.value)} placeholder="Ej. Champú Hidratante | Sérum Nutritivo" style={{ width: '100%', padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '11px' }} />
+                            </div>
+                            <div>
+                              <label style={{ color: '#d4af37', fontSize: '10px', display: 'block', marginBottom: '2px' }}>Fórmulas y Notas (Uso Exclusivo Intranet):</label>
                               <textarea value={editAdminFormulas} onChange={(e) => setEditAdminFormulas(e.target.value)} rows={2} style={{ width: '100%', padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '11px', resize: 'none' }} />
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
                               <button onClick={() => setEditingClientId(null)} style={{ background: 'none', border: 'none', color: '#aaa', fontSize: '11px', cursor: 'pointer' }}>Cancelar</button>
-                              <button onClick={() => handleGuardarEdicionAdminCliente(c.idNum)} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Guardar Cambios en Ficha</button>
+                              <button onClick={() => handleGuardarEdicionAdminCliente(c.idNum)} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>Guardar y Sincronizar Pasaporte</button>
                             </div>
                           </div>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontSize: '11px', color: '#ccc', borderLeft: '2px solid #d4af37', paddingLeft: '10px' }}>
+                            <div><strong style={{ color: '#d4af37' }}>DNI Capilar:</strong> {c.dniCapilar || 'No especificado'}</div>
+                            <div><strong style={{ color: '#d4af37' }}>Mantenimiento en Casa:</strong> {c.prescripcionCasa || 'No especificado'}</div>
                             <div><strong style={{ color: '#d4af37' }}>Última Visita:</strong> {c.ultimaVisita} | <strong style={{ color: '#d4af37' }}>Próxima Sugerida:</strong> {c.proximaVisitaSugerida}</div>
-                            <div><strong style={{ color: '#d4af37' }}>Diagnóstico / Fórmulas:</strong> {c.formulasAplicadas}</div>
+                            <div><strong style={{ color: '#d4af37' }}>Fórmulas (Intranet):</strong> {c.formulasAplicadas}</div>
                           </div>
                         )}
                       </div>
@@ -2409,17 +2427,13 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 5: BUZÓN DE DETRACTORES Y RESEÑAS GOOGLE MY BUSINESS */}
+          {/* TAB 5: BUZÓN DE DETRACTORES */}
           {adminTab === 'detractors' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
-                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>
-                    Buzón de Detractores & Reseñas Google My Business
-                  </h3>
-                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>
-                    Control de valoraciones, gestión de incidencias y derivación a Google Reviews ({bizConfig.name}).
-                  </p>
+                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Buzón de Detractores & Reseñas Google My Business</h3>
+                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Control de valoraciones y gestión de incidencias ({bizConfig.name}).</p>
                 </div>
                 <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ backgroundColor: '#181818', border: '1px solid #d4af37', color: '#d4af37', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   ★ Ver Enlace en Google My Business
@@ -2436,9 +2450,7 @@ export default function App() {
                     return (
                       <div key={fb.id} style={{ backgroundColor: '#1a1414', border: '1px solid #ff4444', borderRadius: '10px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ color: '#ff4444', fontWeight: 'bold', fontSize: '12px' }}>
-                            Valoración: {fb.rating} | {fb.clientName}
-                          </span>
+                          <span style={{ color: '#ff4444', fontWeight: 'bold', fontSize: '12px' }}>Valoración: {fb.rating} | {fb.clientName}</span>
                           <span style={{ color: '#888', fontSize: '10px' }}>{fb.date}</span>
                         </div>
                         <p style={{ color: '#fff', fontSize: '12px', margin: 0, fontStyle: 'italic', backgroundColor: '#121212', padding: '10px', borderRadius: '6px', borderLeft: '3px solid #ff4444' }}>
@@ -2446,9 +2458,7 @@ export default function App() {
                         </p>
                         <div style={{ backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>
-                              Respuesta Asistida para Recuperación:
-                            </span>
+                            <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Respuesta Asistida para Recuperación:</span>
                             <button type="button" onClick={() => {
                               const generated = `Hola ${fb.clientName.split(" ")[0]}, lamentamos profundamente tu experiencia respecto a "${fb.comment}". En L'Studio Ana cuidamos cada detalle y nos encantaría invitarte a un protocolo exclusivo de mejora en tu próxima visita.`;
                               setDetractorReplies(prev => ({ ...prev, [fb.id]: generated }));
@@ -2456,7 +2466,7 @@ export default function App() {
                               Generar Respuesta IA
                             </button>
                           </div>
-                          <textarea value={currentReply} onChange={(e) => setDetractorReplies(prev => ({ ...prev, [fb.id]: e.target.value }))} rows={3} placeholder="Escribe tu respuesta personalizada o sugerencia para canalizar la reseña hacia Google..." style={{ backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', padding: '8px', fontSize: '11px', resize: 'vertical' }} />
+                          <textarea value={currentReply} onChange={(e) => setDetractorReplies(prev => ({ ...prev, [fb.id]: e.target.value }))} rows={3} placeholder="Escribe tu respuesta personalizada..." style={{ backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', padding: '8px', fontSize: '11px', resize: 'vertical' }} />
                           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
                             <a href={`https://wa.me/?text=${encodeURIComponent(currentReply)}`} target="_blank" rel="noreferrer" style={{ backgroundColor: '#25D366', color: '#000', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
                               Enviar por WhatsApp
@@ -2498,30 +2508,6 @@ export default function App() {
                   ))}
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px', backgroundColor: '#161616', padding: '12px', borderRadius: '10px', border: '1px solid rgba(212,175,55,0.2)' }}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold' }}>Filtrar por Servicio:</label>
-                  <select value={crmFilterService} onChange={(e) => setCrmFilterService(e.target.value)} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '6px', borderRadius: '6px', fontSize: '11px' }}>
-                    <option value="todos">Todos los servicios</option>
-                    <option value="Balayage">Balayage & Melt & Lights</option>
-                    <option value="Corte">Corte de Autor</option>
-                    <option value="Color">Coloración Global</option>
-                  </select>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold' }}>Filtrar por Motivo de Pérdida:</label>
-                  <select value={crmFilterReason} onChange={(e) => setCrmFilterReason(e.target.value)} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '6px', borderRadius: '6px', fontSize: '11px' }}>
-                    <option value="todos">Todos los motivos</option>
-                    <option value="sin_disponibilidad">Sin disponibilidad</option>
-                    <option value="abandono_sin_servicio">Abandono de reserva</option>
-                    <option value="intento_fallido">Error / Problema técnico</option>
-                  </select>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold' }}>Rango de Fechas:</label>
-                  <input type="date" style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '6px', borderRadius: '6px', fontSize: '11px' }} />
-                </div>
-              </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '15px' }}>
                 <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '10px', padding: '18px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <div style={{ color: '#888', fontSize: '11px', textTransform: 'uppercase' }}>Visitas Web/App</div>
@@ -2542,85 +2528,15 @@ export default function App() {
                   <div style={{ color: '#ff4444', fontSize: '28px', fontWeight: 'bold', fontFamily: 'serif', padding: '4px' }}>{lostDemandsList.length}</div>
                 </div>
               </div>
-              <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <h4 style={{ color: '#d4af37', fontSize: '13px', fontFamily: 'serif', margin: 0 }}>Evolución Semanal (Visitas vs Citas vs Demanda Perdida)</h4>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px' }}>
-                  {[
-                    { label: 'Lunes', visits: 12, appts: 3, lost: 1 },
-                    { label: 'Martes', visits: 18, appts: 5, lost: 0 },
-                    { label: 'Miércoles', visits: 15, appts: 4, lost: 2 },
-                    { label: 'Jueves', visits: 22, appts: 7, lost: 1 },
-                    { label: 'Viernes', visits: 30, appts: 9, lost: 3 },
-                    { label: 'Sábado', visits: 45, appts: 12, lost: 5 }
-                  ].map((item, idx) => (
-                    <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '11px' }}>
-                      <span style={{ color: '#aaa', width: '70px', fontWeight: 'bold' }}>{item.label}</span>
-                      <div style={{ flex: 1, display: 'flex', height: '14px', backgroundColor: '#1c1c1c', borderRadius: '4px', overflow: 'hidden', gap: '2px' }}>
-                        <div style={{ width: `${item.visits * 2}%`, backgroundColor: '#d4af37' }} />
-                        <div style={{ width: `${item.appts * 5}%`, backgroundColor: '#44bb44' }} />
-                        <div style={{ width: `${item.lost * 5}%`, backgroundColor: '#ff4444' }} />
-                      </div>
-                      <span style={{ color: '#888', width: '90px', textAlign: 'right' }}>{item.visits}v / {item.appts}c</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <h4 style={{ color: '#d4af37', fontSize: '13px', fontFamily: 'serif', margin: 0 }}>Motivos de Demanda Perdida Agrupados</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-                  <div style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>Sin disponibilidad</div>
-                    <div style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>{lostDemandsList.filter(l => l.reason === 'sin_disponibilidad').length + 2} casos</div>
-                    <div style={{ color: '#888', fontSize: '10px' }}>Principalmente sábados por la mañana</div>
-                  </div>
-                  <div style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>Abandono de reserva</div>
-                    <div style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>{lostDemandsList.filter(l => l.reason === 'abandono_sin_servicio').length + 1} casos</div>
-                    <div style={{ color: '#888', fontSize: '10px' }}>Salieron en la selección de servicios</div>
-                  </div>
-                  <div style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>Error / problema técnico</div>
-                    <div style={{ color: '#fff', fontSize: '18px', fontWeight: 'bold' }}>{lostDemandsList.filter(l => l.reason === 'intento_fallido').length} casos</div>
-                    <div style={{ color: '#888', fontSize: '10px' }}>Dificultades con PIN o flujo</div>
-                  </div>
-                </div>
-              </div>
-              <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h4 style={{ color: '#d4af37', fontSize: '13px', fontFamily: 'serif', margin: 0 }}>Oportunidades Recuperables (Valor Potencial Total: <strong style={{ color: '#44bb44' }}>195 €</strong>)</h4>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {lostDemandsList.map((item) => (
-                    <div key={item.id} style={{ backgroundColor: '#1c1c1c', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '8px', padding: '14px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                          <span style={{ color: '#fff', fontSize: '13px', fontWeight: 'bold' }}>{item.clientName}</span>
-                          <span style={{ color: '#44bb44', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#1a261a', padding: '2px 8px', borderRadius: '4px' }}>Valor: {item.potentialValue} €</span>
-                        </div>
-                        <div style={{ color: '#d4af37', fontSize: '11px' }}>Servicio: {item.serviceName}</div>
-                        <div style={{ color: '#888', fontSize: '10px' }}>Motivo: {item.reason} | Nota: "{item.clientNote}"</div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button onClick={() => alert(`Abriendo ficha de cliente para ${item.clientName}`)} style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '6px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}>
-                          Ver cliente
-                        </button>
-                        <button onClick={() => { setAdminTab('agenda'); }} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '6px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}>
-                          Buscar hueco
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
             </div>
           )}
 
-          {/* TAB 7: VACACIONES Y FESTIVOS SINCRONIZADOS */}
+          {/* TAB 7: VACACIONES Y FESTIVOS */}
           {adminTab === 'holidays' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
                 <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Gestión de Vacaciones & Festivos (Sincronizado con Agenda)</h3>
-                <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Bloquea días u horas donde el salón permanecerá cerrado. La agenda y el sistema de reservas online se desactivarán automáticamente.</p>
+                <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Bloquea días u horas donde el salón permanecerá cerrado.</p>
               </div>
               <form onSubmit={(e) => {
                 e.preventDefault();
@@ -2785,7 +2701,7 @@ export default function App() {
         </div>
       )}
 
-      {/* MODAL PARA MODIFICAR HORA DE CITA */}
+      {/* MODAL MODIFICAR HORA DE CITA */}
       {rescheduleModalAppt && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1100 }}>
           <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '380px', width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
