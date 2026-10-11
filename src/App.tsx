@@ -33,12 +33,12 @@ const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
   name: "L'Studio Ana",
   subtitle: "PORTAL PRIVADO DE CLIENTAS",
   location: "Calle Mayor / Centro de Elche, Alicante",
-  phone: "600000000",
+  phone: "672 163 485",
   description: "L'Studio Ana - Hair Experience es una peluquería premium en el centro de Elche, especializada en Balayage de Autor, mechas personalizadas, Babylights, coloración personalizada, técnicas de iluminación y terapias orgánicas.",
   scheduleMonday: "10:00h a 13:30h",
   scheduleTueWed: "10:00h a 18:00h",
   scheduleThuFri: "10:00h a 19:00h",
-  scheduleSaturday: "10:00h a 19:00h",
+  scheduleSaturday: "09:00h a 13:00h",
   welcomeMessage: "¡Bienvenida!",
   masterPin: "0000",
   instagramUrl: "https://instagram.com",
@@ -283,7 +283,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
   {
     id: 'c2',
     code: '0.2',
-    title: 'VISAGISMO & CORTE',
+    title: 'CORTE L´STUDIO',
     icon: '✂️',
     subservices: [
       {
@@ -325,7 +325,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
   {
     id: 'c4',
     code: '0.4',
-    title: 'COLOR ATELIER',
+    title: 'COLOR L´STUDIO',
     icon: '🎨',
     subservices: [
       {
