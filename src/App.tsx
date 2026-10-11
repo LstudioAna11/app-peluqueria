@@ -654,21 +654,19 @@ export default function App() {
       {
         idNum: 1,
         registroId: "LSTUDIO-001",
-        nombre: "María Dolores",
-        apellidos: "Navarro Sánchez",
-        fechaNacimiento: "12/05/1988",
-        telefono: "600000000",
-        email: "mariadolores@gmail.com",
+        nombre: "Ana",
+        apellidos: "Moreno Fernández",
+        fechaNacimiento: "30/10/1979",
+        telefono: "691888588",
+        email: "anamorenofernandez79@gmail.com",
         pinAcceso: "7009",
-        diagnostico: "Balayage manteca / Cabello sensibilizado",
-        ultimaVisita: "15/08/2026",
-        proximaVisitaSugerida: "15/10/2026",
-        formulasAplicadas: "Raíces 7.0 + Matiz 9.21 con emulsión de autor",
-        dniCapilar: "Porosidad: Media | Hidratación: Necesaria | Textura: Fina",
-        prescripcionCasa: "Champú Hidratante | Acondicionador Sellador | Sérum Nutritivo",
-        pastVisits: [
-          { date: "15 Septiembre, 2026", service: "Balayage & Melt & Lights", stylist: "Ana", notes: "Matizado en tonos perla, corte capeado orgánico." }
-        ]
+        diagnostico: "Diagnóstico inicial pendiente",
+        ultimaVisita: "Nuevo registro",
+        proximaVisitaSugerida: "Pendiente de agendar",
+        formulasAplicadas: "Sin fórmulas registradas",
+        dniCapilar: "Porosidad: Pendiente | Hidratación: Pendiente",
+        prescripcionCasa: "Pendiente de recomendación",
+        pastVisits: []
       }
     ];
   });
@@ -856,7 +854,7 @@ export default function App() {
       if (newPin.length === 4) {
         setTimeout(() => {
           const clientMatch = listaClientes.find(c => c.pinAcceso === newPin);
-          if (clientMatch || newPin === bizConfig.masterPin || newPin === '7009') {
+          if (clientMatch || newPin === bizConfig.masterPin) {
             setPinError(false);
             setPin("");
             setAppVisitsCount(prev => prev + 1);
@@ -864,9 +862,11 @@ export default function App() {
             if (clientMatch) {
               setCurrentClientRecord(clientMatch);
               setCurrentScreen('clientPortal');
-            } else {
-              setCurrentClientRecord(listaClientes[0] || null);
-              setCurrentScreen('clientPortal');
+            } else if (newPin === bizConfig.masterPin) {
+              // Si introduce el PIN maestro, redirigimos a login de admin o panel de admin directamente
+              setAdminPin("");
+              setAdminError(false);
+              setCurrentScreen('adminPanel');
             }
           } else {
             setPinError(true);
@@ -1438,8 +1438,8 @@ export default function App() {
           <div style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
               <div>
-                <p style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0', fontWeight: 'bold' }}>¡Bienvenida, {currentClientRecord?.nombre || 'María Dolores'}!</p>
-                <p style={{ color: '#888', fontSize: '10px', margin: 0 }}>Email: {currentClientRecord?.email || 'mariadolores@gmail.com'} | ID: #{currentClientRecord?.idNum || '1'} ({currentClientRecord?.registroId || 'LSTUDIO-001'})</p>
+                <p style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0', fontWeight: 'bold' }}>¡Bienvenida, {currentClientRecord?.nombre || 'Clienta'}!</p>
+                <p style={{ color: '#888', fontSize: '10px', margin: 0 }}>Email: {currentClientRecord?.email || ''} | ID: #{currentClientRecord?.idNum || '1'} ({currentClientRecord?.registroId || 'LSTUDIO-001'})</p>
                 <p style={{ color: '#aaa', fontSize: '10px', margin: '3px 0 0 0' }}>{bizConfig.location} | {bizConfig.phone}</p>
               </div>
               <button onClick={() => setCurrentScreen('clientHistoryPage')} style={{ backgroundColor: 'transparent', border: '1px solid #d4af37', color: '#d4af37', padding: '6px 10px', borderRadius: '6px', fontSize: '10px', fontWeight: 'bold', cursor: 'pointer' }}>
@@ -1744,7 +1744,7 @@ export default function App() {
           
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '15px' }}>
             <div>
-              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>Hola, {currentClientRecord?.nombre || 'María Dolores'}</h2>
+              <h2 style={{ color: '#d4af37', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: 'serif' }}>Hola, {currentClientRecord?.nombre || 'Clienta'}</h2>
               <p style={{ color: '#888', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>ID #{currentClientRecord?.idNum || '1'} ({currentClientRecord?.registroId || 'LSTUDIO-001'}) - Pasaporte de Experiencias</p>
             </div>
             <button onClick={() => setCurrentScreen('clientPortal')} style={{ background: 'none', border: '1px solid rgba(212,175,55,0.3)', color: '#d4af37', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
@@ -1765,11 +1765,8 @@ export default function App() {
                   </div>
                 ))
               ) : (
-                <div style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', fontSize: '11px', color: '#ccc', display: 'flex', flexDirection: 'column', gap: '4px', borderLeft: '3px solid #d4af37' }}>
-                  <div><strong style={{ color: '#d4af37' }}>Fecha:</strong> 15 Septiembre, 2026</div>
-                  <div><strong style={{ color: '#d4af37' }}>Ritual / Servicio:</strong> Balayage & Melt & Lights</div>
-                  <div><strong style={{ color: '#d4af37' }}>Estilista:</strong> Ana</div>
-                  <div><strong style={{ color: '#d4af37' }}>Notas de Estilo:</strong> Matizado en tonos perla, corte capeado orgánico.</div>
+                <div style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', fontSize: '11px', color: '#ccc', textAlign: 'center' }}>
+                  Sin visitas anteriores registradas todavía.
                 </div>
               )}
             </div>
@@ -2033,7 +2030,7 @@ export default function App() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Gestor de Marca, Dirección y Plantilla WhatsApp</h3>
                   
-                  {/* NUEVA SECCIÓN: PLANTILLA WHATSAPP */}
+                  {/* PLANTILLA WHATSAPP */}
                   <div style={{ backgroundColor: '#161616', border: '1px solid #d4af37', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <span style={{ color: '#d4af37', fontSize: '13px', fontWeight: 'bold' }}>💬 Plantilla Personalizada de WhatsApp</span>
                     <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Puedes editar el mensaje que se enviará automáticamente. Usa las etiquetas <code style={{ color: '#d4af37' }}>{'{nombre}'}</code>, <code style={{ color: '#d4af37' }}>{'{fecha}'}</code> y <code style={{ color: '#d4af37' }}>{'{hora}'}</code>.</p>
@@ -2481,13 +2478,13 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 5: BUZÓN DE DETRACTORES */}
+          {/* TAB 5: BUZÓN DE DETRACTORES & RESPUESTAS CON IA */}
           {adminTab === 'detractors' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
                   <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Buzón de Detractores & Reseñas Google My Business</h3>
-                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Control de valoraciones y gestión de incidencias ({bizConfig.name}).</p>
+                  <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Control de valoraciones y gestión de incidencias con sugerencias automáticas de IA ({bizConfig.name}).</p>
                 </div>
                 <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ backgroundColor: '#181818', border: '1px solid #d4af37', color: '#d4af37', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   ★ Ver Enlace en Google My Business
@@ -2512,7 +2509,7 @@ export default function App() {
                         </p>
                         <div style={{ backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Respuesta Asistida para Recuperación:</span>
+                            <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>✨ Respuesta Asistida con IA para Recuperación:</span>
                             <button type="button" onClick={() => {
                               const generated = `Hola ${fb.clientName.split(" ")[0]}, lamentamos profundamente tu experiencia respecto a "${fb.comment}". En L'Studio Ana cuidamos cada detalle y nos encantaría invitarte a un protocolo exclusivo de mejora en tu próxima visita.`;
                               setDetractorReplies(prev => ({ ...prev, [fb.id]: generated }));
