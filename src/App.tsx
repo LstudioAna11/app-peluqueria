@@ -4,6 +4,13 @@ import React, { useState, useEffect } from 'react';
 // CONFIGURACIÓN DE L'STUDIO ANA
 // ======
 interface BusinessConfig {
+  advancePaymentEnabled: boolean;
+  advancePaymentThresholdMinutes: number;
+  saturdayApprovalEnabled: boolean;
+  studioEmail: string;
+  studioWhatsapp: string;
+  reminderHours: number;
+  cancellationHours: number;
   name: string;
   subtitle: string;
   location: string;
@@ -30,6 +37,13 @@ interface BusinessConfig {
 }
 
 const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
+  advancePaymentEnabled: true,
+  advancePaymentThresholdMinutes: 120,
+  saturdayApprovalEnabled: true,
+  studioEmail: 'lstudioana@gmail.com',
+  studioWhatsapp: '672163485',
+  reminderHours: 24,
+  cancellationHours: 24,
   name: "L'Studio Ana",
   subtitle: "PORTAL PRIVADO DE CLIENTAS",
   location: "Calle Mayor / Centro de Elche, Alicante",
@@ -50,7 +64,7 @@ const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
   maxBookingMonths: 3,
   slotIntervalMinutes: 15,
   bizumNumber: "672163485",
-  depositAmount: "30 €",
+  depositAmount: "60 €",
   saturdayNoticeMessage: "SÁBADOS: El Studio abrirá los sábados únicamente para atender servicios de larga duración y eventos agendados con antelación bajo demanda de Ana.",
   whatsappTemplate: "Hola {nombre}. Te recordamos tu cita en L’Studio Ana el {fecha} a las {hora}. ¡Te esperamos en el Studio!"
 };
@@ -501,7 +515,7 @@ export default function App() {
   const [adminPin, setAdminPin] = useState<string>("");
   const [adminError, setAdminError] = useState<boolean>(false);
   const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'holidays'>('catalog');
-  const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule'>('marca');
+  const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule' | 'reservas' | 'anticipada' | 'avisos' | 'backup'>('marca');
   const [catalogSavedMsg, setCatalogSavedMsg] = useState<string | null>(null);
   const [enableOutOfHours, setEnableOutOfHours] = useState<boolean>(true);
   const [enableDoubleBooking, setEnableDoubleBooking] = useState<boolean>(false);
@@ -513,7 +527,7 @@ export default function App() {
   const [googleCalendarConnected, setGoogleCalendarConnected] = useState<boolean>(true);
   const [bizConfig, setBizConfig] = useState<BusinessConfig>(() => {
     const saved = localStorage.getItem('lst_business_config');
-    return saved ? JSON.parse(saved) : INITIAL_BUSINESS_CONFIG;
+    return saved ? { ...INITIAL_BUSINESS_CONFIG, ...JSON.parse(saved) } : INITIAL_BUSINESS_CONFIG;
   });
   const [tempConfig, setTempConfig] = useState<BusinessConfig>(bizConfig);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
@@ -838,12 +852,12 @@ export default function App() {
     setSaturdayRequestModal(null);
   };
   const [advancePaymentModal, setAdvancePaymentModal] = useState<Appointment | null>(null);
-  const createAdvancePayment = () => ({ amount: 60, reference: `LS-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, status: 'pending' as const });
+  const createAdvancePayment = () => ({ amount: parseFloat(bizConfig.depositAmount.replace(',', '.')) || 60, reference: `LS-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, status: 'pending' as const });
   const advancePaymentConcept = (appointment: Appointment) => `${appointment.clientName} · Reserva anticipada · ${appointment.advancePayment?.reference || ''}`;
   const savePendingAdvanceAppointment = () => {
     if (!advancePaymentModal) return;
     setAppointments(previous => previous.some(item => item.id === advancePaymentModal.id) ? previous : [...previous, advancePaymentModal]);
-    setBookingSuccessMsg(`Solicitud registrada. Pendiente de confirmar el Bizum de 60 €. Código: ${advancePaymentModal.advancePayment?.reference}`);
+    setBookingSuccessMsg(`Solicitud registrada. Pendiente de confirmar el Bizum de ${advancePaymentModal.advancePayment?.amount} €. Código: ${advancePaymentModal.advancePayment?.reference}`);
     setSelectedServicesToBook([]);
     setIsModalOpen(false);
     setCurrentScreen('catalogBooking');
@@ -946,6 +960,8 @@ export default function App() {
   };
 
   const handleSaveSection = (sectionName: string) => {
+    if (!Number.isFinite(tempConfig.advancePaymentThresholdMinutes) || tempConfig.advancePaymentThresholdMinutes < 0 || !Number.isFinite(parseFloat(tempConfig.depositAmount.replace(',', '.'))) || parseFloat(tempConfig.depositAmount.replace(',', '.')) <= 0) { alert('Revisa el importe y la duración de la reserva anticipada.'); return; }
+    localStorage.setItem('lst_business_config', JSON.stringify(tempConfig));
     setBizConfig(tempConfig);
     setSavedMsg(`¡${sectionName} guardados correctamente!`);
     setTimeout(() => setSavedMsg(null), 3000);
@@ -1035,14 +1051,14 @@ export default function App() {
       services,
       remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
     };
-    if (new Date(`${newApp.dateKey}T12:00:00`).getDay() === 6) {
+    if (bizConfig.saturdayApprovalEnabled && new Date(`${newApp.dateKey}T12:00:00`).getDay() === 6) {
       newApp.saturdayApproval = { status: 'pending', reference: `SAB-${crypto.randomUUID().slice(0, 8).toUpperCase()}` };
       newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE SÁBADO');
       newApp.remindersStatus = { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false };
       setSaturdayRequestModal(newApp);
       return;
     }
-    if ((newApp.durationMinutes || 0) > 120) {
+    if (bizConfig.advancePaymentEnabled && (newApp.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes) {
       newApp.advancePayment = createAdvancePayment();
       newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE BIZUM');
       newApp.remindersStatus = { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false };
@@ -1062,6 +1078,9 @@ export default function App() {
       alert('Por favor, selecciona al menos un servicio del catálogo.');
       return;
     }
+    const earliest = new Date(); earliest.setHours(0, 0, 0, 0); earliest.setDate(earliest.getDate() + bizConfig.minAdvanceDays);
+    const latest = new Date(); latest.setHours(23, 59, 59, 999); latest.setMonth(latest.getMonth() + bizConfig.maxBookingMonths);
+    if (bookingDate < earliest || bookingDate > latest) { alert(`Reserva con al menos ${bizConfig.minAdvanceDays} días de antelación y dentro de los próximos ${bizConfig.maxBookingMonths} meses.`); return; }
     const dateKeyStr = formatDateKey(bookingDate);
     if (isDateBlockedByHoliday(dateKeyStr)) {
       alert('Lo sentimos, el salón se encuentra cerrado por vacaciones o festivo en esta fecha.');
@@ -1105,14 +1124,14 @@ export default function App() {
       selectedVariant: selectedServicesToBook[0]?.variant || null,
       remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
     };
-    if (new Date(`${newApp.dateKey}T12:00:00`).getDay() === 6) {
+    if (bizConfig.saturdayApprovalEnabled && new Date(`${newApp.dateKey}T12:00:00`).getDay() === 6) {
       newApp.saturdayApproval = { status: 'pending', reference: `SAB-${crypto.randomUUID().slice(0, 8).toUpperCase()}` };
       newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE SÁBADO');
       newApp.remindersStatus = { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false };
       setSaturdayRequestModal(newApp);
       return;
     }
-    if ((newApp.durationMinutes || 0) > 120) {
+    if (bizConfig.advancePaymentEnabled && (newApp.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes) {
       newApp.advancePayment = createAdvancePayment();
       newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE BIZUM');
       newApp.remindersStatus = { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false };
@@ -2160,18 +2179,24 @@ export default function App() {
                 <button onClick={() => setConfigSubTab('marca')} style={{ backgroundColor: configSubTab === 'marca' ? '#d4af37' : 'transparent', color: configSubTab === 'marca' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>Marca & Identidad</button>
                 <button onClick={() => setConfigSubTab('general')} style={{ backgroundColor: configSubTab === 'general' ? '#d4af37' : 'transparent', color: configSubTab === 'general' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>General, Redes & PIN Maestro</button>
                 <button onClick={() => setConfigSubTab('schedule')} style={{ backgroundColor: configSubTab === 'schedule' ? '#d4af37' : 'transparent', color: configSubTab === 'schedule' ? '#000' : '#ccc', border: '1px solid rgba(212,175,55,0.3)', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>Horarios & Zona Horaria</button>
+                {([['reservas', 'Reservas y cancelaciones'], ['anticipada', 'Reserva anticipada y sábados'], ['avisos', 'Avisos y recordatorios'], ['backup', 'Copia de seguridad']] as const).map(([tab, label]) => <button key={tab} onClick={() => setConfigSubTab(tab)} style={{ backgroundColor: configSubTab === tab ? '#d4af37' : 'transparent', color: configSubTab === tab ? '#000' : '#ccc', border: '1px solid #d4af37', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer' }}>{label}</button>)}
               </div>
               {savedMsg && (
                 <div style={{ padding: '10px', backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }}>
                   {savedMsg}
                 </div>
               )}
+{configSubTab === 'reservas' && <div style={{ backgroundColor: '#161616', border: '1px solid #d4af37', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', color: '#fff' }}><h3 style={{ color: '#d4af37', margin: 0 }}>Reservas y cancelaciones</h3><label>Antelación mínima (días)<input type="number" min="0" value={tempConfig.minAdvanceDays} onChange={(e) => setTempConfig({ ...tempConfig, minAdvanceDays: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Hasta cuántos meses se puede reservar<input type="number" min="0" value={tempConfig.maxBookingMonths} onChange={(e) => setTempConfig({ ...tempConfig, maxBookingMonths: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Intervalo entre horas disponibles (minutos)<input type="number" min="0" value={tempConfig.slotIntervalMinutes} onChange={(e) => setTempConfig({ ...tempConfig, slotIntervalMinutes: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Antelación para solicitar cambios o cancelaciones (horas)<input type="number" min="0" value={tempConfig.cancellationHours} onChange={(e) => setTempConfig({ ...tempConfig, cancellationHours: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><p>La antelación para cancelar es una preferencia guardada. Su aplicación automática queda pendiente. El intervalo organiza las horas disponibles; no añade tiempo de preparación entre citas.</p><button onClick={() => handleSaveSection('Reservas y cancelaciones')} style={{ backgroundColor: '#d4af37', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Guardar configuración</button></div>}{configSubTab === 'anticipada' && <div style={{ backgroundColor: '#161616', border: '1px solid #d4af37', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', color: '#fff' }}><h3 style={{ color: '#d4af37', margin: 0 }}>Reserva anticipada y sábados</h3><label><input type="checkbox" checked={tempConfig.advancePaymentEnabled} onChange={(e) => setTempConfig({ ...tempConfig, advancePaymentEnabled: e.target.checked })} /> Solicitar reserva anticipada</label><label>Importe de la reserva anticipada (€)<input type="text"  value={tempConfig.depositAmount} onChange={(e) => setTempConfig({ ...tempConfig, depositAmount: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Solicitarla cuando la cita supere estos minutos<input type="number" min="0" value={tempConfig.advancePaymentThresholdMinutes} onChange={(e) => setTempConfig({ ...tempConfig, advancePaymentThresholdMinutes: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Número de Bizum<input type="tel"  value={tempConfig.bizumNumber} onChange={(e) => setTempConfig({ ...tempConfig, bizumNumber: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label><input type="checkbox" checked={tempConfig.saturdayApprovalEnabled} onChange={(e) => setTempConfig({ ...tempConfig, saturdayApprovalEnabled: e.target.checked })} /> Los sábados requieren aprobación de Ana</label><p>Los sábados se aprueban antes de solicitar el pago. El plazo de pago se acuerda con la clienta; no hay caducidad automática.</p><button onClick={() => handleSaveSection('Reserva anticipada y sábados')} style={{ backgroundColor: '#d4af37', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Guardar configuración</button></div>}{configSubTab === 'avisos' && <div style={{ backgroundColor: '#161616', border: '1px solid #d4af37', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', color: '#fff' }}><h3 style={{ color: '#d4af37', margin: 0 }}>Avisos y recordatorios</h3><label>WhatsApp del Studio<input type="tel"  value={tempConfig.studioWhatsapp} onChange={(e) => setTempConfig({ ...tempConfig, studioWhatsapp: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Correo del Studio<input type="email"  value={tempConfig.studioEmail} onChange={(e) => setTempConfig({ ...tempConfig, studioEmail: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Recordatorio antes de la cita (horas)<input type="number" min="0" value={tempConfig.reminderHours} onChange={(e) => setTempConfig({ ...tempConfig, reminderHours: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><p style={{ color: '#d4af37' }}>Envío automático pendiente de configurar.</p><p>Estos datos guardan tus preferencias. No envían mensajes ni programan recordatorios hasta conectar un servicio de envío. El registro de entregas y errores estará disponible con esa conexión.</p><button onClick={() => handleSaveSection('Avisos y recordatorios')} style={{ backgroundColor: '#d4af37', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Guardar configuración</button></div>}{configSubTab === 'backup' && <div style={{ backgroundColor: '#161616', border: '1px solid #d4af37', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', color: '#fff' }}><h3 style={{ color: '#d4af37', margin: 0 }}>Copia de seguridad</h3><p>Descarga el catálogo, las citas, la configuración y los registros locales. Guarda el archivo en un lugar privado: puede contener datos personales y PIN.</p><button type="button" onClick={() => {
+const data: Record<string, string | null> = {}; for (let index = 0; index < localStorage.length; index++) { const key = localStorage.key(index); if (key?.startsWith('lst_')) data[key] = localStorage.getItem(key); }
+data.lst_master_catalog = JSON.stringify(catalog); data.lst_business_config = JSON.stringify(bizConfig);
+const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, createdAt: new Date().toISOString(), data }, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `LStudio_copia_${new Date().toISOString().slice(0,10)}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+}} style={{ padding: '12px', cursor: 'pointer' }}>Descargar copia de seguridad</button><p>La restauración no está incluida: la descarga no cambia ni elimina tus datos.</p><button onClick={() => handleSaveSection('Copia de seguridad')} style={{ backgroundColor: '#d4af37', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Guardar configuración</button></div>}
               {configSubTab === 'marca' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Gestor de Marca, Dirección y Plantilla WhatsApp</h3>
                   <div style={{ backgroundColor: '#161616', border: '1px solid #d4af37', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <span style={{ color: '#d4af37', fontSize: '13px', fontWeight: 'bold' }}>💬 Plantilla Personalizada de WhatsApp</span>
-                    <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Puedes editar el mensaje que se enviará automáticamente. Usa las etiquetas <code style={{ color: '#d4af37' }}>{'{nombre}'}</code>, <code style={{ color: '#d4af37' }}>{'{fecha}'}</code> y <code style={{ color: '#d4af37' }}>{'{hora}'}</code>.</p>
+                    <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Puedes editar la plantilla para mensajes de WhatsApp. Envío automático pendiente de configurar. Usa las etiquetas <code style={{ color: '#d4af37' }}>{'{nombre}'}</code>, <code style={{ color: '#d4af37' }}>{'{fecha}'}</code> y <code style={{ color: '#d4af37' }}>{'{hora}'}</code>.</p>
                     <textarea 
                       value={tempConfig.whatsappTemplate} 
                       onChange={(e) => setTempConfig({ ...tempConfig, whatsappTemplate: e.target.value })} 
@@ -2808,7 +2833,7 @@ export default function App() {
             <p>Ana revisará los servicios solicitados y la disponibilidad antes de aceptar tu cita. Esta solicitud no confirma la reserva.</p>
             <p>{saturdayRequestModal.dateKey.split('-').reverse().join('/')} a las {saturdayRequestModal.time}</p>
             <p>{saturdayRequestModal.serviceSubcategory.replace(/^PENDIENTE SÁBADO /, '')}</p>
-            {(saturdayRequestModal.durationMinutes || 0) > 120 && <p>Si Ana acepta la solicitud, será necesaria una reserva anticipada de 60 €. Espera su aprobación antes de pagar.</p>}
+            {bizConfig.advancePaymentEnabled && (saturdayRequestModal.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes && <p>Si Ana acepta la solicitud, será necesaria una reserva anticipada de {bizConfig.depositAmount}. Espera su aprobación antes de pagar.</p>}
             <p style={{ color: '#aaa', fontSize: '12px' }}>El registro actual es local. Para que Ana reciba la solicitud a distancia es necesario conectar el envío de avisos.</p>
             <button type="button" onClick={() => setSaturdayRequestModal(null)} style={{ padding: '10px', marginRight: '10px' }}>Volver</button>
             <button type="button" onClick={registerSaturdayRequest} style={{ backgroundColor: '#d4af37', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Registrar solicitud pendiente</button>
@@ -2818,8 +2843,8 @@ export default function App() {
       {advancePaymentModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 2000 }}>
           <div role="dialog" aria-modal="true" aria-labelledby="advance-payment-title" style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '440px', width: '100%', maxHeight: '85vh', overflowY: 'auto', color: '#fff' }}>
-            <h3 id="advance-payment-title" style={{ color: '#d4af37', marginTop: 0 }}>Reserva anticipada · 60 €</h3>
-            <p>Tu cita supera las 2 horas. Para que quede reservada, realiza un Bizum de <strong>60 € al 672 163 485</strong>.</p>
+            <h3 id="advance-payment-title" style={{ color: '#d4af37', marginTop: 0 }}>Reserva anticipada · {advancePaymentModal.advancePayment?.amount} €</h3>
+            <p>Tu cita supera los {bizConfig.advancePaymentThresholdMinutes} minutos. Para que quede reservada, realiza un Bizum de <strong>{advancePaymentModal.advancePayment?.amount} € al {bizConfig.bizumNumber}</strong>.</p>
             <p>{advancePaymentModal.dateKey.split('-').reverse().join('/')} a las {advancePaymentModal.time} · {advancePaymentModal.durationMinutes} min</p>
             <p>Indica tu nombre y apellidos y utiliza este concepto:</p>
             <div style={{ padding: '12px', border: '1px solid #d4af37', borderRadius: '6px', overflowWrap: 'anywhere' }}>{advancePaymentConcept(advancePaymentModal)}</div>
@@ -2913,7 +2938,7 @@ export default function App() {
                 {viewApptModal.saturdayApproval.status === 'pending' && (
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <button type="button" onClick={() => {
-                      const payment = (viewApptModal.durationMinutes || 0) > 120 ? createAdvancePayment() : undefined;
+                      const payment = bizConfig.advancePaymentEnabled && (viewApptModal.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes ? createAdvancePayment() : undefined;
                       const updated: Appointment = { ...viewApptModal, saturdayApproval: { ...viewApptModal.saturdayApproval!, status: 'accepted' }, advancePayment: payment, serviceSubcategory: viewApptModal.serviceSubcategory.replace(/^PENDIENTE SÁBADO/, payment ? 'PENDIENTE BIZUM' : 'RESERVADO') };
                       setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
                       setViewApptModal(updated);
@@ -2925,7 +2950,7 @@ export default function App() {
                     }} style={{ padding: '10px', cursor: 'pointer' }}>Rechazar solicitud</button>
                   </div>
                 )}
-                {viewApptModal.saturdayApproval.status === 'accepted' && <a style={{ color: '#d4af37' }} target="_blank" rel="noreferrer" href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(viewApptModal.advancePayment?.status === 'pending' ? `Hola ${viewApptModal.clientName}. Ana ha aceptado tu solicitud para el ${viewApptModal.dateKey.split('-').reverse().join('/')} a las ${viewApptModal.time}. Para confirmar, realiza un Bizum de 60 € al 672 163 485. Concepto: ${advancePaymentConcept(viewApptModal)}. Confirmaremos al comprobar el pago.` : generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time))}`}>Abrir WhatsApp para avisar a la clienta</a>}
+                {viewApptModal.saturdayApproval.status === 'accepted' && <a style={{ color: '#d4af37' }} target="_blank" rel="noreferrer" href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(viewApptModal.advancePayment?.status === 'pending' ? `Hola ${viewApptModal.clientName}. Ana ha aceptado tu solicitud para el ${viewApptModal.dateKey.split('-').reverse().join('/')} a las ${viewApptModal.time}. Para confirmar, realiza un Bizum de ${viewApptModal.advancePayment?.amount} € al ${bizConfig.bizumNumber}. Concepto: ${advancePaymentConcept(viewApptModal)}. Confirmaremos al comprobar el pago.` : generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time))}`}>Abrir WhatsApp para avisar a la clienta</a>}
               </div>
             )}
             {viewApptModal.advancePayment && (
@@ -2934,7 +2959,7 @@ export default function App() {
                 <p>Código: {viewApptModal.advancePayment.reference}</p>
                 {viewApptModal.advancePayment.status === 'pending' && (
                   <button type="button" onClick={() => {
-                    if (!window.confirm('¿Has comprobado la recepción del Bizum de 60 € con este código?')) return;
+                    if (!window.confirm(`¿Has comprobado la recepción del Bizum de ${viewApptModal.advancePayment?.amount} € con este código?`)) return;
                     const updated: Appointment = { ...viewApptModal, advancePayment: { ...viewApptModal.advancePayment!, status: 'confirmed' }, serviceSubcategory: viewApptModal.serviceSubcategory.replace(/^PENDIENTE BIZUM/, 'RESERVADO'), remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true } };
                     setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
                     setViewApptModal(updated);
