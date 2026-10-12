@@ -174,6 +174,7 @@ interface Appointment {
   dayName: string;
   time: string;
   durationMinutes?: number;
+  saturdayApproval?: { status: 'pending' | 'accepted' | 'rejected'; reference: string };
   advancePayment?: { amount: number; reference: string; status: 'pending' | 'confirmed' };
   clientName: string;
   phone: string;
@@ -827,6 +828,15 @@ export default function App() {
   const [modalCatIndex, setModalCatIndex] = useState<number>(0);
   const [modalSubIndex, setModalSubIndex] = useState<number>(0);
   const [modalSelectedVariant, setModalSelectedVariant] = useState<ServiceVariant | null>(null);
+  const [saturdayRequestModal, setSaturdayRequestModal] = useState<Appointment | null>(null);
+  const registerSaturdayRequest = () => {
+    if (!saturdayRequestModal) return;
+    setAppointments(previous => previous.some(item => item.id === saturdayRequestModal.id) ? previous : [...previous, saturdayRequestModal]);
+    setBookingSuccessMsg('Solicitud de sábado registrada en este dispositivo. Pendiente de confirmación de Ana.');
+    setSelectedServicesToBook([]);
+    setIsModalOpen(false);
+    setSaturdayRequestModal(null);
+  };
   const [advancePaymentModal, setAdvancePaymentModal] = useState<Appointment | null>(null);
   const createAdvancePayment = () => ({ amount: 60, reference: `LS-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, status: 'pending' as const });
   const advancePaymentConcept = (appointment: Appointment) => `${appointment.clientName} · Reserva anticipada · ${appointment.advancePayment?.reference || ''}`;
@@ -1025,6 +1035,13 @@ export default function App() {
       services,
       remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
     };
+    if (new Date(`${newApp.dateKey}T12:00:00`).getDay() === 6) {
+      newApp.saturdayApproval = { status: 'pending', reference: `SAB-${crypto.randomUUID().slice(0, 8).toUpperCase()}` };
+      newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE SÁBADO');
+      newApp.remindersStatus = { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false };
+      setSaturdayRequestModal(newApp);
+      return;
+    }
     if ((newApp.durationMinutes || 0) > 120) {
       newApp.advancePayment = createAdvancePayment();
       newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE BIZUM');
@@ -1088,6 +1105,13 @@ export default function App() {
       selectedVariant: selectedServicesToBook[0]?.variant || null,
       remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
     };
+    if (new Date(`${newApp.dateKey}T12:00:00`).getDay() === 6) {
+      newApp.saturdayApproval = { status: 'pending', reference: `SAB-${crypto.randomUUID().slice(0, 8).toUpperCase()}` };
+      newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE SÁBADO');
+      newApp.remindersStatus = { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false };
+      setSaturdayRequestModal(newApp);
+      return;
+    }
     if ((newApp.durationMinutes || 0) > 120) {
       newApp.advancePayment = createAdvancePayment();
       newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE BIZUM');
@@ -2777,6 +2801,20 @@ export default function App() {
         </div>
       )}
 
+      {saturdayRequestModal && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 2100 }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="saturday-request-title" style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '440px', width: '100%', color: '#fff' }}>
+            <h3 id="saturday-request-title" style={{ color: '#d4af37' }}>Sábados · Bajo confirmación previa</h3>
+            <p>Ana revisará los servicios solicitados y la disponibilidad antes de aceptar tu cita. Esta solicitud no confirma la reserva.</p>
+            <p>{saturdayRequestModal.dateKey.split('-').reverse().join('/')} a las {saturdayRequestModal.time}</p>
+            <p>{saturdayRequestModal.serviceSubcategory.replace(/^PENDIENTE SÁBADO /, '')}</p>
+            {(saturdayRequestModal.durationMinutes || 0) > 120 && <p>Si Ana acepta la solicitud, será necesaria una reserva anticipada de 60 €. Espera su aprobación antes de pagar.</p>}
+            <p style={{ color: '#aaa', fontSize: '12px' }}>El registro actual es local. Para que Ana reciba la solicitud a distancia es necesario conectar el envío de avisos.</p>
+            <button type="button" onClick={() => setSaturdayRequestModal(null)} style={{ padding: '10px', marginRight: '10px' }}>Volver</button>
+            <button type="button" onClick={registerSaturdayRequest} style={{ backgroundColor: '#d4af37', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Registrar solicitud pendiente</button>
+          </div>
+        </div>
+      )}
       {advancePaymentModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 2000 }}>
           <div role="dialog" aria-modal="true" aria-labelledby="advance-payment-title" style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '440px', width: '100%', maxHeight: '85vh', overflowY: 'auto', color: '#fff' }}>
@@ -2868,6 +2906,28 @@ export default function App() {
               <div><strong style={{ color: '#fff' }}>Fecha y Hora:</strong> {viewApptModal.dateKey} a las {viewApptModal.time}</div>
               <div><strong style={{ color: '#fff' }}>Servicio & Variante:</strong> {viewApptModal.serviceSubcategory}</div>
             </div>
+            {viewApptModal.saturdayApproval && (
+              <div style={{ border: '1px solid #d4af37', padding: '12px', borderRadius: '8px', color: '#fff' }}>
+                <strong>Sábado: {viewApptModal.saturdayApproval.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.saturdayApproval.status === 'accepted' ? 'Aceptado por Ana' : 'Rechazado'}</strong>
+                <p>{viewApptModal.saturdayApproval.reference}</p>
+                {viewApptModal.saturdayApproval.status === 'pending' && (
+                  <div style={{ display: 'flex', gap: '10px' }}>
+                    <button type="button" onClick={() => {
+                      const payment = (viewApptModal.durationMinutes || 0) > 120 ? createAdvancePayment() : undefined;
+                      const updated: Appointment = { ...viewApptModal, saturdayApproval: { ...viewApptModal.saturdayApproval!, status: 'accepted' }, advancePayment: payment, serviceSubcategory: viewApptModal.serviceSubcategory.replace(/^PENDIENTE SÁBADO/, payment ? 'PENDIENTE BIZUM' : 'RESERVADO') };
+                      setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
+                      setViewApptModal(updated);
+                    }} style={{ backgroundColor: '#d4af37', padding: '10px', border: 'none', cursor: 'pointer' }}>Aceptar solicitud</button>
+                    <button type="button" onClick={() => {
+                      if (!window.confirm('¿Rechazar esta solicitud de sábado?')) return;
+                      setAppointments(previous => previous.filter(item => item.id !== viewApptModal.id));
+                      setViewApptModal(null);
+                    }} style={{ padding: '10px', cursor: 'pointer' }}>Rechazar solicitud</button>
+                  </div>
+                )}
+                {viewApptModal.saturdayApproval.status === 'accepted' && <a style={{ color: '#d4af37' }} target="_blank" rel="noreferrer" href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(viewApptModal.advancePayment?.status === 'pending' ? `Hola ${viewApptModal.clientName}. Ana ha aceptado tu solicitud para el ${viewApptModal.dateKey.split('-').reverse().join('/')} a las ${viewApptModal.time}. Para confirmar, realiza un Bizum de 60 € al 672 163 485. Concepto: ${advancePaymentConcept(viewApptModal)}. Confirmaremos al comprobar el pago.` : generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time))}`}>Abrir WhatsApp para avisar a la clienta</a>}
+              </div>
+            )}
             {viewApptModal.advancePayment && (
               <div style={{ border: '1px solid #d4af37', borderRadius: '8px', padding: '12px', color: '#fff', fontSize: '12px' }}>
                 <strong>Reserva anticipada: {viewApptModal.advancePayment.amount} € · {viewApptModal.advancePayment.status === 'confirmed' ? 'Pago confirmado' : 'Pendiente de pago'}</strong>
