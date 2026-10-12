@@ -174,6 +174,7 @@ interface Appointment {
   dayName: string;
   time: string;
   durationMinutes?: number;
+  advancePayment?: { amount: number; reference: string; status: 'pending' | 'confirmed' };
   clientName: string;
   phone: string;
   email: string;
@@ -826,6 +827,18 @@ export default function App() {
   const [modalCatIndex, setModalCatIndex] = useState<number>(0);
   const [modalSubIndex, setModalSubIndex] = useState<number>(0);
   const [modalSelectedVariant, setModalSelectedVariant] = useState<ServiceVariant | null>(null);
+  const [advancePaymentModal, setAdvancePaymentModal] = useState<Appointment | null>(null);
+  const createAdvancePayment = () => ({ amount: 60, reference: `LS-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, status: 'pending' as const });
+  const advancePaymentConcept = (appointment: Appointment) => `${appointment.clientName} · Reserva anticipada · ${appointment.advancePayment?.reference || ''}`;
+  const savePendingAdvanceAppointment = () => {
+    if (!advancePaymentModal) return;
+    setAppointments(previous => previous.some(item => item.id === advancePaymentModal.id) ? previous : [...previous, advancePaymentModal]);
+    setBookingSuccessMsg(`Solicitud registrada. Pendiente de confirmar el Bizum de 60 €. Código: ${advancePaymentModal.advancePayment?.reference}`);
+    setSelectedServicesToBook([]);
+    setIsModalOpen(false);
+    setCurrentScreen('catalogBooking');
+    setAdvancePaymentModal(null);
+  };
   const [modalServices, setModalServices] = useState<{ categoryId: string; categoryName: string; sub: SubService; variant: ServiceVariant | null }[]>([]);
   const getModalService = () => {
     const category = catalog[modalCatIndex];
@@ -1012,6 +1025,13 @@ export default function App() {
       services,
       remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
     };
+    if ((newApp.durationMinutes || 0) > 120) {
+      newApp.advancePayment = createAdvancePayment();
+      newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE BIZUM');
+      newApp.remindersStatus = { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false };
+      setAdvancePaymentModal(newApp);
+      return;
+    }
     setAppointments([...appointments, newApp]);
     setIsModalOpen(false);
     const cleanPhone = (modalPhone || '600000000').replace(/\s+/g, "");
@@ -1068,6 +1088,13 @@ export default function App() {
       selectedVariant: selectedServicesToBook[0]?.variant || null,
       remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
     };
+    if ((newApp.durationMinutes || 0) > 120) {
+      newApp.advancePayment = createAdvancePayment();
+      newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE BIZUM');
+      newApp.remindersStatus = { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false };
+      setAdvancePaymentModal(newApp);
+      return;
+    }
     setAppointments([...appointments, newApp]);
     setBookingSuccessMsg(`¡Cita confirmada correctamente para el ${bookingDate.toLocaleDateString('es-ES')} a las ${selectedVisualTime}! Sincronizado con la intranet y Google Calendar.`);
     setSelectedServicesToBook([]);
@@ -2750,6 +2777,24 @@ export default function App() {
         </div>
       )}
 
+      {advancePaymentModal && (
+        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 2000 }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="advance-payment-title" style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '440px', width: '100%', maxHeight: '85vh', overflowY: 'auto', color: '#fff' }}>
+            <h3 id="advance-payment-title" style={{ color: '#d4af37', marginTop: 0 }}>Reserva anticipada · 60 €</h3>
+            <p>Tu cita supera las 2 horas. Para que quede reservada, realiza un Bizum de <strong>60 € al 672 163 485</strong>.</p>
+            <p>{advancePaymentModal.dateKey.split('-').reverse().join('/')} a las {advancePaymentModal.time} · {advancePaymentModal.durationMinutes} min</p>
+            <p>Indica tu nombre y apellidos y utiliza este concepto:</p>
+            <div style={{ padding: '12px', border: '1px solid #d4af37', borderRadius: '6px', overflowWrap: 'anywhere' }}>{advancePaymentConcept(advancePaymentModal)}</div>
+            <p style={{ color: '#aaa' }}>La solicitud quedará pendiente. Confirmaremos la reserva cuando comprobemos la recepción del pago.</p>
+            <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(advancePaymentConcept(advancePaymentModal)); alert('Concepto copiado.'); } catch { alert('No se pudo copiar. Selecciona y copia el concepto mostrado.'); } }} style={{ padding: '10px', marginBottom: '12px', cursor: 'pointer' }}>Copiar concepto</button>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <button type="button" onClick={() => setAdvancePaymentModal(null)} style={{ padding: '10px', cursor: 'pointer' }}>Volver</button>
+              <button type="button" onClick={savePendingAdvanceAppointment} style={{ backgroundColor: '#d4af37', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Registrar solicitud pendiente de pago</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* MODAL NUEVA CITA ADMIN */}
       {isModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
@@ -2823,6 +2868,20 @@ export default function App() {
               <div><strong style={{ color: '#fff' }}>Fecha y Hora:</strong> {viewApptModal.dateKey} a las {viewApptModal.time}</div>
               <div><strong style={{ color: '#fff' }}>Servicio & Variante:</strong> {viewApptModal.serviceSubcategory}</div>
             </div>
+            {viewApptModal.advancePayment && (
+              <div style={{ border: '1px solid #d4af37', borderRadius: '8px', padding: '12px', color: '#fff', fontSize: '12px' }}>
+                <strong>Reserva anticipada: {viewApptModal.advancePayment.amount} € · {viewApptModal.advancePayment.status === 'confirmed' ? 'Pago confirmado' : 'Pendiente de pago'}</strong>
+                <p>Código: {viewApptModal.advancePayment.reference}</p>
+                {viewApptModal.advancePayment.status === 'pending' && (
+                  <button type="button" onClick={() => {
+                    if (!window.confirm('¿Has comprobado la recepción del Bizum de 60 € con este código?')) return;
+                    const updated: Appointment = { ...viewApptModal, advancePayment: { ...viewApptModal.advancePayment!, status: 'confirmed' }, serviceSubcategory: viewApptModal.serviceSubcategory.replace(/^PENDIENTE BIZUM/, 'RESERVADO'), remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true } };
+                    setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
+                    setViewApptModal(updated);
+                  }} style={{ backgroundColor: '#d4af37', padding: '10px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Confirmar Bizum recibido</button>
+                )}
+              </div>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px', borderTop: '1px solid rgba(212,175,55,0.2)', paddingTop: '12px' }}>
               <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Enviar Recordatorio Rápido:</span>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
