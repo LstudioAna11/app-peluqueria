@@ -180,6 +180,7 @@ interface Appointment {
   serviceCategory: string;
   serviceSubcategory: string;
   selectedVariant?: ServiceVariant | null;
+  services?: { categoryId: string; categoryName: string; sub: SubService; variant: ServiceVariant | null }[];
   remindersStatus: {
     email48h: boolean;
     whatsapp48h: boolean;
@@ -825,6 +826,28 @@ export default function App() {
   const [modalCatIndex, setModalCatIndex] = useState<number>(0);
   const [modalSubIndex, setModalSubIndex] = useState<number>(0);
   const [modalSelectedVariant, setModalSelectedVariant] = useState<ServiceVariant | null>(null);
+  const [modalServices, setModalServices] = useState<{ categoryId: string; categoryName: string; sub: SubService; variant: ServiceVariant | null }[]>([]);
+  const getModalService = () => {
+    const category = catalog[modalCatIndex];
+    const sub = category?.subservices[modalSubIndex];
+    if (!category || !sub) return null;
+    if (sub.hasVariants && sub.variants?.length && !modalSelectedVariant) {
+      alert('Por favor, selecciona una variante.');
+      return null;
+    }
+    return { categoryId: category.id, categoryName: `${category.code} < ${category.title}`, sub, variant: sub.hasVariants ? modalSelectedVariant : null };
+  };
+  const handleAddModalService = () => {
+    const item = getModalService();
+    if (!item) return;
+    setModalServices(previous => {
+      const existing = previous.findIndex(entry => entry.sub.id === item.sub.id);
+      return existing < 0 ? [...previous, item] : previous.map((entry, index) => index === existing ? item : entry);
+    });
+  };
+  const getModalDuration = (items: { sub: SubService; variant: ServiceVariant | null }[]) =>
+    items.reduce((total, item) => total + (parseInt((item.variant?.duration || item.sub.duration).match(/\d+/)?.[0] || '45', 10)), 0);
+
   const [viewApptModal, setViewApptModal] = useState<Appointment | null>(null);
   const [showInstallBanner, setShowInstallBanner] = useState<boolean>(false);
 
@@ -950,6 +973,7 @@ export default function App() {
     setModalClientName("");
     setModalPhone("");
     setModalEmail("");
+    setModalServices([]);
     setModalCatIndex(0);
     setModalSubIndex(0);
     const defaultSub = catalog[0]?.subservices[0];
@@ -968,22 +992,10 @@ export default function App() {
   const handleSaveModalAppointment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!modalClientName.trim()) return;
-    const selectedCategory = catalog[modalCatIndex];
-    const selectedSub = selectedCategory?.subservices[modalSubIndex];
-    if (!selectedSub) return;
-    if (selectedSub.hasVariants && selectedSub.variants && selectedSub.variants.length > 0 && !modalSelectedVariant) {
-      alert('Por favor, selecciona una variante.');
-      return;
-    }
-    let durationMin = 45;
-    if (selectedSub.hasVariants && modalSelectedVariant) {
-      const durMatch = modalSelectedVariant.duration.match(/\d+/);
-      if (durMatch) durationMin = parseInt(durMatch[0], 10);
-    } else {
-      const durMatch = selectedSub.duration.match(/\d+/);
-      if (durMatch) durationMin = parseInt(durMatch[0], 10);
-    }
-    const varText = modalSelectedVariant ? `(${modalSelectedVariant.name} - ${modalSelectedVariant.price})` : "";
+    const current = modalServices.length ? null : getModalService();
+    const services = modalServices.length ? modalServices : current ? [current] : [];
+    if (!services.length) return;
+    const durationMin = getModalDuration(services);
     const dateFormattedStr = `${String(targetDateObj.getDate()).padStart(2, '0')}/${String(targetDateObj.getMonth() + 1).padStart(2, '0')}/${targetDateObj.getFullYear()}`;
     const newApp: Appointment = {
       id: Date.now().toString(),
@@ -994,9 +1006,10 @@ export default function App() {
       clientName: modalClientName,
       phone: modalPhone || '600000000',
       email: modalEmail || 'sinemail@gmail.com',
-      serviceCategory: `${selectedCategory.code} < ${selectedCategory.title}`,
-      serviceSubcategory: `RESERVADO ${selectedSub.name} ${varText}`,
-      selectedVariant: modalSelectedVariant,
+      serviceCategory: Array.from(new Set(services.map(item => item.categoryName))).join(' + '),
+      serviceSubcategory: `RESERVADO ${services.map(item => item.sub.name + (item.variant ? ` (${item.variant.name} - ${item.variant.price})` : '')).join(' + ')}`,
+      selectedVariant: services[0].variant,
+      services,
       remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
     };
     setAppointments([...appointments, newApp]);
@@ -2740,7 +2753,7 @@ export default function App() {
       {/* MODAL NUEVA CITA ADMIN */}
       {isModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '400px', width: '100%', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '400px', width: '100%', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Nueva Cita: {targetDayName} a las {targetTime}</h3>
             <form onSubmit={handleSaveModalAppointment} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <input type="text" placeholder="Nombre y Apellidos" value={modalClientName} onChange={(e) => setModalClientName(e.target.value)} required style={{ padding: '8px', backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '12px' }} />
@@ -2775,6 +2788,20 @@ export default function App() {
                   </select>
                 </div>
               )}
+              <button type="button" onClick={handleAddModalService} style={{ background: 'none', border: '1px solid #d4af37', color: '#d4af37', padding: '10px', borderRadius: '6px', cursor: 'pointer' }}>+ Añadir servicio a la cita</button>
+              {modalServices.length > 0 && (
+                <div aria-live="polite" style={{ border: '1px solid #444', borderRadius: '6px', padding: '10px', color: '#fff', fontSize: '12px' }}>
+                  <strong>Servicios de esta cita</strong>
+                  {modalServices.map(item => (
+                    <div key={item.sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '8px' }}>
+                      <span>{item.sub.name}{item.variant ? ` (${item.variant.name})` : ''} · {item.variant?.duration || item.sub.duration}</span>
+                      <button type="button" aria-label={`Quitar ${item.sub.name}`} onClick={() => setModalServices(previous => previous.filter(entry => entry.sub.id !== item.sub.id))} style={{ background: 'none', border: '1px solid #444', color: '#aaa', padding: '6px', borderRadius: '4px', cursor: 'pointer' }}>Quitar</button>
+                    </div>
+                  ))}
+                  <p style={{ color: '#d4af37', marginBottom: 0 }}>Duración total: {getModalDuration(modalServices)} min</p>
+                </div>
+              )}
+              <small style={{ color: '#aaa' }}>Selecciona cada servicio y pulsa «Añadir servicio». Si repites uno, se actualiza su variante. Se guardarán los servicios de la lista; sin lista, se guardará el servicio seleccionado.</small>
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
                 <button type="button" onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: '1px solid #444', color: '#aaa', padding: '8px 14px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer' }}>Cancelar</button>
                 <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>Guardar Cita</button>
