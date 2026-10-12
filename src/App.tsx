@@ -33,12 +33,12 @@ const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
   name: "L'Studio Ana",
   subtitle: "PORTAL PRIVADO DE CLIENTAS",
   location: "Calle Mayor / Centro de Elche, Alicante",
-  phone: "672 163 485",
+  phone: "600000000",
   description: "L'Studio Ana - Hair Experience es una peluquería premium en el centro de Elche, especializada en Balayage de Autor, mechas personalizadas, Babylights, coloración personalizada, técnicas de iluminación y terapias orgánicas.",
   scheduleMonday: "10:00h a 13:30h",
   scheduleTueWed: "10:00h a 18:00h",
   scheduleThuFri: "10:00h a 19:00h",
-  scheduleSaturday: "09:00h a 13:00h",
+  scheduleSaturday: "10:00h a 19:00h",
   welcomeMessage: "¡Bienvenida!",
   masterPin: "0000",
   instagramUrl: "https://instagram.com",
@@ -283,7 +283,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
   {
     id: 'c2',
     code: '0.2',
-    title: 'CORTE L´STUDIO',
+    title: 'VISAGISMO & CORTE',
     icon: '✂️',
     subservices: [
       {
@@ -325,7 +325,7 @@ const INITIAL_CATALOG: CatalogCategory[] = [
   {
     id: 'c4',
     code: '0.4',
-    title: 'COLOR L´STUDIO',
+    title: 'COLOR ATELIER',
     icon: '🎨',
     subservices: [
       {
@@ -474,48 +474,44 @@ export default function App() {
   
   const [currentLang, setCurrentLang] = useState<string>('es');
   const t = (key: string) => TRANSLATIONS[currentLang]?.[key] || TRANSLATIONS['es'][key] || key;
-
   const [pin, setPin] = useState<string>("");
   const [pinError, setPinError] = useState<boolean>(false);
   const [currentClientRecord, setCurrentClientRecord] = useState<ClientRecord | null>(null);
-
   const [regNombre, setRegNombre] = useState("");
   const [regApellidos, setRegApellidos] = useState("");
   const [regNacimiento, setRegNacimiento] = useState("");
   const [regTelefono, setRegTelefono] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPin, setRegPin] = useState("");
-
   const [selectedServicesToBook, setSelectedServicesToBook] = useState<{ sub: SubService; variant: ServiceVariant | null }[]>([]);
   const [expandedSubDetails, setExpandedSubDetails] = useState<{ [key: string]: boolean }>({});
   const [expandedCategories, setExpandedCategories] = useState<{ [key: string]: boolean }>({});
   const [bookingDate, setBookingDate] = useState<Date>(new Date(2026, 9, 7));
   const [selectedVisualTime, setSelectedVisualTime] = useState<string>('12:00');
   const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null);
-
   const [editProximaVisita, setEditProximaVisita] = useState("");
   const [editFormulas, setEditFormulas] = useState("");
   const [editMsg, setEditMsg] = useState<string | null>(null);
   const [clientWishText, setClientWishText] = useState("");
   const [aiRecommendation, setAiRecommendation] = useState<{ serviceName: string; reason: string; category: string } | null>(null);
-
   const [logoClicks, setLogoClicks] = useState<number>(0);
   const [adminPin, setAdminPin] = useState<string>("");
   const [adminError, setAdminError] = useState<boolean>(false);
   const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'holidays'>('catalog');
   const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule'>('marca');
   const [catalogSavedMsg, setCatalogSavedMsg] = useState<string | null>(null);
-
   const [enableOutOfHours, setEnableOutOfHours] = useState<boolean>(true);
   const [enableDoubleBooking, setEnableDoubleBooking] = useState<boolean>(false);
+  
+  // NUEVO ESTADO: VISTA DE AGENDA MAESTRA ('week' | 'day')
+  const [agendaViewMode, setAgendaViewMode] = useState<'week' | 'day'>('week');
+  
   const [googleCalendarSyncActive, setGoogleCalendarSyncActive] = useState<boolean>(true);
   const [googleCalendarConnected, setGoogleCalendarConnected] = useState<boolean>(true);
-
   const [bizConfig, setBizConfig] = useState<BusinessConfig>(() => {
     const saved = localStorage.getItem('lst_business_config');
     return saved ? JSON.parse(saved) : INITIAL_BUSINESS_CONFIG;
   });
-
   const [tempConfig, setTempConfig] = useState<BusinessConfig>(bizConfig);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
 
@@ -579,7 +575,6 @@ export default function App() {
   });
 
   const [crmPeriod, setCrmPeriod] = useState<'hoy' | '7d' | '30d' | 'personalizado'>('7d');
-
   const [lostDemandsList, setLostDemandsList] = useState<LostDemandRecord[]>(() => {
     const saved = localStorage.getItem('lst_lost_demands_detailed');
     return saved ? JSON.parse(saved) : [
@@ -605,6 +600,7 @@ export default function App() {
   const [detractorReplies, setDetractorReplies] = useState<{ [key: string]: string }>({
     '1': "Hola María, lamentamos mucho el tiempo de espera en el lavado. En L'Studio Ana cuidamos cada detalle y queremos compensarte en tu próxima visita con un ritual exclusivo de hidratación."
   });
+
   const [selectedRating, setSelectedRating] = useState<number>(5);
   const [feedbackComment, setFeedbackComment] = useState<string>('¡Excelente experiencia! El servicio de autor y la atención de Ana han sido impecables.');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState<boolean>(false);
@@ -863,7 +859,6 @@ export default function App() {
               setCurrentClientRecord(clientMatch);
               setCurrentScreen('clientPortal');
             } else if (newPin === bizConfig.masterPin) {
-              // Si introduce el PIN maestro, redirigimos a login de admin o panel de admin directamente
               setAdminPin("");
               setAdminError(false);
               setCurrentScreen('adminPanel');
@@ -880,7 +875,6 @@ export default function App() {
 
   const handleDelete = () => setPin(prev => prev.slice(0, -1));
   const handleClear = () => setPin("");
-
   const handleLogoClick = () => {
     const newClicks = logoClicks + 1;
     setLogoClicks(newClicks);
@@ -963,7 +957,6 @@ export default function App() {
     setIsModalOpen(true);
   };
 
-  // GENERADOR DE MENSAJE DE WHATSAPP PERSONALIZADO CON PLANTILLA
   const generateWhatsAppMessage = (clientName: string, dateStr: string, timeStr: string) => {
     const template = bizConfig.whatsappTemplate || "Hola {nombre}. Te recordamos tu cita en L’Studio Ana el {fecha} a las {hora}. ¡Te esperamos en el Studio!";
     return template
@@ -1008,12 +1001,9 @@ export default function App() {
     };
     setAppointments([...appointments, newApp]);
     setIsModalOpen(false);
-
-    // AUTOMATIZACIÓN WHATSAPP AL GUARDAR DESDE INTRANET
     const cleanPhone = (modalPhone || '600000000').replace(/\s+/g, "");
     const customMsg = generateWhatsAppMessage(modalClientName, dateFormattedStr, targetTime);
     window.open(`https://wa.me/34${cleanPhone}?text=${encodeURIComponent(customMsg)}`, '_blank');
-
     window.alert(`¡Cita guardada para ${modalClientName}! Sincronizada con Google Calendar y WhatsApp listo para enviar.`);
   };
 
@@ -1048,11 +1038,9 @@ export default function App() {
         totalDurationMinutes += match ? parseInt(match[0], 10) : 45;
       }
     });
-
     const clientNameStr = currentClientRecord ? `${currentClientRecord.nombre} ${currentClientRecord.apellidos}` : 'Clienta Web';
     const clientPhoneStr = currentClientRecord?.telefono || '600000000';
     const dateFormattedStr = `${String(bookingDate.getDate()).padStart(2, '0')}/${String(bookingDate.getMonth() + 1).padStart(2, '0')}/${bookingDate.getFullYear()}`;
-
     const newApp: Appointment = {
       id: Date.now().toString(),
       dateKey: dateKeyStr,
@@ -1071,12 +1059,9 @@ export default function App() {
     setBookingSuccessMsg(`¡Cita confirmada correctamente para el ${bookingDate.toLocaleDateString('es-ES')} a las ${selectedVisualTime}! Sincronizado con la intranet y Google Calendar.`);
     setSelectedServicesToBook([]);
     setCurrentScreen('catalogBooking');
-
-    // AUTOMATIZACIÓN WHATSAPP AL CONFIRMAR DESDE EL PORTAL DE CLIENTAS
     const cleanPhone = clientPhoneStr.replace(/\s+/g, "");
     const customMsg = generateWhatsAppMessage(clientNameStr, dateFormattedStr, selectedVisualTime);
     window.open(`https://wa.me/34${cleanPhone}?text=${encodeURIComponent(customMsg)}`, '_blank');
-
     setTimeout(() => setBookingSuccessMsg(null), 5000);
   };
 
@@ -1256,6 +1241,7 @@ export default function App() {
   const cambiarMesMiniCal = (delta: number) => {
     setMesNavegacion(new Date(mesNavegacion.getFullYear(), mesNavegacion.getMonth() + delta, 1));
   };
+
   const añoMini = mesNavegacion.getFullYear();
   const mesMini = mesNavegacion.getMonth();
   const primerDiaMes = new Date(añoMini, mesMini, 1).getDay();
@@ -1311,6 +1297,15 @@ export default function App() {
   };
 
   const semanaActual = getDaysOfWeekForDate(fechaSeleccionada);
+  const dayNamesMapList = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  
+  // DÍA SELECCIONADO PARA LA VISTA DIARIA
+  const diaSeleccionadoObj = {
+    name: dayNamesMapList[fechaSeleccionada.getDay()],
+    dateObj: fechaSeleccionada,
+    dateFormatted: fechaSeleccionada.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' })
+  };
+
   const clientNextAppointment = appointments[0];
 
   return (
@@ -1565,7 +1560,6 @@ export default function App() {
             <h1 style={{ fontSize: '16px', fontFamily: 'serif', color: '#fff', marginBottom: '4px' }}>{t('selectServices')}</h1>
             <p style={{ color: '#888', fontSize: '10px', margin: 0 }}>Catálogo sincronizado en tiempo real con la intranet de Ana.</p>
           </div>
-
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {catalog.map((cat) => {
               const isCategoryExpanded = !!expandedCategories[cat.id];
@@ -1583,7 +1577,6 @@ export default function App() {
                         const existingSelection = selectedServicesToBook.find(s => s.sub.id === sub.id);
                         const isSelected = !!existingSelection;
                         const isExpanded = !!expandedSubDetails[sub.id];
-
                         return (
                           <div key={sub.id} style={{ backgroundColor: isSelected ? '#252012' : '#141414', border: isSelected ? '1px solid #d4af37' : '1px solid #333', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1614,15 +1607,12 @@ export default function App() {
                                 </div>
                               </div>
                             </div>
-
-                            {/* AVISO MANUAL CONFIGURADO DESDE LA INTRANET */}
                             {sub.showAlertBadge && (
                               <div style={{ backgroundColor: '#262010', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '6px', padding: '6px 10px', fontSize: '10px', color: '#d4af37', display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 <span>💡</span>
                                 <span>{sub.alertText || '⚠️ Recuerda añadir tu peinado para asegurar el tiempo en agenda.'}</span>
                               </div>
                             )}
-
                             {sub.hasVariants && sub.variants && sub.variants.length > 0 && isSelected && (
                               <div style={{ backgroundColor: '#1a1a1a', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
                                 <span style={{ color: '#d4af37', fontSize: '10px', fontWeight: 'bold', textTransform: 'uppercase' }}>{t('selectVariantTitle')}</span>
@@ -1751,7 +1741,6 @@ export default function App() {
               {t('backToPortal')}
             </button>
           </div>
-
           <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0 }}>{t('myHistoryTitle')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
@@ -1771,7 +1760,6 @@ export default function App() {
               )}
             </div>
           </div>
-
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '14px' }}>
               <div style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', marginBottom: '6px' }}>{t('hairDni')}</div>
@@ -1782,13 +1770,11 @@ export default function App() {
               <div style={{ color: '#ccc', fontSize: '11px' }}>{currentClientRecord?.prescripcionCasa || 'Champú Hidratante | Acondicionador Sellador'}</div>
             </div>
           </div>
-
           {editMsg && (
             <div style={{ padding: '10px', backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }}>
               {editMsg}
             </div>
           )}
-
           <form onSubmit={handleGuardarCambiosFichaClienta} style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0, borderBottom: '1px solid rgba(212,175,55,0.2)', paddingBottom: '8px' }}>
               Próxima Visita Sugerida
@@ -1809,7 +1795,6 @@ export default function App() {
               </button>
             </div>
           </form>
-
           <div style={{ backgroundColor: '#161616', border: '1px solid #d4af37', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <h3 style={{ color: '#d4af37', fontSize: '14px', fontFamily: 'serif', margin: 0 }}>{t('aiAssistant')}</h3>
             <form onSubmit={handleRunAiRecommendation} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1826,7 +1811,6 @@ export default function App() {
               </div>
             )}
           </div>
-
           <button onClick={() => setCurrentScreen('clientPortal')} style={{ width: '100%', backgroundColor: '#1a1a1a', border: '1px solid #444', color: '#ccc', padding: '12px', borderRadius: '10px', fontSize: '12px', cursor: 'pointer' }}>
             {t('backToPortal')}
           </button>
@@ -1902,9 +1886,7 @@ export default function App() {
                     })}
                   </div>
                 </div>
-
                 <hr style={{ borderColor: 'rgba(212,175,55,0.2)', margin: 0 }} />
-
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Sus calendarios</span>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#1c1c1c', padding: '8px 10px', borderRadius: '6px', border: '1px solid #333' }}>
@@ -1928,9 +1910,7 @@ export default function App() {
                     {googleCalendarConnected ? '+ Vincular otro calendario' : 'Conectar con Google Calendar'}
                   </button>
                 </div>
-
                 <hr style={{ borderColor: 'rgba(212,175,55,0.2)', margin: 0 }} />
-
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                   <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Control de Reservas</span>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: '#ccc' }}>
@@ -1941,12 +1921,59 @@ export default function App() {
                     <span>Activar doble reserva (solapes)</span>
                     <input type="checkbox" checked={enableDoubleBooking} onChange={() => setEnableDoubleBooking(!enableDoubleBooking)} style={{ accentColor: '#d4af37', width: '16px', height: '16px', cursor: 'pointer' }} />
                   </div>
-                  <button onClick={() => setAdminTab('config')} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#aaa', padding: '6px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer', textAlign: 'left' }}>
-                    ⚙️ Preferencias de calendario
-                  </button>
-                  <button onClick={() => setAdminTab('agenda')} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#aaa', padding: '6px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer', textAlign: 'left' }}>
+
+                  {/* PREFERENCIAS DE CALENDARIO: SELECTOR DE VISTA CONMUTABLE (SEMANAL O DIARIO) */}
+                  <div style={{ backgroundColor: '#1c1c1c', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '8px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span>⚙️</span> Preferencias de calendario
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button 
+                        onClick={() => setAgendaViewMode('week')}
+                        style={{
+                          flex: 1,
+                          backgroundColor: agendaViewMode === 'week' ? '#d4af37' : '#121212',
+                          color: agendaViewMode === 'week' ? '#000' : '#ccc',
+                          border: '1px solid #d4af37',
+                          padding: '6px 4px',
+                          borderRadius: '4px',
+                          fontSize: '10px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Ver Semanal
+                      </button>
+                      <button 
+                        onClick={() => setAgendaViewMode('day')}
+                        style={{
+                          flex: 1,
+                          backgroundColor: agendaViewMode === 'day' ? '#d4af37' : '#121212',
+                          color: agendaViewMode === 'day' ? '#000' : '#ccc',
+                          border: '1px solid #d4af37',
+                          padding: '6px 4px',
+                          borderRadius: '4px',
+                          fontSize: '10px',
+                          fontWeight: 'bold',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        Ver Diario
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* BOTÓN REORGANIZADO: CAMBIAR LAS HORAS DE TRABAJO (DIRIGE A CONFIGURACIÓN > HORARIOS) */}
+                  <button 
+                    onClick={() => {
+                      setAdminTab('config');
+                      setConfigSubTab('schedule');
+                    }} 
+                    style={{ background: '#1c1c1c', border: '1px solid #d4af37', color: '#d4af37', padding: '8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '6px' }}
+                  >
                     🕒 Cambiar las horas de trabajo
                   </button>
+
                   <button onClick={() => window.print()} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#aaa', padding: '6px', borderRadius: '6px', fontSize: '10px', cursor: 'pointer', textAlign: 'left' }}>
                     🖨️ Imprimir calendario (CTRL + P)
                   </button>
@@ -1955,59 +1982,108 @@ export default function App() {
 
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px', minWidth: '600px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>Agenda Maestra (Control Total & Sincronizada)</h3>
+                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>
+                    Agenda Maestra {agendaViewMode === 'week' ? '(Vista Semanal)' : `(Vista Diaria - ${diaSeleccionadoObj.name} ${diaSeleccionadoObj.dateFormatted})`}
+                  </h3>
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() - 7); setFechaSeleccionada(d); }} style={{ background: '#1a1a1a', border: '1px solid #444', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>◄ Anterior</button>
-                    <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>Semana del {semanaActual[0].dateFormatted}</span>
-                    <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() + 7); setFechaSeleccionada(d); }} style={{ background: '#1a1a1a', border: '1px solid #444', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>Siguiente ►</button>
+                    <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() - (agendaViewMode === 'week' ? 7 : 1)); setFechaSeleccionada(d); }} style={{ background: '#1a1a1a', border: '1px solid #444', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>◀ Anterior</button>
+                    <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>
+                      {agendaViewMode === 'week' ? `Semana del ${semanaActual[0].dateFormatted}` : `${diaSeleccionadoObj.name} ${diaSeleccionadoObj.dateFormatted}`}
+                    </span>
+                    <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() + (agendaViewMode === 'week' ? 7 : 1)); setFechaSeleccionada(d); }} style={{ background: '#1a1a1a', border: '1px solid #444', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '11px' }}>Siguiente ►</button>
                   </div>
                 </div>
+
+                {/* VISTA DINÁMICA DE LA TABLA (SEMANAL vs DIARIA) */}
                 <div style={{ overflowX: 'auto', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '15px' }}>
-                  <div style={{ display: 'grid', gridTemplateColumns: '70px repeat(6, minmax(110px, 1fr))', gap: '4px', minWidth: '750px' }}>
-                    <div style={{ padding: '8px', textAlign: 'center', color: '#777', fontSize: '11px', fontWeight: 'bold' }}>Hora</div>
-                    {semanaActual.map((day, idx) => {
-                      const dKey = formatDateKey(day.dateObj);
-                      const isBlocked = isDateBlockedByHoliday(dKey);
-                      return (
-                        <div key={idx} style={{ padding: '8px', textAlign: 'center', backgroundColor: isBlocked ? '#2e1414' : '#1e1e1e', borderRadius: '6px', borderBottom: isBlocked ? '2px solid #ff4444' : '2px solid #d4af37' }}>
-                          <div style={{ color: isBlocked ? '#ff8888' : '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>{day.name}</div>
-                          <div style={{ color: '#aaa', fontSize: '10px' }}>{day.dateFormatted} {isBlocked ? '🔒' : ''}</div>
-                        </div>
-                      );
-                    })}
-                    {hoursList.map((time, hIdx) => (
-                      <React.Fragment key={hIdx}>
-                        <div style={{ padding: '8px 4px', textAlign: 'center', color: '#888', fontSize: '10px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {time}
-                        </div>
-                        {semanaActual.map((day, dIdx) => {
-                          const targetKey = formatDateKey(day.dateObj);
-                          const isBlocked = isDateBlockedByHoliday(targetKey);
-                          const appt = appointments.find(a => a.dateKey === targetKey && a.time === time);
-                          const occupiedByDuration = isTimeSlotOccupied(targetKey, time);
-                          return (
-                            <div key={dIdx} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, day.dateObj, day.name, time)} onClick={() => handleCellClick(day.dateObj, day.name, time)} style={{ backgroundColor: isBlocked ? '#261212' : (appt ? '#221e10' : (occupiedByDuration ? '#1a1510' : '#1a1a1a')), border: isBlocked ? '1px solid #ff4444' : (appt ? '1px solid #d4af37' : (occupiedByDuration ? '1px dashed #554422' : '1px dashed #2c2c2c')), borderRadius: '6px', padding: '6px', minHeight: '35px', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                              {isBlocked ? (
-                                <div style={{ color: '#ff6666', fontSize: '9px', textAlign: 'center', fontWeight: 'bold' }}>BLOQUEADO</div>
-                              ) : appt ? (
-                                <div draggable onDragStart={(e) => handleDragStart(e, appt.id)} title="Arrastra para mover a cualquier hora u otro día" style={{ fontSize: '10px' }}>
-                                  <div style={{ color: '#d4af37', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span>{appt.clientName}</span>
-                                    <button onClick={(e) => handleDeleteAppointment(appt.id, e)} style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '10px', cursor: 'pointer' }}>X</button>
+                  {agendaViewMode === 'week' ? (
+                    /* REJILLA VISTA SEMANAL (Lunes a Sábado) */
+                    <div style={{ display: 'grid', gridTemplateColumns: '70px repeat(6, minmax(110px, 1fr))', gap: '4px', minWidth: '750px' }}>
+                      <div style={{ padding: '8px', textAlign: 'center', color: '#777', fontSize: '11px', fontWeight: 'bold' }}>Hora</div>
+                      {semanaActual.map((day, idx) => {
+                        const dKey = formatDateKey(day.dateObj);
+                        const isBlocked = isDateBlockedByHoliday(dKey);
+                        return (
+                          <div key={idx} style={{ padding: '8px', textAlign: 'center', backgroundColor: isBlocked ? '#2e1414' : '#1e1e1e', borderRadius: '6px', borderBottom: isBlocked ? '2px solid #ff4444' : '2px solid #d4af37' }}>
+                            <div style={{ color: isBlocked ? '#ff8888' : '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>{day.name}</div>
+                            <div style={{ color: '#aaa', fontSize: '10px' }}>{day.dateFormatted} {isBlocked ? '🔒' : ''}</div>
+                          </div>
+                        );
+                      })}
+                      {hoursList.map((time, hIdx) => (
+                        <React.Fragment key={hIdx}>
+                          <div style={{ padding: '8px 4px', textAlign: 'center', color: '#888', fontSize: '10px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {time}
+                          </div>
+                          {semanaActual.map((day, dIdx) => {
+                            const targetKey = formatDateKey(day.dateObj);
+                            const isBlocked = isDateBlockedByHoliday(targetKey);
+                            const appt = appointments.find(a => a.dateKey === targetKey && a.time === time);
+                            const occupiedByDuration = isTimeSlotOccupied(targetKey, time);
+                            return (
+                              <div key={dIdx} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, day.dateObj, day.name, time)} onClick={() => handleCellClick(day.dateObj, day.name, time)} style={{ backgroundColor: isBlocked ? '#261212' : (appt ? '#221e10' : (occupiedByDuration ? '#1a1510' : '#1a1a1a')), border: isBlocked ? '1px solid #ff4444' : (appt ? '1px solid #d4af37' : (occupiedByDuration ? '1px dashed #554422' : '1px dashed #2c2c2c')), borderRadius: '6px', padding: '6px', minHeight: '35px', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                {isBlocked ? (
+                                  <div style={{ color: '#ff6666', fontSize: '9px', textAlign: 'center', fontWeight: 'bold' }}>BLOQUEADO</div>
+                                ) : appt ? (
+                                  <div draggable onDragStart={(e) => handleDragStart(e, appt.id)} title="Arrastra para mover a cualquier hora u otro día" style={{ fontSize: '10px' }}>
+                                    <div style={{ color: '#d4af37', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <span>{appt.clientName}</span>
+                                      <button onClick={(e) => handleDeleteAppointment(appt.id, e)} style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '10px', cursor: 'pointer' }}>X</button>
+                                    </div>
+                                    <div style={{ color: '#bbb', fontSize: '9px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appt.serviceSubcategory}</div>
                                   </div>
-                                  <div style={{ color: '#bbb', fontSize: '9px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appt.serviceSubcategory}</div>
+                                ) : occupiedByDuration ? (
+                                  <div style={{ color: '#a68a4c', fontSize: '9px', textAlign: 'center', fontStyle: 'italic' }}>Ocupado</div>
+                                ) : (
+                                  <div style={{ color: '#444', fontSize: '9px', textAlign: 'center' }}>+ Libre</div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  ) : (
+                    /* REJILLA VISTA DIARIA (Día único seleccionado) */
+                    <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '4px', minWidth: '400px' }}>
+                      <div style={{ padding: '8px', textAlign: 'center', color: '#777', fontSize: '11px', fontWeight: 'bold' }}>Hora</div>
+                      <div style={{ padding: '8px', textAlign: 'center', backgroundColor: isDateBlockedByHoliday(formatDateKey(diaSeleccionadoObj.dateObj)) ? '#2e1414' : '#1e1e1e', borderRadius: '6px', borderBottom: isDateBlockedByHoliday(formatDateKey(diaSeleccionadoObj.dateObj)) ? '2px solid #ff4444' : '2px solid #d4af37' }}>
+                        <div style={{ color: isDateBlockedByHoliday(formatDateKey(diaSeleccionadoObj.dateObj)) ? '#ff8888' : '#d4af37', fontSize: '13px', fontWeight: 'bold' }}>
+                          {diaSeleccionadoObj.name} ({diaSeleccionadoObj.dateFormatted}) {isDateBlockedByHoliday(formatDateKey(diaSeleccionadoObj.dateObj)) ? '🔒 CERRADO' : ''}
+                        </div>
+                      </div>
+                      {hoursList.map((time, hIdx) => {
+                        const targetKey = formatDateKey(diaSeleccionadoObj.dateObj);
+                        const isBlocked = isDateBlockedByHoliday(targetKey);
+                        const appt = appointments.find(a => a.dateKey === targetKey && a.time === time);
+                        const occupiedByDuration = isTimeSlotOccupied(targetKey, time);
+                        return (
+                          <React.Fragment key={hIdx}>
+                            <div style={{ padding: '10px 4px', textAlign: 'center', color: '#888', fontSize: '11px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                              {time}
+                            </div>
+                            <div onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, diaSeleccionadoObj.dateObj, diaSeleccionadoObj.name, time)} onClick={() => handleCellClick(diaSeleccionadoObj.dateObj, diaSeleccionadoObj.name, time)} style={{ backgroundColor: isBlocked ? '#261212' : (appt ? '#221e10' : (occupiedByDuration ? '#1a1510' : '#1a1a1a')), border: isBlocked ? '1px solid #ff4444' : (appt ? '1px solid #d4af37' : (occupiedByDuration ? '1px dashed #554422' : '1px dashed #2c2c2c')), borderRadius: '6px', padding: '10px', minHeight: '42px', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                              {isBlocked ? (
+                                <div style={{ color: '#ff6666', fontSize: '11px', textAlign: 'center', fontWeight: 'bold' }}>BLOQUEADO POR FESTIVO / VACACIONES</div>
+                              ) : appt ? (
+                                <div draggable onDragStart={(e) => handleDragStart(e, appt.id)} title="Arrastra para mover cita" style={{ fontSize: '11px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <div>
+                                    <span style={{ color: '#d4af37', fontWeight: 'bold', marginRight: '10px' }}>{appt.clientName} ({appt.phone})</span>
+                                    <span style={{ color: '#bbb' }}>{appt.serviceSubcategory}</span>
+                                  </div>
+                                  <button onClick={(e) => handleDeleteAppointment(appt.id, e)} style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar X</button>
                                 </div>
                               ) : occupiedByDuration ? (
-                                <div style={{ color: '#a68a4c', fontSize: '9px', textAlign: 'center', fontStyle: 'italic' }}>Ocupado</div>
+                                <div style={{ color: '#a68a4c', fontSize: '10px', textAlign: 'center', fontStyle: 'italic' }}>Ocupado por servicio de mayor duración</div>
                               ) : (
-                                <div style={{ color: '#444', fontSize: '9px', textAlign: 'center' }}>+ Libre</div>
+                                <div style={{ color: '#555', fontSize: '10px', textAlign: 'center' }}>+ Clic para agendar cita en este hueco</div>
                               )}
                             </div>
-                          );
-                        })}
-                      </React.Fragment>
-                    ))}
-                  </div>
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -2029,8 +2105,6 @@ export default function App() {
               {configSubTab === 'marca' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Gestor de Marca, Dirección y Plantilla WhatsApp</h3>
-                  
-                  {/* PLANTILLA WHATSAPP */}
                   <div style={{ backgroundColor: '#161616', border: '1px solid #d4af37', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <span style={{ color: '#d4af37', fontSize: '13px', fontWeight: 'bold' }}>💬 Plantilla Personalizada de WhatsApp</span>
                     <p style={{ color: '#aaa', fontSize: '11px', margin: 0 }}>Puedes editar el mensaje que se enviará automáticamente. Usa las etiquetas <code style={{ color: '#d4af37' }}>{'{nombre}'}</code>, <code style={{ color: '#d4af37' }}>{'{fecha}'}</code> y <code style={{ color: '#d4af37' }}>{'{hora}'}</code>.</p>
@@ -2042,7 +2116,6 @@ export default function App() {
                       style={{ padding: '10px', backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} 
                     />
                   </div>
-
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 280px', gap: '15px', alignItems: 'stretch' }}>
                     <div style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
                       <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', alignSelf: 'flex-start' }}>Logotipo de la Marca</span>
@@ -2167,13 +2240,11 @@ export default function App() {
                   <button onClick={handleSaveCatalogMaster} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 0 10px rgba(212,175,55,0.4)' }}>💾 Guardar & Sincronizar Catálogo</button>
                 </div>
               </div>
-
               {catalogSavedMsg && (
                 <div style={{ padding: '12px', backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', borderRadius: '8px', fontSize: '12px', textAlign: 'center', fontWeight: 'bold' }}>
                   {catalogSavedMsg}
                 </div>
               )}
-
               {isAddingCategory && (
                 <form onSubmit={handleAddCategorySubmit} style={{ backgroundColor: '#181818', border: '1px solid #d4af37', borderRadius: '8px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <h4 style={{ color: '#d4af37', fontSize: '13px', margin: 0 }}>Añadir Categoría Principal</h4>
@@ -2238,8 +2309,6 @@ export default function App() {
                                     <button onClick={() => handleDeleteSubservice(cat.id, sub.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontSize: '11px' }}>X</button>
                                   </div>
                                 </div>
-
-                                {/* BLOQUE CONFIGURACIÓN AVISO MANUAL DIRECTO */}
                                 <div style={{ backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <input type="checkbox" checked={!!sub.showAlertBadge} onChange={(e) => {
@@ -2255,7 +2324,6 @@ export default function App() {
                                     }} placeholder="Texto del aviso (ej. ⚠️ Recuerda añadir tu peinado)" style={{ width: '100%', padding: '6px', backgroundColor: '#121212', border: '1px solid #d4af37', color: '#fff', borderRadius: '4px', fontSize: '11px', boxSizing: 'border-box' }} />
                                   )}
                                 </div>
-
                                 {sub.hasVariants && (
                                   <div style={{ backgroundColor: '#141414', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
                                     <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>Variantes configuradas:</span>
@@ -2351,7 +2419,6 @@ export default function App() {
                   );
                 })}
               </div>
-
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
                 <button onClick={handleSaveCatalogMaster} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '12px 24px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 0 10px rgba(212,175,55,0.4)' }}>💾 Guardar & Sincronizar Catálogo</button>
               </div>
@@ -2779,7 +2846,6 @@ export default function App() {
           </div>
         </div>
       )}
-
     </div>
   );
 }
