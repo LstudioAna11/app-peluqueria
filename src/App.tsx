@@ -188,7 +188,7 @@ interface Appointment {
   dayName: string;
   time: string;
   durationMinutes?: number;
-  saturdayApproval?: { status: 'pending' | 'accepted' | 'rejected'; reference: string };
+  saturdayApproval?: { status: 'pending' | 'accepted' | 'rejected'; reference: string; reason?: 'saturday' | 'assessment' | 'both' };
   advancePayment?: { amount: number; reference: string; status: 'pending' | 'confirmed' };
   clientName: string;
   phone: string;
@@ -205,7 +205,15 @@ interface Appointment {
   };
 }
 
+type StylingPolicy = 'included' | 'required' | 'not_applicable';
+
 interface SubService {
+  active?: boolean;
+  requiresAssessment?: boolean;
+  tonerPolicy?: StylingPolicy;
+  isTonerService?: boolean;
+  stylingPolicy?: StylingPolicy;
+  isStylingService?: boolean;
   id: string;
   name: string;
   description: string;
@@ -500,6 +508,8 @@ export default function App() {
   const [regTelefono, setRegTelefono] = useState("");
   const [regEmail, setRegEmail] = useState("");
   const [regPin, setRegPin] = useState("");
+  const [previewServiceId, setPreviewServiceId] = useState<string | null>(null);
+  const [previewVariantId, setPreviewVariantId] = useState<string>('');
   const [selectedServicesToBook, setSelectedServicesToBook] = useState<{ sub: SubService; variant: ServiceVariant | null }[]>([]);
   const [expandedSubDetails, setExpandedSubDetails] = useState<{ [key: string]: boolean }>({});
   const [expandedCategories, setExpandedCategories] = useState<{ [key: string]: boolean }>({});
@@ -846,7 +856,7 @@ export default function App() {
   const registerSaturdayRequest = () => {
     if (!saturdayRequestModal) return;
     setAppointments(previous => previous.some(item => item.id === saturdayRequestModal.id) ? previous : [...previous, saturdayRequestModal]);
-    setBookingSuccessMsg('Solicitud de sábado registrada en este dispositivo. Pendiente de confirmación de Ana.');
+    setBookingSuccessMsg('Solicitud registrada en este dispositivo. Pendiente de confirmación de Ana.');
     setSelectedServicesToBook([]);
     setIsModalOpen(false);
     setSaturdayRequestModal(null);
@@ -868,6 +878,7 @@ export default function App() {
     const category = catalog[modalCatIndex];
     const sub = category?.subservices[modalSubIndex];
     if (!category || !sub) return null;
+    if (sub.active === false) { alert('Este servicio está desactivado. Selecciona otro.'); return null; }
     if (sub.hasVariants && sub.variants?.length && !modalSelectedVariant) {
       alert('Por favor, selecciona una variante.');
       return null;
@@ -1028,12 +1039,65 @@ export default function App() {
       .replace(/{hora}/g, timeStr);
   };
 
+  // Reglas explícitas del catálogo: no se deducen por nombres ni descripciones.
+  const getStylingError = (items: { sub: SubService; variant: ServiceVariant | null }[]) => {
+    const current = items.map(item => catalog.flatMap(category => category.subservices).find(sub => sub.id === item.sub.id) || item.sub);
+    const required = current.filter(sub => sub.stylingPolicy === 'required' && !sub.isStylingService);
+    const styling = current.filter(sub => sub.isStylingService);
+    if (required.length && !styling.length) return `Añade un servicio de secado y peinado y selecciona su largo o variante para completar: ${required.map(sub => sub.name).join(', ')}.`;
+    if (styling.length && !required.length && current.some(sub => sub.stylingPolicy === 'included' && !sub.isStylingService)) return 'El pack seleccionado ya incluye peinado. Retira el peinado adicional para evitar duplicarlo.';
+    return null;
+  };
+  const previewService = catalog.flatMap(category => category.subservices).find(sub => sub.id === previewServiceId);
+  const getInactiveServiceError = (items: { sub: SubService }[]) => {
+    const unavailable = items.filter(item => {
+      const current = catalog.flatMap(category => category.subservices).find(sub => sub.id === item.sub.id);
+      return !current || current.active === false;
+    });
+    return unavailable.length ? `Estos servicios ya no están disponibles para nuevas reservas: ${unavailable.map(item => item.sub.name).join(', ')}. Retíralos y selecciona otra opción.` : null;
+  };
+  const getApprovalReason = (items: { sub: SubService }[], dateKey: string): 'saturday' | 'assessment' | 'both' | null => {
+    const saturday = bizConfig.saturdayApprovalEnabled && new Date(`${dateKey}T12:00:00`).getDay() === 6;
+    const assessment = items.some(item => (catalog.flatMap(category => category.subservices).find(sub => sub.id === item.sub.id) || item.sub).requiresAssessment);
+    return saturday && assessment ? 'both' : assessment ? 'assessment' : saturday ? 'saturday' : null;
+  };
+  const approvalTitle = (reason?: 'saturday' | 'assessment' | 'both') => reason === 'assessment' ? 'Valoración previa' : reason === 'both' ? 'Valoración previa y sábado' : 'Sábado';
+
+  const getTonerError = (items: { sub: SubService; variant: ServiceVariant | null }[]) => {
+    const current = items.map(item => catalog.flatMap(category => category.subservices).find(sub => sub.id === item.sub.id) || item.sub);
+    const required = current.filter(sub => sub.tonerPolicy === 'required' && !sub.isTonerService);
+    const toner = current.filter(sub => sub.isTonerService);
+    if (required.length && !toner.length) return `Añade un servicio de matiz o tonalización y selecciona su variante para completar: ${required.map(sub => sub.name).join(', ')}.`;
+    if (toner.length && !required.length && current.some(sub => sub.tonerPolicy === 'included' && !sub.isTonerService)) return 'El pack seleccionado ya incluye matiz. Retira el matiz adicional para evitar duplicarlo.';
+    return null;
+  };
+  const tonerLabel = (sub: SubService) => sub.isTonerService ? 'Servicio de matiz / tonalización' : sub.tonerPolicy === 'included' ? 'Matiz incluido' : sub.tonerPolicy === 'required' ? 'Debes añadir matiz / tonalización' : '';
+
+  const stylingLabel = (sub: SubService) => sub.isStylingService ? 'Servicio de secado y peinado' : sub.stylingPolicy === 'included' ? 'Peinado incluido' : sub.stylingPolicy === 'required' ? 'Debes añadir secado y peinado' : sub.stylingPolicy === 'not_applicable' ? 'Sin peinado · No necesitas añadirlo' : '';
+
+  const renderServiceInfo = (sub: SubService) => (
+                              <div style={{ backgroundColor: '#1a1a1a', padding: '10px', borderRadius: '6px', fontSize: '11px', color: '#ccc', display: 'flex', flexDirection: 'column', gap: '6px', borderLeft: '2px solid #d4af37', marginTop: '4px' }}>
+                                <div><strong style={{ color: '#d4af37' }}>Descripción:</strong> {sub.description}</div>
+                                {sub.requiresAssessment && <div style={{ color: '#d4af37', fontWeight: 'bold' }}>Requiere valoración previa · Reserva bajo confirmación de Ana</div>}
+                                {tonerLabel(sub) && <div style={{ color: '#d4af37', fontWeight: 'bold' }}>{tonerLabel(sub)}</div>}
+                                {stylingLabel(sub) && <div style={{ color: '#d4af37', fontWeight: 'bold' }}>{stylingLabel(sub)}</div>}
+                                {sub.includesText && <div><strong style={{ color: '#d4af37' }}>Qué incluye:</strong> {sub.includesText}</div>}
+                                {sub.achievedText && <div><strong style={{ color: '#d4af37' }}>Qué se consigue:</strong> {sub.achievedText}</div>}
+                              </div>
+  );
+
   const handleSaveModalAppointment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!modalClientName.trim()) return;
     const current = modalServices.length ? null : getModalService();
     const services = modalServices.length ? modalServices : current ? [current] : [];
     if (!services.length) return;
+    const inactiveError = getInactiveServiceError(services);
+    if (inactiveError) { alert(inactiveError); return; }
+    const stylingError = getStylingError(services);
+    if (stylingError) { alert(stylingError); return; }
+    const tonerError = getTonerError(services);
+    if (tonerError) { alert(tonerError); return; }
     const durationMin = getModalDuration(services);
     const dateFormattedStr = `${String(targetDateObj.getDate()).padStart(2, '0')}/${String(targetDateObj.getMonth() + 1).padStart(2, '0')}/${targetDateObj.getFullYear()}`;
     const newApp: Appointment = {
@@ -1051,9 +1115,10 @@ export default function App() {
       services,
       remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
     };
-    if (bizConfig.saturdayApprovalEnabled && new Date(`${newApp.dateKey}T12:00:00`).getDay() === 6) {
-      newApp.saturdayApproval = { status: 'pending', reference: `SAB-${crypto.randomUUID().slice(0, 8).toUpperCase()}` };
-      newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE SÁBADO');
+    const approvalReason = getApprovalReason(services, newApp.dateKey);
+    if (approvalReason) {
+      newApp.saturdayApproval = { status: 'pending', reason: approvalReason, reference: `REV-${crypto.randomUUID().slice(0, 8).toUpperCase()}` };
+      newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, approvalReason === 'saturday' ? 'PENDIENTE SÁBADO' : 'PENDIENTE VALORACIÓN');
       newApp.remindersStatus = { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false };
       setSaturdayRequestModal(newApp);
       return;
@@ -1081,6 +1146,12 @@ export default function App() {
     const earliest = new Date(); earliest.setHours(0, 0, 0, 0); earliest.setDate(earliest.getDate() + bizConfig.minAdvanceDays);
     const latest = new Date(); latest.setHours(23, 59, 59, 999); latest.setMonth(latest.getMonth() + bizConfig.maxBookingMonths);
     if (bookingDate < earliest || bookingDate > latest) { alert(`Reserva con al menos ${bizConfig.minAdvanceDays} días de antelación y dentro de los próximos ${bizConfig.maxBookingMonths} meses.`); return; }
+    const inactiveError = getInactiveServiceError(selectedServicesToBook);
+    if (inactiveError) { alert(inactiveError); setCurrentScreen('catalogBooking'); return; }
+    const stylingError = getStylingError(selectedServicesToBook);
+    if (stylingError) { alert(stylingError); setCurrentScreen('catalogBooking'); return; }
+    const tonerError = getTonerError(selectedServicesToBook);
+    if (tonerError) { alert(tonerError); setCurrentScreen('catalogBooking'); return; }
     const dateKeyStr = formatDateKey(bookingDate);
     if (isDateBlockedByHoliday(dateKeyStr)) {
       alert('Lo sentimos, el salón se encuentra cerrado por vacaciones o festivo en esta fecha.');
@@ -1124,9 +1195,10 @@ export default function App() {
       selectedVariant: selectedServicesToBook[0]?.variant || null,
       remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
     };
-    if (bizConfig.saturdayApprovalEnabled && new Date(`${newApp.dateKey}T12:00:00`).getDay() === 6) {
-      newApp.saturdayApproval = { status: 'pending', reference: `SAB-${crypto.randomUUID().slice(0, 8).toUpperCase()}` };
-      newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE SÁBADO');
+    const approvalReason = getApprovalReason(selectedServicesToBook, newApp.dateKey);
+    if (approvalReason) {
+      newApp.saturdayApproval = { status: 'pending', reason: approvalReason, reference: `REV-${crypto.randomUUID().slice(0, 8).toUpperCase()}` };
+      newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, approvalReason === 'saturday' ? 'PENDIENTE SÁBADO' : 'PENDIENTE VALORACIÓN');
       newApp.remindersStatus = { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false };
       setSaturdayRequestModal(newApp);
       return;
@@ -1644,19 +1716,19 @@ export default function App() {
             <p style={{ color: '#888', fontSize: '10px', margin: 0 }}>Catálogo sincronizado en tiempo real con la intranet de Ana.</p>
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {catalog.map((cat) => {
+            {catalog.filter(cat => cat.subservices.some(sub => sub.active !== false)).map((cat) => {
               const isCategoryExpanded = !!expandedCategories[cat.id];
               return (
                 <div key={cat.id} style={{ backgroundColor: '#181818', border: '1px solid rgba(212,175,55,0.25)', borderRadius: '10px', overflow: 'hidden' }}>
                   <div onClick={() => setExpandedCategories({ ...expandedCategories, [cat.id]: !isCategoryExpanded })} style={{ padding: '14px 18px', backgroundColor: '#181818', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
                     <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ fontSize: '14px' }}>{cat.icon || '✨'}</span> {cat.title} ({cat.subservices.length} servicios)
+                      <span style={{ fontSize: '14px' }}>{cat.icon || '✨'}</span> {cat.title} ({cat.subservices.filter(sub => sub.active !== false).length} servicios)
                     </span>
                     <span style={{ color: '#d4af37', fontSize: '11px', fontWeight: 'bold' }}>{isCategoryExpanded ? 'Ocultar' : 'Desplegar'}</span>
                   </div>
                   {isCategoryExpanded && (
                     <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', borderTop: '1px solid rgba(212,175,55,0.2)', maxHeight: '300px', overflowY: 'auto', backgroundColor: '#121212' }}>
-                      {cat.subservices.map((sub) => {
+                      {cat.subservices.filter(sub => sub.active !== false).map((sub) => {
                         const existingSelection = selectedServicesToBook.find(s => s.sub.id === sub.id);
                         const isSelected = !!existingSelection;
                         const isExpanded = !!expandedSubDetails[sub.id];
@@ -1713,13 +1785,7 @@ export default function App() {
                                 </div>
                               </div>
                             )}
-                            {isExpanded && (
-                              <div style={{ backgroundColor: '#1a1a1a', padding: '10px', borderRadius: '6px', fontSize: '11px', color: '#ccc', display: 'flex', flexDirection: 'column', gap: '6px', borderLeft: '2px solid #d4af37', marginTop: '4px' }}>
-                                <div><strong style={{ color: '#d4af37' }}>Descripción:</strong> {sub.description}</div>
-                                {sub.includesText && <div><strong style={{ color: '#d4af37' }}>Qué incluye:</strong> {sub.includesText}</div>}
-                                {sub.achievedText && <div><strong style={{ color: '#d4af37' }}>Qué se consigue:</strong> {sub.achievedText}</div>}
-                              </div>
-                            )}
+                            {isExpanded && renderServiceInfo(sub)}
                           </div>
                         );
                       })}
@@ -1739,6 +1805,9 @@ export default function App() {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {selectedServicesToBook.some(item => (catalog.flatMap(c => c.subservices).find(sub => sub.id === item.sub.id) || item.sub).requiresAssessment) && <p style={{ color: '#d4af37', fontSize: '12px' }}>Tu selección requiere valoración previa. Elegir fecha y hora registra una solicitud; Ana debe aprobarla antes de confirmar la cita.</p>}
+                {getTonerError(selectedServicesToBook) && <p role="alert" style={{ color: '#d4af37', fontSize: '12px' }}>{getTonerError(selectedServicesToBook)}</p>}
+                {getStylingError(selectedServicesToBook) && <p role="alert" style={{ color: '#d4af37', fontSize: '12px' }}>{getStylingError(selectedServicesToBook)}</p>}
                 <p style={{ color: '#ccc', fontSize: '11px', margin: 0 }}>¡Servicio seleccionado! Accede a la agenda visual interactiva con franjas de 15 min.</p>
                 <button onClick={() => setCurrentScreen('visualAgenda')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'center' }}>
                   {t('openVisualAgenda')}
@@ -2372,6 +2441,18 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                             const isExpandedAdmin = !!expandedSubDetails[`admin_${sub.id}`];
                             return (
                               <div key={sub.id} style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <button type="button" onClick={() => { setPreviewServiceId(sub.id); setPreviewVariantId(sub.hasVariants ? sub.variants?.[0]?.id || '' : ''); }} style={{ alignSelf: 'flex-start', background: 'none', color: '#d4af37', border: '1px solid #d4af37', borderRadius: '5px', padding: '7px 12px', cursor: 'pointer' }}>Vista previa · Clienta</button>
+                                <label style={{ color: sub.active === false ? '#aaa' : '#d4af37', fontSize: '12px' }}>
+                                  <input type="checkbox" checked={sub.active !== false} onChange={e => {
+                                    const active = e.target.checked;
+                                    setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(item => item.id === sub.id ? { ...item, active } : item) } : c));
+                                    if (!active) {
+                                      setSelectedServicesToBook(previous => previous.filter(item => item.sub.id !== sub.id));
+                                      setModalServices(previous => previous.filter(item => item.sub.id !== sub.id));
+                                    }
+                                  }} /> {sub.active === false ? 'Desactivado · Oculto para nuevas reservas' : 'Activo · Disponible para reservar'}
+                                </label>
+
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                                   <div style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center' }}>
                                     <input type="text" value={sub.name} onChange={(e) => {
@@ -2441,6 +2522,48 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                         setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, description: val } : s) } : c));
                                       }} rows={2} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '6px', borderRadius: '4px', fontSize: '11px' }} />
                                     </div>
+                                    <label style={{ color: '#d4af37' }}>Tipo de reserva
+                                      <select aria-label={`Tipo de reserva de ${sub.name}`} value={sub.requiresAssessment ? 'assessment' : 'direct'} onChange={e => {
+                                        const required = e.target.value === 'assessment';
+                                        setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(item => item.id === sub.id ? { ...item, requiresAssessment: required } : item) } : c));
+                                      }} style={{ display: 'block', width: '100%', padding: '8px', backgroundColor: '#121212', color: '#fff', border: '1px solid #444', borderRadius: '4px' }}>
+                                        <option value="direct">Reserva directa</option>
+                                        <option value="assessment">Valoración previa · Ana debe aprobar</option>
+                                      </select>
+                                    </label>
+                                    <span>La valoración previa deja la solicitud pendiente, también entre semana. Si necesita Bizum, se solicita después de la aprobación.</span>
+                                    <label style={{ color: '#d4af37' }}>Matiz del servicio
+                                      <select aria-label={`Matiz de ${sub.name}`} value={sub.tonerPolicy || ''} disabled={!!sub.isTonerService} onChange={e => {
+                                        const policy = (e.target.value || undefined) as StylingPolicy | undefined;
+                                        setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(item => item.id === sub.id ? { ...item, tonerPolicy: policy } : item) } : c));
+                                      }} style={{ display: 'block', width: '100%', padding: '8px', backgroundColor: '#121212', color: '#fff', border: '1px solid #444', borderRadius: '4px' }}>
+                                        <option value="">Sin configurar · Mantener reserva actual</option>
+                                        <option value="included">Matiz incluido</option>
+                                        <option value="required">Requiere añadir matiz / tonalización</option>
+                                        <option value="not_applicable">No corresponde</option>
+                                      </select>
+                                    </label>
+                                    <label><input type="checkbox" checked={!!sub.isTonerService} onChange={e => {
+                                      const checked = e.target.checked;
+                                      setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(item => item.id === sub.id ? { ...item, isTonerService: checked, tonerPolicy: checked ? undefined : item.tonerPolicy } : item) } : c));
+                                    }} /> Este es un servicio de matiz / tonalización (complemento)</label>
+                                    <span>Marca esta casilla en los servicios que puedan completar el matiz de unas mechas. El precio y el tiempo se añaden al seleccionarlos. En los packs, comprueba que ambos ya incluyen el matiz.</span>
+                                    <label style={{ color: '#d4af37' }}>Peinado del servicio
+                                      <select aria-label={`Peinado de ${sub.name}`} value={sub.stylingPolicy || ''} disabled={!!sub.isStylingService} onChange={e => {
+                                        const policy = (e.target.value || undefined) as StylingPolicy | undefined;
+                                        setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(item => item.id === sub.id ? { ...item, stylingPolicy: policy } : item) } : c));
+                                      }} style={{ display: 'block', width: '100%', padding: '8px', backgroundColor: '#121212', color: '#fff', border: '1px solid #444', borderRadius: '4px' }}>
+                                        <option value="">Sin configurar · Mantener reserva actual</option>
+                                        <option value="included">Peinado incluido</option>
+                                        <option value="required">Requiere añadir secado y peinado</option>
+                                        <option value="not_applicable">No corresponde · Cut &amp; Go / estudio</option>
+                                      </select>
+                                    </label>
+                                    <label><input type="checkbox" checked={!!sub.isStylingService} onChange={e => {
+                                      const checked = e.target.checked;
+                                      setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(item => item.id === sub.id ? { ...item, isStylingService: checked, stylingPolicy: checked ? undefined : item.stylingPolicy } : item) } : c));
+                                    }} /> Este es un servicio de secado y peinado (complemento)</label>
+                                    <span>Marca esta casilla en los peinados S/M, L o XL. Sus precios y tiempos se añaden al seleccionarlos en la cita. En los packs completos, comprueba que el precio y la duración ya incluyen el acabado.</span>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                       <label style={{ color: '#d4af37', fontSize: '10px' }}>Qué incluye:</label>
                                       <input type="text" value={sub.includesText || ''} onChange={(e) => {
@@ -2826,13 +2949,37 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
         </div>
       )}
 
+      {previewService && (
+        <div onClick={() => setPreviewServiceId(null)} onKeyDown={e => { if (e.key === 'Escape') setPreviewServiceId(null); }} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 2200 }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="catalog-preview-title" onClick={e => e.stopPropagation()} style={{ backgroundColor: '#121212', color: '#fff', border: '1px solid #d4af37', borderRadius: '16px', padding: '20px', maxWidth: '440px', width: '100%', maxHeight: '85vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
+              <h3 id="catalog-preview-title" style={{ color: '#d4af37', margin: 0, fontSize: '16px' }}>Vista previa · Clienta</h3>
+              <button autoFocus type="button" onClick={() => setPreviewServiceId(null)} style={{ padding: '7px', cursor: 'pointer' }}>Cerrar</button>
+            </div>
+            {previewService.active === false && <p style={{ color: '#d4af37', fontSize: '12px' }}>Servicio desactivado: esta ficha está oculta para las clientas.</p>}
+            <div style={{ backgroundColor: '#141414', border: '1px solid #333', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}>{previewService.name}</div>
+              <div style={{ color: '#888', fontSize: '10px' }}>{previewService.duration} - <strong style={{ color: '#d4af37' }}>{previewService.price}</strong></div>
+              {previewService.showAlertBadge && <div style={{ backgroundColor: '#262010', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '6px', padding: '6px 10px', fontSize: '10px', color: '#d4af37' }}>💡 {previewService.alertText || '⚠️ Recuerda añadir tu peinado para asegurar el tiempo en agenda.'}</div>}
+              {previewService.hasVariants && !!previewService.variants?.length && <div style={{ backgroundColor: '#1a1a1a', padding: '10px', borderRadius: '6px' }}>
+                <span style={{ color: '#d4af37', fontSize: '10px' }}>Selecciona variante:</span>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+                  {previewService.variants.map(v => <button type="button" key={v.id} onClick={() => setPreviewVariantId(v.id)} style={{ backgroundColor: previewVariantId === v.id ? '#d4af37' : '#121212', color: previewVariantId === v.id ? '#000' : '#d4af37', border: '1px solid #d4af37', borderRadius: '4px', padding: '6px 10px', cursor: 'pointer', fontSize: '11px' }}>{v.name} · {v.price} / {v.duration}</button>)}
+                </div>
+              </div>}
+              {renderServiceInfo(previewService)}
+            </div>
+            <p style={{ color: '#aaa', fontSize: '11px', marginBottom: 0 }}>Puedes revisar las variantes sin crear una cita. La vista muestra los cambios actuales; guarda el catálogo para conservarlos.</p>
+          </div>
+        </div>
+      )}
       {saturdayRequestModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 2100 }}>
           <div role="dialog" aria-modal="true" aria-labelledby="saturday-request-title" style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '440px', width: '100%', color: '#fff' }}>
-            <h3 id="saturday-request-title" style={{ color: '#d4af37' }}>Sábados · Bajo confirmación previa</h3>
-            <p>Ana revisará los servicios solicitados y la disponibilidad antes de aceptar tu cita. Esta solicitud no confirma la reserva.</p>
+            <h3 id="saturday-request-title" style={{ color: '#d4af37' }}>{approvalTitle(saturdayRequestModal.saturdayApproval?.reason)} · Bajo confirmación previa</h3>
+            <p>Ana revisará los servicios solicitados, la viabilidad del trabajo y la disponibilidad antes de aceptar tu cita. Puede pedirte un diagnóstico o un test de mechón previo. Esta solicitud no confirma la reserva.</p>
             <p>{saturdayRequestModal.dateKey.split('-').reverse().join('/')} a las {saturdayRequestModal.time}</p>
-            <p>{saturdayRequestModal.serviceSubcategory.replace(/^PENDIENTE SÁBADO /, '')}</p>
+            <p>{saturdayRequestModal.serviceSubcategory.replace(/^PENDIENTE (?:SÁBADO|VALORACIÓN) /, '')}</p>
             {bizConfig.advancePaymentEnabled && (saturdayRequestModal.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes && <p>Si Ana acepta la solicitud, será necesaria una reserva anticipada de {bizConfig.depositAmount}. Espera su aprobación antes de pagar.</p>}
             <p style={{ color: '#aaa', fontSize: '12px' }}>El registro actual es local. Para que Ana reciba la solicitud a distancia es necesario conectar el envío de avisos.</p>
             <button type="button" onClick={() => setSaturdayRequestModal(null)} style={{ padding: '10px', marginRight: '10px' }}>Volver</button>
@@ -2881,7 +3028,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 const sub = catalog[modalCatIndex]?.subservices[sIdx];
                 setModalSelectedVariant(sub?.variants?.[0] || null);
               }} style={{ padding: '8px', backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '12px' }}>
-                {catalog[modalCatIndex]?.subservices.map((sub, idx) => (<option key={sub.id} value={idx}>{sub.name}</option>))}
+                {catalog[modalCatIndex]?.subservices.map((sub, idx) => (<option key={sub.id} value={idx} disabled={sub.active === false}>{sub.name}{sub.active === false ? " · Desactivado" : ""}</option>))}
               </select>
               {catalog[modalCatIndex]?.subservices[modalSubIndex]?.hasVariants && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -2933,18 +3080,18 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
             </div>
             {viewApptModal.saturdayApproval && (
               <div style={{ border: '1px solid #d4af37', padding: '12px', borderRadius: '8px', color: '#fff' }}>
-                <strong>Sábado: {viewApptModal.saturdayApproval.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.saturdayApproval.status === 'accepted' ? 'Aceptado por Ana' : 'Rechazado'}</strong>
+                <strong>{approvalTitle(viewApptModal.saturdayApproval.reason)}: {viewApptModal.saturdayApproval.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.saturdayApproval.status === 'accepted' ? 'Aceptado por Ana' : 'Rechazado'}</strong>
                 <p>{viewApptModal.saturdayApproval.reference}</p>
                 {viewApptModal.saturdayApproval.status === 'pending' && (
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <button type="button" onClick={() => {
                       const payment = bizConfig.advancePaymentEnabled && (viewApptModal.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes ? createAdvancePayment() : undefined;
-                      const updated: Appointment = { ...viewApptModal, saturdayApproval: { ...viewApptModal.saturdayApproval!, status: 'accepted' }, advancePayment: payment, serviceSubcategory: viewApptModal.serviceSubcategory.replace(/^PENDIENTE SÁBADO/, payment ? 'PENDIENTE BIZUM' : 'RESERVADO') };
+                      const updated: Appointment = { ...viewApptModal, saturdayApproval: { ...viewApptModal.saturdayApproval!, status: 'accepted' }, advancePayment: payment, serviceSubcategory: viewApptModal.serviceSubcategory.replace(/^PENDIENTE (?:SÁBADO|VALORACIÓN)/, payment ? 'PENDIENTE BIZUM' : 'RESERVADO') };
                       setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
                       setViewApptModal(updated);
                     }} style={{ backgroundColor: '#d4af37', padding: '10px', border: 'none', cursor: 'pointer' }}>Aceptar solicitud</button>
                     <button type="button" onClick={() => {
-                      if (!window.confirm('¿Rechazar esta solicitud de sábado?')) return;
+                      if (!window.confirm('¿Rechazar esta solicitud pendiente de revisión?')) return;
                       setAppointments(previous => previous.filter(item => item.id !== viewApptModal.id));
                       setViewApptModal(null);
                     }} style={{ padding: '10px', cursor: 'pointer' }}>Rechazar solicitud</button>
