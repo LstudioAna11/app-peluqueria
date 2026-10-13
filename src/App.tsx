@@ -528,6 +528,7 @@ export default function App() {
   const [adminError, setAdminError] = useState<boolean>(false);
   const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'holidays'>('catalog');
   const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule' | 'reservas' | 'anticipada' | 'avisos' | 'backup'>('marca');
+  const [adminCatalogStatus, setAdminCatalogStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [adminCatalogSearch, setAdminCatalogSearch] = useState('');
   const normalizeCatalogSearch = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   const [catalogSavedMsg, setCatalogSavedMsg] = useState<string | null>(null);
@@ -2461,6 +2462,19 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
           {/* TAB 3: CATÁLOGO UNIFICADO INTRANET / PORTAL */}
           {adminTab === 'catalog' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <style>{`
+                .studio-service-editor { background: #171717; border-radius: 12px; padding: 18px !important; }
+                .studio-service-editor input:not([type=checkbox]), .studio-service-editor select, .studio-service-editor textarea { box-sizing: border-box; min-height: 44px; font-size: 14px !important; padding: 12px !important; border: 1px solid #444 !important; border-radius: 8px !important; background: #121212 !important; color: #eee8dd !important; max-width: 100%; }
+                .studio-service-editor textarea { min-height: 90px; resize: vertical !important; }
+                .studio-service-editor label { color: #bdb8ad !important; font-size: 13px !important; line-height: 1.6; }
+                .studio-base-field { display: flex; flex-direction: column; gap: 6px; flex: 1 1 150px; min-width: 0; }
+                .studio-base-field input { width: 100% !important; }
+                .studio-variant-fields { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; flex: 1 1 350px; min-width: 0; }
+                .studio-variant-fields label { display: flex; flex-direction: column; gap: 6px; }
+                .studio-variant-fields input { width: 100%; }
+                @media (max-width: 650px) { .studio-variant-fields { grid-template-columns: 1fr; } }
+              `}</style>
+
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
                   <h3 style={{ color: '#d4af37', fontSize: '28px', fontWeight: 'normal', fontFamily: 'serif', margin: '0 0 4px 0' }}>Catálogo · Servicios y experiencias</h3>
@@ -2476,6 +2490,9 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 <span style={{ color: '#aaa59b', fontSize: '13px' }}>{catalog.flatMap(cat => cat.subservices).filter(sub => sub.active !== false).length} activos · {catalog.flatMap(cat => cat.subservices).filter(sub => sub.active === false).length} desactivados</span>
               </div>
               {adminCatalogSearch.trim() && !catalog.some(cat => normalizeCatalogSearch(cat.title).includes(normalizeCatalogSearch(adminCatalogSearch)) || cat.subservices.some(sub => normalizeCatalogSearch(sub.name).includes(normalizeCatalogSearch(adminCatalogSearch)))) && <p style={{ color: '#bdb8ad', fontSize: '14px' }}>No hay servicios que coincidan con esta búsqueda.</p>}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {([['all', 'Todos'], ['active', 'Activos'], ['inactive', 'Desactivados']] as const).map(([status, label]) => <button type="button" key={status} aria-pressed={adminCatalogStatus === status} onClick={() => setAdminCatalogStatus(status)} style={{ padding: '10px 16px', minHeight: '44px', backgroundColor: adminCatalogStatus === status ? '#242219' : '#191919', color: adminCatalogStatus === status ? '#ddd0a4' : '#bdb8ad', border: '1px solid #34332d', borderRadius: '8px', cursor: 'pointer' }}>{label}</button>)}
+              </div>
               {catalogSavedMsg && (
                 <div style={{ padding: '12px', backgroundColor: '#1a331a', border: '1px solid #44bb44', color: '#44bb44', borderRadius: '8px', fontSize: '12px', textAlign: 'center', fontWeight: 'bold' }}>
                   {catalogSavedMsg}
@@ -2498,30 +2515,46 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 {catalog.map((cat, catIdx) => {
                   const query = normalizeCatalogSearch(adminCatalogSearch);
                   const categoryMatches = normalizeCatalogSearch(cat.title).includes(query);
+                  const matchesStatus = (sub: SubService) => adminCatalogStatus === 'all' || (adminCatalogStatus === 'active' ? sub.active !== false : sub.active === false);
+                  if (!cat.subservices.some(sub => matchesStatus(sub) && (!query || categoryMatches || normalizeCatalogSearch(sub.name).includes(query)))) return null;
                   if (query && !categoryMatches && !cat.subservices.some(sub => normalizeCatalogSearch(sub.name).includes(query))) return null;
-                  const isCategoryExpandedAdmin = !!query || !!expandedCategories[`admin_cat_${cat.id}`];
+                  const isCategoryExpandedAdmin = !!query || (expandedCategories[`admin_cat_${cat.id}`] ?? true);
                   return (
                     <div key={cat.id} style={{ backgroundColor: '#161616', border: '1px solid #34332d', borderRadius: '10px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: 1 }}>
-                          <input type="text" value={cat.code} onChange={(e) => handleUpdateCategoryCode(cat.id, e.target.value)} onFocus={(e) => e.target.select()} style={{ width: '55px', padding: '4px', backgroundColor: '#1c1c1c', border: '1px solid #333', color: '#d4af37', borderRadius: '4px', fontSize: '14px', textAlign: 'center', fontWeight: 'bold' }} />
-                          <input type="text" value={cat.title} onChange={(e) => handleUpdateCategoryTitle(cat.id, e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '4px 8px', backgroundColor: '#1c1c1c', border: '1px solid #333', color: '#fff', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }} />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', padding: '8px' }}>
+                        <div style={{ flex: '1 1 240px' }}>
+                          <span style={{ color: '#cab77d', fontSize: '11px', letterSpacing: '1px' }}>{cat.code} · CATEGORÍA</span>
+                          <h3 style={{ color: '#eee8dd', fontFamily: 'serif', fontSize: '24px', fontWeight: 'normal', lineHeight: 1.4, margin: '8px 0' }}>{cat.title}</h3>
+                          <span style={{ color: '#aaa59b', fontSize: '13px' }}>{cat.subservices.length} servicios · {cat.subservices.filter(sub => sub.active !== false).length} activos</span>
                         </div>
-                        <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
-                          <button onClick={() => setExpandedCategories({ ...expandedCategories, [`admin_cat_${cat.id}`]: !isCategoryExpandedAdmin })} style={{ background: '#1c1c1c', border: '1px solid #34332d', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }}>
-                            {isCategoryExpandedAdmin ? 'Ocultar ▲' : 'Ver Servicios ▼'}
-                          </button>
-                          <button onClick={() => handleMoveCategory(catIdx, -1)} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#aaa', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }}>▲</button>
-                          <button onClick={() => handleMoveCategory(catIdx, 1)} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#aaa', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }}>▼</button>
-                          <button onClick={() => handleDeleteCategory(cat.id)} style={{ background: '#2a1212', border: '1px solid #552222', color: '#ff4444', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer' }}>Eliminar</button>
-                        </div>
+                        <button type="button" aria-expanded={isCategoryExpandedAdmin} onClick={() => setExpandedCategories({ ...expandedCategories, [`admin_cat_${cat.id}`]: !isCategoryExpandedAdmin })} style={{ background: '#242219', border: '1px solid #76683e', color: '#ddd0a4', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>{isCategoryExpandedAdmin ? 'Ocultar servicios −' : 'Ver servicios +'}</button>
                       </div>
+                      <details style={{ backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '9px', padding: '14px' }}>
+                        <summary style={{ color: '#cab77d', cursor: 'pointer', fontSize: '13px' }}>Editar categoría y ordenar</summary>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '12px', marginTop: '16px' }}>
+                          <label style={{ color: '#bdb8ad', fontSize: '13px' }}>Código<input type="text" value={cat.code} onChange={e => handleUpdateCategoryCode(cat.id, e.target.value)} style={{ display: 'block', width: '90px', padding: '12px', boxSizing: 'border-box', marginTop: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#ddd0a4', borderRadius: '7px' }} /></label>
+                          <label style={{ flex: '1 1 220px', color: '#bdb8ad', fontSize: '13px' }}>Nombre de la categoría<input type="text" value={cat.title} onChange={e => handleUpdateCategoryTitle(cat.id, e.target.value)} style={{ display: 'block', width: '100%', padding: '12px', boxSizing: 'border-box', marginTop: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#eee8dd', borderRadius: '7px', fontSize: '14px' }} /></label>
+                          <button type="button" disabled={catIdx === 0} onClick={() => handleMoveCategory(catIdx, -1)} style={{ background: '#242219', border: '1px solid #34332d', color: '#ddd0a4', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Subir ↑</button>
+                          <button type="button" disabled={catIdx === catalog.length - 1} onClick={() => handleMoveCategory(catIdx, 1)} style={{ background: '#242219', border: '1px solid #34332d', color: '#ddd0a4', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Bajar ↓</button>
+                          <button type="button" onClick={() => handleDeleteCategory(cat.id)} style={{ background: '#281b1b', border: '1px solid #74433e', color: '#efaaa3', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Eliminar categoría</button>
+                        </div>
+                        <p style={{ color: '#aaa59b', fontSize: '12px', marginBottom: 0 }}>Después de modificar el nombre, código u orden, pulsa «Guardar catálogo».</p>
+                      </details>
                       {isCategoryExpandedAdmin && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '15px', borderLeft: '2px solid rgba(212,175,55,0.2)', marginTop: '8px' }}>
-                          {cat.subservices.filter(sub => !query || categoryMatches || normalizeCatalogSearch(sub.name).includes(query)).map((sub) => {
-                            const isExpandedAdmin = !!expandedSubDetails[`admin_${sub.id}`];
+                          {cat.subservices.filter(sub => matchesStatus(sub) && (!query || categoryMatches || normalizeCatalogSearch(sub.name).includes(query))).map((sub) => {
+                            const isExpandedAdmin = true;
                             return (
                               <div key={sub.id} style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '14px', padding: '8px' }}>
+                                  <div style={{ flex: '1 1 220px' }}><h4 style={{ color: '#eee8dd', fontSize: '18px', fontFamily: 'serif', fontWeight: 'normal', lineHeight: 1.4, margin: '0 0 8px' }}>{sub.name}</h4><span style={{ color: '#cab77d', fontSize: '14px' }}>{sub.price}</span><span style={{ color: '#aaa59b', fontSize: '13px', marginLeft: '14px' }}>{sub.duration}</span></div>
+                                  <span style={{ color: sub.active === false ? '#aaa59b' : '#b5c9b6', border: '1px solid #34332d', borderRadius: '20px', padding: '6px 12px', fontSize: '12px' }}>{sub.active === false ? 'Desactivado' : 'Activo'}</span>
+                                  <button type="button" onClick={() => { setPreviewServiceId(sub.id); setPreviewVariantId(sub.hasVariants ? sub.variants?.[0]?.id || '' : ''); }} style={{ background: 'none', color: '#cab77d', border: '1px solid #76683e', borderRadius: '7px', padding: '10px 14px', minHeight: '44px', cursor: 'pointer' }}>Vista previa</button>
+                                </div>
+                                <details className="studio-service-editor" style={{ borderTop: '1px solid #34332d', padding: '12px 8px 4px' }}>
+                                  <summary style={{ color: '#cab77d', fontSize: '14px', cursor: 'pointer', padding: '8px 0' }}>Editar servicio · Datos, variantes y condiciones</summary>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '16px' }}>
+
                                 <button type="button" onClick={() => { setPreviewServiceId(sub.id); setPreviewVariantId(sub.hasVariants ? sub.variants?.[0]?.id || '' : ''); }} style={{ alignSelf: 'flex-start', background: 'none', color: '#d4af37', border: '1px solid #d4af37', borderRadius: '5px', padding: '7px 12px', cursor: 'pointer' }}>Vista previa · Clienta</button>
                                 <label style={{ color: sub.active === false ? '#aaa' : '#d4af37', fontSize: '12px' }}>
                                   <input type="checkbox" checked={sub.active !== false} onChange={e => {
@@ -2536,27 +2569,24 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
 
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                                   <div style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                    <input type="text" value={sub.name} onChange={(e) => {
+                                    <label className="studio-base-field">Nombre del servicio<input type="text" value={sub.name} onChange={(e) => {
                                       const updatedName = e.target.value;
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, name: updatedName } : s) } : c));
-                                    }} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', flex: 1 }} />
-                                    <input type="text" value={sub.price} onChange={(e) => {
+                                    }} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', flex: 1 }} /></label>
+                                    <label className="studio-base-field">Precio base<input type="text" value={sub.price} onChange={(e) => {
                                       const updatedPrice = e.target.value;
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, price: updatedPrice } : s) } : c));
-                                    }} style={{ backgroundColor: '#121212', border: '1px solid #d4af37', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', fontSize: '14px', width: '100px' }} />
-                                    <input type="text" value={sub.duration} onChange={(e) => {
+                                    }} style={{ backgroundColor: '#121212', border: '1px solid #d4af37', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', fontSize: '14px', width: '100px' }} /></label>
+                                    <label className="studio-base-field">Duración base<input type="text" value={sub.duration} onChange={(e) => {
                                       const updatedDur = e.target.value;
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, duration: updatedDur } : s) } : c));
-                                    }} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#aaa', padding: '4px 8px', borderRadius: '4px', fontSize: '14px', width: '80px' }} />
+                                    }} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#aaa', padding: '4px 8px', borderRadius: '4px', fontSize: '14px', width: '80px' }} /></label>
                                   </div>
                                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                     <label style={{ color: '#d4af37', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                                       <input type="checkbox" checked={!!sub.hasVariants} onChange={() => handleToggleVariants(cat.id, sub.id)} style={{ accentColor: '#d4af37' }} />
-                                      Variantes M/L/XL
+                                      Opciones de largo o pack
                                     </label>
-                                    <button onClick={() => setExpandedSubDetails({ ...expandedSubDetails, [`admin_${sub.id}`]: !isExpandedAdmin })} style={{ background: 'none', border: '1px solid #34332d', color: '#d4af37', fontSize: '12px', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer' }}>
-                                      {isExpandedAdmin ? 'Ocultar ajustes' : 'Configurar Aviso & Textos ▼'}
-                                    </button>
                                     <button onClick={() => handleDeleteSubservice(cat.id, sub.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontSize: '14px' }}>X</button>
                                   </div>
                                 </div>
@@ -2577,11 +2607,16 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                 </div>
                                 {sub.hasVariants && (
                                   <div style={{ backgroundColor: '#141414', border: '1px solid #34332d', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                                    <span style={{ color: '#d4af37', fontSize: '14px', fontWeight: 'bold' }}>Variantes configuradas:</span>
+                                    <span style={{ color: '#d4af37', fontSize: '14px', fontWeight: 'bold' }}>Variantes y packs</span>
                                     <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                       {sub.variants?.map((v) => (
-                                        <div key={v.id} style={{ backgroundColor: '#1c1c1c', border: '1px solid #d4af37', borderRadius: '4px', padding: '6px 10px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#fff' }}>
-                                          <span><strong>{v.name}</strong>: {v.price} / {v.duration}</span>
+                                        <div key={v.id} style={{ backgroundColor: '#1c1c1c', border: '1px solid #d4af37', borderRadius: '4px', padding: '6px 10px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#fff', width: '100%', boxSizing: 'border-box' }}>
+                                          <div className="studio-variant-fields">
+                                            {(['name', 'price', 'duration'] as const).map(field => <label key={field}>{({ name: 'Nombre del pack', price: 'Precio', duration: 'Duración' })[field]}<input aria-label={`${field} de ${v.name}`} type="text" value={v[field]} onChange={e => {
+                                              const value = e.target.value;
+                                              setCatalog(previous => previous.map(category => category.id === cat.id ? { ...category, subservices: category.subservices.map(service => service.id === sub.id ? { ...service, variants: service.variants?.map(variant => variant.id === v.id ? { ...variant, [field]: value } : variant) } : service) } : category));
+                                            }} /></label>)}
+                                          </div>
                                           <button onClick={() => handleDeleteVariant(cat.id, sub.id, v.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontSize: '14px' }}>x</button>
                                         </div>
                                       ))}
@@ -2597,12 +2632,14 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                 {isExpandedAdmin && (
                                   <div style={{ backgroundColor: '#141414', padding: '10px', borderRadius: '6px', fontSize: '14px', color: '#ccc', display: 'flex', flexDirection: 'column', gap: '6px', borderLeft: '2px solid #d4af37', marginTop: '4px' }}>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                      <h4 style={{ color: '#eee8dd', fontFamily: 'serif', fontWeight: 'normal', fontSize: '20px', margin: '8px 0 12px' }}>Contenido para la clienta</h4>
                                       <label style={{ color: '#d4af37', fontSize: '12px' }}>Descripción:</label>
                                       <textarea value={sub.description} onChange={(e) => {
                                         const val = e.target.value;
                                         setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, description: val } : s) } : c));
                                       }} rows={2} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
                                     </div>
+                                    <h4 style={{ color: '#eee8dd', fontFamily: 'serif', fontWeight: 'normal', fontSize: '20px', margin: '18px 0 8px' }}>Condiciones de reserva</h4>
                                     <label style={{ color: '#d4af37' }}>Tipo de reserva
                                       <select aria-label={`Tipo de reserva de ${sub.name}`} value={sub.requiresAssessment ? 'assessment' : 'direct'} onChange={e => {
                                         const required = e.target.value === 'assessment';
@@ -2661,6 +2698,8 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                     </div>
                                   </div>
                                 )}
+                                  </div>
+                                </details>
                               </div>
                             );
                           })}
