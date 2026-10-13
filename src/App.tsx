@@ -177,7 +177,66 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
   }
 };
 
+
+// Idiomas del portal · primera fase: acceso y navegación.
+TRANSLATIONS["fr"] = {"subtitle": "ESPACE PRIVÉ CLIENTES", "enterPin": "Saisissez votre code PIN", "logout": "Déconnexion", "catalog": "Services et réservation", "history": "Mon passeport et historique", "backToPortal": "Retour à mon espace", "firstTimeRegister": "Première visite ? Inscrivez-vous", "backToPin": "Déjà inscrite ? Se connecter", "nameLabel": "Prénom *", "surnamesLabel": "Nom", "phoneLabel": "Téléphone portable", "emailLabel": "Adresse e-mail *", "pinLabel": "Choisissez un code PIN à 4 chiffres *", "completeRegisterBtn": "Créer mon compte", "clientRegistrationTitle": "Inscription"};
+TRANSLATIONS["it"] = {"subtitle": "AREA PRIVATA CLIENTI", "enterPin": "Inserisci il tuo PIN", "logout": "Esci", "catalog": "Servizi e prenotazioni", "history": "Passaporto e cronologia", "backToPortal": "Torna alla mia area", "firstTimeRegister": "Prima visita? Registrati", "backToPin": "Già registrata? Accedi", "nameLabel": "Nome *", "surnamesLabel": "Cognome", "phoneLabel": "Cellulare", "emailLabel": "E-mail *", "pinLabel": "Scegli un PIN di 4 cifre *", "completeRegisterBtn": "Crea il mio account", "clientRegistrationTitle": "Registrazione"};
+TRANSLATIONS["pt"] = {"subtitle": "ÁREA PRIVADA DE CLIENTES", "enterPin": "Introduza o seu PIN", "logout": "Terminar sessão", "catalog": "Serviços e reservas", "history": "Passaporte e histórico", "backToPortal": "Voltar à minha área", "firstTimeRegister": "Primeira visita? Registe-se", "backToPin": "Já tem registo? Entrar", "nameLabel": "Nome *", "surnamesLabel": "Apelidos", "phoneLabel": "Telemóvel", "emailLabel": "E-mail *", "pinLabel": "Escolha um PIN de 4 dígitos *", "completeRegisterBtn": "Criar conta", "clientRegistrationTitle": "Registo"};
+TRANSLATIONS["de"] = {"subtitle": "PRIVATER KUNDENBEREICH", "enterPin": "Bitte PIN eingeben", "logout": "Abmelden", "catalog": "Leistungen und Buchung", "history": "Haarpass und Verlauf", "backToPortal": "Zurück zu meinem Bereich", "firstTimeRegister": "Erster Besuch? Registrieren", "backToPin": "Bereits registriert? Anmelden", "nameLabel": "Vorname *", "surnamesLabel": "Nachname", "phoneLabel": "Mobiltelefon", "emailLabel": "E-Mail *", "pinLabel": "Vierstellige PIN wählen *", "completeRegisterBtn": "Konto erstellen", "clientRegistrationTitle": "Registrierung"};
+TRANSLATIONS["nl"] = {"subtitle": "PRIVÉ KLANTENPORTAAL", "enterPin": "Voer je pincode in", "logout": "Uitloggen", "catalog": "Diensten en boeken", "history": "Haarpaspoort en geschiedenis", "backToPortal": "Terug naar mijn portaal", "firstTimeRegister": "Eerste bezoek? Registreren", "backToPin": "Al geregistreerd? Inloggen", "nameLabel": "Voornaam *", "surnamesLabel": "Achternaam", "phoneLabel": "Mobiel nummer", "emailLabel": "E-mail *", "pinLabel": "Kies een pincode van 4 cijfers *", "completeRegisterBtn": "Account aanmaken", "clientRegistrationTitle": "Registratie"};
+TRANSLATIONS["pl"] = {"subtitle": "PRYWATNY PORTAL KLIENTEK", "enterPin": "Wpisz kod PIN", "logout": "Wyloguj", "catalog": "Usługi i rezerwacja", "history": "Paszport włosów i historia", "backToPortal": "Powrót do mojego portalu", "firstTimeRegister": "Pierwsza wizyta? Zarejestruj się", "backToPin": "Masz już konto? Zaloguj się", "nameLabel": "Imię *", "surnamesLabel": "Nazwisko", "phoneLabel": "Telefon komórkowy", "emailLabel": "E-mail *", "pinLabel": "Wybierz 4-cyfrowy PIN *", "completeRegisterBtn": "Utwórz konto", "clientRegistrationTitle": "Rejestracja"};
+TRANSLATIONS["cs"] = {"subtitle": "SOUKROMÝ KLIENTSKÝ PORTÁL", "enterPin": "Zadejte svůj PIN", "logout": "Odhlásit se", "catalog": "Služby a rezervace", "history": "Vlasový pas a historie", "backToPortal": "Zpět do mého portálu", "firstTimeRegister": "První návštěva? Zaregistrujte se", "backToPin": "Máte účet? Přihlaste se", "nameLabel": "Jméno *", "surnamesLabel": "Příjmení", "phoneLabel": "Mobilní telefon", "emailLabel": "E-mail *", "pinLabel": "Zvolte čtyřmístný PIN *", "completeRegisterBtn": "Vytvořit účet", "clientRegistrationTitle": "Registrace"};
+TRANSLATIONS["nb"] = {"subtitle": "PRIVAT KUNDEPORTAL", "enterPin": "Skriv inn PIN-koden", "logout": "Logg ut", "catalog": "Tjenester og bestilling", "history": "Hårpass og historikk", "backToPortal": "Tilbake til portalen", "firstTimeRegister": "Første besøk? Registrer deg", "backToPin": "Allerede registrert? Logg inn", "nameLabel": "Fornavn *", "surnamesLabel": "Etternavn", "phoneLabel": "Mobiltelefon", "emailLabel": "E-post *", "pinLabel": "Velg en PIN-kode med 4 sifre *", "completeRegisterBtn": "Opprett konto", "clientRegistrationTitle": "Registrering"};
+TRANSLATIONS["sv"] = {"subtitle": "PRIVAT KUNDPORTAL", "enterPin": "Ange din PIN-kod", "logout": "Logga ut", "catalog": "Tjänster och bokning", "history": "Hårpass och historik", "backToPortal": "Tillbaka till portalen", "firstTimeRegister": "Första besöket? Registrera dig", "backToPin": "Redan registrerad? Logga in", "nameLabel": "Förnamn *", "surnamesLabel": "Efternamn", "phoneLabel": "Mobilnummer", "emailLabel": "E-post *", "pinLabel": "Välj en PIN-kod med 4 siffror *", "completeRegisterBtn": "Skapa konto", "clientRegistrationTitle": "Registrering"};
+TRANSLATIONS["ar"] = {"subtitle": "بوابة العميلات الخاصة", "enterPin": "أدخلي رمز الدخول", "logout": "تسجيل الخروج", "catalog": "الخدمات والحجز", "history": "ملف الشعر وسجل الزيارات", "backToPortal": "العودة إلى حسابي", "firstTimeRegister": "زيارتك الأولى؟ سجّلي هنا", "backToPin": "لديك حساب؟ تسجيل الدخول", "nameLabel": "الاسم الأول *", "surnamesLabel": "اسم العائلة", "phoneLabel": "رقم الهاتف المحمول", "emailLabel": "البريد الإلكتروني *", "pinLabel": "اختاري رمز دخول من 4 أرقام *", "completeRegisterBtn": "إنشاء حساب", "clientRegistrationTitle": "التسجيل"};
+
+
+// Booking interface translations
+Object.assign(TRANSLATIONS["es"], {"backServices": "Volver a mis servicios", "chooseMoment": "Elige tu momento", "fullSlots": "Horas disponibles para tu cita completa", "previousWeek": "Semana anterior", "nextWeek": "Semana siguiente", "slotsAvailable": "Con horas disponibles", "noSlots": "Sin horas disponibles", "otherDate": "Ir a otra fecha", "noSlotsDay": "No hay horas disponibles para tu selección en este día. Prueba otra fecha.", "morning": "Mañana", "afternoon": "Tarde", "chooseHour": "Selecciona una hora", "requestAppointment": "Solicitar esta cita", "continueBooking": "Continuar con mi reserva", "chooseDateTime": "Elegir fecha y hora", "reviewSelection": "Revisa tu selección y continúa para elegir fecha y hora.", "selectedRemove": "Seleccionado · Quitar", "addAppointment": "Añadir a mi cita", "chooseOption": "Selecciona una opción"});
+Object.assign(TRANSLATIONS["en"], {"backServices": "Back to my services", "chooseMoment": "Choose your time", "fullSlots": "Available times for your full appointment", "previousWeek": "Previous week", "nextWeek": "Next week", "slotsAvailable": "Times available", "noSlots": "No times available", "otherDate": "Choose another date", "noSlotsDay": "No times are available for your selection on this day. Try another date.", "morning": "Morning", "afternoon": "Afternoon", "chooseHour": "Choose a time", "requestAppointment": "Request this appointment", "continueBooking": "Continue booking", "chooseDateTime": "Choose date and time", "reviewSelection": "Review your selection, then choose a date and time.", "selectedRemove": "Selected · Remove", "addAppointment": "Add to my appointment", "chooseOption": "Choose an option"});
+Object.assign(TRANSLATIONS["fr"], {"backServices": "Retour à mes services", "chooseMoment": "Choisissez votre créneau", "fullSlots": "Créneaux disponibles pour votre rendez-vous complet", "previousWeek": "Semaine précédente", "nextWeek": "Semaine suivante", "slotsAvailable": "Créneaux disponibles", "noSlots": "Aucun créneau", "otherDate": "Choisir une autre date", "noSlotsDay": "Aucun créneau pour votre sélection ce jour-là. Essayez une autre date.", "morning": "Matin", "afternoon": "Après-midi", "chooseHour": "Choisissez une heure", "requestAppointment": "Demander ce rendez-vous", "continueBooking": "Continuer ma réservation", "chooseDateTime": "Choisir la date et l’heure", "reviewSelection": "Vérifiez votre sélection, puis choisissez la date et l’heure.", "selectedRemove": "Sélectionné · Retirer", "addAppointment": "Ajouter à mon rendez-vous", "chooseOption": "Choisissez une option"});
+Object.assign(TRANSLATIONS["it"], {"backServices": "Torna ai miei servizi", "chooseMoment": "Scegli il tuo orario", "fullSlots": "Orari disponibili per l’intero appuntamento", "previousWeek": "Settimana precedente", "nextWeek": "Settimana successiva", "slotsAvailable": "Orari disponibili", "noSlots": "Nessun orario disponibile", "otherDate": "Scegli un’altra data", "noSlotsDay": "Nessun orario disponibile per questa selezione oggi. Prova un’altra data.", "morning": "Mattina", "afternoon": "Pomeriggio", "chooseHour": "Scegli un orario", "requestAppointment": "Richiedi questo appuntamento", "continueBooking": "Continua la prenotazione", "chooseDateTime": "Scegli data e ora", "reviewSelection": "Controlla la selezione, poi scegli data e ora.", "selectedRemove": "Selezionato · Rimuovi", "addAppointment": "Aggiungi al mio appuntamento", "chooseOption": "Scegli un’opzione"});
+Object.assign(TRANSLATIONS["pt"], {"backServices": "Voltar aos meus serviços", "chooseMoment": "Escolha o seu horário", "fullSlots": "Horários disponíveis para a consulta completa", "previousWeek": "Semana anterior", "nextWeek": "Semana seguinte", "slotsAvailable": "Horários disponíveis", "noSlots": "Sem horários disponíveis", "otherDate": "Escolher outra data", "noSlotsDay": "Não há horários para esta seleção neste dia. Experimente outra data.", "morning": "Manhã", "afternoon": "Tarde", "chooseHour": "Escolha uma hora", "requestAppointment": "Solicitar esta marcação", "continueBooking": "Continuar a reserva", "chooseDateTime": "Escolher data e hora", "reviewSelection": "Reveja a seleção e escolha data e hora.", "selectedRemove": "Selecionado · Remover", "addAppointment": "Adicionar à minha marcação", "chooseOption": "Escolha uma opção"});
+Object.assign(TRANSLATIONS["de"], {"backServices": "Zurück zu meinen Leistungen", "chooseMoment": "Wählen Sie Ihre Zeit", "fullSlots": "Verfügbare Zeiten für den gesamten Termin", "previousWeek": "Vorherige Woche", "nextWeek": "Nächste Woche", "slotsAvailable": "Zeiten verfügbar", "noSlots": "Keine Zeiten verfügbar", "otherDate": "Anderes Datum wählen", "noSlotsDay": "Für Ihre Auswahl sind an diesem Tag keine Zeiten verfügbar. Wählen Sie ein anderes Datum.", "morning": "Vormittag", "afternoon": "Nachmittag", "chooseHour": "Uhrzeit wählen", "requestAppointment": "Diesen Termin anfragen", "continueBooking": "Buchung fortsetzen", "chooseDateTime": "Datum und Uhrzeit wählen", "reviewSelection": "Prüfen Sie Ihre Auswahl und wählen Sie Datum und Uhrzeit.", "selectedRemove": "Ausgewählt · Entfernen", "addAppointment": "Zu meinem Termin hinzufügen", "chooseOption": "Option wählen"});
+Object.assign(TRANSLATIONS["nl"], {"backServices": "Terug naar mijn diensten", "chooseMoment": "Kies je tijd", "fullSlots": "Beschikbare tijden voor je volledige afspraak", "previousWeek": "Vorige week", "nextWeek": "Volgende week", "slotsAvailable": "Tijden beschikbaar", "noSlots": "Geen tijden beschikbaar", "otherDate": "Andere datum kiezen", "noSlotsDay": "Geen tijden voor je selectie op deze dag. Probeer een andere datum.", "morning": "Ochtend", "afternoon": "Middag", "chooseHour": "Kies een tijd", "requestAppointment": "Deze afspraak aanvragen", "continueBooking": "Doorgaan met boeken", "chooseDateTime": "Datum en tijd kiezen", "reviewSelection": "Controleer je selectie en kies datum en tijd.", "selectedRemove": "Geselecteerd · Verwijderen", "addAppointment": "Aan mijn afspraak toevoegen", "chooseOption": "Kies een optie"});
+Object.assign(TRANSLATIONS["pl"], {"backServices": "Wróć do moich usług", "chooseMoment": "Wybierz termin", "fullSlots": "Dostępne godziny na całą wizytę", "previousWeek": "Poprzedni tydzień", "nextWeek": "Następny tydzień", "slotsAvailable": "Dostępne godziny", "noSlots": "Brak dostępnych godzin", "otherDate": "Wybierz inną datę", "noSlotsDay": "Brak godzin dla wybranych usług w tym dniu. Wybierz inną datę.", "morning": "Rano", "afternoon": "Po południu", "chooseHour": "Wybierz godzinę", "requestAppointment": "Poproś o tę wizytę", "continueBooking": "Kontynuuj rezerwację", "chooseDateTime": "Wybierz datę i godzinę", "reviewSelection": "Sprawdź wybór i wybierz datę oraz godzinę.", "selectedRemove": "Wybrano · Usuń", "addAppointment": "Dodaj do mojej wizyty", "chooseOption": "Wybierz opcję"});
+Object.assign(TRANSLATIONS["cs"], {"backServices": "Zpět k mým službám", "chooseMoment": "Vyberte si termín", "fullSlots": "Dostupné časy pro celou návštěvu", "previousWeek": "Předchozí týden", "nextWeek": "Příští týden", "slotsAvailable": "Dostupné časy", "noSlots": "Žádné dostupné časy", "otherDate": "Vybrat jiné datum", "noSlotsDay": "Pro vybrané služby nejsou tento den volné časy. Zkuste jiné datum.", "morning": "Dopoledne", "afternoon": "Odpoledne", "chooseHour": "Vyberte čas", "requestAppointment": "Požádat o tento termín", "continueBooking": "Pokračovat v rezervaci", "chooseDateTime": "Vybrat datum a čas", "reviewSelection": "Zkontrolujte výběr a vyberte datum a čas.", "selectedRemove": "Vybráno · Odebrat", "addAppointment": "Přidat k mé návštěvě", "chooseOption": "Vyberte možnost"});
+Object.assign(TRANSLATIONS["nb"], {"backServices": "Tilbake til mine tjenester", "chooseMoment": "Velg tidspunkt", "fullSlots": "Ledige tider for hele avtalen", "previousWeek": "Forrige uke", "nextWeek": "Neste uke", "slotsAvailable": "Ledige tider", "noSlots": "Ingen ledige tider", "otherDate": "Velg en annen dato", "noSlotsDay": "Ingen ledige tider for valget ditt denne dagen. Prøv en annen dato.", "morning": "Formiddag", "afternoon": "Ettermiddag", "chooseHour": "Velg et tidspunkt", "requestAppointment": "Be om denne avtalen", "continueBooking": "Fortsett bestillingen", "chooseDateTime": "Velg dato og tid", "reviewSelection": "Se gjennom valget og velg dato og tid.", "selectedRemove": "Valgt · Fjern", "addAppointment": "Legg til i avtalen min", "chooseOption": "Velg et alternativ"});
+Object.assign(TRANSLATIONS["sv"], {"backServices": "Tillbaka till mina tjänster", "chooseMoment": "Välj din tid", "fullSlots": "Lediga tider för hela besöket", "previousWeek": "Föregående vecka", "nextWeek": "Nästa vecka", "slotsAvailable": "Lediga tider", "noSlots": "Inga lediga tider", "otherDate": "Välj ett annat datum", "noSlotsDay": "Inga lediga tider för ditt val denna dag. Prova ett annat datum.", "morning": "Förmiddag", "afternoon": "Eftermiddag", "chooseHour": "Välj en tid", "requestAppointment": "Begär denna tid", "continueBooking": "Fortsätt bokningen", "chooseDateTime": "Välj datum och tid", "reviewSelection": "Kontrollera ditt val och välj datum och tid.", "selectedRemove": "Vald · Ta bort", "addAppointment": "Lägg till i mitt besök", "chooseOption": "Välj ett alternativ"});
+Object.assign(TRANSLATIONS["ar"], {"backServices": "العودة إلى خدماتي", "chooseMoment": "اختاري موعدك", "fullSlots": "الأوقات المتاحة لكامل موعدك", "previousWeek": "الأسبوع السابق", "nextWeek": "الأسبوع التالي", "slotsAvailable": "توجد أوقات متاحة", "noSlots": "لا توجد أوقات متاحة", "otherDate": "اختيار تاريخ آخر", "noSlotsDay": "لا توجد أوقات متاحة للخدمات المختارة في هذا اليوم. جرّبي تاريخًا آخر.", "morning": "صباحًا", "afternoon": "بعد الظهر", "chooseHour": "اختاري وقتًا", "requestAppointment": "طلب هذا الموعد", "continueBooking": "متابعة الحجز", "chooseDateTime": "اختيار التاريخ والوقت", "reviewSelection": "راجعي الخدمات المختارة ثم اختاري التاريخ والوقت.", "selectedRemove": "تم الاختيار · إزالة", "addAppointment": "إضافة إلى موعدي", "chooseOption": "اختاري خيارًا"});
+
+
+// Booking results and validation messages
+Object.assign(TRANSLATIONS["es"], {"bookingConfirmed": "Cita confirmada: {date} · {time}.", "requestSaved": "Solicitud registrada en este dispositivo. Pendiente de confirmación de Ana.", "paymentSaved": "Solicitud registrada. Pago pendiente: {amount} €. Código: {reference}.", "selectOneService": "Selecciona al menos un servicio del catálogo.", "fullTimeRequired": "Selecciona una hora disponible para la duración completa de tu cita.", "salonClosed": "El salón está cerrado en esta fecha.", "requiredVariant": "Selecciona una variante para: {service}.", "registerRequest": "Registrar solicitud pendiente", "registerPayment": "Registrar solicitud pendiente de pago", "backAction": "Volver", "depositTitle": "Reserva anticipada"});
+Object.assign(TRANSLATIONS["en"], {"bookingConfirmed": "Appointment confirmed: {date} · {time}.", "requestSaved": "Request saved on this device. Awaiting Ana’s confirmation.", "paymentSaved": "Request saved. Payment pending: {amount} €. Reference: {reference}.", "selectOneService": "Select at least one service.", "fullTimeRequired": "Select a time available for your full appointment.", "salonClosed": "The salon is closed on this date.", "requiredVariant": "Select an option for: {service}.", "registerRequest": "Submit appointment request", "registerPayment": "Submit request awaiting payment", "backAction": "Back", "depositTitle": "Advance payment"});
+Object.assign(TRANSLATIONS["fr"], {"bookingConfirmed": "Rendez-vous confirmé : {date} · {time}.", "requestSaved": "Demande enregistrée sur cet appareil. En attente de confirmation par Ana.", "paymentSaved": "Demande enregistrée. Paiement en attente : {amount} €. Référence : {reference}.", "selectOneService": "Sélectionnez au moins un service.", "fullTimeRequired": "Choisissez un créneau pour la durée complète du rendez-vous.", "salonClosed": "Le salon est fermé à cette date.", "requiredVariant": "Choisissez une variante pour : {service}.", "registerRequest": "Enregistrer la demande", "registerPayment": "Enregistrer la demande en attente de paiement", "backAction": "Retour", "depositTitle": "Acompte"});
+Object.assign(TRANSLATIONS["it"], {"bookingConfirmed": "Appuntamento confermato: {date} · {time}.", "requestSaved": "Richiesta salvata su questo dispositivo. In attesa della conferma di Ana.", "paymentSaved": "Richiesta salvata. Pagamento in attesa: {amount} €. Riferimento: {reference}.", "selectOneService": "Seleziona almeno un servizio.", "fullTimeRequired": "Scegli un orario disponibile per l’intero appuntamento.", "salonClosed": "Il salone è chiuso in questa data.", "requiredVariant": "Scegli una variante per: {service}.", "registerRequest": "Invia la richiesta", "registerPayment": "Invia la richiesta in attesa di pagamento", "backAction": "Indietro", "depositTitle": "Acconto"});
+Object.assign(TRANSLATIONS["pt"], {"bookingConfirmed": "Marcação confirmada: {date} · {time}.", "requestSaved": "Pedido guardado neste dispositivo. A aguardar confirmação da Ana.", "paymentSaved": "Pedido guardado. Pagamento pendente: {amount} €. Referência: {reference}.", "selectOneService": "Selecione pelo menos um serviço.", "fullTimeRequired": "Escolha uma hora disponível para a duração total da marcação.", "salonClosed": "O salão está fechado nesta data.", "requiredVariant": "Escolha uma variante para: {service}.", "registerRequest": "Registar pedido pendente", "registerPayment": "Registar pedido com pagamento pendente", "backAction": "Voltar", "depositTitle": "Pagamento antecipado"});
+Object.assign(TRANSLATIONS["de"], {"bookingConfirmed": "Termin bestätigt: {date} · {time}.", "requestSaved": "Anfrage auf diesem Gerät gespeichert. Bestätigung durch Ana steht aus.", "paymentSaved": "Anfrage gespeichert. Zahlung ausstehend: {amount} €. Referenz: {reference}.", "selectOneService": "Wählen Sie mindestens eine Leistung.", "fullTimeRequired": "Wählen Sie eine verfügbare Zeit für den gesamten Termin.", "salonClosed": "Der Salon ist an diesem Datum geschlossen.", "requiredVariant": "Wählen Sie eine Variante für: {service}.", "registerRequest": "Terminanfrage speichern", "registerPayment": "Anfrage mit ausstehender Zahlung speichern", "backAction": "Zurück", "depositTitle": "Anzahlung"});
+Object.assign(TRANSLATIONS["nl"], {"bookingConfirmed": "Afspraak bevestigd: {date} · {time}.", "requestSaved": "Aanvraag opgeslagen op dit apparaat. Wacht op bevestiging van Ana.", "paymentSaved": "Aanvraag opgeslagen. Betaling in afwachting: {amount} €. Referentie: {reference}.", "selectOneService": "Selecteer minstens één dienst.", "fullTimeRequired": "Kies een beschikbare tijd voor je volledige afspraak.", "salonClosed": "De salon is gesloten op deze datum.", "requiredVariant": "Kies een variant voor: {service}.", "registerRequest": "Afspraakaanvraag opslaan", "registerPayment": "Aanvraag met openstaande betaling opslaan", "backAction": "Terug", "depositTitle": "Aanbetaling"});
+Object.assign(TRANSLATIONS["pl"], {"bookingConfirmed": "Wizyta potwierdzona: {date} · {time}.", "requestSaved": "Prośba zapisana na tym urządzeniu. Oczekuje na potwierdzenie Any.", "paymentSaved": "Prośba zapisana. Płatność oczekująca: {amount} €. Kod: {reference}.", "selectOneService": "Wybierz co najmniej jedną usługę.", "fullTimeRequired": "Wybierz godzinę dostępną na całą wizytę.", "salonClosed": "Salon jest zamknięty w tym dniu.", "requiredVariant": "Wybierz wariant usługi: {service}.", "registerRequest": "Zapisz prośbę o wizytę", "registerPayment": "Zapisz prośbę oczekującą na płatność", "backAction": "Wróć", "depositTitle": "Zaliczka"});
+Object.assign(TRANSLATIONS["cs"], {"bookingConfirmed": "Návštěva potvrzena: {date} · {time}.", "requestSaved": "Žádost uložena v tomto zařízení. Čeká na potvrzení od Any.", "paymentSaved": "Žádost uložena. Platba čeká: {amount} €. Kód: {reference}.", "selectOneService": "Vyberte alespoň jednu službu.", "fullTimeRequired": "Vyberte dostupný čas pro celou návštěvu.", "salonClosed": "Salon je v tento den zavřený.", "requiredVariant": "Vyberte variantu pro: {service}.", "registerRequest": "Uložit žádost o termín", "registerPayment": "Uložit žádost čekající na platbu", "backAction": "Zpět", "depositTitle": "Záloha"});
+Object.assign(TRANSLATIONS["nb"], {"bookingConfirmed": "Avtale bekreftet: {date} · {time}.", "requestSaved": "Forespørsel lagret på denne enheten. Venter på bekreftelse fra Ana.", "paymentSaved": "Forespørsel lagret. Betaling venter: {amount} €. Referanse: {reference}.", "selectOneService": "Velg minst én tjeneste.", "fullTimeRequired": "Velg en ledig tid for hele avtalen.", "salonClosed": "Salongen er stengt denne datoen.", "requiredVariant": "Velg et alternativ for: {service}.", "registerRequest": "Lagre forespørsel", "registerPayment": "Lagre forespørsel med ventende betaling", "backAction": "Tilbake", "depositTitle": "Forskuddsbetaling"});
+Object.assign(TRANSLATIONS["sv"], {"bookingConfirmed": "Besök bekräftat: {date} · {time}.", "requestSaved": "Förfrågan sparad på denna enhet. Väntar på bekräftelse från Ana.", "paymentSaved": "Förfrågan sparad. Betalning väntar: {amount} €. Referens: {reference}.", "selectOneService": "Välj minst en tjänst.", "fullTimeRequired": "Välj en ledig tid för hela besöket.", "salonClosed": "Salongen är stängd detta datum.", "requiredVariant": "Välj ett alternativ för: {service}.", "registerRequest": "Spara förfrågan", "registerPayment": "Spara förfrågan med väntande betalning", "backAction": "Tillbaka", "depositTitle": "Förskottsbetalning"});
+Object.assign(TRANSLATIONS["ar"], {"bookingConfirmed": "تم تأكيد الموعد: {date} · {time}.", "requestSaved": "تم حفظ الطلب على هذا الجهاز. بانتظار تأكيد آنا.", "paymentSaved": "تم حفظ الطلب. الدفع قيد الانتظار: {amount} €. الرمز: {reference}.", "selectOneService": "اختاري خدمة واحدة على الأقل.", "fullTimeRequired": "اختاري وقتًا متاحًا لكامل موعدك.", "salonClosed": "الصالون مغلق في هذا التاريخ.", "requiredVariant": "اختاري نوع الخدمة: {service}.", "registerRequest": "تسجيل طلب الموعد", "registerPayment": "تسجيل الطلب بانتظار الدفع", "backAction": "رجوع", "depositTitle": "دفعة مقدّمة"});
+
+
+// Review and payment explanations
+Object.assign(TRANSLATIONS["es"], {"reviewTitle": "Solicitud bajo confirmación previa", "reviewExplanation": "Ana revisará los servicios, la viabilidad del trabajo y la disponibilidad. Puede solicitar un diagnóstico o test de mechón. La solicitud no confirma la cita.", "reviewDeposit": "Si Ana acepta, se solicitará una reserva anticipada de {amount}. Espera su aprobación antes de pagar.", "localRequestNotice": "La solicitud se guarda en este dispositivo. El envío a distancia todavía no está conectado.", "bizumExplanation": "Tu cita supera los {minutes} minutos. Realiza un Bizum de {amount} € al {phone}; la reserva se confirmará tras comprobar el pago.", "paymentConceptHelp": "Indica tu nombre y apellidos y utiliza este concepto:", "paymentPendingExplanation": "La solicitud queda pendiente hasta que comprobemos la recepción del pago.", "copyConcept": "Copiar concepto", "copiedConcept": "Concepto copiado.", "copyFailed": "No se pudo copiar. Selecciona y copia el concepto mostrado."});
+Object.assign(TRANSLATIONS["en"], {"reviewTitle": "Appointment request awaiting approval", "reviewExplanation": "Ana will review the services, technical feasibility and availability. She may request a consultation or strand test. This request does not confirm your appointment.", "reviewDeposit": "If Ana accepts, an advance payment of {amount} will be required. Wait for approval before paying.", "localRequestNotice": "The request is saved on this device. Remote submission is not connected yet.", "bizumExplanation": "Your appointment exceeds {minutes} minutes. Send {amount} € via Bizum to {phone}; the booking will be confirmed after payment is checked.", "paymentConceptHelp": "Enter your full name and use this payment reference:", "paymentPendingExplanation": "The request remains pending until we verify receipt of payment.", "copyConcept": "Copy payment reference", "copiedConcept": "Reference copied.", "copyFailed": "Could not copy. Select and copy the displayed reference."});
+Object.assign(TRANSLATIONS["fr"], {"reviewTitle": "Demande soumise à confirmation", "reviewExplanation": "Ana vérifiera les services, la faisabilité et les disponibilités. Un diagnostic ou un test de mèche peut être demandé. Cette demande ne confirme pas le rendez-vous.", "reviewDeposit": "Si Ana accepte, un acompte de {amount} sera demandé. Attendez son accord avant de payer.", "localRequestNotice": "La demande est enregistrée sur cet appareil. L’envoi à distance n’est pas encore connecté.", "bizumExplanation": "Votre rendez-vous dépasse {minutes} minutes. Envoyez {amount} € par Bizum au {phone}. La réservation sera confirmée après vérification du paiement.", "paymentConceptHelp": "Indiquez votre nom complet et utilisez ce motif de paiement :", "paymentPendingExplanation": "La demande reste en attente jusqu’à vérification du paiement.", "copyConcept": "Copier le motif", "copiedConcept": "Motif copié.", "copyFailed": "Copie impossible. Sélectionnez et copiez le motif affiché."});
+Object.assign(TRANSLATIONS["it"], {"reviewTitle": "Richiesta soggetta a conferma", "reviewExplanation": "Ana valuterà i servizi, la fattibilità e la disponibilità. Potrebbe richiedere una consulenza o un test su una ciocca. La richiesta non conferma l’appuntamento.", "reviewDeposit": "Se Ana accetta, sarà richiesto un acconto di {amount}. Attendi la conferma prima di pagare.", "localRequestNotice": "La richiesta è salvata su questo dispositivo. L’invio a distanza non è ancora collegato.", "bizumExplanation": "L’appuntamento supera {minutes} minuti. Invia {amount} € con Bizum al {phone}. La prenotazione sarà confermata dopo la verifica del pagamento.", "paymentConceptHelp": "Indica nome e cognome e usa questa causale:", "paymentPendingExplanation": "La richiesta resta in attesa fino alla verifica del pagamento.", "copyConcept": "Copia causale", "copiedConcept": "Causale copiata.", "copyFailed": "Copia non riuscita. Seleziona e copia la causale mostrata."});
+Object.assign(TRANSLATIONS["pt"], {"reviewTitle": "Pedido sujeito a confirmação", "reviewExplanation": "A Ana avaliará os serviços, a viabilidade e a disponibilidade. Pode pedir um diagnóstico ou teste de madeixa. O pedido não confirma a marcação.", "reviewDeposit": "Se a Ana aceitar, será pedido um pagamento antecipado de {amount}. Aguarde a aprovação antes de pagar.", "localRequestNotice": "O pedido é guardado neste dispositivo. O envio à distância ainda não está ligado.", "bizumExplanation": "A marcação supera {minutes} minutos. Envie {amount} € por Bizum para {phone}. Confirmaremos após verificar o pagamento.", "paymentConceptHelp": "Indique o nome completo e utilize esta descrição:", "paymentPendingExplanation": "O pedido fica pendente até verificarmos o pagamento.", "copyConcept": "Copiar descrição", "copiedConcept": "Descrição copiada.", "copyFailed": "Não foi possível copiar. Selecione e copie a descrição apresentada."});
+Object.assign(TRANSLATIONS["de"], {"reviewTitle": "Terminanfrage unter Vorbehalt", "reviewExplanation": "Ana prüft die Leistungen, die technische Machbarkeit und die Verfügbarkeit. Eine Beratung oder ein Strähnentest kann nötig sein. Die Anfrage bestätigt keinen Termin.", "reviewDeposit": "Wenn Ana zustimmt, ist eine Anzahlung von {amount} erforderlich. Warten Sie vor der Zahlung auf die Zustimmung.", "localRequestNotice": "Die Anfrage wird auf diesem Gerät gespeichert. Die Fernübermittlung ist noch nicht verbunden.", "bizumExplanation": "Ihr Termin dauert länger als {minutes} Minuten. Senden Sie {amount} € per Bizum an {phone}. Nach Zahlungsprüfung bestätigen wir die Buchung.", "paymentConceptHelp": "Geben Sie Ihren vollständigen Namen und diesen Verwendungszweck an:", "paymentPendingExplanation": "Die Anfrage bleibt bis zur Prüfung des Zahlungseingangs offen.", "copyConcept": "Verwendungszweck kopieren", "copiedConcept": "Verwendungszweck kopiert.", "copyFailed": "Kopieren fehlgeschlagen. Markieren und kopieren Sie den angezeigten Text."});
+Object.assign(TRANSLATIONS["nl"], {"reviewTitle": "Afspraakaanvraag onder voorbehoud", "reviewExplanation": "Ana beoordeelt de diensten, haalbaarheid en beschikbaarheid. Een consult of pluktest kan nodig zijn. De aanvraag bevestigt geen afspraak.", "reviewDeposit": "Als Ana akkoord gaat, is een aanbetaling van {amount} nodig. Wacht op goedkeuring voordat je betaalt.", "localRequestNotice": "De aanvraag wordt op dit apparaat opgeslagen. Verzenden op afstand is nog niet aangesloten.", "bizumExplanation": "Je afspraak duurt langer dan {minutes} minuten. Stuur {amount} € via Bizum naar {phone}. We bevestigen na controle van de betaling.", "paymentConceptHelp": "Vermeld je volledige naam en gebruik deze omschrijving:", "paymentPendingExplanation": "De aanvraag blijft in afwachting tot we de betaling controleren.", "copyConcept": "Omschrijving kopiëren", "copiedConcept": "Omschrijving gekopieerd.", "copyFailed": "Kopiëren mislukt. Selecteer en kopieer de getoonde omschrijving."});
+Object.assign(TRANSLATIONS["pl"], {"reviewTitle": "Prośba wymaga potwierdzenia", "reviewExplanation": "Ana oceni usługi, wykonalność i dostępność. Może poprosić o konsultację lub test pasma. Prośba nie potwierdza wizyty.", "reviewDeposit": "Po akceptacji Any wymagana będzie zaliczka {amount}. Poczekaj na akceptację przed płatnością.", "localRequestNotice": "Prośba jest zapisywana na tym urządzeniu. Wysyłanie zdalne nie jest jeszcze podłączone.", "bizumExplanation": "Wizyta trwa ponad {minutes} minut. Wyślij {amount} € przez Bizum na {phone}. Potwierdzimy po sprawdzeniu płatności.", "paymentConceptHelp": "Podaj imię i nazwisko oraz ten tytuł płatności:", "paymentPendingExplanation": "Prośba oczekuje do czasu potwierdzenia otrzymania płatności.", "copyConcept": "Kopiuj tytuł płatności", "copiedConcept": "Tytuł skopiowany.", "copyFailed": "Nie udało się skopiować. Zaznacz i skopiuj wyświetlony tytuł."});
+Object.assign(TRANSLATIONS["cs"], {"reviewTitle": "Žádost vyžaduje potvrzení", "reviewExplanation": "Ana posoudí služby, proveditelnost a dostupnost. Může požádat o konzultaci nebo test pramene. Žádost nepotvrzuje návštěvu.", "reviewDeposit": "Pokud Ana souhlasí, bude vyžadována záloha {amount}. Před platbou vyčkejte na souhlas.", "localRequestNotice": "Žádost se ukládá v tomto zařízení. Vzdálené odesílání ještě není připojeno.", "bizumExplanation": "Návštěva přesahuje {minutes} minut. Pošlete {amount} € přes Bizum na {phone}. Rezervaci potvrdíme po ověření platby.", "paymentConceptHelp": "Uveďte celé jméno a tento účel platby:", "paymentPendingExplanation": "Žádost čeká do ověření přijetí platby.", "copyConcept": "Kopírovat účel platby", "copiedConcept": "Účel platby zkopírován.", "copyFailed": "Kopírování selhalo. Označte a zkopírujte zobrazený text."});
+Object.assign(TRANSLATIONS["nb"], {"reviewTitle": "Forespørsel krever godkjenning", "reviewExplanation": "Ana vurderer tjenestene, gjennomførbarheten og tilgjengeligheten. Hun kan be om konsultasjon eller en test på en hårlokk. Forespørselen bekrefter ikke avtalen.", "reviewDeposit": "Hvis Ana godtar, kreves en forskuddsbetaling på {amount}. Vent på godkjenning før du betaler.", "localRequestNotice": "Forespørselen lagres på denne enheten. Fjerninnsending er ikke tilkoblet ennå.", "bizumExplanation": "Avtalen varer over {minutes} minutter. Send {amount} € via Bizum til {phone}. Vi bekrefter etter betalingskontroll.", "paymentConceptHelp": "Oppgi fullt navn og bruk denne betalingsreferansen:", "paymentPendingExplanation": "Forespørselen venter til vi har kontrollert betalingen.", "copyConcept": "Kopier referanse", "copiedConcept": "Referanse kopiert.", "copyFailed": "Kunne ikke kopiere. Marker og kopier referansen som vises."});
+Object.assign(TRANSLATIONS["sv"], {"reviewTitle": "Förfrågan kräver godkännande", "reviewExplanation": "Ana bedömer tjänsterna, genomförbarheten och tillgängligheten. Hon kan be om konsultation eller ett test på en hårslinga. Förfrågan bekräftar inte besöket.", "reviewDeposit": "Om Ana godkänner krävs en förskottsbetalning på {amount}. Vänta på godkännande innan du betalar.", "localRequestNotice": "Förfrågan sparas på denna enhet. Fjärröverföring är ännu inte ansluten.", "bizumExplanation": "Besöket överstiger {minutes} minuter. Skicka {amount} € via Bizum till {phone}. Vi bekräftar efter kontroll av betalningen.", "paymentConceptHelp": "Ange ditt fullständiga namn och använd denna betalningsreferens:", "paymentPendingExplanation": "Förfrågan väntar tills vi har kontrollerat betalningen.", "copyConcept": "Kopiera referens", "copiedConcept": "Referens kopierad.", "copyFailed": "Kunde inte kopiera. Markera och kopiera referensen som visas."});
+Object.assign(TRANSLATIONS["ar"], {"reviewTitle": "طلب موعد بانتظار الموافقة", "reviewExplanation": "ستراجع آنا الخدمات وإمكانية تنفيذها والأوقات المتاحة. قد تطلب استشارة أو اختبار خصلة. هذا الطلب لا يؤكد الموعد.", "reviewDeposit": "إذا وافقت آنا، ستُطلب دفعة مقدّمة بقيمة {amount}. انتظري الموافقة قبل الدفع.", "localRequestNotice": "يُحفظ الطلب على هذا الجهاز. الإرسال عن بُعد غير متصل بعد.", "bizumExplanation": "مدة موعدك تتجاوز {minutes} دقيقة. أرسلي {amount} € عبر Bizum إلى {phone}. سنؤكد الحجز بعد التحقق من الدفع.", "paymentConceptHelp": "اكتبي اسمك الكامل واستخدمي مرجع الدفع التالي:", "paymentPendingExplanation": "يبقى الطلب معلّقًا حتى نتحقق من استلام الدفع.", "copyConcept": "نسخ مرجع الدفع", "copiedConcept": "تم نسخ المرجع.", "copyFailed": "تعذّر النسخ. حدّدي المرجع المعروض وانسخيه."});
+
 interface ServiceVariant {
+  translations?: Record<string, { name?: string }>; 
   id: string;
   name: string;
   price: string;
@@ -210,7 +269,10 @@ interface Appointment {
 
 type StylingPolicy = 'included' | 'required' | 'not_applicable';
 
+type ServiceTranslation = Partial<Pick<SubService, 'name' | 'description' | 'includesText' | 'achievedText' | 'alertText'>>;
+
 interface SubService {
+  translations?: Record<string, ServiceTranslation>;
   active?: boolean;
   requiresAssessment?: boolean;
   tonerPolicy?: StylingPolicy;
@@ -233,6 +295,7 @@ interface SubService {
 }
 
 interface CatalogCategory {
+  translations?: Record<string, { title?: string }>; 
   id: string;
   code: string;
   title: string;
@@ -500,8 +563,11 @@ const INITIAL_APPOINTMENTS: Appointment[] = [
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<'clientPin' | 'clientRegistration' | 'clientPortal' | 'catalogBooking' | 'visualAgenda' | 'clientHistoryPage' | 'adminLogin' | 'adminPanel'>('clientPin');
   
-  const [currentLang, setCurrentLang] = useState<string>('es');
-  const t = (key: string) => TRANSLATIONS[currentLang]?.[key] || TRANSLATIONS['es'][key] || key;
+  const [currentLang, setCurrentLang] = useState<string>(() => { const saved = localStorage.getItem('lst_portal_language'); return saved && TRANSLATIONS[saved] ? saved : 'es'; });
+  useEffect(() => { localStorage.setItem('lst_portal_language', currentLang); }, [currentLang]);
+  const portalLocale = ({ es: 'es-ES', en: 'en-GB', fr: 'fr-FR', it: 'it-IT', pt: 'pt-PT', de: 'de-DE', nl: 'nl-NL', pl: 'pl-PL', cs: 'cs-CZ', nb: 'nb-NO', sv: 'sv-SE', ar: 'ar-MA' } as Record<string, string>)[currentLang] || 'es-ES';
+  const t = (key: string) => TRANSLATIONS[currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang]?.[key] || TRANSLATIONS['es'][key] || key;
+  const tf = (key: string, values: Record<string, string | number | undefined>) => t(key).replace(/\{(\w+)\}/g, (token, name: string) => values[name] === undefined ? token : String(values[name]));
   const [pin, setPin] = useState<string>("");
   const [pinError, setPinError] = useState<boolean>(false);
   const [currentClientRecord, setCurrentClientRecord] = useState<ClientRecord | null>(null);
@@ -878,7 +944,7 @@ export default function App() {
   const registerSaturdayRequest = () => {
     if (!saturdayRequestModal) return;
     setAppointments(previous => previous.some(item => item.id === saturdayRequestModal.id) ? previous : [...previous, saturdayRequestModal]);
-    setBookingSuccessMsg('Solicitud registrada en este dispositivo. Pendiente de confirmación de Ana.');
+    setBookingSuccessMsg(t('requestSaved'));
     setSelectedServicesToBook([]);
     setIsModalOpen(false);
     setSaturdayRequestModal(null);
@@ -889,7 +955,7 @@ export default function App() {
   const savePendingAdvanceAppointment = () => {
     if (!advancePaymentModal) return;
     setAppointments(previous => previous.some(item => item.id === advancePaymentModal.id) ? previous : [...previous, advancePaymentModal]);
-    setBookingSuccessMsg(`Solicitud registrada. Pendiente de confirmar el Bizum de ${advancePaymentModal.advancePayment?.amount} €. Código: ${advancePaymentModal.advancePayment?.reference}`);
+    setBookingSuccessMsg(tf('paymentSaved', {amount: advancePaymentModal.advancePayment?.amount, reference: advancePaymentModal.advancePayment?.reference}));
     setSelectedServicesToBook([]);
     setIsModalOpen(false);
     setCurrentScreen('catalogBooking');
@@ -1097,14 +1163,33 @@ export default function App() {
 
   const stylingLabel = (sub: SubService) => sub.isStylingService ? 'Servicio de secado y peinado' : sub.stylingPolicy === 'included' ? 'Peinado incluido' : sub.stylingPolicy === 'required' ? 'Debes añadir secado y peinado' : sub.stylingPolicy === 'not_applicable' ? 'Sin peinado · No necesitas añadirlo' : '';
 
+  const [catalogTranslationLang, setCatalogTranslationLang] = useState('en');
+  const serviceText = (sub: SubService, field: keyof ServiceTranslation) => {
+    const language = currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang;
+    return (language !== 'es' ? sub.translations?.[language]?.[field]?.trim() : '') || sub[field] || '';
+  };
+  const categoryText = (category: CatalogCategory) => category.translations?.[currentLang]?.title?.trim() || category.title;
+  const variantText = (variant: ServiceVariant, service?: SubService) => {
+    const latest = service ? catalog.flatMap(category => category.subservices).find(item => item.id === service.id)?.variants?.find(item => item.id === variant.id) || variant : variant;
+    return latest.translations?.[currentLang]?.name?.trim() || latest.name;
+  };
+  const translationLanguagePicker = () => <label style={{ display: 'block', color: '#bdb8ad', fontSize: '13px', margin: '12px 0' }}>Idioma<select value={catalogTranslationLang} onChange={event => setCatalogTranslationLang(event.target.value)} style={{ display: 'block', width: '100%', padding: '12px', marginTop: '6px', background: '#121212', color: '#eee8dd', border: '1px solid #76683e', borderRadius: '7px' }}>{Object.keys(TRANSLATIONS).filter(language => language !== 'es').map(language => <option key={language} value={language}>{({en: 'English', fr: 'Français', it: 'Italiano', pt: 'Português', de: 'Deutsch', nl: 'Nederlands', pl: 'Polski', cs: 'Čeština', nb: 'Norsk', sv: 'Svenska', ar: 'العربية'} as Record<string, string>)[language]}</option>)}</select></label>;
+  const updateServiceTranslation = (categoryId: string, serviceId: string, field: keyof ServiceTranslation, value: string) => {
+    setCatalog(previous => previous.map(category => category.id !== categoryId ? category : {
+      ...category, subservices: category.subservices.map(service => service.id !== serviceId ? service : {
+        ...service, translations: { ...service.translations, [catalogTranslationLang]: { ...service.translations?.[catalogTranslationLang], [field]: value } }
+      })
+    }));
+  };
+
   const renderServiceInfo = (sub: SubService) => (
                               <div style={{ backgroundColor: '#1a1a1a', padding: '14px', borderRadius: '6px', fontSize: '13px', lineHeight: 1.6, color: '#ccc', display: 'flex', flexDirection: 'column', gap: '10px', borderLeft: '2px solid #76683e', marginTop: '4px' }}>
-                                <div><strong style={{ color: '#d4af37' }}>Descripción:</strong> {sub.description}</div>
+                                <div><strong style={{ color: '#d4af37' }}>Descripción:</strong> {serviceText(sub, 'description')}</div>
                                 {sub.requiresAssessment && <div style={{ color: '#d4af37', fontWeight: 'bold' }}>Requiere valoración previa · Reserva bajo confirmación de Ana</div>}
                                 {tonerLabel(sub) && <div style={{ color: '#d4af37', fontWeight: 'bold' }}>{tonerLabel(sub)}</div>}
                                 {stylingLabel(sub) && <div style={{ color: '#d4af37', fontWeight: 'bold' }}>{stylingLabel(sub)}</div>}
-                                {sub.includesText && <div><strong style={{ color: '#d4af37' }}>Qué incluye:</strong> {sub.includesText}</div>}
-                                {sub.achievedText && <div><strong style={{ color: '#d4af37' }}>Qué se consigue:</strong> {sub.achievedText}</div>}
+                                {serviceText(sub, 'includesText') && <div><strong style={{ color: '#d4af37' }}>Qué incluye:</strong> {serviceText(sub, 'includesText')}</div>}
+                                {serviceText(sub, 'achievedText') && <div><strong style={{ color: '#d4af37' }}>Qué se consigue:</strong> {serviceText(sub, 'achievedText')}</div>}
                               </div>
   );
 
@@ -1162,13 +1247,13 @@ export default function App() {
 
   const handleConfirmarCitaVisual = () => {
     if (selectedServicesToBook.length === 0) {
-      alert('Por favor, selecciona al menos un servicio del catálogo.');
+      alert(t('selectOneService'));
       return;
     }
     const earliest = new Date(); earliest.setHours(0, 0, 0, 0); earliest.setDate(earliest.getDate() + bizConfig.minAdvanceDays);
     const latest = new Date(); latest.setHours(23, 59, 59, 999); latest.setMonth(latest.getMonth() + bizConfig.maxBookingMonths);
     if (bookingDate < earliest || bookingDate > latest) { alert(`Reserva con al menos ${bizConfig.minAdvanceDays} días de antelación y dentro de los próximos ${bizConfig.maxBookingMonths} meses.`); return; }
-    if (!selectedVisualTime || !portalAvailableTimes(bookingDate).includes(selectedVisualTime)) { alert('Selecciona una hora disponible para la duración completa de tu cita.'); return; }
+    if (!selectedVisualTime || !portalAvailableTimes(bookingDate).includes(selectedVisualTime)) { alert(t('fullTimeRequired')); return; }
     const inactiveError = getInactiveServiceError(selectedServicesToBook);
     if (inactiveError) { alert(inactiveError); setCurrentScreen('catalogBooking'); return; }
     const stylingError = getStylingError(selectedServicesToBook);
@@ -1177,12 +1262,12 @@ export default function App() {
     if (tonerError) { alert(tonerError); setCurrentScreen('catalogBooking'); return; }
     const dateKeyStr = formatDateKey(bookingDate);
     if (isDateBlockedByHoliday(dateKeyStr)) {
-      alert('Lo sentimos, el salón se encuentra cerrado por vacaciones o festivo en esta fecha.');
+      alert(t('salonClosed'));
       return;
     }
     for (const item of selectedServicesToBook) {
       if (item.sub.hasVariants && item.sub.variants && item.sub.variants.length > 0 && !item.variant) {
-        alert(`Es obligatorio seleccionar una variante para el servicio: ${item.sub.name}`);
+        alert(tf('requiredVariant', {service: item.sub.name}));
         return;
       }
     }
@@ -1235,7 +1320,7 @@ export default function App() {
       return;
     }
     setAppointments([...appointments, newApp]);
-    setBookingSuccessMsg(`¡Cita confirmada correctamente para el ${bookingDate.toLocaleDateString('es-ES')} a las ${selectedVisualTime}! Sincronizado con la intranet y Google Calendar.`);
+    setBookingSuccessMsg(tf('bookingConfirmed', {date: bookingDate.toLocaleDateString(portalLocale), time: selectedVisualTime}));
     setSelectedServicesToBook([]);
     setCurrentScreen('catalogBooking');
     const cleanPhone = clientPhoneStr.replace(/\s+/g, "");
@@ -1564,11 +1649,11 @@ export default function App() {
     : clientNextAppointment?.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Cita confirmada';
 
   return (
-    <div style={{ backgroundColor: '#000000', color: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', margin: 0, padding: '20px', position: 'relative' }}>
+    <div lang={currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang} dir={currentLang === 'ar' && currentScreen !== 'adminPanel' && currentScreen !== 'adminLogin' ? 'rtl' : 'ltr'} style={{ backgroundColor: '#000000', color: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', margin: 0, padding: '20px', position: 'relative' }}>
       
       {/* PESTAÑA DESPLEGABLE MULTIIDIOMA */}
-      <div style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 1000 }}>
-        <select 
+      <div hidden={currentScreen === 'adminPanel' || currentScreen === 'adminLogin'} style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 1000 }}>
+        <select aria-label="Language / Idioma" dir="ltr"
           value={currentLang} 
           onChange={(e) => setCurrentLang(e.target.value)}
           style={{
@@ -1584,8 +1669,18 @@ export default function App() {
             fontFamily: 'sans-serif'
           }}
         >
-          <option value="es">🇪🇸 Español</option>
-          <option value="en">🇬🇧 English</option>
+                    <option value="es">Español</option>
+          <option value="en">English</option>
+          <option value="fr">Français</option>
+          <option value="it">Italiano</option>
+          <option value="pt">Português</option>
+          <option value="de">Deutsch</option>
+          <option value="nl">Nederlands</option>
+          <option value="pl">Polski</option>
+          <option value="cs">Čeština</option>
+          <option value="nb">Norsk</option>
+          <option value="sv">Svenska</option>
+          <option value="ar">العربية</option>
         </select>
       </div>
 
@@ -1713,8 +1808,8 @@ export default function App() {
             </>}
           </section>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ background: 'linear-gradient(110deg, #d4af37, #c4a34b)', color: '#17150f', border: 'none', minHeight: '54px', padding: '16px 20px', borderRadius: '10px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>Reservar mi cita</button>
-            <button type="button" onClick={() => setCurrentScreen('clientHistoryPage')} style={{ background: '#191919', color: '#ddd6c7', border: '1px solid #34332d', minHeight: '48px', padding: '14px 20px', borderRadius: '10px', fontSize: '14px', cursor: 'pointer' }}>Mi pasaporte e historial</button>
+            <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ background: 'linear-gradient(110deg, #d4af37, #c4a34b)', color: '#17150f', border: 'none', minHeight: '54px', padding: '16px 20px', borderRadius: '10px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>{t('catalog')}</button>
+            <button type="button" onClick={() => setCurrentScreen('clientHistoryPage')} style={{ background: '#191919', color: '#ddd6c7', border: '1px solid #34332d', minHeight: '48px', padding: '14px 20px', borderRadius: '10px', fontSize: '14px', cursor: 'pointer' }}>{t('history')}</button>
             <div style={{ textAlign: 'center', padding: '10px 0', color: '#aaa', fontSize: '13px', lineHeight: 1.7 }}>
               ¿No sabes qué servicio elegir? <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#cab77d' }}>Te orientamos</a>
               <a href={`tel:${bizConfig.phone}`} style={{ display: 'block', color: '#aaa', marginTop: '4px' }}>Llamar al Studio</a>
@@ -1814,7 +1909,7 @@ export default function App() {
               const isCategoryExpanded = !!expandedCategories[cat.id];
               return <section key={cat.id} style={{ backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '14px', overflow: 'hidden' }}>
                 <button type="button" aria-expanded={isCategoryExpanded} onClick={() => setExpandedCategories({ ...expandedCategories, [cat.id]: !isCategoryExpanded })} style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center', gap: '12px', background: 'transparent', border: 'none', padding: '20px', textAlign: 'left', cursor: 'pointer', minHeight: '60px' }}>
-                  <span><span style={{ color: '#eee8dd', fontFamily: 'serif', fontSize: '19px', lineHeight: 1.4, display: 'block' }}>{cat.title}</span><span style={{ color: '#a8a397', fontSize: '12px', display: 'block', marginTop: '5px' }}>{cat.subservices.filter(sub => sub.active !== false).length} servicios</span></span>
+                  <span><span style={{ color: '#eee8dd', fontFamily: 'serif', fontSize: '19px', lineHeight: 1.4, display: 'block' }}>{categoryText(cat)}</span><span style={{ color: '#a8a397', fontSize: '12px', display: 'block', marginTop: '5px' }}>{cat.subservices.filter(sub => sub.active !== false).length} servicios</span></span>
                   <span style={{ color: '#cab77d', fontSize: '13px', flexShrink: 0 }}>{isCategoryExpanded ? 'Cerrar −' : 'Explorar +'}</span>
                 </button>
                 {isCategoryExpanded && <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1825,9 +1920,9 @@ export default function App() {
                     const isBalayagePreview = normalizeCatalogSearch(sub.name).includes('balayage');
                     return <article key={sub.id} style={{ backgroundColor: isSelected ? '#262319' : '#141414', border: isSelected ? '1px solid #b59a4d' : '1px solid #302f29', borderRadius: isBalayagePreview ? '18px' : '10px', padding: isBalayagePreview ? '24px' : '18px', display: 'flex', flexDirection: 'column', gap: isBalayagePreview ? '16px' : '12px', backgroundImage: isBalayagePreview ? 'linear-gradient(135deg, rgba(202,183,125,0.08), transparent)' : undefined }}>
                       {isBalayagePreview && <span style={{ color: '#cab77d', fontSize: '10px', letterSpacing: '2px' }}>L’STUDIO · EXPERIENCIA PERSONALIZADA</span>}
-                      <div style={{ color: '#eee8dd', fontSize: isBalayagePreview ? '26px' : '16px', fontFamily: isBalayagePreview ? 'serif' : undefined, lineHeight: 1.35, fontWeight: isBalayagePreview ? 'normal' : 'bold' }}>{sub.name}</div>
+                      <div style={{ color: '#eee8dd', fontSize: isBalayagePreview ? '26px' : '16px', fontFamily: isBalayagePreview ? 'serif' : undefined, lineHeight: 1.35, fontWeight: isBalayagePreview ? 'normal' : 'bold' }}>{serviceText(sub, 'name')}</div>
                       {isBalayagePreview ? <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '14px', borderBottom: '1px solid #39362b', paddingBottom: '16px' }}><strong style={{ color: '#cab77d', fontSize: '22px', fontWeight: 'normal' }}>{selection?.variant?.price || sub.price}</strong><span style={{ color: '#aaa59b', fontSize: '13px' }}>{selection?.variant?.duration || sub.duration}</span></div> : <div style={{ color: '#bdb8ad', fontSize: '13px', lineHeight: 1.6 }}>{selection?.variant?.duration || sub.duration}<span style={{ color: '#cab77d', fontWeight: 'bold', marginLeft: '12px' }}>{selection?.variant?.price || sub.price}</span></div>}
-                      {sub.description && <p style={{ color: '#aaa59b', fontSize: '13px', lineHeight: 1.6, margin: 0 }}>{sub.description}</p>}
+                      {sub.description && <p style={{ color: '#aaa59b', fontSize: '13px', lineHeight: 1.6, margin: 0 }}>{serviceText(sub, 'description')}</p>}
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', fontSize: '12px', color: '#cab77d' }}>
                         {sub.requiresAssessment && <span style={isBalayagePreview ? { padding: '6px 10px', backgroundColor: '#242219', border: '1px solid #51472e', borderRadius: '20px', lineHeight: 1.5 } : undefined}>Valoración previa</span>}
                         {stylingLabel(sub) && <span style={isBalayagePreview ? { padding: '6px 10px', backgroundColor: '#242219', border: '1px solid #51472e', borderRadius: '20px', lineHeight: 1.5 } : undefined}>{stylingLabel(sub)}</span>}
@@ -1837,7 +1932,7 @@ export default function App() {
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                         <button type="button" aria-pressed={isSelected} onClick={() => {
                           setSelectedServicesToBook(previous => isSelected ? previous.filter(item => item.sub.id !== sub.id) : [...previous, { sub, variant: sub.hasVariants ? sub.variants?.[0] || null : null }]);
-                        }} style={{ backgroundColor: isSelected ? '#d4af37' : '#242219', border: '1px solid #76683e', color: isSelected ? '#17150f' : '#ddd0a4', padding: '11px 16px', minHeight: '44px', borderRadius: '7px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}>{isSelected ? 'Seleccionado · Quitar' : 'Añadir a mi cita'}</button>
+                        }} style={{ backgroundColor: isSelected ? '#d4af37' : '#242219', border: '1px solid #76683e', color: isSelected ? '#17150f' : '#ddd0a4', padding: '11px 16px', minHeight: '44px', borderRadius: '7px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}>{isSelected ? t('selectedRemove') : t('addAppointment')}</button>
                         <button type="button" aria-expanded={isExpanded} onClick={() => setExpandedSubDetails({ ...expandedSubDetails, [sub.id]: !isExpanded })} style={{ background: 'transparent', border: 'none', color: '#bdb8ad', padding: '11px 8px', minHeight: '44px', cursor: 'pointer', fontSize: '13px' }}>{isExpanded ? 'Cerrar detalles' : 'Ver qué incluye'}</button>
                       </div>
                       {isSelected && sub.hasVariants && !!sub.variants?.length && <label style={{ color: '#cab77d', fontSize: '13px' }}>Elige tu largo o pack
@@ -1845,8 +1940,8 @@ export default function App() {
                           const variant = sub.variants?.find(v => v.id === e.target.value) || null;
                           setSelectedServicesToBook(previous => previous.map(item => item.sub.id === sub.id ? { ...item, variant } : item));
                         }} style={{ display: 'block', width: '100%', minHeight: '46px', marginTop: '8px', padding: '10px', backgroundColor: '#191919', color: '#eee8dd', border: '1px solid #76683e', borderRadius: '6px', fontSize: '14px' }}>
-                          <option value="" disabled>Selecciona una opción</option>
-                          {sub.variants!.map(v => <option key={v.id} value={v.id}>{v.name} · {v.price} · {v.duration}</option>)}
+                          <option value="" disabled>{t('chooseOption')}</option>
+                          {sub.variants!.map(v => <option key={v.id} value={v.id}>{variantText(v, sub)} · {v.price} · {v.duration}</option>)}
                         </select>
                       </label>}
                       {isExpanded && renderServiceInfo(sub)}
@@ -1859,8 +1954,8 @@ export default function App() {
           {selectedServicesToBook.length > 0 && <section aria-label="Resumen de tu selección" style={{ backgroundColor: '#1d1c17', border: '1px solid #76683e', padding: '20px', borderRadius: '12px' }}>
             <h2 style={{ color: '#eee8dd', fontFamily: 'serif', fontSize: '20px', margin: '0 0 14px', fontWeight: 'normal' }}>Tu selección</h2>
             {selectedServicesToBook.map(item => <div key={item.sub.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid #34332d' }}>
-              <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#ddd6c7' }}>{item.sub.name}{item.variant && <span> · {item.variant.name}</span>}<span style={{ display: 'block', color: '#cab77d' }}>{item.variant?.price || item.sub.price} · {item.variant?.duration || item.sub.duration}</span></div>
-              <button type="button" aria-label={`Quitar ${item.sub.name}`} onClick={() => setSelectedServicesToBook(previous => previous.filter(selected => selected.sub.id !== item.sub.id))} style={{ background: 'none', border: 'none', color: '#bdb8ad', cursor: 'pointer', padding: '10px', minHeight: '44px', fontSize: '12px' }}>Quitar</button>
+              <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#ddd6c7' }}>{serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#cab77d' }}>{item.variant?.price || item.sub.price} · {item.variant?.duration || item.sub.duration}</span></div>
+              <button type="button" aria-label={`Quitar ${serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}`} onClick={() => setSelectedServicesToBook(previous => previous.filter(selected => selected.sub.id !== item.sub.id))} style={{ background: 'none', border: 'none', color: '#bdb8ad', cursor: 'pointer', padding: '10px', minHeight: '44px', fontSize: '12px' }}>Quitar</button>
             </div>)}
             <p style={{ color: '#bdb8ad', fontSize: '13px', margin: '14px 0 0' }}>Duración de los servicios: {getModalDuration(selectedServicesToBook)} min</p>
           </section>}
@@ -1877,9 +1972,9 @@ export default function App() {
                 {selectedServicesToBook.some(item => (catalog.flatMap(c => c.subservices).find(sub => sub.id === item.sub.id) || item.sub).requiresAssessment) && <p style={{ color: '#d4af37', fontSize: '12px' }}>Tu selección requiere valoración previa. Elegir fecha y hora registra una solicitud; Ana debe aprobarla antes de confirmar la cita.</p>}
                 {getTonerError(selectedServicesToBook) && <p role="alert" style={{ color: '#d4af37', fontSize: '12px' }}>{getTonerError(selectedServicesToBook)}</p>}
                 {getStylingError(selectedServicesToBook) && <p role="alert" style={{ color: '#d4af37', fontSize: '12px' }}>{getStylingError(selectedServicesToBook)}</p>}
-                <p style={{ color: '#ccc', fontSize: '11px', margin: 0 }}>Revisa tu selección y continúa para elegir fecha y hora.</p>
+                <p style={{ color: '#ccc', fontSize: '11px', margin: 0 }}>{t('reviewSelection')}</p>
                 <button onClick={() => setCurrentScreen('visualAgenda')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'center' }}>
-                  Elegir fecha y hora
+                  {t('chooseDateTime')}
                 </button>
               </div>
             )}
@@ -1890,31 +1985,31 @@ export default function App() {
       {/* AGENDA CLIENTAS · SEMANA Y HORAS DISPONIBLES */}
       {currentScreen === 'visualAgenda' && (
         <div style={{ maxWidth: '680px', width: '100%', backgroundColor: '#121212', border: '1px solid #34332d', borderRadius: '16px', padding: '20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '22px' }}>
-          <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#cab77d', padding: '10px 0', cursor: 'pointer' }}>← Volver a mis servicios</button>
-          <div><h2 style={{ fontFamily: 'serif', color: '#eee8dd', fontSize: '28px', fontWeight: 'normal', margin: '0 0 8px' }}>Elige tu momento</h2><p style={{ color: '#bdb8ad', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>Mostramos las horas que permiten realizar tu cita completa · {getModalDuration(selectedServicesToBook)} min.</p></div>
+          <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#cab77d', padding: '10px 0', cursor: 'pointer' }}>{t('backServices')}</button>
+          <div><h2 style={{ fontFamily: 'serif', color: '#eee8dd', fontSize: '28px', fontWeight: 'normal', margin: '0 0 8px' }}>{t('chooseMoment')}</h2><p style={{ color: '#bdb8ad', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('fullSlots')} · {getModalDuration(selectedServicesToBook)} min.</p></div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-            <button type="button" aria-label="Semana anterior" onClick={() => { const day = new Date(bookingDate); day.setDate(day.getDate() - 7); choosePortalDate(day); }} style={{ padding: '12px', background: '#191919', color: '#cab77d', border: '1px solid #34332d', borderRadius: '8px', cursor: 'pointer' }}>←</button>
-            <span style={{ color: '#eee8dd', fontSize: '14px', textAlign: 'center' }}>{portalWeekStart.toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</span>
-            <button type="button" aria-label="Semana siguiente" onClick={() => { const day = new Date(bookingDate); day.setDate(day.getDate() + 7); choosePortalDate(day); }} style={{ padding: '12px', background: '#191919', color: '#cab77d', border: '1px solid #34332d', borderRadius: '8px', cursor: 'pointer' }}>→</button>
+            <button type="button" aria-label={t('previousWeek')} onClick={() => { const day = new Date(bookingDate); day.setDate(day.getDate() - 7); choosePortalDate(day); }} style={{ padding: '12px', background: '#191919', color: '#cab77d', border: '1px solid #34332d', borderRadius: '8px', cursor: 'pointer' }}>←</button>
+            <span style={{ color: '#eee8dd', fontSize: '14px', textAlign: 'center' }}>{portalWeekStart.toLocaleDateString(portalLocale, { month: 'long', year: 'numeric' })}</span>
+            <button type="button" aria-label={t('nextWeek')} onClick={() => { const day = new Date(bookingDate); day.setDate(day.getDate() + 7); choosePortalDate(day); }} style={{ padding: '12px', background: '#191919', color: '#cab77d', border: '1px solid #34332d', borderRadius: '8px', cursor: 'pointer' }}>→</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '5px' }}>
             {portalWeekDays.map(day => {
               const selected = formatDateKey(day) === formatDateKey(bookingDate);
               const available = portalAvailableTimes(day).length > 0;
-              return <button type="button" key={formatDateKey(day)} aria-pressed={selected} disabled={!portalDateAllowed(day)} onClick={() => choosePortalDate(day)} style={{ minHeight: '70px', padding: '8px 1px', backgroundColor: selected ? '#d4af37' : '#191919', color: selected ? '#17150f' : '#ddd6c7', opacity: portalDateAllowed(day) ? 1 : 0.35, border: '1px solid #34332d', borderRadius: '9px', cursor: 'pointer' }}><span style={{ fontSize: '10px', display: 'block' }}>{day.toLocaleDateString('es-ES', { weekday: 'short' })}</span><strong style={{ fontSize: '18px', display: 'block', margin: '5px 0' }}>{day.getDate()}</strong><span aria-label={available ? 'Con horas disponibles' : 'Sin horas disponibles'} style={{ fontSize: '10px' }}>{available ? '●' : '—'}</span></button>;
+              return <button type="button" key={formatDateKey(day)} aria-pressed={selected} disabled={!portalDateAllowed(day)} onClick={() => choosePortalDate(day)} style={{ minHeight: '70px', padding: '8px 1px', backgroundColor: selected ? '#d4af37' : '#191919', color: selected ? '#17150f' : '#ddd6c7', opacity: portalDateAllowed(day) ? 1 : 0.35, border: '1px solid #34332d', borderRadius: '9px', cursor: 'pointer' }}><span style={{ fontSize: '10px', display: 'block' }}>{day.toLocaleDateString(portalLocale, { weekday: 'short' })}</span><strong style={{ fontSize: '18px', display: 'block', margin: '5px 0' }}>{day.getDate()}</strong><span aria-label={available ? t('slotsAvailable') : t('noSlots')} style={{ fontSize: '10px' }}>{available ? '●' : '—'}</span></button>;
             })}
           </div>
-          <label style={{ color: '#bdb8ad', fontSize: '13px' }}>Ir a otra fecha<input type="date" value={formatDateKey(bookingDate)} onChange={e => { if (e.target.value) choosePortalDate(new Date(`${e.target.value}T12:00:00`)); }} style={{ display: 'block', marginTop: '8px', padding: '12px', backgroundColor: '#191919', color: '#eee8dd', border: '1px solid #34332d', borderRadius: '8px', boxSizing: 'border-box', width: '100%' }} /></label>
-          <section><h3 style={{ color: '#eee8dd', fontSize: '16px', margin: '0 0 16px' }}>{bookingDate.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
-            {!portalTimes.length ? <p style={{ color: '#bdb8ad', fontSize: '14px', lineHeight: 1.6 }}>No hay horas disponibles para tu selección en este día. Prueba otra fecha.</p> : ['Mañana', 'Tarde'].map(period => {
-              const times = portalTimes.filter(time => period === 'Mañana' ? Number(time.slice(0, 2)) < 14 : Number(time.slice(0, 2)) >= 14);
-              return times.length ? <div key={period} style={{ marginBottom: '18px' }}><p style={{ color: '#aaa59b', fontSize: '12px' }}>{period}</p><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(76px, 1fr))', gap: '9px' }}>{times.map(time => <button type="button" key={time} aria-pressed={time === selectedVisualTime} onClick={() => setSelectedVisualTime(time)} style={{ minHeight: '48px', backgroundColor: time === selectedVisualTime ? '#d4af37' : '#191919', color: time === selectedVisualTime ? '#17150f' : '#ddd0a4', border: '1px solid #76683e', borderRadius: '8px', fontSize: '15px', cursor: 'pointer' }}>{time}</button>)}</div></div> : null;
+          <label style={{ color: '#bdb8ad', fontSize: '13px' }}>{t('otherDate')}<input type="date" value={formatDateKey(bookingDate)} onChange={e => { if (e.target.value) choosePortalDate(new Date(`${e.target.value}T12:00:00`)); }} style={{ display: 'block', marginTop: '8px', padding: '12px', backgroundColor: '#191919', color: '#eee8dd', border: '1px solid #34332d', borderRadius: '8px', boxSizing: 'border-box', width: '100%' }} /></label>
+          <section><h3 style={{ color: '#eee8dd', fontSize: '16px', margin: '0 0 16px' }}>{bookingDate.toLocaleDateString(portalLocale, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
+            {!portalTimes.length ? <p style={{ color: '#bdb8ad', fontSize: '14px', lineHeight: 1.6 }}>{t('noSlotsDay')}</p> : ['morning', 'afternoon'].map(period => {
+              const times = portalTimes.filter(time => period === 'morning' ? Number(time.slice(0, 2)) < 14 : Number(time.slice(0, 2)) >= 14);
+              return times.length ? <div key={period} style={{ marginBottom: '18px' }}><p style={{ color: '#aaa59b', fontSize: '12px' }}>{t(period)}</p><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(76px, 1fr))', gap: '9px' }}>{times.map(time => <button type="button" key={time} aria-pressed={time === selectedVisualTime} onClick={() => setSelectedVisualTime(time)} style={{ minHeight: '48px', backgroundColor: time === selectedVisualTime ? '#d4af37' : '#191919', color: time === selectedVisualTime ? '#17150f' : '#ddd0a4', border: '1px solid #76683e', borderRadius: '8px', fontSize: '15px', cursor: 'pointer' }}>{time}</button>)}</div></div> : null;
             })}
           </section>
           <div style={{ borderTop: '1px solid #34332d', paddingTop: '18px' }}>
-            <p style={{ color: '#bdb8ad', fontSize: '13px', lineHeight: 1.6 }}>{selectedServicesToBook.map(item => item.sub.name + (item.variant ? ` · ${item.variant.name}` : '')).join(' + ')}</p>
-            {selectedVisualTime && <p style={{ color: '#eee8dd', fontSize: '15px' }}>{bookingDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })} · {selectedVisualTime}</p>}
-            <button type="button" onClick={handleConfirmarCitaVisual} disabled={!portalTimes.includes(selectedVisualTime)} style={{ width: '100%', minHeight: '54px', padding: '14px', backgroundColor: portalTimes.includes(selectedVisualTime) ? '#d4af37' : '#34332d', color: portalTimes.includes(selectedVisualTime) ? '#17150f' : '#aaa', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>{!selectedVisualTime ? 'Selecciona una hora' : getApprovalReason(selectedServicesToBook, formatDateKey(bookingDate)) ? 'Solicitar esta cita' : 'Continuar con mi reserva'}</button>
+            <p style={{ color: '#bdb8ad', fontSize: '13px', lineHeight: 1.6 }}>{selectedServicesToBook.map(item => serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name') + (item.variant ? ` · ${variantText(item.variant, item.sub)}` : '')).join(' + ')}</p>
+            {selectedVisualTime && <p style={{ color: '#eee8dd', fontSize: '15px' }}>{bookingDate.toLocaleDateString(portalLocale, { day: 'numeric', month: 'long' })} · {selectedVisualTime}</p>}
+            <button type="button" onClick={handleConfirmarCitaVisual} disabled={!portalTimes.includes(selectedVisualTime)} style={{ width: '100%', minHeight: '54px', padding: '14px', backgroundColor: portalTimes.includes(selectedVisualTime) ? '#d4af37' : '#34332d', color: portalTimes.includes(selectedVisualTime) ? '#17150f' : '#aaa', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>{!selectedVisualTime ? t('chooseHour') : getApprovalReason(selectedServicesToBook, formatDateKey(bookingDate)) ? t('requestAppointment') : t('continueBooking')}</button>
           </div>
         </div>
       )}
@@ -2531,6 +2626,13 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                       </div>
                       <details style={{ backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '9px', padding: '14px' }}>
                         <summary style={{ color: '#cab77d', cursor: 'pointer', fontSize: '13px' }}>Editar categoría y ordenar</summary>
+                        <details style={{ border: '1px solid #76683e', padding: '14px', borderRadius: '8px', marginTop: '14px' }}>
+                          <summary style={{ color: '#cab77d', cursor: 'pointer' }}>Idiomas · Nombre de la categoría</summary>
+                          {translationLanguagePicker()}
+                          <p style={{ color: '#aaa59b', fontSize: '12px' }}>Original: {cat.title}. Un campo vacío muestra el original en español.</p>
+                          <input aria-label="Nombre traducido de la categoría" dir={catalogTranslationLang === 'ar' ? 'rtl' : 'ltr'} lang={catalogTranslationLang} value={cat.translations?.[catalogTranslationLang]?.title || ''} onChange={event => { const title = event.target.value; setCatalog(previous => previous.map(category => category.id !== cat.id ? category : { ...category, translations: { ...category.translations, [catalogTranslationLang]: { title } } })); }} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', background: '#121212', color: '#eee8dd', border: '1px solid #444', borderRadius: '7px' }} />
+                        </details>
+
                         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '12px', marginTop: '16px' }}>
                           <label style={{ color: '#bdb8ad', fontSize: '13px' }}>Código<input type="text" value={cat.code} onChange={e => handleUpdateCategoryCode(cat.id, e.target.value)} style={{ display: 'block', width: '90px', padding: '12px', boxSizing: 'border-box', marginTop: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#ddd0a4', borderRadius: '7px' }} /></label>
                           <label style={{ flex: '1 1 220px', color: '#bdb8ad', fontSize: '13px' }}>Nombre de la categoría<input type="text" value={cat.title} onChange={e => handleUpdateCategoryTitle(cat.id, e.target.value)} style={{ display: 'block', width: '100%', padding: '12px', boxSizing: 'border-box', marginTop: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#eee8dd', borderRadius: '7px', fontSize: '14px' }} /></label>
@@ -2553,6 +2655,22 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                 </div>
                                 <details className="studio-service-editor" style={{ borderTop: '1px solid #34332d', padding: '12px 8px 4px' }}>
                                   <summary style={{ color: '#cab77d', fontSize: '14px', cursor: 'pointer', padding: '8px 0' }}>Editar servicio · Datos, variantes y condiciones</summary>
+                                  <details style={{ padding: '16px', marginTop: '16px', border: '1px solid #76683e', borderRadius: '10px' }}>
+                                    <summary style={{ color: '#cab77d', cursor: 'pointer' }}>Idiomas · Traducciones del servicio</summary>
+                                    <p style={{ color: '#aaa59b', fontSize: '13px', lineHeight: 1.6 }}>Escribe la traducción de cada campo. Si queda vacío, el portal mostrará el contenido original en español. Los precios y la duración se mantienen comunes.</p>
+                                    <label>Idioma de la traducción<select value={catalogTranslationLang} onChange={event => setCatalogTranslationLang(event.target.value)} style={{ display: 'block', width: '100%', margin: '8px 0 16px' }}>
+                                      {Object.keys(TRANSLATIONS).filter(language => language !== 'es').map(language => <option key={language} value={language}>{({ en: 'English', fr: 'Français', it: 'Italiano', pt: 'Português', de: 'Deutsch', nl: 'Nederlands', pl: 'Polski', cs: 'Čeština', nb: 'Norsk', sv: 'Svenska', ar: 'العربية' } as Record<string, string>)[language]}</option>)}
+                                    </select></label>
+                                    {([{ field: 'name', label: 'Nombre del servicio' }, { field: 'description', label: 'Descripción' }, { field: 'includesText', label: 'Qué incluye' }, { field: 'achievedText', label: 'Qué consigues' }, { field: 'alertText', label: 'Aviso del servicio' }] as { field: keyof ServiceTranslation; label: string }[]).map(({field, label}) => <label key={field} style={{ display: 'block', marginBottom: '14px' }}>{label}<span style={{ display: 'block', color: '#aaa59b', fontSize: '12px', margin: '6px 0', whiteSpace: 'pre-wrap' }}>Original: {sub[field] || 'Sin contenido'}</span><textarea dir={catalogTranslationLang === 'ar' ? 'rtl' : 'ltr'} lang={catalogTranslationLang} value={sub.translations?.[catalogTranslationLang]?.[field] || ''} onChange={event => updateServiceTranslation(cat.id, sub.id, field, event.target.value)} placeholder="Añade aquí la traducción" style={{ width: '100%' }} /></label>)}
+
+                                    {!!sub.variants?.length && <section style={{ borderTop: '1px solid #34332d', paddingTop: '14px' }}>
+                                      <h4 style={{ color: '#cab77d', margin: '0 0 12px' }}>Nombres de variantes · {catalogTranslationLang.toUpperCase()}</h4>
+                                      <p style={{ color: '#aaa59b', fontSize: '12px' }}>Deja el campo vacío para mostrar el nombre original. Precio y duración son comunes a todos los idiomas.</p>
+                                      {sub.variants.map(variant => <label key={variant.id} style={{ display: 'block', marginBottom: '14px' }}>Original: {variant.name}<input dir={catalogTranslationLang === 'ar' ? 'rtl' : 'ltr'} lang={catalogTranslationLang} value={variant.translations?.[catalogTranslationLang]?.name || ''} onChange={event => { const name = event.target.value; setCatalog(previous => previous.map(category => category.id !== cat.id ? category : { ...category, subservices: category.subservices.map(service => service.id !== sub.id ? service : { ...service, variants: service.variants?.map(item => item.id !== variant.id ? item : { ...item, translations: { ...item.translations, [catalogTranslationLang]: { name } } }) }) })); }} style={{ display: 'block', width: '100%', marginTop: '6px' }} /></label>)}
+                                    </section>}
+                                    <button type="button" onClick={() => { if (window.confirm('¿Borrar todos los textos traducidos de este servicio en el idioma seleccionado? Se mostrará el original en español.')) setCatalog(previous => previous.map(category => category.id !== cat.id ? category : { ...category, subservices: category.subservices.map(service => { if (service.id !== sub.id) return service; const translations = { ...service.translations }; delete translations[catalogTranslationLang]; return { ...service, translations, variants: service.variants?.map(variant => { const variantTranslations = { ...variant.translations }; delete variantTranslations[catalogTranslationLang]; return { ...variant, translations: variantTranslations }; }) }; }) })); }} style={{ background: 'none', border: '1px solid #765353', color: '#dfb0b0', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Borrar traducción de este idioma</button>
+                                  </details>
+
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '16px' }}>
 
                                 <button type="button" onClick={() => { setPreviewServiceId(sub.id); setPreviewVariantId(sub.hasVariants ? sub.variants?.[0]?.id || '' : ''); }} style={{ alignSelf: 'flex-start', background: 'none', color: '#d4af37', border: '1px solid #d4af37', borderRadius: '5px', padding: '7px 12px', cursor: 'pointer' }}>Vista previa · Clienta</button>
@@ -3131,30 +3249,30 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
       {saturdayRequestModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 2100 }}>
           <div role="dialog" aria-modal="true" aria-labelledby="saturday-request-title" style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '440px', width: '100%', color: '#fff' }}>
-            <h3 id="saturday-request-title" style={{ color: '#d4af37' }}>{approvalTitle(saturdayRequestModal.saturdayApproval?.reason)} · Bajo confirmación previa</h3>
-            <p>Ana revisará los servicios solicitados, la viabilidad del trabajo y la disponibilidad antes de aceptar tu cita. Puede pedirte un diagnóstico o un test de mechón previo. Esta solicitud no confirma la reserva.</p>
-            <p>{saturdayRequestModal.dateKey.split('-').reverse().join('/')} a las {saturdayRequestModal.time}</p>
+            <h3 id="saturday-request-title" style={{ color: '#d4af37' }}>{t('reviewTitle')}</h3>
+            <p>{t('reviewExplanation')}</p>
+            <p>{saturdayRequestModal.dateKey.split('-').reverse().join('/')} · {saturdayRequestModal.time}</p>
             <p>{saturdayRequestModal.serviceSubcategory.replace(/^PENDIENTE (?:SÁBADO|VALORACIÓN) /, '')}</p>
-            {bizConfig.advancePaymentEnabled && (saturdayRequestModal.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes && <p>Si Ana acepta la solicitud, será necesaria una reserva anticipada de {bizConfig.depositAmount}. Espera su aprobación antes de pagar.</p>}
-            <p style={{ color: '#aaa', fontSize: '12px' }}>El registro actual es local. Para que Ana reciba la solicitud a distancia es necesario conectar el envío de avisos.</p>
-            <button type="button" onClick={() => setSaturdayRequestModal(null)} style={{ padding: '10px', marginRight: '10px' }}>Volver</button>
-            <button type="button" onClick={registerSaturdayRequest} style={{ backgroundColor: '#d4af37', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Registrar solicitud pendiente</button>
+            {bizConfig.advancePaymentEnabled && (saturdayRequestModal.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes && <p>{tf('reviewDeposit', {amount: bizConfig.depositAmount})}</p>}
+            <p style={{ color: '#aaa', fontSize: '12px' }}>{t('localRequestNotice')}</p>
+            <button type="button" onClick={() => setSaturdayRequestModal(null)} style={{ padding: '10px', marginRight: '10px' }}>{t('backAction')}</button>
+            <button type="button" onClick={registerSaturdayRequest} style={{ backgroundColor: '#d4af37', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>{t('registerRequest')}</button>
           </div>
         </div>
       )}
       {advancePaymentModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 2000 }}>
           <div role="dialog" aria-modal="true" aria-labelledby="advance-payment-title" style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '440px', width: '100%', maxHeight: '85vh', overflowY: 'auto', color: '#fff' }}>
-            <h3 id="advance-payment-title" style={{ color: '#d4af37', marginTop: 0 }}>Reserva anticipada · {advancePaymentModal.advancePayment?.amount} €</h3>
-            <p>Tu cita supera los {bizConfig.advancePaymentThresholdMinutes} minutos. Para que quede reservada, realiza un Bizum de <strong>{advancePaymentModal.advancePayment?.amount} € al {bizConfig.bizumNumber}</strong>.</p>
-            <p>{advancePaymentModal.dateKey.split('-').reverse().join('/')} a las {advancePaymentModal.time} · {advancePaymentModal.durationMinutes} min</p>
-            <p>Indica tu nombre y apellidos y utiliza este concepto:</p>
-            <div style={{ padding: '12px', border: '1px solid #d4af37', borderRadius: '6px', overflowWrap: 'anywhere' }}>{advancePaymentConcept(advancePaymentModal)}</div>
-            <p style={{ color: '#aaa' }}>La solicitud quedará pendiente. Confirmaremos la reserva cuando comprobemos la recepción del pago.</p>
-            <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(advancePaymentConcept(advancePaymentModal)); alert('Concepto copiado.'); } catch { alert('No se pudo copiar. Selecciona y copia el concepto mostrado.'); } }} style={{ padding: '10px', marginBottom: '12px', cursor: 'pointer' }}>Copiar concepto</button>
+            <h3 id="advance-payment-title" style={{ color: '#d4af37', marginTop: 0 }}>{t('depositTitle')} · {advancePaymentModal.advancePayment?.amount} €</h3>
+            <p>{tf('bizumExplanation', {minutes: bizConfig.advancePaymentThresholdMinutes, amount: advancePaymentModal.advancePayment?.amount, phone: bizConfig.bizumNumber})}</p>
+            <p>{advancePaymentModal.dateKey.split('-').reverse().join('/')} · {advancePaymentModal.time} · {advancePaymentModal.durationMinutes} min</p>
+            <p>{t('paymentConceptHelp')}</p>
+            <div dir="ltr" style={{ padding: '12px', border: '1px solid #d4af37', borderRadius: '6px', overflowWrap: 'anywhere' }}>{advancePaymentConcept(advancePaymentModal)}</div>
+            <p style={{ color: '#aaa' }}>{t('paymentPendingExplanation')}</p>
+            <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(advancePaymentConcept(advancePaymentModal)); alert(t('copiedConcept')); } catch { alert(t('copyFailed')); } }} style={{ padding: '10px', marginBottom: '12px', cursor: 'pointer' }}>{t('copyConcept')}</button>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <button type="button" onClick={() => setAdvancePaymentModal(null)} style={{ padding: '10px', cursor: 'pointer' }}>Volver</button>
-              <button type="button" onClick={savePendingAdvanceAppointment} style={{ backgroundColor: '#d4af37', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Registrar solicitud pendiente de pago</button>
+              <button type="button" onClick={() => setAdvancePaymentModal(null)} style={{ padding: '10px', cursor: 'pointer' }}>{t('backAction')}</button>
+              <button type="button" onClick={savePendingAdvanceAppointment} style={{ backgroundColor: '#d4af37', border: 'none', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>{t('registerPayment')}</button>
             </div>
           </div>
         </div>
