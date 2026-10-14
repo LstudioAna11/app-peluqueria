@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 const STUDIO_PORTAL_PHOTO = '/studio-interior.jpeg';
 
@@ -1247,6 +1247,7 @@ TRANSLATIONS["sv"].enterPortal = "Logga in";
 TRANSLATIONS["ar"].enterPortal = "دخول";
 
 interface ServiceVariant {
+  description?: string;
   translations?: Record<string, { name?: string }>; 
   id: string;
   name: string;
@@ -1724,17 +1725,29 @@ function StudioApp() {
   const [adminCatalogSearch, setAdminCatalogSearch] = useState('');
   const normalizeCatalogSearch = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   const [catalogSavedMsg, setCatalogSavedMsg] = useState<string | null>(null);
+  const [catalogEditorId, setCatalogEditorId] = useState<string | null>(null);
+  const [catalogEditorTab, setCatalogEditorTab] = useState<'data' | 'options' | 'booking' | 'languages'>('data');
+
   const [enableOutOfHours, setEnableOutOfHours] = useState<boolean>(false);
   const [enableDoubleBooking, setEnableDoubleBooking] = useState<boolean>(false);
   
   // NUEVO ESTADO: VISTA DE AGENDA MAESTRA ('week' | 'day')
-  const [agendaViewMode, setAgendaViewMode] = useState<'week' | 'day'>('week');
+  const [agendaViewMode, setAgendaViewMode] = useState<'week' | 'day'>(() => window.matchMedia('(max-width: 700px)').matches ? 'day' : 'week');
   const [appointmentSearch, setAppointmentSearch] = useState('');
   const [agendaSidePanel, setAgendaSidePanel] = useState<'day' | 'pending' | null>(null);
   const [pendingPanelFilter, setPendingPanelFilter] = useState<'all' | 'approval' | 'payment'>('all');
   const [returnToAppointmentId, setReturnToAppointmentId] = useState<string | null>(null);
 
   const [agendaExpanded, setAgendaExpanded] = useState(false);
+  const [compactAgenda, setCompactAgenda] = useState(() => window.matchMedia('(max-width: 700px)').matches);
+  useEffect(() => {
+    const query = window.matchMedia('(max-width: 700px)');
+    const update = () => setCompactAgenda(query.matches);
+    query.addEventListener('change', update);
+    return () => query.removeEventListener('change', update);
+  }, []);
+  const agendaRowHeight = compactAgenda ? 44 : 30;
+
   const [agendaNow, setAgendaNow] = useState(() => new Date());
   useEffect(() => {
     const timer = window.setInterval(() => setAgendaNow(new Date()), 60000);
@@ -1764,8 +1777,12 @@ function StudioApp() {
     return saved ? readStoredValue('lst_master_catalog', saved) : INITIAL_CATALOG;
   });
 
+  const [savedCatalogSnapshot, setSavedCatalogSnapshot] = useState(() => JSON.stringify(catalog));
+  const catalogHasChanges = JSON.stringify(catalog) !== savedCatalogSnapshot;
+
   const handleSaveCatalogMaster = () => {
     localStorage.setItem('lst_master_catalog', JSON.stringify(catalog));
+    setSavedCatalogSnapshot(JSON.stringify(catalog));
     setCatalogSavedMsg('¡Catálogo, avisos y descripciones guardados y sincronizados con éxito con el portal de clientas!');
     setTimeout(() => setCatalogSavedMsg(null), 3500);
   };
@@ -1889,6 +1906,14 @@ function StudioApp() {
     const digits = appointmentSearchQuery.replace(/[^0-9]/g, '');
     return name.includes(appointmentSearchQuery) || (!!digits && /^[+()\s\d.-]+$/.test(appointmentSearchQuery) && phone.includes(digits));
   }).sort((left, right) => (right.dateKey + right.time).localeCompare(left.dateKey + left.time)) : [];
+
+  const [registeredAppointment, setRegisteredAppointment] = useState<Appointment | null>(null);
+  const knownAppointmentIds = useRef(new Set(appointments.map(appointment => appointment.id)));
+  useEffect(() => {
+    const added = appointments.filter(appointment => !knownAppointmentIds.current.has(appointment.id));
+    knownAppointmentIds.current = new Set(appointments.map(appointment => appointment.id));
+    if (added.length) setRegisteredAppointment(added[added.length - 1]);
+  }, [appointments]);
 
   const [listaClientes, setListaClientes] = useState<ClientRecord[]>(() => {
     const saved = localStorage.getItem('lst_studio_clientes_ids');
@@ -2555,8 +2580,8 @@ function StudioApp() {
     setIsModalOpen(false);
     const cleanPhone = (modalPhone || '600000000').replace(/\s+/g, "");
     const customMsg = generateWhatsAppMessage(modalClientName, dateFormattedStr, targetTime);
-    window.open(`https://wa.me/34${cleanPhone}?text=${encodeURIComponent(customMsg)}`, '_blank');
-    window.alert(`¡Cita guardada para ${modalClientName}! Sincronizada con Google Calendar y WhatsApp listo para enviar.`);
+
+
   };
 
   const handleConfirmarCitaVisual = () => {
@@ -2639,7 +2664,7 @@ function StudioApp() {
     setCurrentScreen('catalogBooking');
     const cleanPhone = clientPhoneStr.replace(/\s+/g, "");
     const customMsg = generateWhatsAppMessage(clientNameStr, dateFormattedStr, selectedVisualTime);
-    window.open(`https://wa.me/34${cleanPhone}?text=${encodeURIComponent(customMsg)}`, '_blank');
+
     setTimeout(() => setBookingSuccessMsg(null), 5000);
   };
 
@@ -2679,12 +2704,13 @@ function StudioApp() {
 
   const handleAddVariant = (catId: string, subId: string, e: React.FormEvent) => {
     e.preventDefault();
-    if (!newVariantName.trim()) return;
+    if (!newVariantName.trim() || !newVariantPrice.trim() || !newVariantDuration.trim()) { alert('Completa nombre, precio y duración de la opción.'); return; }
+    if (!/\d/.test(newVariantDuration) || parseFloat(newVariantDuration) <= 0) { alert('Indica una duración válida, por ejemplo 60 min.'); return; }
     const newVar: ServiceVariant = {
       id: 'v_' + Date.now(),
       name: newVariantName.trim(),
-      price: newVariantPrice.trim() || '100 €',
-      duration: newVariantDuration.trim() || '60 min'
+      price: newVariantPrice.trim(),
+      duration: newVariantDuration.trim()
     };
     setCatalog(catalog.map(cat => {
       if (cat.id === catId) {
@@ -2763,7 +2789,8 @@ function StudioApp() {
 
   const handleAddSubserviceSubmit = (catId: string, e: React.FormEvent) => {
     e.preventDefault();
-    if (!newSubName.trim()) return;
+    if (!newSubName.trim() || !newSubDur.trim() || (newSubPriceType !== 'consultar' && !newSubPrice.trim())) { alert('Completa el nombre, la duración y el precio, o elige Consultar.'); return; }
+    if (!/\d/.test(newSubDur) || parseFloat(newSubDur) <= 0) { alert('Indica una duración válida, por ejemplo 45 min.'); return; }
     let formattedPrice = newSubPrice.trim() || 'Consultar';
     if (newSubPriceType === 'desde' && !formattedPrice.toLowerCase().includes('desde')) {
       formattedPrice = `Desde ${formattedPrice}`;
@@ -2775,12 +2802,12 @@ function StudioApp() {
     const newSub: SubService = {
       id: Date.now().toString(),
       name: newSubName,
-      description: newSubDesc || 'Sin descripción detallada.',
-      duration: newSubDur || '45 min',
+      description: newSubDesc.trim(),
+      duration: newSubDur.trim(),
       price: formattedPrice,
       bufferTime: '10 min prep',
-      includesText: newSubIncludes || 'Lavado sensorial y aplicación técnica profesional.',
-      achievedText: newSubAchieved || 'Resultado óptimo de autor con acabado duradero.',
+      includesText: newSubIncludes.trim(),
+      achievedText: newSubAchieved.trim(),
       priceType: newSubPriceType,
       hasVariants: false,
       showAlertBadge: newSubAlertBadge,
@@ -3008,7 +3035,7 @@ function StudioApp() {
   const renderDurationAgenda = (days: { name: string; dateObj: Date; dateFormatted: string }[]) => {
     const minutes = (time: string) => { const [hour, minute] = time.split(':').map(Number); return hour * 60 + minute; };
     return <div className="studio-agenda-grid" style={{ display: 'grid', gridTemplateColumns: '52px repeat(' + days.length + ', minmax(105px, 1fr))',
-      gridTemplateRows: 'auto repeat(' + hoursList.length + ', 30px)', gap: '2px',
+      gridTemplateRows: 'auto repeat(' + hoursList.length + ', ' + agendaRowHeight + 'px)', gap: '2px',
       minWidth: days.length > 1 ? '700px' : '280px' }}>
       <div style={{ gridRow: 1, gridColumn: 1, color: '#aaa', padding: '8px', fontSize: '12px' }}>Hora</div>
       {days.map((day, column) => <div key={'header-' + column} className={`studio-agenda-day-heading ${formatDateKey(day.dateObj) === formatDateKey(agendaNow) ? 'studio-agenda-today' : ''}`} style={{ gridRow: 1, gridColumn: column + 2,
@@ -3038,7 +3065,7 @@ function StudioApp() {
         const row = hoursList.findIndex((time, index) => nowMinute >= minutes(time) &&
           nowMinute < Math.min(minutes(time) + agendaStep, index + 1 < hoursList.length ? minutes(hoursList[index + 1]) : 1440));
         if (column < 0 || row < 0) return null;
-        const offset = Math.min(1, (nowMinute - minutes(hoursList[row])) / agendaStep) * 30;
+        const offset = Math.min(1, (nowMinute - minutes(hoursList[row])) / agendaStep) * agendaRowHeight;
         return <div aria-label={'Hora actual: ' + agendaNow.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
           style={{ gridRow: row + 2, gridColumn: column + 2, position: 'relative', alignSelf: 'start',
             top: offset, height: 0, borderTop: '1px solid #d8bd82', zIndex: 5, pointerEvents: 'none' }}>
@@ -3389,19 +3416,27 @@ function StudioApp() {
                       {sub.showAlertBadge && <p style={{ color: '#ddd0a4', backgroundColor: '#262219', borderRadius: '6px', padding: '10px', margin: 0, fontSize: '13px', lineHeight: 1.5 }}>{sub.alertText || 'Recuerda añadir tu peinado para asegurar el tiempo en agenda.'}</p>}
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                         <button type="button" aria-pressed={isSelected} onClick={() => {
-                          setSelectedServicesToBook(previous => isSelected ? previous.filter(item => item.sub.id !== sub.id) : [...previous, { sub, variant: sub.hasVariants ? sub.variants?.[0] || null : null }]);
+                          setSelectedServicesToBook(previous => isSelected ? previous.filter(item => item.sub.id !== sub.id) : [...previous, { sub, variant: null }]);
                         }} style={{ backgroundColor: isSelected ? '#d4af37' : '#242219', border: '1px solid #76683e', color: isSelected ? '#17150f' : '#ddd0a4', padding: '11px 16px', minHeight: '44px', borderRadius: '7px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}>{isSelected ? t('selectedRemove') : t('addAppointment')}</button>
                         <button type="button" aria-expanded={isExpanded} onClick={() => setExpandedSubDetails({ ...expandedSubDetails, [sub.id]: !isExpanded })} style={{ background: 'transparent', border: 'none', color: '#bdb8ad', padding: '11px 8px', minHeight: '44px', cursor: 'pointer', fontSize: '13px' }}>{isExpanded ? t('closeDetails') : t('viewIncludes')}</button>
                       </div>
-                      {isSelected && sub.hasVariants && !!sub.variants?.length && <label style={{ color: '#cab77d', fontSize: '13px' }}>{t('choosePack')}
-                        <select value={selection?.variant?.id || ''} onChange={e => {
-                          const variant = sub.variants?.find(v => v.id === e.target.value) || null;
-                          setSelectedServicesToBook(previous => previous.map(item => item.sub.id === sub.id ? { ...item, variant } : item));
-                        }} style={{ display: 'block', width: '100%', minHeight: '46px', marginTop: '8px', padding: '10px', backgroundColor: '#191919', color: '#eee8dd', border: '1px solid #76683e', borderRadius: '6px', fontSize: '14px' }}>
-                          <option value="" disabled>{t('chooseOption')}</option>
-                          {sub.variants!.map(v => <option key={v.id} value={v.id}>{variantText(v, sub)} · {v.price} · {v.duration}</option>)}
-                        </select>
-                      </label>}
+                      {isSelected && sub.hasVariants && !!sub.variants?.length && <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
+                        <legend style={{ color: '#cab77d', fontSize: '13px', marginBottom: '10px' }}>{t('choosePack')}</legend>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '9px' }}>
+                          {sub.variants.map(variant => <button type="button" key={variant.id} aria-pressed={selection?.variant?.id === variant.id}
+                            onClick={() => setSelectedServicesToBook(previous => previous.map(item => item.sub.id === sub.id ? { ...item, variant } : item))}
+                            style={{ textAlign: 'start', padding: '14px', borderRadius: '9px', minHeight: '110px', cursor: 'pointer',
+                              background: selection?.variant?.id === variant.id ? '#302c1e' : '#191919',
+                              border: selection?.variant?.id === variant.id ? '2px solid #c6b27d' : '1px solid #444', color: '#eee8dd' }}>
+                            <strong style={{ display: 'block', fontSize: '16px', color: '#ddd0a4' }}>{variantText(variant, sub)}</strong>
+                            {variant.description && <span style={{ display: 'block', color: '#bdb8ad', fontSize: '12px', lineHeight: 1.5, marginTop: '7px' }}>{variant.description}</span>}
+                            <span style={{ display: 'block', marginTop: '12px', fontSize: '14px' }}>{variant.price}</span>
+                            <span style={{ display: 'block', color: '#aaa', fontSize: '12px', marginTop: '5px' }}>{variant.duration}</span>
+                            {selection?.variant?.id === variant.id && <span style={{ display: 'block', color: '#cab77d', fontSize: '11px', marginTop: '8px' }}>✓ {t('selectedRemove').split(' · ')[0]}</span>}
+                          </button>)}
+                        </div>
+                        {!selection?.variant && <p style={{ color: '#cab77d', fontSize: '12px' }}>{t('chooseOption')}</p>}
+                      </fieldset>}
                       {isExpanded && renderServiceInfo(sub)}
                     </article>;
                   })}
@@ -3412,7 +3447,7 @@ function StudioApp() {
           {selectedServicesToBook.length > 0 && <section aria-label="Resumen de tu selección" style={{ backgroundColor: '#1d1c17', border: '1px solid #76683e', padding: '20px', borderRadius: '12px' }}>
             <h2 style={{ color: '#eee8dd', fontFamily: 'serif', fontSize: '20px', margin: '0 0 14px', fontWeight: 'normal' }}>Tu selección</h2>
             {selectedServicesToBook.map(item => <div key={item.sub.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid #34332d' }}>
-              <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#ddd6c7' }}>{serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#cab77d' }}>{item.variant?.price || item.sub.price} · {item.variant?.duration || item.sub.duration}</span></div>
+              <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#ddd6c7' }}>{serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#cab77d' }}>{item.sub.hasVariants && !item.variant ? t('chooseOption') : (item.variant?.price || item.sub.price) + ' · ' + (item.variant?.duration || item.sub.duration)}</span></div>
               <button type="button" aria-label={`Quitar ${serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}`} onClick={() => setSelectedServicesToBook(previous => previous.filter(selected => selected.sub.id !== item.sub.id))} style={{ background: 'none', border: 'none', color: '#bdb8ad', cursor: 'pointer', padding: '10px', minHeight: '44px', fontSize: '12px' }}>{t('remove')}</button>
             </div>)}
             <p style={{ color: '#bdb8ad', fontSize: '13px', margin: '14px 0 0' }}>Duración de los servicios: {getModalDuration(selectedServicesToBook)} min</p>
@@ -3431,7 +3466,11 @@ function StudioApp() {
                 {getTonerError(selectedServicesToBook) && <p role="alert" style={{ color: '#d4af37', fontSize: '12px' }}>{getTonerError(selectedServicesToBook)}</p>}
                 {getStylingError(selectedServicesToBook) && <p role="alert" style={{ color: '#d4af37', fontSize: '12px' }}>{getStylingError(selectedServicesToBook)}</p>}
                 <p style={{ color: '#ccc', fontSize: '11px', margin: 0 }}>{t('reviewSelection')}</p>
-                <button onClick={() => setCurrentScreen('visualAgenda')} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'center' }}>
+                <button onClick={() => {
+                  const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant);
+                  if (missing) { alert(tf('requiredVariant', { service: missing.sub.name })); return; }
+                  setCurrentScreen('visualAgenda');
+                }} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'center' }}>
                   {t('chooseDateTime')}
                 </button>
               </div>
@@ -3571,6 +3610,25 @@ function StudioApp() {
             .studio-agenda-day-heading.studio-agenda-today { background: #292a21 !important; color: #e2d6af !important; border-bottom: 2px solid #c6b27d !important; }
             .studio-agenda-slot.studio-agenda-today { background: #1e201a !important; }
             .studio-mini-day { border-radius: 50% !important; width: 25px; height: 25px; padding: 0 !important; justify-self: center; }
+
+            @media (max-width: 700px) {
+              .studio-admin-shell { padding: 12px !important; border-radius: 10px !important; }
+              .studio-admin-header h2 { font-size: 24px !important; }
+              .studio-admin-header button { min-height: 44px; }
+              .studio-mobile-nav button { min-height: 44px !important; font-size: 13px !important; }
+              .studio-agenda-toolbar { gap: 8px; }
+              .studio-agenda-toolbar > div { flex-wrap: wrap !important; gap: 8px !important; }
+              .studio-agenda-toolbar button, .studio-agenda-toolbar input { min-height: 44px; box-sizing: border-box; }
+              .studio-agenda-stat { min-height: 44px !important; padding-right: 10px !important; }
+              .studio-calendar-main input { font-size: 16px !important; }
+              .studio-agenda-day-heading { position: sticky; top: 0; z-index: 6; }
+              .studio-agenda-appointment { padding: 9px !important; }
+              .studio-agenda-appointment strong { font-size: 14px !important; }
+              .studio-agenda-appointment span { font-size: 12px !important; }
+              .studio-calendar-tools { position: static !important; }
+              .studio-mini-day { width: 32px !important; height: 32px !important; }
+              .studio-agenda-scroll { padding: 6px !important; max-height: 65vh; overflow: auto !important; overscroll-behavior: contain; }
+            }
 .studio-admin-shell { background: #131412 !important; border-color: #30312c !important; color: #e8e5dc; font-family: Arial, sans-serif; }
             .studio-admin-header { border-color: #30312c !important; }
             .studio-admin-header h2 { color: #c6b27d !important; font-weight: normal; }
@@ -3753,7 +3811,7 @@ style={{ padding: '8px', background: '#191919', color: '#eee8dd', border: '1px s
                 </div>
 
                 {/* VISTA DINÁMICA DE LA TABLA (SEMANAL vs DIARIA) */}
-                <div style={{ overflowX: 'auto', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '15px' }}>
+                <div className="studio-agenda-scroll" style={{ overflowX: 'auto', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '15px' }}>
                   {renderDurationAgenda(agendaViewMode === 'week' ? semanaActual : [diaSeleccionadoObj])}
                 </div>
               </div>
@@ -3985,27 +4043,72 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
 
           {/* TAB 3: CATÁLOGO UNIFICADO INTRANET / PORTAL */}
           {adminTab === 'catalog' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div className="studio-catalog-compact" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <style>{`
+                
+                
+                .studio-service-editor[open] { position: fixed !important; inset: 0 0 0 auto; width: min(670px, 96vw); max-height: 100vh; overflow-y: auto; z-index: 1800; box-sizing: border-box; border: 1px solid #76683e !important; border-radius: 0 !important; box-shadow: -20px 0 60px #0009; padding: 20px !important; background: #151613 !important; }
+                .studio-service-editor[open] > summary { display: none; }
+                .studio-editor-toolbar { position: sticky; top: -20px; z-index: 4; background: #151613; border-bottom: 1px solid #444; padding: 15px 0; }
+                .studio-service-editor[data-editor-tab=data] .studio-editor-options,
+                .studio-service-editor[data-editor-tab=data] .studio-editor-booking,
+                .studio-service-editor[data-editor-tab=data] .studio-editor-languages,
+                .studio-service-editor[data-editor-tab=options] .studio-editor-data,
+                .studio-service-editor[data-editor-tab=options] .studio-editor-booking,
+                .studio-service-editor[data-editor-tab=options] .studio-editor-languages,
+                .studio-service-editor[data-editor-tab=booking] .studio-editor-data,
+                .studio-service-editor[data-editor-tab=booking] .studio-editor-options,
+                .studio-service-editor[data-editor-tab=booking] .studio-editor-languages,
+                .studio-service-editor[data-editor-tab=languages] .studio-editor-data,
+                .studio-service-editor[data-editor-tab=languages] .studio-editor-options,
+                .studio-service-editor[data-editor-tab=languages] .studio-editor-booking { display: none !important; }
+.studio-catalog-savebar { position: sticky; top: 0; z-index: 20; background: #151613; border-bottom: 1px solid #35362e; padding: 12px 0; }
+                .studio-catalog-savebar h3 { font-size: 24px !important; }
+                .studio-catalog-category { padding: 10px 12px !important; gap: 7px !important; background: #161713 !important; border-color: #34352e !important; }
+                .studio-catalog-category > div:first-child { padding: 4px !important; gap: 10px !important; }
+                .studio-catalog-category h3 { font-size: 20px !important; margin: 4px 0 !important; }
+                .studio-catalog-category > details:not([open]) { padding: 8px 10px !important; background: transparent !important; border: none !important; }
+                .studio-catalog-category > details > summary { font-size: 11px !important; }
+                .studio-catalog-service-row { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 7px !important; padding: 8px 10px !important; background: #1b1c18 !important; border: 1px solid #33352e !important; border-radius: 6px !important; }
+                .studio-catalog-service-heading { padding: 0 !important; gap: 10px !important; }
+                .studio-catalog-service-heading > div:first-child { flex: 1 1 180px !important; }
+                .studio-catalog-service-heading h4 { font-family: Arial, sans-serif !important; font-size: 14px !important; margin: 0 0 4px !important; }
+                .studio-catalog-service-heading span { font-size: 12px !important; }
+                .studio-catalog-service-heading button { min-height: 38px !important; padding: 8px 10px !important; font-size: 12px !important; }
+                .studio-catalog-service-row > .studio-service-editor:not([open]) { padding: 0 !important; border: none !important; background: transparent !important; }
+                .studio-catalog-service-row > .studio-service-editor > summary { list-style: none; padding: 10px 12px !important; background: #25251e; border: 1px solid #5c5340; border-radius: 6px; font-size: 12px !important; color: #ddd0a4 !important; cursor: pointer; }
+                .studio-catalog-service-row > .studio-service-editor[open] { grid-column: 1 / -1; }
+                @media (max-width: 700px) {
+                  .studio-catalog-service-row { grid-template-columns: 1fr !important; }
+                  .studio-catalog-service-heading { flex-wrap: wrap !important; }
+                  .studio-catalog-service-row button, .studio-catalog-service-row summary { min-height: 44px !important; box-sizing: border-box; }
+                  .studio-catalog-savebar h3 { font-size: 21px !important; }
+                }
+
+                .studio-new-form { padding: 18px !important; border: 1px solid #57503d !important; border-radius: 10px !important; gap: 14px !important; }
+                .studio-new-field { display: flex; flex-direction: column; gap: 7px; flex: 1 1 160px; min-width: 0; color: #bdb8ad; font-size: 12px; }
+                .studio-new-field input { width: 100% !important; box-sizing: border-box; padding: 11px !important; min-height: 42px; border-radius: 7px !important; }
+                .studio-new-form button { min-height: 42px; padding: 10px 14px !important; }
                 .studio-service-editor { background: #171717; border-radius: 12px; padding: 18px !important; }
                 .studio-service-editor input:not([type=checkbox]), .studio-service-editor select, .studio-service-editor textarea { box-sizing: border-box; min-height: 44px; font-size: 14px !important; padding: 12px !important; border: 1px solid #444 !important; border-radius: 8px !important; background: #121212 !important; color: #eee8dd !important; max-width: 100%; }
                 .studio-service-editor textarea { min-height: 90px; resize: vertical !important; }
                 .studio-service-editor label { color: #bdb8ad !important; font-size: 13px !important; line-height: 1.6; }
                 .studio-base-field { display: flex; flex-direction: column; gap: 6px; flex: 1 1 150px; min-width: 0; }
                 .studio-base-field input { width: 100% !important; }
-                .studio-variant-fields { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 12px; flex: 1 1 350px; min-width: 0; }
+                .studio-variant-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; flex: 1 1 350px; min-width: 0; }
                 .studio-variant-fields label { display: flex; flex-direction: column; gap: 6px; }
                 .studio-variant-fields input { width: 100%; }
                 @media (max-width: 650px) { .studio-variant-fields { grid-template-columns: 1fr; } }
               `}</style>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div className="studio-catalog-savebar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
                   <h3 style={{ color: '#c6b27d', fontSize: '28px', fontWeight: 'normal', fontFamily: 'serif', margin: '0 0 4px 0' }}>Catálogo · Servicios y experiencias</h3>
                   <p style={{ color: '#888', fontSize: '14px', margin: 0 }}>Gestiona servicios, precios y packs. Guarda los cambios para conservarlos en el catálogo de este navegador.</p>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
                   <button onClick={() => setIsAddingCategory(true)} style={{ backgroundColor: 'transparent', border: '1px solid #c6b27d', color: '#c6b27d', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>+ Nueva Categoría</button>
+                  <span role="status" aria-live="polite" style={{ fontSize: '12px', color: catalogHasChanges ? '#d6bf80' : '#a6b7a3' }}>{catalogHasChanges ? 'Cambios pendientes' : 'Catálogo guardado'}</span>
                   <button onClick={handleSaveCatalogMaster} style={{ backgroundColor: '#c6b27d', color: '#000', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', boxShadow: 'none' }}>Guardar catálogo</button>
                 </div>
               </div>
@@ -4040,11 +4143,11 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                   const query = normalizeCatalogSearch(adminCatalogSearch);
                   const categoryMatches = normalizeCatalogSearch(cat.title).includes(query);
                   const matchesStatus = (sub: SubService) => adminCatalogStatus === 'all' || (adminCatalogStatus === 'active' ? sub.active !== false : sub.active === false);
-                  if (!cat.subservices.some(sub => matchesStatus(sub) && (!query || categoryMatches || normalizeCatalogSearch(sub.name).includes(query)))) return null;
+                  if (cat.subservices.length > 0 && !cat.subservices.some(sub => matchesStatus(sub) && (!query || categoryMatches || normalizeCatalogSearch(sub.name).includes(query)))) return null;
                   if (query && !categoryMatches && !cat.subservices.some(sub => normalizeCatalogSearch(sub.name).includes(query))) return null;
-                  const isCategoryExpandedAdmin = !!query || (expandedCategories[`admin_cat_${cat.id}`] ?? true);
+                  const isCategoryExpandedAdmin = !!query || (expandedCategories[`admin_cat_${cat.id}`] ?? false);
                   return (
-                    <div key={cat.id} style={{ backgroundColor: '#161616', border: '1px solid #34332d', borderRadius: '10px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div className="studio-catalog-category" key={cat.id} style={{ backgroundColor: '#161616', border: '1px solid #34332d', borderRadius: '10px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', padding: '8px' }}>
                         <div style={{ flex: '1 1 240px' }}>
                           <span style={{ color: '#cab77d', fontSize: '11px', letterSpacing: '1px' }}>{cat.code} · CATEGORÍA</span>
@@ -4076,15 +4179,37 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                           {cat.subservices.filter(sub => matchesStatus(sub) && (!query || categoryMatches || normalizeCatalogSearch(sub.name).includes(query))).map((sub) => {
                             const isExpandedAdmin = true;
                             return (
-                              <div key={sub.id} style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '14px', padding: '8px' }}>
+                              <div className="studio-catalog-service-row" key={sub.id} style={{ backgroundColor: '#1c1c1c', border: '1px solid #333', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div className="studio-catalog-service-heading" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '14px', padding: '8px' }}>
                                   <div style={{ flex: '1 1 220px' }}><h4 style={{ color: '#eee8dd', fontSize: '18px', fontFamily: 'serif', fontWeight: 'normal', lineHeight: 1.4, margin: '0 0 8px' }}>{sub.name}</h4><span style={{ color: '#cab77d', fontSize: '14px' }}>{sub.price}</span><span style={{ color: '#aaa59b', fontSize: '13px', marginLeft: '14px' }}>{sub.duration}</span></div>
                                   <span style={{ color: sub.active === false ? '#aaa59b' : '#b5c9b6', border: '1px solid #34332d', borderRadius: '20px', padding: '6px 12px', fontSize: '12px' }}>{sub.active === false ? 'Desactivado' : 'Activo'}</span>
                                   <button type="button" onClick={() => { setPreviewServiceId(sub.id); setPreviewVariantId(sub.hasVariants ? sub.variants?.[0]?.id || '' : ''); }} style={{ background: 'none', color: '#cab77d', border: '1px solid #5c5340', borderRadius: '7px', padding: '10px 14px', minHeight: '44px', cursor: 'pointer' }}>Vista previa</button>
                                 </div>
-                                <details className="studio-service-editor" style={{ borderTop: '1px solid #34332d', padding: '12px 8px 4px' }}>
-                                  <summary style={{ color: '#cab77d', fontSize: '14px', cursor: 'pointer', padding: '8px 0' }}>Editar servicio · Datos, variantes y condiciones</summary>
-                                  <details style={{ padding: '16px', marginTop: '16px', border: '1px solid #5c5340', borderRadius: '10px' }}>
+                                <details open={catalogEditorId === sub.id} onToggle={event => {
+                                  if (event.currentTarget.open) { if (catalogEditorId !== sub.id) { setCatalogEditorId(sub.id); setCatalogEditorTab('data'); } }
+                                  else if (catalogEditorId === sub.id) setCatalogEditorId(null);
+                                }} data-editor-tab={catalogEditorTab} className="studio-service-editor"  style={{ borderTop: '1px solid #34332d', padding: '12px 8px 4px' }}>
+                                  <summary style={{ color: '#cab77d', fontSize: '14px', cursor: 'pointer', padding: '8px 0' }}>Editar</summary>
+                                  <div className="studio-editor-toolbar">
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
+                                      <h3 style={{ color: '#eee8dd', fontSize: '22px', fontFamily: 'serif', margin: 0 }}>{sub.name}</h3>
+                                      <button type="button" onClick={() => setCatalogEditorId(null)}>Cerrar</button>
+                                    </div>
+                                    <nav aria-label="Apartados del servicio" style={{ display: 'flex', flexWrap: 'wrap', gap: '7px', margin: '15px 0' }}>
+                                      {([['data', 'Datos'], ['options', 'Opciones'], ['booking', 'Reserva'], ['languages', 'Idiomas']] as const).map(([tab, label]) =>
+                                        <button type="button" key={tab} aria-pressed={catalogEditorTab === tab} onClick={() => setCatalogEditorTab(tab)}
+                                          style={{ background: catalogEditorTab === tab ? '#c6b27d' : '#242219', color: catalogEditorTab === tab ? '#17150f' : '#ddd0a4', padding: '10px', border: '1px solid #76683e', borderRadius: '6px', cursor: 'pointer' }}>{label}</button>)}
+                                    </nav>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
+                                      <button type="button" onClick={handleSaveCatalogMaster} style={{ background: '#c6b27d', color: '#17150f', padding: '10px', border: 0, cursor: 'pointer' }}>Guardar cambios</button>
+                                      <button type="button" onClick={() => { setPreviewServiceId(sub.id); setPreviewVariantId(sub.hasVariants ? sub.variants?.[0]?.id || '' : ''); }}>Vista previa</button>
+                                      <span style={{ color: '#aaa', fontSize: '12px' }}>{catalogHasChanges ? 'Cambios pendientes' : 'Catálogo guardado'}</span>
+                                    </div>
+                                    <p style={{ color: '#aaa', fontSize: '11px', marginBottom: 0 }}>Guardar conserva todos los cambios pendientes del catálogo.</p>
+                                    {catalogSavedMsg && <p role="status" style={{ color: '#b5c9b6', fontSize: '12px' }}>{catalogSavedMsg}</p>}
+                                  </div>
+
+                                  <details open className="studio-editor-languages" style={{ padding: '16px', marginTop: '16px', border: '1px solid #5c5340', borderRadius: '10px' }}>
                                     <summary style={{ color: '#cab77d', cursor: 'pointer' }}>Idiomas · Traducciones del servicio</summary>
                                     <p style={{ color: '#aaa59b', fontSize: '13px', lineHeight: 1.6 }}>Escribe la traducción de cada campo. Si queda vacío, el portal mostrará el contenido original en español. Los precios y la duración se mantienen comunes.</p>
                                     <label>Idioma de la traducción<select value={catalogTranslationLang} onChange={event => setCatalogTranslationLang(event.target.value)} style={{ display: 'block', width: '100%', margin: '8px 0 16px' }}>
@@ -4114,7 +4239,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                   }} /> {sub.active === false ? 'Desactivado · Oculto para nuevas reservas' : 'Activo · Disponible para reservar'}
                                 </label>
 
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                                <div className="studio-editor-data" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                                   <div style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center' }}>
                                     <label className="studio-base-field">Nombre del servicio<input type="text" value={sub.name} onChange={(e) => {
                                       const updatedName = e.target.value;
@@ -4137,7 +4262,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                     <button onClick={() => handleDeleteSubservice(cat.id, sub.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontSize: '14px' }}>X</button>
                                   </div>
                                 </div>
-                                <div style={{ backgroundColor: '#141414', border: '1px solid #34332d', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
+                                <div className="studio-editor-booking" style={{ backgroundColor: '#141414', border: '1px solid #34332d', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <input type="checkbox" checked={!!sub.showAlertBadge} onChange={(e) => {
                                       const val = e.target.checked;
@@ -4153,32 +4278,45 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                   )}
                                 </div>
                                 {sub.hasVariants && (
-                                  <div style={{ backgroundColor: '#141414', border: '1px solid #34332d', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                                    <span style={{ color: '#c6b27d', fontSize: '14px', fontWeight: 'bold' }}>Variantes y packs</span>
-                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                  <div className="studio-editor-options" style={{ backgroundColor: '#141414', border: '1px solid #34332d', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                                    <span style={{ color: '#c6b27d', fontSize: '14px', fontWeight: 'bold' }}>Opciones del servicio</span>
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
                                       {sub.variants?.map((v) => (
                                         <div key={v.id} style={{ backgroundColor: '#1c1c1c', border: '1px solid #c6b27d', borderRadius: '4px', padding: '6px 10px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#fff', width: '100%', boxSizing: 'border-box' }}>
                                           <div className="studio-variant-fields">
-                                            {(['name', 'price', 'duration'] as const).map(field => <label key={field}>{({ name: 'Nombre del pack', price: 'Precio', duration: 'Duración' })[field]}<input aria-label={`${field} de ${v.name}`} type="text" value={v[field]} onChange={e => {
+                                            {(['name', 'description', 'price', 'duration'] as const).map(field => <label key={field}>{({ name: 'Nombre de la opción', description: 'Descripción · Largo o qué incluye', price: 'Precio', duration: 'Duración' })[field]}<input aria-label={`${field} de ${v.name}`} type="text" value={v[field] || ''} onChange={e => {
                                               const value = e.target.value;
                                               setCatalog(previous => previous.map(category => category.id === cat.id ? { ...category, subservices: category.subservices.map(service => service.id === sub.id ? { ...service, variants: service.variants?.map(variant => variant.id === v.id ? { ...variant, [field]: value } : variant) } : service) } : category));
                                             }} /></label>)}
                                           </div>
+                                          {[-1, 1].map(direction => <button type="button" key={direction} aria-label={direction < 0 ? 'Subir opción' : 'Bajar opción'}
+                                            disabled={direction < 0 ? sub.variants?.[0]?.id === v.id : sub.variants?.[sub.variants.length - 1]?.id === v.id}
+                                            onClick={() => setCatalog(previous => previous.map(category => category.id !== cat.id ? category : {
+                                              ...category, subservices: category.subservices.map(service => {
+                                                if (service.id !== sub.id) return service;
+                                                const variants = [...(service.variants || [])], index = variants.findIndex(item => item.id === v.id), target = index + direction;
+                                                if (target < 0 || target >= variants.length) return service;
+                                                [variants[index], variants[target]] = [variants[target], variants[index]];
+                                                return { ...service, variants };
+                                              })
+                                            }))} style={{ padding: '8px', background: '#242219', border: '1px solid #555', color: '#ddd0a4', cursor: 'pointer' }}>{direction < 0 ? '↑' : '↓'}</button>)}
                                           <button onClick={() => handleDeleteVariant(cat.id, sub.id, v.id)} style={{ background: 'none', border: 'none', color: '#ff4444', cursor: 'pointer', fontSize: '14px' }}>x</button>
                                         </div>
                                       ))}
                                     </div>
-                                    <form onSubmit={(e) => handleAddVariant(cat.id, sub.id, e)} style={{ display: 'flex', gap: '8px', marginTop: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                      <input type="text" placeholder="Nombre (ej. M)" value={newVariantName} onChange={(e) => setNewVariantName(e.target.value)} style={{ width: '80px', padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '14px' }} />
-                                      <input type="text" placeholder="Precio (ej. 320,00 €)" value={newVariantPrice} onChange={(e) => setNewVariantPrice(e.target.value)} style={{ width: '120px', padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '14px' }} />
-                                      <input type="text" placeholder="Duración (ej. 240 min)" value={newVariantDuration} onChange={(e) => setNewVariantDuration(e.target.value)} style={{ width: '110px', padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '14px' }} />
-                                      <button type="submit" style={{ backgroundColor: '#c6b27d', color: '#000', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>+ Añadir variante</button>
+                                    <form className="studio-new-form" onSubmit={(e) => handleAddVariant(cat.id, sub.id, e)} style={{ display: 'flex', gap: '8px', marginTop: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                      <label className="studio-new-field">Nombre de la opción *<input required type="text" placeholder="Nombre (ej. M)" value={newVariantName} onChange={(e) => setNewVariantName(e.target.value)} style={{ width: '80px', padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '14px' }} /></label>
+                                      <label className="studio-new-field">Precio *<input required type="text" placeholder="Precio (ej. 320,00 €)" value={newVariantPrice} onChange={(e) => setNewVariantPrice(e.target.value)} style={{ width: '120px', padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '14px' }} /></label>
+                                      <label className="studio-new-field">Duración *<input required type="text" placeholder="Duración (ej. 240 min)" value={newVariantDuration} onChange={(e) => setNewVariantDuration(e.target.value)} style={{ width: '110px', padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '14px' }} /></label>
+                                      <p style={{ width: '100%', fontSize: '12px', color: '#aaa59b', margin: 0 }}>Se añadirá a la lista. Pulsa Guardar catálogo para conservarla.</p>
+                                      <button type="button" onClick={() => { setNewVariantName(''); setNewVariantPrice(''); setNewVariantDuration(''); }} style={{ padding: '10px 14px', background: 'transparent', border: '1px solid #555', color: '#bdb8ad', borderRadius: '7px', cursor: 'pointer' }}>Cancelar</button>
+                                      <button type="submit" style={{ backgroundColor: '#c6b27d', color: '#000', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>+ Añadir opción</button>
                                     </form>
                                   </div>
                                 )}
                                 {isExpandedAdmin && (
                                   <div style={{ backgroundColor: '#141414', padding: '10px', borderRadius: '6px', fontSize: '14px', color: '#ccc', display: 'flex', flexDirection: 'column', gap: '6px', borderLeft: '2px solid #c6b27d', marginTop: '4px' }}>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    <div className="studio-editor-data" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                       <h4 style={{ color: '#eee8dd', fontFamily: 'serif', fontWeight: 'normal', fontSize: '20px', margin: '8px 0 12px' }}>Contenido para la clienta</h4>
                                       <label style={{ color: '#c6b27d', fontSize: '12px' }}>Descripción:</label>
                                       <textarea value={sub.description} onChange={(e) => {
@@ -4186,6 +4324,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                         setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, description: val } : s) } : c));
                                       }} rows={2} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
                                     </div>
+<section className="studio-editor-booking">
                                     <h4 style={{ color: '#eee8dd', fontFamily: 'serif', fontWeight: 'normal', fontSize: '20px', margin: '18px 0 8px' }}>Condiciones de reserva</h4>
                                     <label style={{ color: '#c6b27d' }}>Tipo de reserva
                                       <select aria-label={`Tipo de reserva de ${sub.name}`} value={sub.requiresAssessment ? 'assessment' : 'direct'} onChange={e => {
@@ -4229,14 +4368,15 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(item => item.id === sub.id ? { ...item, isStylingService: checked, stylingPolicy: checked ? undefined : item.stylingPolicy } : item) } : c));
                                     }} /> Este es un servicio de secado y peinado (complemento)</label>
                                     <span>Marca esta casilla en los peinados S/M, L o XL. Sus precios y tiempos se añaden al seleccionarlos en la cita. En los packs completos, comprueba que el precio y la duración ya incluyen el acabado.</span>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+</section>
+                                    <div className="studio-editor-data" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                       <label style={{ color: '#c6b27d', fontSize: '12px' }}>Qué incluye:</label>
                                       <input type="text" value={sub.includesText || ''} onChange={(e) => {
                                         const val = e.target.value;
                                         setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, includesText: val } : s) } : c));
                                       }} style={{ backgroundColor: '#121212', border: '1px solid #444', color: '#fff', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
                                     </div>
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                    <div className="studio-editor-data" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                       <label style={{ color: '#c6b27d', fontSize: '12px' }}>Qué se consigue:</label>
                                       <input type="text" value={sub.achievedText || ''} onChange={(e) => {
                                         const val = e.target.value;
@@ -4251,21 +4391,21 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                             );
                           })}
                           {isAddingSub === cat.id ? (
-                            <form onSubmit={(e) => handleAddSubserviceSubmit(cat.id, e)} style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#1a1a1a', padding: '12px', borderRadius: '6px', border: '1px solid #333', marginTop: '5px' }}>
-                              <h5 style={{ color: '#c6b27d', fontSize: '12px', margin: 0 }}>Nuevo Subservicio</h5>
-                              <input type="text" placeholder="Nombre del servicio" value={newSubName} onChange={(e) => setNewSubName(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '14px' }} />
-                              <input type="text" placeholder="Descripción breve" value={newSubDesc} onChange={(e) => setNewSubDesc(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '14px' }} />
+                            <form className="studio-new-form" onSubmit={(e) => handleAddSubserviceSubmit(cat.id, e)} style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#1a1a1a', padding: '12px', borderRadius: '6px', border: '1px solid #333', marginTop: '5px' }}>
+                              <h5 style={{ color: '#c6b27d', fontSize: '12px', margin: 0 }}>Nuevo servicio</h5>
+                              <label className="studio-new-field">Nombre del servicio *<input type="text" placeholder="Nombre del servicio" value={newSubName} onChange={(e) => setNewSubName(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '14px' }} /></label>
+                              <label className="studio-new-field">Descripción para la clienta<input type="text" placeholder="Descripción breve" value={newSubDesc} onChange={(e) => setNewSubDesc(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '14px' }} /></label>
                               <div style={{ display: 'flex', gap: '8px' }}>
-                                <input type="text" placeholder="Duración (ej. 45 min)" value={newSubDur} onChange={(e) => setNewSubDur(e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '14px' }} />
+                                <label className="studio-new-field">Duración *<input required type="text" placeholder="Duración (ej. 45 min)" value={newSubDur} onChange={(e) => setNewSubDur(e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '14px' }} /></label>
                               </div>
                               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                <select value={newSubPriceType} onChange={(e) => setNewSubPriceType(e.target.value as any)} style={{ padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#c6b27d', borderRadius: '4px', fontSize: '14px' }}>
+                                <select aria-label="Tipo de precio" value={newSubPriceType} onChange={(e) => setNewSubPriceType(e.target.value as any)} style={{ padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#c6b27d', borderRadius: '4px', fontSize: '14px' }}>
                                   <option value="desde">Desde</option>
                                   <option value="aprox">Aprox.</option>
                                   <option value="fijo">Fijo</option>
                                   <option value="consultar">Consultar</option>
                                 </select>
-                                <input type="text" placeholder="Precio (ej. 45 €)" value={newSubPrice} onChange={(e) => setNewSubPrice(e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '14px' }} />
+                                <label className="studio-new-field">Precio<input type="text" placeholder="Precio (ej. 45 €)" value={newSubPrice} onChange={(e) => setNewSubPrice(e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '6px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '4px', fontSize: '14px' }} /></label>
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 <label style={{ color: '#c6b27d', fontSize: '12px' }}>Qué incluye:</label>
@@ -4642,30 +4782,108 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
         </div>
       )}
 
-      {previewService && (
-        <div onClick={() => setPreviewServiceId(null)} onKeyDown={e => { if (e.key === 'Escape') setPreviewServiceId(null); }} style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 2200 }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="catalog-preview-title" onClick={e => e.stopPropagation()} style={{ backgroundColor: '#121212', color: '#fff', border: '1px solid #d4af37', borderRadius: '16px', padding: '20px', maxWidth: '440px', width: '100%', maxHeight: '85vh', overflowY: 'auto', boxSizing: 'border-box' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-              <h3 id="catalog-preview-title" style={{ color: '#d4af37', margin: 0, fontSize: '16px' }}>Vista previa · Clienta</h3>
-              <button autoFocus type="button" onClick={() => setPreviewServiceId(null)} style={{ padding: '7px', cursor: 'pointer' }}>Cerrar</button>
-            </div>
-            {previewService.active === false && <p style={{ color: '#d4af37', fontSize: '12px' }}>Servicio desactivado: esta ficha está oculta para las clientas.</p>}
-            <div style={{ backgroundColor: '#141414', border: '1px solid #333', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}>{previewService.name}</div>
-              <div style={{ color: '#888', fontSize: '10px' }}>{previewService.duration} - <strong style={{ color: '#d4af37' }}>{previewService.price}</strong></div>
-              {previewService.showAlertBadge && <div style={{ backgroundColor: '#262010', border: '1px solid rgba(212,175,55,0.4)', borderRadius: '6px', padding: '6px 10px', fontSize: '10px', color: '#d4af37' }}>💡 {previewService.alertText || '⚠️ Recuerda añadir tu peinado para asegurar el tiempo en agenda.'}</div>}
-              {previewService.hasVariants && !!previewService.variants?.length && <div style={{ backgroundColor: '#1a1a1a', padding: '10px', borderRadius: '6px' }}>
-                <span style={{ color: '#d4af37', fontSize: '10px' }}>Selecciona variante:</span>
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
-                  {previewService.variants.map(v => <button type="button" key={v.id} onClick={() => setPreviewVariantId(v.id)} style={{ backgroundColor: previewVariantId === v.id ? '#d4af37' : '#121212', color: previewVariantId === v.id ? '#000' : '#d4af37', border: '1px solid #d4af37', borderRadius: '4px', padding: '6px 10px', cursor: 'pointer', fontSize: '11px' }}>{v.name} · {v.price} / {v.duration}</button>)}
-                </div>
-              </div>}
-              {renderServiceInfo(previewService)}
-            </div>
-            <p style={{ color: '#aaa', fontSize: '11px', marginBottom: 0 }}>Puedes revisar las variantes sin crear una cita. La vista muestra los cambios actuales; guarda el catálogo para conservarlos.</p>
+      {catalogEditorId && currentScreen === 'adminPanel' && adminTab === 'catalog' && <div onClick={() => setCatalogEditorId(null)}
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 1700 }} />}
+      {registeredAppointment && <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'grid', placeItems: 'center', padding: '16px', zIndex: 3000 }}>
+        <div role="dialog" aria-modal="true" aria-labelledby="appointment-registered-title" style={{ width: '100%', maxWidth: '440px', boxSizing: 'border-box',
+          background: '#141512', border: '1px solid #76683e', borderRadius: '14px', padding: '26px', color: '#eee8dd' }}>
+          <h3 id="appointment-registered-title" style={{ margin: '0 0 14px', fontFamily: 'serif', fontSize: '26px', fontWeight: 'normal', color: '#c6b27d' }}>Cita registrada</h3>
+          <p style={{ lineHeight: 1.7 }}>{registeredAppointment.clientName}<br />
+            {registeredAppointment.dateKey.split('-').reverse().join('/')} · {registeredAppointment.time}</p>
+          <p style={{ color: '#bdb8ad', lineHeight: 1.6, fontSize: '13px' }}>{registeredAppointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
+          <p style={{ color: '#ddd0a4', lineHeight: 1.6 }}>{registeredAppointment.saturdayApproval?.status === 'pending'
+            ? 'Tu solicitud está registrada. La cita queda pendiente de la confirmación de Ana.'
+            : registeredAppointment.advancePayment?.status === 'pending'
+            ? 'Tu solicitud está registrada. La cita queda pendiente de comprobar la reserva anticipada por Bizum.'
+            : 'La cita ha quedado guardada en la agenda.'}</p>
+          <p style={{ color: '#999b91', fontSize: '12px', lineHeight: 1.6 }}>WhatsApp no se envía automáticamente. El botón abre un mensaje preparado; debes pulsar «Enviar» en WhatsApp.</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '18px' }}>
+            <button type="button" onClick={() => {
+              const admin = currentScreen === 'adminPanel';
+              const rawPhone = admin ? registeredAppointment.phone : (bizConfig.studioWhatsapp || bizConfig.phone);
+              let phone = rawPhone.replace(/[^0-9]/g, '');
+              if (phone.startsWith('00')) phone = phone.slice(2);
+              if (phone.length === 9) phone = '34' + phone;
+              if (phone.length < 10 || phone.length > 15) { alert('Revisa el teléfono antes de abrir WhatsApp.'); return; }
+              const date = registeredAppointment.dateKey.split('-').reverse().join('/');
+              const pending = registeredAppointment.saturdayApproval?.status === 'pending' || registeredAppointment.advancePayment?.status === 'pending';
+              const text = admin
+                ? 'Hola ' + registeredAppointment.clientName + '. Hemos registrado tu ' + (pending ? 'solicitud de cita' : 'cita') +
+                  ' en L’Studio Ana para el ' + date + ' a las ' + registeredAppointment.time + '. ' +
+                  (registeredAppointment.saturdayApproval?.status === 'pending' ? 'Está pendiente de la confirmación de Ana.' :
+                    registeredAppointment.advancePayment?.status === 'pending' ? 'Está pendiente de comprobar tu reserva anticipada por Bizum.' : '¡Te esperamos!')
+                : 'Hola Ana, soy ' + registeredAppointment.clientName + '. He registrado una solicitud para el ' + date +
+                  ' a las ' + registeredAppointment.time + '. Servicios: ' + registeredAppointment.serviceSubcategory +
+                  '. ¿Puedes revisar mi reserva?';
+              window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(text), '_blank', 'noopener,noreferrer');
+            }} style={{ padding: '12px', background: '#26382b', color: '#d6e8d9', border: '1px solid #526d59', borderRadius: '7px', cursor: 'pointer' }}>
+              {currentScreen === 'adminPanel' ? 'Abrir WhatsApp de la clienta' : 'Enviar solicitud a Ana por WhatsApp'}
+            </button>
+            <button autoFocus type="button" onClick={() => setRegisteredAppointment(null)} style={{ padding: '12px', background: '#c6b27d', color: '#17150f',
+              border: 0, borderRadius: '7px', cursor: 'pointer' }}>Entendido</button>
           </div>
         </div>
-      )}
+      </div>}
+
+      {previewService && (() => {
+        const variant = previewService.hasVariants ? previewService.variants?.find(item => item.id === previewVariantId) : undefined;
+        const category = catalog.find(item => item.subservices.some(service => service.id === previewService.id));
+        const tags = [previewService.requiresAssessment ? 'Valoración previa' : '', stylingLabel(previewService), tonerLabel(previewService)].filter(Boolean);
+        return <div onClick={() => setPreviewServiceId(null)} onKeyDown={event => { if (event.key === 'Escape') setPreviewServiceId(null); }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.8)', backdropFilter: 'blur(5px)',
+            display: 'grid', placeItems: 'center', padding: '16px', zIndex: 2200 }}>
+          <article role="dialog" aria-modal="true" aria-labelledby="catalog-preview-title" onClick={event => event.stopPropagation()}
+            style={{ width: '100%', maxWidth: '590px', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box',
+              background: '#151613', color: '#eae6dc', border: '1px solid #4a4434', borderRadius: '16px', boxShadow: '0 28px 90px #0009' }}>
+            <div style={{ position: 'sticky', top: 0, zIndex: 2, padding: '14px 22px', background: '#151613',
+              borderBottom: '1px solid #32332c', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+              <span style={{ color: '#aaa799', fontSize: '11px', letterSpacing: '1px' }}>VISTA PREVIA · CATÁLOGO</span>
+              <button autoFocus type="button" onClick={() => setPreviewServiceId(null)} aria-label="Cerrar vista previa"
+                style={{ minHeight: '40px', padding: '9px 12px', background: '#24251f', color: '#d8d1bd',
+                  border: '1px solid #464537', borderRadius: '7px', fontSize: '12px', cursor: 'pointer' }}>Cerrar ×</button>
+            </div>
+            <div style={{ padding: '20px' }}>
+              <p style={{ color: '#c6b27d', fontSize: '10px', letterSpacing: '2px', margin: '0 0 12px', lineHeight: 1.7 }}>L’STUDIO ANA · {category?.title || 'HAIR EXPERIENCE'}</p>
+              <h2 id="catalog-preview-title" style={{ fontFamily: 'serif', fontWeight: 'normal', fontSize: '22px', lineHeight: 1.2,
+                margin: '0 0 18px', overflowWrap: 'anywhere' }}>{previewService.name}</h2>
+              {previewService.active === false && <p style={{ color: '#c7ad85', fontSize: '12px' }}>Servicio desactivado · Oculto para nuevas reservas</p>}
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '16px', paddingBottom: '20px', borderBottom: '1px solid #34352d' }}>
+                <strong style={{ color: '#d8c58f', fontSize: '18px', fontWeight: 'normal' }}>{variant?.price || previewService.price}</strong>
+                <span style={{ color: '#aaa99e', fontSize: '12px' }}>{variant?.duration || previewService.duration}</span>
+                {variant && <span style={{ color: '#aaa99e', fontSize: '12px' }}>{variant.name}</span>}
+              </div>
+              {previewService.description && <p style={{ color: '#c8c5ba', fontSize: '13px', lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: '22px 0' }}>{previewService.description}</p>}
+              {!!tags.length && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px', margin: '18px 0' }}>
+                {tags.map(tag => <span key={tag} style={{ fontSize: '11px', color: '#d3c49e', padding: '7px 10px', border: '1px solid #4b4535', borderRadius: '20px', lineHeight: 1.4 }}>{tag}</span>)}
+              </div>}
+              {previewService.showAlertBadge && previewService.alertText && <p style={{ fontSize: '13px', lineHeight: 1.7, padding: '12px 14px',
+                borderLeft: '2px solid #b39b62', background: '#252319', color: '#d5c9aa', margin: '18px 0', whiteSpace: 'pre-wrap' }}>{previewService.alertText}</p>}
+              {previewService.hasVariants && !!previewService.variants?.length && <section style={{ margin: '25px 0' }}>
+                <h3 style={{ fontFamily: 'serif', fontSize: '16px', fontWeight: 'normal', margin: '0 0 12px' }}>Elige tu opción</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '9px' }}>
+                  {previewService.variants.map(item => <button key={item.id} type="button" aria-pressed={item.id === previewVariantId}
+                    onClick={() => setPreviewVariantId(item.id)} style={{ textAlign: 'left', padding: '14px', borderRadius: '9px', cursor: 'pointer',
+                      background: item.id === previewVariantId ? '#302d20' : '#1d1e19', color: '#eae6dc',
+                      border: item.id === previewVariantId ? '1px solid #bda66b' : '1px solid #3d3e34' }}>
+                    <strong style={{ display: 'block', color: '#d8c58f', fontSize: '13px' }}>{item.name}</strong>
+                    {item.description && <span style={{ display: 'block', color: '#b6b3a7', fontSize: '12px', lineHeight: 1.6, marginTop: '8px' }}>{item.description}</span>}
+                    <span style={{ display: 'block', fontSize: '13px', marginTop: '13px' }}>{item.price}</span>
+                    <span style={{ display: 'block', fontSize: '12px', color: '#aaa99e', marginTop: '5px' }}>{item.duration}</span>
+                  </button>)}
+                </div>
+              </section>}
+              {([{ title: 'Qué incluye', text: previewService.includesText }, { title: 'Qué consigues', text: previewService.achievedText }]
+                .filter(section => !!section.text?.trim()).map(section => <section key={section.title} style={{ borderTop: '1px solid #34352d', paddingTop: '20px', marginTop: '22px' }}>
+                  <h3 style={{ color: '#d4c8a9', fontFamily: 'serif', fontSize: '16px', fontWeight: 'normal', margin: '0 0 10px' }}>{section.title}</h3>
+                  <p style={{ color: '#c3c0b4', fontSize: '12px', lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: 0, overflowWrap: 'anywhere' }}>{section.text}</p>
+                </section>))}
+              <footer style={{ marginTop: '26px', borderTop: '1px solid #34352d', paddingTop: '16px', color: '#929387', fontSize: '11px', lineHeight: 1.7 }}>
+                Esta vista permite revisar el servicio y sus opciones sin crear una cita. Guarda el catálogo para conservar los cambios.
+              </footer>
+            </div>
+          </article>
+        </div>;
+      })()}
       {clientDetailsDraft && currentScreen === 'adminPanel' && <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'grid', placeItems: 'center', zIndex: 2450, padding: '16px' }}>
         <form role="dialog" aria-modal="true" aria-labelledby="client-details-title" onSubmit={saveClientDetails}
           style={{ background: '#141414', border: '1px solid #76683e', borderRadius: '12px', padding: '22px',
