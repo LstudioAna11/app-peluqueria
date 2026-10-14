@@ -1700,13 +1700,13 @@ function StudioApp() {
   const [logoClicks, setLogoClicks] = useState<number>(0);
   const [adminPin, setAdminPin] = useState<string>("");
   const [adminError, setAdminError] = useState<boolean>(false);
-  const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'holidays'>('catalog');
+  const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'holidays'>('agenda');
   const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule' | 'reservas' | 'anticipada' | 'avisos' | 'backup'>('marca');
   const [adminCatalogStatus, setAdminCatalogStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [adminCatalogSearch, setAdminCatalogSearch] = useState('');
   const normalizeCatalogSearch = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   const [catalogSavedMsg, setCatalogSavedMsg] = useState<string | null>(null);
-  const [enableOutOfHours, setEnableOutOfHours] = useState<boolean>(true);
+  const [enableOutOfHours, setEnableOutOfHours] = useState<boolean>(false);
   const [enableDoubleBooking, setEnableDoubleBooking] = useState<boolean>(false);
   
   // NUEVO ESTADO: VISTA DE AGENDA MAESTRA ('week' | 'day')
@@ -2189,7 +2189,12 @@ function StudioApp() {
     }
     const id = e.dataTransfer.getData('text/plain') || draggedApptId;
     if (!id) return;
-    const existing = appointments.find(a => a.dateKey === targetDateKey && a.time === time && a.id !== id);
+    const moving = appointments.find(a => a.id === id);
+    if (!moving) return;
+    if (!enableOutOfHours && !isAgendaTimeWorking(targetDate, time, moving.durationMinutes || 45)) {
+      alert('La cita completa debe estar dentro del horario laboral.'); return;
+    }
+    const existing = getRescheduleConflict(moving, targetDateKey, time);
     if (existing && !enableDoubleBooking) {
       window.alert('Ese hueco horario ya está ocupado. Activa la "Doble reserva" en el panel lateral si deseas permitir solapes.');
       return;
@@ -2209,6 +2214,7 @@ function StudioApp() {
       setViewApptModal(existing);
       return;
     }
+    if (!enableOutOfHours && !isAgendaTimeWorking(targetDate, time)) { alert('Este hueco está fuera del horario laboral.'); return; }
     setTargetDateObj(targetDate);
     setTargetDayName(dayName);
     setTargetTime(time);
@@ -2337,6 +2343,13 @@ function StudioApp() {
     const tonerError = getTonerError(services);
     if (tonerError) { alert(tonerError); return; }
     const durationMin = getModalDuration(services);
+    if (!enableOutOfHours && !isAgendaTimeWorking(targetDateObj, targetTime, durationMin)) {
+      alert('La cita completa no cabe en el horario laboral. Elige otra hora o revisa la duración.'); return;
+    }
+    if (!enableDoubleBooking && getRescheduleConflict({ id: '', durationMinutes: durationMin } as Appointment, formatDateKey(targetDateObj), targetTime)) {
+      alert('La duración de esta cita se solapa con otra reserva.'); return;
+    }
+
     const dateFormattedStr = `${String(targetDateObj.getDate()).padStart(2, '0')}/${String(targetDateObj.getMonth() + 1).padStart(2, '0')}/${targetDateObj.getFullYear()}`;
     const newApp: Appointment = {
       id: Date.now().toString(),
@@ -2646,16 +2659,49 @@ function StudioApp() {
   for (let i = 0; i < diaInicio; i++) diasRejillaMini.push(null);
   for (let d = 1; d <= diasEnMes; d++) diasRejillaMini.push(new Date(añoMini, mesMini, d));
 
-  const hoursList = [
-    '10:00', '10:15', '10:30', '10:45',
-    '11:00', '11:15', '11:30', '11:45',
-    '12:00', '12:15', '12:30', '12:45',
-    '13:00', '13:15', '13:30', '13:45',
-    '16:00', '16:15', '16:30', '16:45',
-    '17:00', '17:15', '17:30', '17:45',
-    '18:00', '18:15', '18:30', '18:45',
-    '19:00', '19:15', '19:30', '19:45'
-  ];
+  const workingRanges = (date: Date): { start: number; end: number }[] => {
+    if (date.getDay() === 0 || isDateBlockedByHoliday(formatDateKey(date))) return [];
+    const day = date.getDay();
+    const schedule = day === 1 ? bizConfig.scheduleMonday : day <= 3 ? bizConfig.scheduleTueWed : day <= 5 ? bizConfig.scheduleThuFri : bizConfig.scheduleSaturday;
+    const matches = Array.from(schedule.matchAll(/(\d{1,2})(?::(\d{2})|h(?:\s*(\d{2}))?)/gi));
+    const ranges: { start: number; end: number }[] = [];
+    for (let i = 0; i + 1 < matches.length; i += 2) {
+      const start = Number(matches[i][1]) * 60 + Number(matches[i][2] || matches[i][3] || 0);
+      const end = Number(matches[i + 1][1]) * 60 + Number(matches[i + 1][2] || matches[i + 1][3] || 0);
+      if (start >= 0 && end <= 1440 && start < end) ranges.push({ start, end });
+    }
+    if (!ranges.length && day === 6 && bizConfig.saturdayApprovalEnabled &&
+        !/cerrado|closed/i.test(schedule)) {
+      // Un aviso de sábado bajo demanda no equivale a salón cerrado.
+      return [{ start: 10 * 60, end: 19 * 60 }];
+    }
+    return ranges;
+  };
+  const minuteTime = (minutes: number) => String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0');
+  const isAgendaTimeWorking = (date: Date, time: string, duration = 1) => {
+    const [hour, minute] = time.split(':').map(Number);
+    const start = hour * 60 + minute;
+    return Number.isFinite(start) && duration > 0 && workingRanges(date).some(range => start >= range.start && start + duration <= range.end);
+  };
+  const agendaDates = agendaViewMode === 'day' ? [fechaSeleccionada] : Array.from({ length: 6 }, (_, index) => {
+    const date = new Date(fechaSeleccionada);
+    date.setDate(date.getDate() - ((date.getDay() + 6) % 7) + index);
+    return date;
+  });
+  const agendaStep = Math.max(5, bizConfig.slotIntervalMinutes || 15);
+  const agendaTimes = new Set<string>();
+  agendaDates.forEach(date => {
+    workingRanges(date).forEach(range => {
+      for (let minute = range.start; minute < range.end; minute += agendaStep) agendaTimes.add(minuteTime(minute));
+    });
+    // Las citas ya existentes siguen visibles si se cambia el horario laboral.
+    appointments.filter(appointment => appointment.dateKey === formatDateKey(date))
+      .forEach(appointment => agendaTimes.add(appointment.time));
+  });
+  if (enableOutOfHours) {
+    for (let minute = 8 * 60; minute < 22 * 60; minute += agendaStep) agendaTimes.add(minuteTime(minute));
+  }
+  const hoursList = Array.from(agendaTimes).sort();
 
   const portalDateAllowed = (date: Date) => {
     const earliest = new Date(); earliest.setHours(0, 0, 0, 0); earliest.setDate(earliest.getDate() + bizConfig.minAdvanceDays);
@@ -2664,16 +2710,10 @@ function StudioApp() {
   };
   const portalAvailableTimes = (date: Date) => {
     if (!portalDateAllowed(date) || !selectedServicesToBook.length) return [];
-    const day = date.getDay();
-    const schedule = day === 1 ? bizConfig.scheduleMonday : day <= 3 ? bizConfig.scheduleTueWed : day <= 5 ? bizConfig.scheduleThuFri : bizConfig.scheduleSaturday;
-    const matches = Array.from(schedule.matchAll(/(\d{1,2})(?::(\d{2})|h(?:\s*(\d{2}))?)/gi));
-    if (matches.length < 2) return [];
     const duration = getModalDuration(selectedServicesToBook);
-    const toMinutes = (match: RegExpMatchArray) => Number(match[1]) * 60 + Number(match[2] || match[3] || 0);
     const step = Math.max(5, bizConfig.slotIntervalMinutes || 15);
     const times: string[] = [];
-    for (let pair = 0; pair + 1 < matches.length; pair += 2) {
-      const open = toMinutes(matches[pair]), close = toMinutes(matches[pair + 1]);
+    for (const { start: open, end: close } of workingRanges(date)) {
       for (let start = open; start + duration <= close; start += step) {
         const time = `${String(Math.floor(start / 60)).padStart(2, '0')}:${String(start % 60).padStart(2, '0')}`;
         if (new Date(`${formatDateKey(date)}T${time}:00`).getTime() <= Date.now()) continue;
@@ -3250,14 +3290,35 @@ function StudioApp() {
         <div className="studio-admin-shell" style={{ maxWidth: '1680px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <style>{`
             .studio-desktop-nav { display: none; }
+            .studio-admin-shell { padding: 16px !important; gap: 14px !important; }
+            .studio-admin-header { padding-bottom: 10px !important; }
+            .studio-admin-header h2 { font-size: 23px !important; margin-bottom: 2px !important; }
+            .studio-admin-header p { font-size: 11px !important; }
+            .studio-desktop-nav > p { font-size: 9px !important; letter-spacing: 1px !important; padding: 0 7px !important; margin-bottom: 7px !important; }
+            .studio-desktop-nav > button { min-height: 42px !important; padding: 10px 8px !important; font-size: 12px !important; }
+            .studio-agenda-layout { gap: 12px !important; }
+            @media (min-width: 1100px) {
+              .studio-agenda-layout { display: grid !important; grid-template-columns: minmax(0, 1fr) 205px; align-items: start !important; }
+              .studio-agenda-layout > .studio-calendar-main { grid-column: 1; grid-row: 1; }
+              .studio-agenda-layout > .studio-agenda-secondary { grid-column: 1; grid-row: 2; }
+              .studio-agenda-layout > .studio-calendar-tools { grid-column: 2; grid-row: 1 / 3; position: sticky; top: 16px; min-width: 0; padding: 10px !important; }
+              .studio-calendar-tools button, .studio-calendar-tools span { font-size: 11px !important; }
+              .studio-calendar-tools > summary { font-size: 12px !important; line-height: 1.5; }
+            }
+            .studio-calendar-tools { flex-basis: 100% !important; width: 100% !important; }
+            .studio-calendar-tools > summary { color: #cab77d; font-size: 13px; cursor: pointer; padding: 4px; }
+            .studio-calendar-tools:not([open]) { display: block !important; padding: 10px 14px !important; }
+            .studio-calendar-tools[open] > summary { margin-bottom: 14px; }
+            .studio-calendar-main { width: 100% !important; flex-basis: 100% !important; }
+
             .studio-admin-content { min-width: 0; }
             @media (min-width: 1100px) {
-              .studio-admin-shell { display: grid !important; grid-template-columns: 210px minmax(0, 1fr); column-gap: 28px !important; align-items: start; }
+              .studio-admin-shell { display: grid !important; grid-template-columns: 155px minmax(0, 1fr); column-gap: 16px !important; align-items: start; }
               .studio-admin-header { grid-column: 1 / -1; }
               .studio-mobile-nav { display: none !important; }
-              .studio-desktop-nav { display: flex; flex-direction: column; gap: 5px; position: sticky; top: 20px; padding: 18px 10px; border: 1px solid #34332d; border-radius: 14px; background: #171717; }
-              .studio-calendar-tools { width: 210px !important; flex-shrink: 0; }
-              .studio-calendar-main { flex-basis: 500px !important; }
+              .studio-desktop-nav { display: flex; flex-direction: column; gap: 5px; position: sticky; top: 20px; padding: 12px 7px; border: 1px solid #34332d; border-radius: 14px; background: #171717; }
+              .studio-calendar-tools { width: 100% !important; flex-shrink: 0; }
+              .studio-calendar-main { flex-basis: 100% !important; }
             }
             @media (max-width: 1099px) {
               .studio-calendar-tools { width: 100% !important; }
@@ -3292,30 +3353,144 @@ function StudioApp() {
           <main className="studio-admin-content">
           {/* TAB 1: AGENDA MAESTRA */}
           {adminTab === 'agenda' && (
-            <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
-              <div style={{ flexBasis: '100%', width: '100%' }}>
-                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '16px', marginBottom: '20px' }}>
-                  <div><p style={{ color: '#cab77d', fontSize: '13px', letterSpacing: '2px', margin: '0 0 8px' }}>360studio · TU DÍA EN EL SALÓN</p><h2 style={{ color: '#eee8dd', fontFamily: 'serif', fontSize: '28px', fontWeight: 'normal', margin: 0 }}>Agenda Maestra</h2></div>
-                  <button type="button" onClick={() => setFechaSeleccionada(new Date())} style={{ padding: '12px 20px', background: '#242219', border: '1px solid #76683e', color: '#ddd0a4', borderRadius: '8px', cursor: 'pointer' }}>Ir a hoy</button>
+            <div className="studio-agenda-layout" style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+              <div className="studio-calendar-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px', minWidth: 0, overflowX: 'auto' }}>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '16px', marginBottom: '0' }}>
+                  <div><h2 style={{ color: '#eee8dd', fontFamily: 'serif', fontSize: '22px', fontWeight: 'normal', margin: 0 }}>Agenda Maestra</h2></div>
+                  <button type="button" onClick={() => setFechaSeleccionada(new Date())} style={{ padding: '9px 14px', background: '#242219', border: '1px solid #76683e', color: '#ddd0a4', borderRadius: '8px', cursor: 'pointer' }}>Ir a hoy</button>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '18px' }}>
-                  {(['day', 'week'] as const).map(view => <button type="button" key={view} aria-pressed={agendaViewMode === view} onClick={() => setAgendaViewMode(view)} style={{ backgroundColor: agendaViewMode === view ? '#d4af37' : '#191919', color: agendaViewMode === view ? '#17150f' : '#ddd6c7', border: '1px solid #76683e', padding: '12px 20px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>{view === 'day' ? 'Día' : 'Semana'}</button>)}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '0' }}>
+                  {(['day', 'week'] as const).map(view => <button type="button" key={view} aria-pressed={agendaViewMode === view} onClick={() => setAgendaViewMode(view)} style={{ backgroundColor: agendaViewMode === view ? '#d4af37' : '#191919', color: agendaViewMode === view ? '#17150f' : '#ddd6c7', border: '1px solid #76683e', padding: '9px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>{view === 'day' ? 'Día' : 'Semana'}</button>)}
                   <button type="button" onClick={() => {
                     if (isDateBlockedByHoliday(formatDateKey(fechaSeleccionada))) { alert('El día seleccionado está bloqueado. Elige otra fecha.'); return; }
                     const freeTime = hoursList.find(time => !isTimeSlotOccupied(formatDateKey(fechaSeleccionada), time));
                     if (!freeTime) { alert('No hay huecos libres en el día seleccionado.'); return; }
                     handleCellClick(fechaSeleccionada, diaSeleccionadoObj.name, freeTime);
-                  }} style={{ backgroundColor: '#242219', color: '#ddd0a4', border: '1px solid #76683e', padding: '12px 20px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>+ Nueva cita</button>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+                  }} style={{ backgroundColor: '#242219', color: '#ddd0a4', border: '1px solid #76683e', padding: '9px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>+ Nueva cita</button>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#bdb8ad', fontSize: '12px' }}>Ir a fecha
+<input aria-label="Elegir fecha de la agenda" type="date" value={formatDateKey(fechaSeleccionada)}
+onChange={event => { if (event.target.value) setFechaSeleccionada(new Date(event.target.value + 'T12:00:00')); }}
+style={{ padding: '8px', background: '#191919', color: '#eee8dd', border: '1px solid #76683e', borderRadius: '6px' }} /></label></div>
+
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {[
                     { label: 'Citas del día', value: appointments.filter(item => item.dateKey === formatDateKey(fechaSeleccionada)).length, color: '#ddd6c7' },
                     { label: 'Solicitudes por revisar', value: appointments.filter(item => item.saturdayApproval?.status === 'pending').length, color: '#d7b76c' },
                     { label: 'Bizum por confirmar', value: appointments.filter(item => item.advancePayment?.status === 'pending').length, color: '#a8bad9' }
-                  ].map(item => <div key={item.label} style={{ padding: '18px', backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '12px' }}><span style={{ display: 'block', color: '#aaa59b', fontSize: '13px' }}>{item.label}</span><strong style={{ display: 'block', color: item.color, fontSize: '27px', marginTop: '8px' }}>{item.value}</strong></div>)}
+                  ].map(item => <div key={item.label} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 12px', backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '7px' }}><span style={{ display: 'block', color: '#aaa59b', fontSize: '13px' }}>{item.label}</span><strong style={{ color: item.color, fontSize: '15px' }}>{item.value}</strong></div>)}
                 </div>
-                <section style={{ marginTop: '18px', padding: '20px', backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '12px' }}>
-                  <h3 style={{ fontFamily: 'serif', fontSize: '22px', color: '#eee8dd', fontWeight: 'normal', margin: '0 0 8px' }}>Citas del día</h3>
+<p style={{ color: '#aaa59b', fontSize: '12px', margin: 0 }}>Pulsa un hueco libre para agendar · Pulsa una cita para editarla.</p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>
+                    Agenda Maestra {agendaViewMode === 'week' ? '(Vista Semanal)' : `(Vista Diaria - ${diaSeleccionadoObj.name} ${diaSeleccionadoObj.dateFormatted})`}
+                  </h3>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() - (agendaViewMode === 'week' ? 7 : 1)); setFechaSeleccionada(d); }} style={{ background: '#1a1a1a', border: '1px solid #444', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>◀ Anterior</button>
+                    <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>
+                      {agendaViewMode === 'week' ? `Semana del ${semanaActual[0].dateFormatted}` : `${diaSeleccionadoObj.name} ${diaSeleccionadoObj.dateFormatted}`}
+                    </span>
+                    <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() + (agendaViewMode === 'week' ? 7 : 1)); setFechaSeleccionada(d); }} style={{ background: '#1a1a1a', border: '1px solid #444', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>Siguiente ►</button>
+                  </div>
+                </div>
+
+                {/* VISTA DINÁMICA DE LA TABLA (SEMANAL vs DIARIA) */}
+                <div style={{ overflowX: 'auto', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '15px' }}>
+                  {agendaViewMode === 'week' ? (
+                    /* REJILLA VISTA SEMANAL (Lunes a Sábado) */
+                    <div style={{ display: 'grid', gridTemplateColumns: '54px repeat(6, minmax(90px, 1fr))', gap: '3px', minWidth: '610px' }}>
+                      <div style={{ padding: '8px', textAlign: 'center', color: '#777', fontSize: '13px', fontWeight: 'bold' }}>Hora</div>
+                      {semanaActual.map((day, idx) => {
+                        const dKey = formatDateKey(day.dateObj);
+                        const isBlocked = isDateBlockedByHoliday(dKey);
+                        return (
+                          <div key={idx} style={{ padding: '8px', textAlign: 'center', backgroundColor: isBlocked ? '#2e1414' : '#1e1e1e', borderRadius: '6px', borderBottom: isBlocked ? '2px solid #ff4444' : '2px solid #d4af37' }}>
+                            <div style={{ color: isBlocked ? '#ff8888' : '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>{day.name}</div>
+                            <div style={{ color: '#aaa', fontSize: '12px' }}>{day.dateFormatted} {isBlocked ? '🔒' : ''}</div>
+                            {day.dateObj.getDay() === 6 && bizConfig.saturdayApprovalEnabled && !isBlocked && <div style={{ color: '#cab77d', fontSize: '10px', lineHeight: 1.4, marginTop: '4px' }}>Bajo confirmación de Ana</div>}
+                          </div>
+                        );
+                      })}
+                      {hoursList.map((time, hIdx) => (
+                        <React.Fragment key={hIdx}>
+                          <div style={{ padding: '8px 4px', textAlign: 'center', color: '#888', fontSize: '12px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                            {time}
+                          </div>
+                          {semanaActual.map((day, dIdx) => {
+                            const targetKey = formatDateKey(day.dateObj);
+                            const isBlocked = isDateBlockedByHoliday(targetKey) || (!enableOutOfHours && !isAgendaTimeWorking(day.dateObj, time) && !appointments.some(a => a.dateKey === targetKey && a.time === time));
+                            const appt = appointments.find(a => a.dateKey === targetKey && a.time === time);
+                            const occupiedByDuration = isTimeSlotOccupied(targetKey, time);
+                            return (
+                              <div key={dIdx} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, day.dateObj, day.name, time)} onClick={() => handleCellClick(day.dateObj, day.name, time)} style={{ backgroundColor: isBlocked ? '#261212' : (appt ? adminAppointmentColor(appt).background : (occupiedByDuration ? '#1a1510' : '#1a1a1a')), border: isBlocked ? '1px solid #ff4444' : (appt ? `1px solid ${adminAppointmentColor(appt).border}` : (occupiedByDuration ? '1px dashed #554422' : '1px dashed #2c2c2c')), borderRadius: '6px', padding: '6px', minHeight: '48px', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                                {isBlocked ? (
+                                  <div style={{ color: '#ff6666', fontSize: '13px', textAlign: 'center', fontWeight: 'bold' }}>{isDateBlockedByHoliday(targetKey) ? 'CERRADO' : day.dateObj.getDay() === 6 ? '—' : 'Fuera de horario'}</div>
+                                ) : appt ? (
+                                  <div draggable onDragStart={(e) => handleDragStart(e, appt.id)} title="Arrastra para mover a cualquier hora u otro día" style={{ fontSize: '12px' }}>
+                                    <div style={{ color: '#d4af37', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                      <span>{appt.clientName}</span>
+                                      <button onClick={(e) => handleDeleteAppointment(appt.id, e)} style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '12px', cursor: 'pointer' }}>X</button>
+                                    </div>
+                                    <div style={{ color: '#bbb', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appt.serviceSubcategory}</div>
+                                  </div>
+                                ) : occupiedByDuration ? (
+                                  <div style={{ color: '#a68a4c', fontSize: '13px', textAlign: 'center', fontStyle: 'italic' }}>Ocupado</div>
+                                ) : (
+                                  <div style={{ color: '#444', fontSize: '13px', textAlign: 'center' }}>+ Libre</div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </React.Fragment>
+                      ))}
+                    </div>
+                  ) : (
+                    /* REJILLA VISTA DIARIA (Día único seleccionado) */
+                    <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '4px', minWidth: '400px' }}>
+                      <div style={{ padding: '8px', textAlign: 'center', color: '#777', fontSize: '13px', fontWeight: 'bold' }}>Hora</div>
+                      <div style={{ padding: '8px', textAlign: 'center', backgroundColor: isDateBlockedByHoliday(formatDateKey(diaSeleccionadoObj.dateObj)) ? '#2e1414' : '#1e1e1e', borderRadius: '6px', borderBottom: isDateBlockedByHoliday(formatDateKey(diaSeleccionadoObj.dateObj)) ? '2px solid #ff4444' : '2px solid #d4af37' }}>
+                        <div style={{ color: isDateBlockedByHoliday(formatDateKey(diaSeleccionadoObj.dateObj)) ? '#ff8888' : '#d4af37', fontSize: '13px', fontWeight: 'bold' }}>
+                          {diaSeleccionadoObj.name} ({diaSeleccionadoObj.dateFormatted}) {isDateBlockedByHoliday(formatDateKey(diaSeleccionadoObj.dateObj)) ? '🔒 CERRADO' : ''}
+                        </div>
+                      </div>
+                      {hoursList.map((time, hIdx) => {
+                        const targetKey = formatDateKey(diaSeleccionadoObj.dateObj);
+                        const isBlocked = isDateBlockedByHoliday(targetKey) || (!enableOutOfHours && !isAgendaTimeWorking(diaSeleccionadoObj.dateObj, time) && !appointments.some(a => a.dateKey === targetKey && a.time === time));
+                        const appt = appointments.find(a => a.dateKey === targetKey && a.time === time);
+                        const occupiedByDuration = isTimeSlotOccupied(targetKey, time);
+                        return (
+                          <React.Fragment key={hIdx}>
+                            <div style={{ padding: '10px 4px', textAlign: 'center', color: '#888', fontSize: '13px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                              {time}
+                            </div>
+                            <div onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, diaSeleccionadoObj.dateObj, diaSeleccionadoObj.name, time)} onClick={() => handleCellClick(diaSeleccionadoObj.dateObj, diaSeleccionadoObj.name, time)} style={{ backgroundColor: isBlocked ? '#261212' : (appt ? adminAppointmentColor(appt).background : (occupiedByDuration ? '#1a1510' : '#1a1a1a')), border: isBlocked ? '1px solid #ff4444' : (appt ? `1px solid ${adminAppointmentColor(appt).border}` : (occupiedByDuration ? '1px dashed #554422' : '1px dashed #2c2c2c')), borderRadius: '6px', padding: '10px', minHeight: '54px', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                              {isBlocked ? (
+                                <div style={{ color: '#ff6666', fontSize: '13px', textAlign: 'center', fontWeight: 'bold' }}>{isDateBlockedByHoliday(targetKey) ? 'CERRADO · FESTIVO / VACACIONES' : diaSeleccionadoObj.dateObj.getDay() === 6 ? 'Sin disponibilidad en esta hora' : 'Fuera del horario laboral'}</div>
+                              ) : appt ? (
+                                <div draggable onDragStart={(e) => handleDragStart(e, appt.id)} title="Arrastra para mover cita" style={{ fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <div>
+                                    <span style={{ color: '#d4af37', fontWeight: 'bold', marginRight: '10px' }}>{appt.clientName} ({appt.phone})</span>
+                                    <span style={{ color: '#bbb' }}>{appt.serviceSubcategory}</span>
+                                  </div>
+                                  <button onClick={(e) => handleDeleteAppointment(appt.id, e)} style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar X</button>
+                                </div>
+                              ) : occupiedByDuration ? (
+                                <div style={{ color: '#a68a4c', fontSize: '12px', textAlign: 'center', fontStyle: 'italic' }}>Ocupado por servicio de mayor duración</div>
+                              ) : (
+                                <div style={{ color: '#555', fontSize: '12px', textAlign: 'center' }}>+ Clic para agendar cita en este hueco</div>
+                              )}
+                            </div>
+                          </React.Fragment>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="studio-agenda-secondary" style={{ flexBasis: '100%', width: '100%' }}>
+
+                <details style={{ marginTop: '12px', padding: '14px', backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '12px' }}>
+                  <summary style={{ color: '#cab77d', fontSize: '13px', cursor: 'pointer' }}>Ver lista de citas del día</summary>
                   <p style={{ color: '#aaa59b', fontSize: '13px', margin: '0 0 16px' }}>{fechaSeleccionada.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {appointments.filter(item => item.dateKey === formatDateKey(fechaSeleccionada)).sort((a, b) => a.time.localeCompare(b.time)).map(item => <button type="button" key={item.id} onClick={() => setViewApptModal(item)} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '16px', textAlign: 'left', backgroundColor: adminAppointmentColor(item).background, border: `1px solid ${adminAppointmentColor(item).border}`, borderRadius: '10px', padding: '16px', cursor: 'pointer', color: '#eee8dd', width: '100%' }}>
@@ -3324,7 +3499,7 @@ function StudioApp() {
                     </button>)}
                     {!appointments.some(item => item.dateKey === formatDateKey(fechaSeleccionada)) && <p style={{ color: '#aaa59b', fontSize: '14px', lineHeight: 1.6 }}>No hay citas registradas para este día. Puedes crear una con «Nueva cita» o elegir un hueco en el calendario.</p>}
                   </div>
-                </section>
+                </details>
                 <details style={{ marginTop: '14px', padding: '16px', backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '10px' }}>
                   <summary style={{ color: '#cab77d', cursor: 'pointer', fontSize: '14px' }}>Revisar solicitudes y pagos pendientes</summary>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '14px' }}>
@@ -3335,7 +3510,8 @@ function StudioApp() {
                 <p style={{ color: '#aaa59b', fontSize: '12px', lineHeight: 1.7 }}>Verde suave: confirmada · Ámbar: por aprobar · Azul: pendiente de Bizum. Pulsa una cita para ver sus detalles.</p>
               </div>
 
-              <div className="studio-calendar-tools" style={{ width: '280px', backgroundColor: '#161616', border: '1px solid #34332d', borderRadius: '12px', padding: '16px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              <details open className="studio-calendar-tools" style={{ width: '280px', backgroundColor: '#161616', border: '1px solid #34332d', borderRadius: '12px', padding: '16px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                <summary>Calendario y ajustes</summary>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <button onClick={() => cambiarMesMiniCal(-1)} style={{ background: '#1c1c1c', border: '1px solid #333', color: '#d4af37', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>◀</button>
@@ -3453,114 +3629,9 @@ function StudioApp() {
                     🖨️ Imprimir calendario (CTRL + P)
                   </button>
                 </div>
-              </div>
+              </details>
 
-              <div className="studio-calendar-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px', minWidth: 0, overflowX: 'auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                  <h3 style={{ color: '#d4af37', fontSize: '15px', fontFamily: 'serif', margin: 0 }}>
-                    Agenda Maestra {agendaViewMode === 'week' ? '(Vista Semanal)' : `(Vista Diaria - ${diaSeleccionadoObj.name} ${diaSeleccionadoObj.dateFormatted})`}
-                  </h3>
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() - (agendaViewMode === 'week' ? 7 : 1)); setFechaSeleccionada(d); }} style={{ background: '#1a1a1a', border: '1px solid #444', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>◀ Anterior</button>
-                    <span style={{ color: '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>
-                      {agendaViewMode === 'week' ? `Semana del ${semanaActual[0].dateFormatted}` : `${diaSeleccionadoObj.name} ${diaSeleccionadoObj.dateFormatted}`}
-                    </span>
-                    <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() + (agendaViewMode === 'week' ? 7 : 1)); setFechaSeleccionada(d); }} style={{ background: '#1a1a1a', border: '1px solid #444', color: '#fff', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>Siguiente ►</button>
-                  </div>
-                </div>
 
-                {/* VISTA DINÁMICA DE LA TABLA (SEMANAL vs DIARIA) */}
-                <div style={{ overflowX: 'auto', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '15px' }}>
-                  {agendaViewMode === 'week' ? (
-                    /* REJILLA VISTA SEMANAL (Lunes a Sábado) */
-                    <div style={{ display: 'grid', gridTemplateColumns: '70px repeat(6, minmax(110px, 1fr))', gap: '4px', minWidth: '750px' }}>
-                      <div style={{ padding: '8px', textAlign: 'center', color: '#777', fontSize: '13px', fontWeight: 'bold' }}>Hora</div>
-                      {semanaActual.map((day, idx) => {
-                        const dKey = formatDateKey(day.dateObj);
-                        const isBlocked = isDateBlockedByHoliday(dKey);
-                        return (
-                          <div key={idx} style={{ padding: '8px', textAlign: 'center', backgroundColor: isBlocked ? '#2e1414' : '#1e1e1e', borderRadius: '6px', borderBottom: isBlocked ? '2px solid #ff4444' : '2px solid #d4af37' }}>
-                            <div style={{ color: isBlocked ? '#ff8888' : '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>{day.name}</div>
-                            <div style={{ color: '#aaa', fontSize: '12px' }}>{day.dateFormatted} {isBlocked ? '🔒' : ''}</div>
-                          </div>
-                        );
-                      })}
-                      {hoursList.map((time, hIdx) => (
-                        <React.Fragment key={hIdx}>
-                          <div style={{ padding: '8px 4px', textAlign: 'center', color: '#888', fontSize: '12px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {time}
-                          </div>
-                          {semanaActual.map((day, dIdx) => {
-                            const targetKey = formatDateKey(day.dateObj);
-                            const isBlocked = isDateBlockedByHoliday(targetKey);
-                            const appt = appointments.find(a => a.dateKey === targetKey && a.time === time);
-                            const occupiedByDuration = isTimeSlotOccupied(targetKey, time);
-                            return (
-                              <div key={dIdx} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, day.dateObj, day.name, time)} onClick={() => handleCellClick(day.dateObj, day.name, time)} style={{ backgroundColor: isBlocked ? '#261212' : (appt ? adminAppointmentColor(appt).background : (occupiedByDuration ? '#1a1510' : '#1a1a1a')), border: isBlocked ? '1px solid #ff4444' : (appt ? `1px solid ${adminAppointmentColor(appt).border}` : (occupiedByDuration ? '1px dashed #554422' : '1px dashed #2c2c2c')), borderRadius: '6px', padding: '6px', minHeight: '48px', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                {isBlocked ? (
-                                  <div style={{ color: '#ff6666', fontSize: '13px', textAlign: 'center', fontWeight: 'bold' }}>BLOQUEADO</div>
-                                ) : appt ? (
-                                  <div draggable onDragStart={(e) => handleDragStart(e, appt.id)} title="Arrastra para mover a cualquier hora u otro día" style={{ fontSize: '12px' }}>
-                                    <div style={{ color: '#d4af37', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      <span>{appt.clientName}</span>
-                                      <button onClick={(e) => handleDeleteAppointment(appt.id, e)} style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '12px', cursor: 'pointer' }}>X</button>
-                                    </div>
-                                    <div style={{ color: '#bbb', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appt.serviceSubcategory}</div>
-                                  </div>
-                                ) : occupiedByDuration ? (
-                                  <div style={{ color: '#a68a4c', fontSize: '13px', textAlign: 'center', fontStyle: 'italic' }}>Ocupado</div>
-                                ) : (
-                                  <div style={{ color: '#444', fontSize: '13px', textAlign: 'center' }}>+ Libre</div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </React.Fragment>
-                      ))}
-                    </div>
-                  ) : (
-                    /* REJILLA VISTA DIARIA (Día único seleccionado) */
-                    <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '4px', minWidth: '400px' }}>
-                      <div style={{ padding: '8px', textAlign: 'center', color: '#777', fontSize: '13px', fontWeight: 'bold' }}>Hora</div>
-                      <div style={{ padding: '8px', textAlign: 'center', backgroundColor: isDateBlockedByHoliday(formatDateKey(diaSeleccionadoObj.dateObj)) ? '#2e1414' : '#1e1e1e', borderRadius: '6px', borderBottom: isDateBlockedByHoliday(formatDateKey(diaSeleccionadoObj.dateObj)) ? '2px solid #ff4444' : '2px solid #d4af37' }}>
-                        <div style={{ color: isDateBlockedByHoliday(formatDateKey(diaSeleccionadoObj.dateObj)) ? '#ff8888' : '#d4af37', fontSize: '13px', fontWeight: 'bold' }}>
-                          {diaSeleccionadoObj.name} ({diaSeleccionadoObj.dateFormatted}) {isDateBlockedByHoliday(formatDateKey(diaSeleccionadoObj.dateObj)) ? '🔒 CERRADO' : ''}
-                        </div>
-                      </div>
-                      {hoursList.map((time, hIdx) => {
-                        const targetKey = formatDateKey(diaSeleccionadoObj.dateObj);
-                        const isBlocked = isDateBlockedByHoliday(targetKey);
-                        const appt = appointments.find(a => a.dateKey === targetKey && a.time === time);
-                        const occupiedByDuration = isTimeSlotOccupied(targetKey, time);
-                        return (
-                          <React.Fragment key={hIdx}>
-                            <div style={{ padding: '10px 4px', textAlign: 'center', color: '#888', fontSize: '13px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                              {time}
-                            </div>
-                            <div onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, diaSeleccionadoObj.dateObj, diaSeleccionadoObj.name, time)} onClick={() => handleCellClick(diaSeleccionadoObj.dateObj, diaSeleccionadoObj.name, time)} style={{ backgroundColor: isBlocked ? '#261212' : (appt ? adminAppointmentColor(appt).background : (occupiedByDuration ? '#1a1510' : '#1a1a1a')), border: isBlocked ? '1px solid #ff4444' : (appt ? `1px solid ${adminAppointmentColor(appt).border}` : (occupiedByDuration ? '1px dashed #554422' : '1px dashed #2c2c2c')), borderRadius: '6px', padding: '10px', minHeight: '54px', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                              {isBlocked ? (
-                                <div style={{ color: '#ff6666', fontSize: '13px', textAlign: 'center', fontWeight: 'bold' }}>BLOQUEADO POR FESTIVO / VACACIONES</div>
-                              ) : appt ? (
-                                <div draggable onDragStart={(e) => handleDragStart(e, appt.id)} title="Arrastra para mover cita" style={{ fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <div>
-                                    <span style={{ color: '#d4af37', fontWeight: 'bold', marginRight: '10px' }}>{appt.clientName} ({appt.phone})</span>
-                                    <span style={{ color: '#bbb' }}>{appt.serviceSubcategory}</span>
-                                  </div>
-                                  <button onClick={(e) => handleDeleteAppointment(appt.id, e)} style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar X</button>
-                                </div>
-                              ) : occupiedByDuration ? (
-                                <div style={{ color: '#a68a4c', fontSize: '12px', textAlign: 'center', fontStyle: 'italic' }}>Ocupado por servicio de mayor duración</div>
-                              ) : (
-                                <div style={{ color: '#555', fontSize: '12px', textAlign: 'center' }}>+ Clic para agendar cita en este hueco</div>
-                              )}
-                            </div>
-                          </React.Fragment>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
           )}
 
@@ -4602,7 +4673,9 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ color: '#d4af37', fontSize: '14px', fontWeight: 'bold' }}>Nueva Hora:</label>
               <select value={newRescheduleTime} onChange={(e) => setNewRescheduleTime(e.target.value)} style={{ padding: '12px', backgroundColor: '#1c1c1c', border: '1px solid #76683e', color: '#fff', borderRadius: '6px', fontSize: '14px' }}>
-                {hoursList.map(h => (<option key={h} value={h}>{h}h</option>))}
+                {Array.from({ length: Math.ceil(1440 / agendaStep) }, (_, index) => minuteTime(index * agendaStep))
+                  .filter(time => enableOutOfHours || isAgendaTimeWorking(new Date(newRescheduleDate + 'T12:00:00'), time, rescheduleModalAppt.durationMinutes || 45))
+                  .map(h => (<option key={h} value={h}>{h}h</option>))}
               </select>
             </div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
@@ -4613,6 +4686,9 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 const conflict = getRescheduleConflict(rescheduleModalAppt, newRescheduleDate, newRescheduleTime);
                 if (conflict && !enableDoubleBooking) { alert('La duración completa de esta cita coincide con otra reserva. Elige otra hora.'); return; }
                 const date = new Date(`${newRescheduleDate}T12:00:00`);
+                if (!enableOutOfHours && !isAgendaTimeWorking(date, newRescheduleTime, rescheduleModalAppt.durationMinutes || 45)) {
+                  alert('La duración completa de la cita debe caber en el horario laboral.'); return;
+                }
                 setAppointments(previous => previous.map(a => a.id === rescheduleModalAppt.id ? { ...a, dateKey: newRescheduleDate, time: newRescheduleTime, dayName: date.toLocaleDateString('es-ES', { weekday: 'long' }) } : a));
                 setRescheduleModalAppt(null);
                 alert('¡Cita modificada con éxito!');
