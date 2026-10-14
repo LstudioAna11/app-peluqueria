@@ -1571,7 +1571,104 @@ const INITIAL_APPOINTMENTS: Appointment[] = [
   { id: '3', dateKey: '2026-10-08', dayName: 'Jueves', time: '10:00', durationMinutes: 60, clientName: 'Susi Cayuelas', phone: '633444555', email: 'susi@gmail.com', serviceCategory: '0.2 < CORTE', serviceSubcategory: 'RESERVADO Susi C.', remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false } }
 ];
 
+
+const normalizeEmail = (value: unknown): string =>
+  typeof value === 'string' ? value.trim().toLowerCase() : '';
+
+const safeText = (value: unknown): string =>
+  typeof value === 'string' ? value : typeof value === 'number' ? String(value) : '';
+
+function readStoredValue(key: string, raw: string): any {
+  // Conservar el original antes de normalizar o recuperar datos antiguos.
+  try {
+    const backupKey = key + '_original_before_access_fix';
+    if (localStorage.getItem(backupKey) === null) localStorage.setItem(backupKey, raw);
+  } catch { /* La falta de espacio no debe impedir leer los datos. */ }
+  let value: any;
+  try { value = JSON.parse(raw); } catch {
+    return key === 'lst_business_config' ? {} : [];
+  }
+  if (key === 'lst_business_config') {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+    const config: any = { ...INITIAL_BUSINESS_CONFIG, ...value };
+    Object.entries(INITIAL_BUSINESS_CONFIG).forEach(([field, fallback]) => {
+      if (typeof config[field] !== typeof fallback ||
+          (typeof fallback === 'number' && !Number.isFinite(config[field]))) {
+        config[field] = fallback;
+      }
+    });
+    return config;
+  }
+  if (!Array.isArray(value)) return [];
+  const records = value.filter(item => item && typeof item === 'object' && !Array.isArray(item));
+  if (key === 'lst_studio_clientes_ids') return records.map((item, index) => {
+    const client = { ...item };
+    ['registroId', 'nombre', 'apellidos', 'fechaNacimiento', 'telefono', 'email',
+     'pinAcceso', 'diagnostico', 'ultimaVisita', 'proximaVisitaSugerida',
+     'formulasAplicadas', 'dniCapilar', 'prescripcionCasa'].forEach(field => {
+      client[field] = safeText(client[field]);
+    });
+    client.idNum = Number.isFinite(Number(item.idNum)) && Number(item.idNum) > 0 ? Number(item.idNum) : index + 1;
+    client.pastVisits = Array.isArray(item.pastVisits) ? item.pastVisits
+      .filter((visit: any) => visit && typeof visit === 'object')
+      .map((visit: any) => ({ ...visit, date: safeText(visit.date), service: safeText(visit.service),
+        stylist: safeText(visit.stylist), notes: safeText(visit.notes) })) : [];
+    return client;
+  });
+  if (key === 'lst_studio_appointments') return records.map(item => ({
+    ...item, id: safeText(item.id), dateKey: safeText(item.dateKey),
+    dayName: safeText(item.dayName), time: safeText(item.time),
+    clientName: safeText(item.clientName), phone: safeText(item.phone),
+    email: safeText(item.email), serviceCategory: safeText(item.serviceCategory),
+    serviceSubcategory: safeText(item.serviceSubcategory),
+    remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false,
+      whatsapp2h: false, ...(item.remindersStatus || {}) }
+  }));
+  if (key === 'lst_master_catalog') return records.map(category => ({
+    ...category, id: safeText(category.id), code: safeText(category.code),
+    title: safeText(category.title),
+    subservices: (Array.isArray(category.subservices) ? category.subservices : [])
+      .filter((sub: any) => sub && typeof sub === 'object').map((sub: any) => ({
+        ...sub, id: safeText(sub.id), name: safeText(sub.name),
+        description: safeText(sub.description), duration: safeText(sub.duration),
+        price: safeText(sub.price),
+        variants: (Array.isArray(sub.variants) ? sub.variants : [])
+          .filter((variant: any) => variant && typeof variant === 'object')
+          .map((variant: any) => ({ ...variant, id: safeText(variant.id),
+            name: safeText(variant.name), price: safeText(variant.price),
+            duration: safeText(variant.duration) }))
+      }))
+  }));
+  return records;
+}
+
+class PortalErrorBoundary extends React.Component<
+  { children: React.ReactNode }, { failed: boolean }
+> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('Error en el portal de L’Studio Ana:', error, info.componentStack);
+  }
+  render() {
+    if (!this.state.failed) return this.props.children;
+    return <main style={{ minHeight: '100vh', background: '#000', color: '#eee8dd',
+      display: 'grid', placeContent: 'center', padding: '24px', textAlign: 'center' }}>
+      <h1 style={{ fontFamily: 'serif', color: '#cbb06a' }}>L’Studio Ana</h1>
+      <p>No hemos podido abrir el portal. Tus datos guardados se conservan.</p>
+      <button type="button" onClick={() => window.location.reload()}
+        style={{ background: '#cbb06a', border: 0, padding: '14px', cursor: 'pointer' }}>
+        Volver al acceso
+      </button>
+    </main>;
+  }
+}
+
 export default function App() {
+  return <PortalErrorBoundary><StudioApp /></PortalErrorBoundary>;
+}
+
+function StudioApp() {
   const [currentScreen, setCurrentScreen] = useState<'clientPin' | 'clientRegistration' | 'clientPortal' | 'catalogBooking' | 'visualAgenda' | 'clientHistoryPage' | 'adminLogin' | 'adminPanel'>('clientPin');
   
   const [currentLang, setCurrentLang] = useState<string>(() => { const saved = localStorage.getItem('lst_portal_language'); return saved && TRANSLATIONS[saved] ? saved : 'es'; });
@@ -1619,7 +1716,7 @@ export default function App() {
   const [googleCalendarConnected, setGoogleCalendarConnected] = useState<boolean>(true);
   const [bizConfig, setBizConfig] = useState<BusinessConfig>(() => {
     const saved = localStorage.getItem('lst_business_config');
-    return saved ? { ...INITIAL_BUSINESS_CONFIG, ...JSON.parse(saved) } : INITIAL_BUSINESS_CONFIG;
+    return saved ? { ...INITIAL_BUSINESS_CONFIG, ...readStoredValue('lst_business_config', saved) } : INITIAL_BUSINESS_CONFIG;
   });
   const [bookingDate, setBookingDate] = useState<Date>(() => { const date = new Date(); date.setHours(12, 0, 0, 0); date.setDate(date.getDate() + bizConfig.minAdvanceDays); return date; });
   const [tempConfig, setTempConfig] = useState<BusinessConfig>(bizConfig);
@@ -1632,7 +1729,7 @@ export default function App() {
   // CATÁLOGO UNIFICADO Y SINCRONIZADO EN TIEMPO REAL
   const [catalog, setCatalog] = useState<CatalogCategory[]>(() => {
     const saved = localStorage.getItem('lst_master_catalog');
-    return saved ? JSON.parse(saved) : INITIAL_CATALOG;
+    return saved ? readStoredValue('lst_master_catalog', saved) : INITIAL_CATALOG;
   });
 
   const handleSaveCatalogMaster = () => {
@@ -1643,7 +1740,7 @@ export default function App() {
 
   const [holidaysList, setHolidaysList] = useState<HolidayBlock[]>(() => {
     const saved = localStorage.getItem('lst_holidays_list');
-    return saved ? JSON.parse(saved) : [
+    return saved ? readStoredValue('lst_holidays_list', saved) : [
       { id: 'h1', startDate: '2026-12-24', endDate: '2026-12-26', reason: 'Navidad / Festivo local', type: 'festivo' },
       { id: 'h2', startDate: '2026-08-01', endDate: '2026-08-20', reason: 'Vacaciones de Verano', type: 'vacaciones' }
     ];
@@ -1687,7 +1784,7 @@ export default function App() {
   const [crmPeriod, setCrmPeriod] = useState<'hoy' | '7d' | '30d' | 'personalizado'>('7d');
   const [lostDemandsList, setLostDemandsList] = useState<LostDemandRecord[]>(() => {
     const saved = localStorage.getItem('lst_lost_demands_detailed');
-    return saved ? JSON.parse(saved) : [
+    return saved ? readStoredValue('lst_lost_demands_detailed', saved) : [
       { id: '1', date: '22/09/2026', clientName: 'Sonsoles P.', serviceName: 'Balayage & Melt & Lights', potentialValue: 95, reason: 'sin_disponibilidad', clientNote: 'Buscaba hueco en sábado por la mañana pero estaba completo.', phone: '611222333' }
     ];
   });
@@ -1698,7 +1795,7 @@ export default function App() {
 
   const [feedbackList, setFeedbackList] = useState<FeedbackRecord[]>(() => {
     const saved = localStorage.getItem('lst_feedback_list');
-    return saved ? JSON.parse(saved) : [
+    return saved ? readStoredValue('lst_feedback_list', saved) : [
       { id: '1', date: '24/09/2026', clientName: 'María G.', rating: 1, comment: 'No me gustó el tiempo de espera en el lavado.', type: 'detractor' }
     ];
   });
@@ -1747,7 +1844,7 @@ export default function App() {
 
   const [appointments, setAppointments] = useState<Appointment[]>(() => {
     const saved = localStorage.getItem('lst_studio_appointments');
-    return saved ? JSON.parse(saved) : INITIAL_APPOINTMENTS;
+    return saved ? readStoredValue('lst_studio_appointments', saved) : INITIAL_APPOINTMENTS;
   });
 
   useEffect(() => {
@@ -1756,7 +1853,7 @@ export default function App() {
 
   const [listaClientes, setListaClientes] = useState<ClientRecord[]>(() => {
     const saved = localStorage.getItem('lst_studio_clientes_ids');
-    return saved ? JSON.parse(saved) : [
+    return saved ? readStoredValue('lst_studio_clientes_ids', saved) : [
       {
         idNum: 1,
         registroId: "LSTUDIO-001",
@@ -2018,7 +2115,7 @@ export default function App() {
   const handleClientPinSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!/^\d{4}$/.test(pin)) return;
-          const clientMatch = listaClientes.find(c => c.pinAcceso === pin);
+          const clientMatch = listaClientes.find(c => String(c.pinAcceso ?? '').trim() === pin);
           if (clientMatch || pin === bizConfig.masterPin) {
             setPinError(false);
             setPin("");
@@ -2055,7 +2152,7 @@ export default function App() {
 
   const handleAdminLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (adminPin === bizConfig.masterPin || adminPin === '7009') {
+    if (adminPin === bizConfig.masterPin ) {
       setCurrentScreen('adminPanel');
       setAdminError(false);
       setAdminPin("");
@@ -2655,7 +2752,7 @@ export default function App() {
   const markAppointmentCompleted = (appointment: Appointment) => {
     if (appointment.completedAt) return;
     if (appointment.saturdayApproval?.status === 'pending' || appointment.advancePayment?.status === 'pending') { alert('Resuelve primero la aprobación y el pago pendiente.'); return; }
-    const client = listaClientes.find(item => item.email.trim().toLowerCase() === appointment.email.trim().toLowerCase());
+    const client = listaClientes.find(item => !!normalizeEmail(appointment.email) && normalizeEmail(item.email) === normalizeEmail(appointment.email));
     if (!client) { alert('No hay una clienta registrada con el email de esta cita. Revisa su ficha antes de registrar la visita.'); return; }
     if (new Date(`${appointment.dateKey}T${appointment.time}:00`).getTime() > Date.now()) { alert('Esta cita todavía no ha comenzado.'); return; }
     if (!window.confirm(`¿Registrar esta cita como realizada en el pasaporte de ${client.nombre}?`)) return;
@@ -2675,7 +2772,7 @@ export default function App() {
     : { background: '#202a23', border: '#526d59' };
 
   const clientNextAppointment = currentClientRecord ? appointments
-    .filter(appointment => appointment.email.trim().toLowerCase() === currentClientRecord.email.trim().toLowerCase()
+    .filter(appointment => !!normalizeEmail(currentClientRecord.email) && normalizeEmail(appointment.email) === normalizeEmail(currentClientRecord.email)
       && new Date(`${appointment.dateKey}T${appointment.time}:00`).getTime() >= Date.now()
       && !appointment.completedAt && appointment.saturdayApproval?.status !== 'rejected')
     .sort((a, b) => `${a.dateKey}T${a.time}`.localeCompare(`${b.dateKey}T${b.time}`))[0] : undefined;
@@ -3933,7 +4030,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
           {/* TAB 4: CLIENTES & ADN CAPILAR */}
           {adminTab === 'clients' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
                   <h3 style={{ color: '#d4af37', fontSize: '28px', fontWeight: 'normal', fontFamily: 'serif', margin: '0 0 4px 0' }}>Clientas · Cuidado y seguimiento</h3>
                   <p style={{ color: '#888', fontSize: '14px', margin: 0 }}>Consulta sus datos, cuida su evolución y actualiza su pasaporte. Los cambios se reflejan en el portal de este navegador.</p>
