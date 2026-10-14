@@ -1255,6 +1255,9 @@ interface ServiceVariant {
 }
 
 interface Appointment {
+  lifecycleStatus?: 'cancelled' | 'no_show';
+  statusChangedAt?: string;
+  internalNotes?: string;
   completedAt?: string;
   id: string;
   dateKey: string;
@@ -1277,6 +1280,9 @@ interface Appointment {
     whatsapp2h: boolean;
   };
 }
+
+const isActiveAppointment = (appointment: Appointment) =>
+  appointment.lifecycleStatus !== 'cancelled' && appointment.lifecycleStatus !== 'no_show';
 
 type StylingPolicy = 'included' | 'required' | 'not_applicable';
 
@@ -1725,13 +1731,17 @@ function StudioApp() {
   const [agendaViewMode, setAgendaViewMode] = useState<'week' | 'day'>('week');
   const [appointmentSearch, setAppointmentSearch] = useState('');
   const [agendaSidePanel, setAgendaSidePanel] = useState<'day' | 'pending' | null>(null);
+  const [pendingPanelFilter, setPendingPanelFilter] = useState<'all' | 'approval' | 'payment'>('all');
+  const [returnToAppointmentId, setReturnToAppointmentId] = useState<string | null>(null);
+
+  const [agendaExpanded, setAgendaExpanded] = useState(false);
+  const [agendaNow, setAgendaNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setAgendaNow(new Date()), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
+
   const appointmentSearchQuery = appointmentSearch.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
-  const appointmentSearchResults = appointmentSearchQuery ? appointments.filter(appointment => {
-    const name = (appointment.clientName || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-    const phone = (appointment.phone || '').replace(/[^0-9]/g, '');
-    const digits = appointmentSearchQuery.replace(/[^0-9]/g, '');
-    return name.includes(appointmentSearchQuery) || (!!digits && /^[+()\s\d.-]+$/.test(appointmentSearchQuery) && phone.includes(digits));
-  }).sort((left, right) => (right.dateKey + right.time).localeCompare(left.dateKey + left.time)) : [];
 
   
   const [googleCalendarSyncActive, setGoogleCalendarSyncActive] = useState<boolean>(true);
@@ -1873,6 +1883,13 @@ function StudioApp() {
     localStorage.setItem('lst_studio_appointments', JSON.stringify(appointments));
   }, [appointments]);
 
+  const appointmentSearchResults = appointmentSearchQuery ? appointments.filter(appointment => {
+    const name = (appointment.clientName || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const phone = (appointment.phone || '').replace(/[^0-9]/g, '');
+    const digits = appointmentSearchQuery.replace(/[^0-9]/g, '');
+    return name.includes(appointmentSearchQuery) || (!!digits && /^[+()\s\d.-]+$/.test(appointmentSearchQuery) && phone.includes(digits));
+  }).sort((left, right) => (right.dateKey + right.time).localeCompare(left.dateKey + left.time)) : [];
+
   const [listaClientes, setListaClientes] = useState<ClientRecord[]>(() => {
     const saved = localStorage.getItem('lst_studio_clientes_ids');
     return saved ? readStoredValue('lst_studio_clientes_ids', saved) : [
@@ -1895,6 +1912,40 @@ function StudioApp() {
       }
     ];
   });
+
+  const [clientDetailsDraft, setClientDetailsDraft] = useState<ClientRecord | null>(null);
+  const validateClientIdentity = (email: string, accessPin: string, excludeId?: number) => {
+    const normalizedEmail = normalizeEmail(email);
+    const normalizedPin = accessPin.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) return 'Introduce un email válido.';
+    if (!/^\d{4}$/.test(normalizedPin)) return 'El PIN debe tener exactamente 4 números.';
+    if (normalizedPin === bizConfig.masterPin) return 'El PIN de clienta no puede ser el PIN maestro.';
+    if (listaClientes.some(client => client.idNum !== excludeId && normalizeEmail(client.email) === normalizedEmail)) return 'Ya existe una clienta con este email.';
+    if (listaClientes.some(client => client.idNum !== excludeId && String(client.pinAcceso).trim() === normalizedPin)) return 'Este PIN ya está asignado a otra clienta. Elige otro.';
+    return null;
+  };
+  const saveClientDetails = (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!clientDetailsDraft) return;
+    const original = listaClientes.find(client => client.idNum === clientDetailsDraft.idNum);
+    if (!original) { alert('No encontramos la ficha original.'); return; }
+    if (!clientDetailsDraft.nombre.trim()) { alert('Indica el nombre de la clienta.'); return; }
+    const error = validateClientIdentity(clientDetailsDraft.email, clientDetailsDraft.pinAcceso, original.idNum);
+    if (error) { alert(error); return; }
+    const oldEmail = normalizeEmail(original.email);
+    if (oldEmail && listaClientes.filter(client => normalizeEmail(client.email) === oldEmail).length > 1) {
+      alert('Varias fichas comparten el email actual. Revisa esa duplicidad antes de actualizar las citas.'); return;
+    }
+    const updated = { ...original, nombre: clientDetailsDraft.nombre.trim(), apellidos: clientDetailsDraft.apellidos.trim(),
+      telefono: clientDetailsDraft.telefono.trim(), email: normalizeEmail(clientDetailsDraft.email),
+      pinAcceso: clientDetailsDraft.pinAcceso.trim(), fechaNacimiento: clientDetailsDraft.fechaNacimiento.trim() };
+    setListaClientes(previous => previous.map(client => client.idNum === original.idNum ? updated : client));
+    if (oldEmail) setAppointments(previous => previous.map(appointment => normalizeEmail(appointment.email) === oldEmail ? {
+      ...appointment, email: updated.email, phone: updated.telefono, clientName: (updated.nombre + ' ' + updated.apellidos).trim()
+    } : appointment));
+    setBusquedaCliente(updated.registroId || updated.email); setClientDetailsDraft(null);
+    alert('Datos guardados y citas vinculadas actualizadas.');
+  };
 
   const [isAddingClient, setIsAddingClient] = useState(false);
   const [novoNombre, setNovoNombre] = useState("");
@@ -1929,6 +1980,7 @@ function StudioApp() {
     alert('Pasaporte guardado. Los cambios se reflejan en el portal de esta clienta en este navegador.');
   };
   const [rescheduleModalAppt, setRescheduleModalAppt] = useState<Appointment | null>(null);
+  const [repeatAppointmentMode, setRepeatAppointmentMode] = useState(false);
   const [newRescheduleTime, setNewRescheduleTime] = useState<string>('10:00');
   const [newRescheduleDate, setNewRescheduleDate] = useState<string>(formatDateKey(new Date()));
 
@@ -2004,6 +2056,8 @@ function StudioApp() {
   const handleGuardarNuevoCliente = (e: React.FormEvent) => {
     e.preventDefault();
     if (!novoNombre.trim()) return;
+    const identityError = validateClientIdentity(novoEmail, novoPin);
+    if (identityError) { alert(identityError); return; }
     const siguienteIdNum = listaClientes.length > 0 ? Math.max(...listaClientes.map(c => c.idNum || 0)) + 1 : 1;
     const idFormateado = `LSTUDIO-${String(siguienteIdNum).padStart(3, '0')}`;
     const nuevoCliente: ClientRecord = {
@@ -2013,8 +2067,8 @@ function StudioApp() {
       apellidos: novoApellidos.trim() || 'Sin apellidos',
       fechaNacimiento: novoNacimiento.trim() || '01/01/1990',
       telefono: novoTelefono.trim() || 'No facilitado',
-      email: novoEmail.trim() || 'sinemail@gmail.com',
-      pinAcceso: novoPin.trim() || '0000',
+      email: normalizeEmail(novoEmail),
+      pinAcceso: novoPin.trim(),
       diagnostico: novoDiagnostico.trim() || 'Diagnóstico inicial pendiente',
       ultimaVisita: 'Nuevo registro',
       proximaVisitaSugerida: 'Pendiente de agendar',
@@ -2030,6 +2084,8 @@ function StudioApp() {
   const handleRegistroClientaPortalSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!regNombre.trim() || !regEmail.trim() || !regPin.trim()) return;
+    const identityError = validateClientIdentity(regEmail, regPin);
+    if (identityError) { alert(identityError); return; }
     const siguienteIdNum = listaClientes.length > 0 ? Math.max(...listaClientes.map(c => c.idNum || 0)) + 1 : 1;
     const idFormateado = `LSTUDIO-${String(siguienteIdNum).padStart(3, '0')}`;
     const nuevaClienta: ClientRecord = {
@@ -2039,7 +2095,7 @@ function StudioApp() {
       apellidos: regApellidos.trim(),
       fechaNacimiento: regNacimiento.trim(),
       telefono: regTelefono.trim(),
-      email: regEmail.trim(),
+      email: normalizeEmail(regEmail),
       pinAcceso: regPin.trim(),
       diagnostico: 'Primera visita registrada desde app',
       ultimaVisita: 'Nuevo registro',
@@ -2077,7 +2133,7 @@ function StudioApp() {
       start < toMinutes(block.time) + block.durationMinutes && start + duration > toMinutes(block.time));
   };
   const chooseSlotAction = (date: Date, day: string, time: string) => {
-    const appt = appointments.find(item => item.dateKey === formatDateKey(date) && item.time === time);
+    const appt = appointments.find(item => isActiveAppointment(item) && item.dateKey === formatDateKey(date) && item.time === time);
     if (appt) { setViewApptModal(appt); return; }
     setBlockMode(false); setBlockDuration(30); setBlockReason(''); setSlotAction({ date, day, time });
   };
@@ -2091,6 +2147,27 @@ function StudioApp() {
   const [targetDayName, setTargetDayName] = useState<string>("");
   const [targetTime, setTargetTime] = useState<string>("");
   const [modalClientName, setModalClientName] = useState<string>("");
+  const [modalClientSearch, setModalClientSearch] = useState('');
+  const [quickClientMode, setQuickClientMode] = useState(false);
+  const [quickClientPin, setQuickClientPin] = useState('');
+  const [quickClientSurname, setQuickClientSurname] = useState('');
+  const [quickClientMessage, setQuickClientMessage] = useState('');
+  const saveQuickClient = () => {
+    if (!modalClientName.trim()) { alert('Indica el nombre de la clienta.'); return; }
+    const error = validateClientIdentity(modalEmail, quickClientPin);
+    if (error) { alert(error); return; }
+    const idNum = Math.max(0, ...listaClientes.map(client => client.idNum || 0)) + 1;
+    const client: ClientRecord = { idNum, registroId: 'LSTUDIO-' + String(idNum).padStart(3, '0'),
+      nombre: modalClientName.trim(), apellidos: quickClientSurname.trim(), fechaNacimiento: '',
+      telefono: modalPhone.trim(), email: normalizeEmail(modalEmail), pinAcceso: quickClientPin,
+      diagnostico: 'Pendiente de diagnóstico', ultimaVisita: 'Nuevo registro', proximaVisitaSugerida: '',
+      formulasAplicadas: '', dniCapilar: '', prescripcionCasa: '', pastVisits: [] };
+    setListaClientes(previous => [...previous, client]);
+    setModalClientName((client.nombre + ' ' + client.apellidos).trim()); setModalEmail(client.email);
+    setQuickClientMode(false); setQuickClientPin(''); setQuickClientSurname('');
+    setQuickClientMessage('Ficha creada: ' + client.registroId + '. Puedes continuar con los servicios.');
+  };
+
   const [modalPhone, setModalPhone] = useState<string>("");
   const [modalEmail, setModalEmail] = useState<string>("");
   const [modalCatIndex, setModalCatIndex] = useState<number>(0);
@@ -2141,6 +2218,21 @@ function StudioApp() {
     items.reduce((total, item) => total + (parseInt((item.variant?.duration || item.sub.duration).match(/\d+/)?.[0] || '45', 10)), 0);
 
   const [viewApptModal, setViewApptModal] = useState<Appointment | null>(null);
+  const [appointmentNoteDraft, setAppointmentNoteDraft] = useState('');
+  useEffect(() => { setAppointmentNoteDraft(viewApptModal?.internalNotes || ''); }, [viewApptModal?.id]);
+  const changeAppointmentStatus = (appointment: Appointment, status: 'cancelled' | 'no_show') => {
+    if (appointment.completedAt) { alert('Una visita realizada ya consta en el pasaporte.'); return; }
+    if (status === 'no_show' && new Date(appointment.dateKey + 'T' + appointment.time + ':00').getTime() > Date.now()) {
+      alert('La cita todavía no ha comenzado.'); return;
+    }
+    if (!window.confirm(status === 'cancelled' ? '¿Marcar esta cita como cancelada y liberar su hueco?' : '¿Registrar que la clienta no se ha presentado?')) return;
+    const updated = { ...appointment, internalNotes: appointmentNoteDraft, lifecycleStatus: status,
+      statusChangedAt: new Date().toISOString(),
+      remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false } };
+    setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
+    setViewApptModal(updated);
+  };
+
   const [showInstallBanner, setShowInstallBanner] = useState<boolean>(false);
 
   useEffect(() => {
@@ -2209,6 +2301,10 @@ function StudioApp() {
   };
 
   const handleSaveSection = (sectionName: string) => {
+    if (!/^\d{4}$/.test(tempConfig.masterPin)) { alert('El PIN maestro debe tener exactamente 4 números.'); return; }
+    if (listaClientes.some(client => String(client.pinAcceso).trim() === tempConfig.masterPin)) {
+      alert('Este PIN maestro ya pertenece a una clienta. Elige otro.'); return;
+    }
     if (!Number.isFinite(tempConfig.advancePaymentThresholdMinutes) || tempConfig.advancePaymentThresholdMinutes < 0 || !Number.isFinite(parseFloat(tempConfig.depositAmount.replace(',', '.'))) || parseFloat(tempConfig.depositAmount.replace(',', '.')) <= 0) { alert('Revisa el importe y la duración de la reserva anticipada.'); return; }
     const normalizedConfig = normalizeOpeningHours(tempConfig);
     localStorage.setItem('lst_business_config', JSON.stringify(normalizedConfig));
@@ -2237,7 +2333,7 @@ function StudioApp() {
     const id = e.dataTransfer.getData('text/plain') || draggedApptId;
     if (!id) return;
     const moving = appointments.find(a => a.id === id);
-    if (!moving) return;
+    if (!moving || !isActiveAppointment(moving)) return;
     if (!enableOutOfHours && !isAgendaTimeWorking(targetDate, time, moving.durationMinutes || 45)) {
       alert('La cita completa debe estar dentro del horario laboral.'); return;
     }
@@ -2257,7 +2353,7 @@ function StudioApp() {
       window.alert('Este día es festivo o de vacaciones. Está bloqueado en la agenda.');
       return;
     }
-    const existing = appointments.find(a => a.dateKey === targetDateKey && a.time === time);
+    const existing = appointments.find(a => isActiveAppointment(a) && a.dateKey === targetDateKey && a.time === time);
     if (existing && !enableDoubleBooking) {
       setViewApptModal(existing);
       return;
@@ -2268,6 +2364,7 @@ function StudioApp() {
     setTargetDateObj(targetDate);
     setTargetDayName(dayName);
     setTargetTime(time);
+    setModalClientSearch(''); setQuickClientMode(false); setQuickClientPin(''); setQuickClientSurname(''); setQuickClientMessage('');
     setModalClientName("");
     setModalPhone("");
     setModalEmail("");
@@ -2383,6 +2480,7 @@ function StudioApp() {
   const handleSaveModalAppointment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!modalClientName.trim()) return;
+    if (quickClientMode) { alert('Crea primero la ficha con «Crear ficha y continuar» o cancela el alta.'); return; }
     if (editingAppointment && !modalServices.length) { alert('Añade al menos un servicio a la cita.'); return; }
     const current = modalServices.length ? null : getModalService();
     const services = modalServices.length ? modalServices : current ? [current] : [];
@@ -2795,7 +2893,7 @@ function StudioApp() {
         const time = `${String(Math.floor(start / 60)).padStart(2, '0')}:${String(start % 60).padStart(2, '0')}`;
         if (new Date(`${formatDateKey(date)}T${time}:00`).getTime() <= Date.now()) continue;
         const overlaps = appointments.some(appointment => {
-          if (appointment.dateKey !== formatDateKey(date) || appointment.saturdayApproval?.status === 'rejected') return false;
+          if (!isActiveAppointment(appointment) || appointment.dateKey !== formatDateKey(date) || appointment.saturdayApproval?.status === 'rejected') return false;
           const [hour, minute] = appointment.time.split(':').map(Number);
           const bookedStart = hour * 60 + minute;
           return start < bookedStart + (appointment.durationMinutes || 45) && start + duration > bookedStart;
@@ -2818,7 +2916,7 @@ function StudioApp() {
     const checkTotalMinutes = checkHour * 60 + checkMin;
     if (timeBlockConflict(dateKey, timeStr)) return true;
     return appointments.some(appt => {
-      if (appt.dateKey !== dateKey) return false;
+      if (!isActiveAppointment(appt) || appt.dateKey !== dateKey) return false;
       const [apptHour, apptMin] = appt.time.split(':').map(Number);
       const apptStartMinutes = apptHour * 60 + apptMin;
       const duration = appt.durationMinutes || 45;
@@ -2861,14 +2959,14 @@ function StudioApp() {
     const start = hour * 60 + minute;
     const end = start + (appointment.durationMinutes || 45);
     return appointments.find(other => {
-      if (other.id === appointment.id || other.dateKey !== dateKey || other.saturdayApproval?.status === 'rejected') return false;
+      if (!isActiveAppointment(other) || other.id === appointment.id || other.dateKey !== dateKey || other.saturdayApproval?.status === 'rejected') return false;
       const [otherHour, otherMinute] = other.time.split(':').map(Number);
       const otherStart = otherHour * 60 + otherMinute;
       return start < otherStart + (other.durationMinutes || 45) && end > otherStart;
     });
   };
   const markAppointmentCompleted = (appointment: Appointment) => {
-    if (appointment.completedAt) return;
+    if (appointment.completedAt || !isActiveAppointment(appointment)) return;
     if (appointment.saturdayApproval?.status === 'pending' || appointment.advancePayment?.status === 'pending') { alert('Resuelve primero la aprobación y el pago pendiente.'); return; }
     const client = listaClientes.find(item => !!normalizeEmail(appointment.email) && normalizeEmail(item.email) === normalizeEmail(appointment.email));
     if (!client) { alert('No hay una clienta registrada con el email de esta cita. Revisa su ficha antes de registrar la visita.'); return; }
@@ -2890,7 +2988,7 @@ function StudioApp() {
     : { background: '#202a23', border: '#526d59' };
 
   const clientNextAppointment = currentClientRecord ? appointments
-    .filter(appointment => !!normalizeEmail(currentClientRecord.email) && normalizeEmail(appointment.email) === normalizeEmail(currentClientRecord.email)
+    .filter(appointment => isActiveAppointment(appointment) && !!normalizeEmail(currentClientRecord.email) && normalizeEmail(appointment.email) === normalizeEmail(currentClientRecord.email)
       && new Date(`${appointment.dateKey}T${appointment.time}:00`).getTime() >= Date.now()
       && !appointment.completedAt && appointment.saturdayApproval?.status !== 'rejected')
     .sort((a, b) => `${a.dateKey}T${a.time}`.localeCompare(`${b.dateKey}T${b.time}`))[0] : undefined;
@@ -2899,11 +2997,11 @@ function StudioApp() {
 
 
   const renderAgendaLinks = () => <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '4px 5px 10px 12px' }}>
-    {(['day', 'pending'] as const).map(panel => <button key={panel} type="button" onClick={() => { setAdminTab('agenda'); setAgendaSidePanel(panel); }}
+    {(['day', 'pending'] as const).map(panel => <button key={panel} type="button" onClick={() => { setAdminTab('agenda'); setPendingPanelFilter('all'); setAgendaSidePanel(panel); }}
       style={{ textAlign: 'left', background: 'transparent', color: '#cab77d', border: '1px solid #34332d',
         borderRadius: '6px', padding: '9px 7px', fontSize: '11px', cursor: 'pointer' }}>
       {panel === 'day' ? 'Citas del día' : 'Pendientes'} · {panel === 'day' ? appointments.filter(item => item.dateKey === formatDateKey(fechaSeleccionada)).length :
-        appointments.filter(item => item.saturdayApproval?.status === 'pending' || item.advancePayment?.status === 'pending').length}
+        appointments.filter(item => isActiveAppointment(item) && (item.saturdayApproval?.status === 'pending' || item.advancePayment?.status === 'pending')).length}
     </button>)}
   </div>;
 
@@ -2913,7 +3011,7 @@ function StudioApp() {
       gridTemplateRows: 'auto repeat(' + hoursList.length + ', 30px)', gap: '2px',
       minWidth: days.length > 1 ? '700px' : '280px' }}>
       <div style={{ gridRow: 1, gridColumn: 1, color: '#aaa', padding: '8px', fontSize: '12px' }}>Hora</div>
-      {days.map((day, column) => <div key={'header-' + column} className="studio-agenda-day-heading" style={{ gridRow: 1, gridColumn: column + 2,
+      {days.map((day, column) => <div key={'header-' + column} className={`studio-agenda-day-heading ${formatDateKey(day.dateObj) === formatDateKey(agendaNow) ? 'studio-agenda-today' : ''}`} style={{ gridRow: 1, gridColumn: column + 2,
         background: '#1e1e1e', color: '#cab77d', textAlign: 'center', padding: '8px', fontSize: '12px',
         borderBottom: '1px solid #4c4535' }}><strong>{day.name}</strong><div>{day.dateFormatted}</div>
       </div>)}
@@ -2923,9 +3021,9 @@ function StudioApp() {
           const key = formatDateKey(day.dateObj);
           const holiday = isDateBlockedByHoliday(key);
           const working = !holiday && (enableOutOfHours || isAgendaTimeWorking(day.dateObj, time));
-          const occupied = appointments.some(item => item.dateKey === key && item.saturdayApproval?.status !== 'rejected' &&
+          const occupied = appointments.some(item => isActiveAppointment(item) && item.dateKey === key && item.saturdayApproval?.status !== 'rejected' &&
             minutes(time) >= minutes(item.time) && minutes(time) < minutes(item.time) + (item.durationMinutes || 45));
-          return <button key={key} className="studio-agenda-slot" type="button" disabled={!working || timeBlockConflict(key, time) || (occupied && !enableDoubleBooking)}
+          return <button key={key} className={`studio-agenda-slot ${formatDateKey(day.dateObj) === formatDateKey(agendaNow) ? 'studio-agenda-today' : ''}`} type="button" disabled={!working || timeBlockConflict(key, time) || (occupied && !enableDoubleBooking)}
             aria-label={day.name + ' ' + day.dateFormatted + ' ' + time + (working ? ' Crear cita' : ' No disponible')}
             onClick={() => chooseSlotAction(day.dateObj, day.name, time)} onDragOver={handleDragOver}
             onDrop={event => handleDrop(event, day.dateObj, day.name, time)}
@@ -2934,6 +3032,19 @@ function StudioApp() {
               padding: '2px', fontSize: '10px' }}>{holiday ? 'Cerrado' : ''}</button>;
         })}
       </React.Fragment>)}
+      {(() => {
+        const column = days.findIndex(day => formatDateKey(day.dateObj) === formatDateKey(agendaNow));
+        const nowMinute = agendaNow.getHours() * 60 + agendaNow.getMinutes();
+        const row = hoursList.findIndex((time, index) => nowMinute >= minutes(time) &&
+          nowMinute < Math.min(minutes(time) + agendaStep, index + 1 < hoursList.length ? minutes(hoursList[index + 1]) : 1440));
+        if (column < 0 || row < 0) return null;
+        const offset = Math.min(1, (nowMinute - minutes(hoursList[row])) / agendaStep) * 30;
+        return <div aria-label={'Hora actual: ' + agendaNow.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+          style={{ gridRow: row + 2, gridColumn: column + 2, position: 'relative', alignSelf: 'start',
+            top: offset, height: 0, borderTop: '1px solid #d8bd82', zIndex: 5, pointerEvents: 'none' }}>
+          <span style={{ position: 'absolute', left: '-3px', top: '-3px', width: '5px', height: '5px', borderRadius: '50%', background: '#d8bd82' }} />
+        </div>;
+      })()}
       {days.flatMap((day, column) => timeBlocks.filter(block => block.dateKey === formatDateKey(day.dateObj)).map(block => {
         const row = hoursList.indexOf(block.time), start = minutes(block.time);
         const span = Math.max(1, hoursList.filter(time => minutes(time) >= start && minutes(time) < start + block.durationMinutes).length);
@@ -2945,7 +3056,7 @@ function StudioApp() {
         </button>;
       }))}
       {days.flatMap((day, column) => {
-        const daily = appointments.filter(item => item.dateKey === formatDateKey(day.dateObj) && item.saturdayApproval?.status !== 'rejected')
+        const daily = appointments.filter(item => isActiveAppointment(item) && item.dateKey === formatDateKey(day.dateObj) && item.saturdayApproval?.status !== 'rejected')
           .sort((left, right) => left.time.localeCompare(right.time));
         const laneEnds: number[] = [];
         const placed = daily.map(item => {
@@ -2973,7 +3084,7 @@ function StudioApp() {
             <strong style={{ fontSize: '11px' }}>{item.time}–{minuteTime(end)}</strong>
             <strong style={{ color: '#eee8dd', fontSize: '13px', overflowWrap: 'anywhere' }}>{item.clientName}</strong>
             <span style={{ fontSize: '11px', lineHeight: 1.35, overflowWrap: 'anywhere' }}>{item.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</span>
-            <span style={{ fontSize: '10px', color: '#bdb8ad' }}>{item.durationMinutes || 45} min · {item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Por aprobar' : item.advancePayment?.status === 'pending' ? 'Bizum pendiente' : 'Confirmada'}</span>
+            <span style={{ fontSize: '10px', color: '#bdb8ad' }}>{item.durationMinutes || 45} min · {item.lifecycleStatus === 'cancelled' ? 'Cancelada' : item.lifecycleStatus === 'no_show' ? 'No presentada' : item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Por aprobar' : item.advancePayment?.status === 'pending' ? 'Bizum pendiente' : 'Confirmada'}</span>
           </button>;
         });
       })}
@@ -3123,7 +3234,7 @@ function StudioApp() {
               <p style={{ color: '#d0ccc3', margin: 0, lineHeight: 1.6, fontSize: '14px', overflowWrap: 'anywhere' }}>{clientNextAppointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
               <p style={{ color: '#a5a095', margin: 0, fontSize: '12px' }}>Con Ana · {bizConfig.location}</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', paddingTop: '4px' }}>
-                <button type="button" onClick={() => { setRescheduleModalAppt(clientNextAppointment); setNewRescheduleTime(clientNextAppointment.time); setNewRescheduleDate(clientNextAppointment.dateKey); }} style={{ background: 'transparent', border: '1px solid #76683e', color: '#ddd0a4', minHeight: '44px', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>{t('changeDate')}</button>
+                <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(clientNextAppointment); setNewRescheduleTime(clientNextAppointment.time); setNewRescheduleDate(clientNextAppointment.dateKey); }} style={{ background: 'transparent', border: '1px solid #76683e', color: '#ddd0a4', minHeight: '44px', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>{t('changeDate')}</button>
                 <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola Ana, quiero consultar mi cita del ${clientNextAppointment.dateKey.split('-').reverse().join('/')} a las ${clientNextAppointment.time}.`)}`} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', color: '#ddd0a4', padding: '10px 0', minHeight: '24px', fontSize: '13px' }}>{t('askAppointment')}</a>
               </div>
             </> : <>
@@ -3448,10 +3559,19 @@ function StudioApp() {
 
       {/* 4. PANEL DE ADMINISTRACIÓN */}
       {currentScreen === 'adminPanel' && (
-        <div className="studio-admin-shell" style={{ maxWidth: '1680px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className={`studio-admin-shell ${agendaExpanded && adminTab === 'agenda' ? 'studio-agenda-expanded' : ''}`} style={{ maxWidth: '1680px', width: '100%', backgroundColor: '#121212', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <style>{`
             .studio-desktop-nav { display: none; }
-            .studio-admin-shell { background: #131412 !important; border-color: #30312c !important; color: #e8e5dc; font-family: Arial, sans-serif; }
+            
+            .studio-agenda-expanded .studio-desktop-nav,
+            .studio-agenda-expanded .studio-mobile-nav,
+            .studio-agenda-expanded .studio-calendar-tools { display: none !important; }
+            .studio-agenda-expanded { grid-template-columns: minmax(0, 1fr) !important; max-width: 100% !important; }
+            .studio-agenda-expanded .studio-agenda-layout { grid-template-columns: minmax(0, 1fr) !important; }
+            .studio-agenda-day-heading.studio-agenda-today { background: #292a21 !important; color: #e2d6af !important; border-bottom: 2px solid #c6b27d !important; }
+            .studio-agenda-slot.studio-agenda-today { background: #1e201a !important; }
+            .studio-mini-day { border-radius: 50% !important; width: 25px; height: 25px; padding: 0 !important; justify-self: center; }
+.studio-admin-shell { background: #131412 !important; border-color: #30312c !important; color: #e8e5dc; font-family: Arial, sans-serif; }
             .studio-admin-header { border-color: #30312c !important; }
             .studio-admin-header h2 { color: #c6b27d !important; font-weight: normal; }
             .studio-desktop-nav { background: #151613 !important; border-color: #30312c !important; border-radius: 10px !important; }
@@ -3552,6 +3672,10 @@ function StudioApp() {
               <div className="studio-calendar-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px', minWidth: 0, overflowX: 'auto' }}>
 
 <div className="studio-agenda-toolbar">
+
+<button type="button" aria-pressed={agendaExpanded} onClick={() => setAgendaExpanded(previous => !previous)}
+style={{ padding: '9px 14px', background: '#24251f', color: '#d3c9af', border: '1px solid #414239', borderRadius: '7px', cursor: 'pointer' }}>
+{agendaExpanded ? 'Volver a vista normal' : 'Ampliar agenda'}</button>
                 <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '16px', marginBottom: '0' }}>
                   <div><h2 style={{ color: '#eee8dd', fontFamily: 'serif', fontSize: '22px', fontWeight: 'normal', margin: 0 }}>Agenda Maestra</h2></div>
                   <button type="button" onClick={() => setFechaSeleccionada(new Date())} style={{ padding: '9px 14px', background: '#242219', border: '1px solid #5c5340', color: '#ddd0a4', borderRadius: '8px', cursor: 'pointer' }}>Ir a hoy</button>
@@ -3574,9 +3698,13 @@ style={{ padding: '8px', background: '#191919', color: '#eee8dd', border: '1px s
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {[
                     { label: 'Citas del día', value: appointments.filter(item => item.dateKey === formatDateKey(fechaSeleccionada)).length, color: '#ddd6c7' },
-                    { label: 'Solicitudes por revisar', value: appointments.filter(item => item.saturdayApproval?.status === 'pending').length, color: '#d7b76c' },
-                    { label: 'Bizum por confirmar', value: appointments.filter(item => item.advancePayment?.status === 'pending').length, color: '#a8bad9' }
-                  ].map(item => <div className="studio-agenda-stat" key={item.label} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 12px', backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '7px' }}><span style={{ display: 'block', color: '#aaa59b', fontSize: '13px' }}>{item.label}</span><strong style={{ color: item.color, fontSize: '15px' }}>{item.value}</strong></div>)}
+                    { label: 'Solicitudes por revisar', value: appointments.filter(item => isActiveAppointment(item) && item.saturdayApproval?.status === 'pending').length, color: '#d7b76c' },
+                    { label: 'Bizum por confirmar', value: appointments.filter(item => isActiveAppointment(item) && item.advancePayment?.status === 'pending').length, color: '#a8bad9' }
+                  ].map(item => <button type="button" className="studio-agenda-stat" aria-label={'Abrir ' + item.label}
+                    onClick={() => {
+                      if (item.label === 'Citas del día') setAgendaSidePanel('day');
+                      else { setPendingPanelFilter(item.label === 'Solicitudes por revisar' ? 'approval' : 'payment'); setAgendaSidePanel('pending'); }
+                    }} key={item.label} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 12px', backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '7px' }}><span style={{ display: 'block', color: '#aaa59b', fontSize: '13px' }}>{item.label}</span><strong style={{ color: item.color, fontSize: '15px' }}>{item.value}</strong></button>)}
                 </div>
                 <section aria-label="Buscar citas" style={{ padding: '10px', border: '1px solid #34332d', borderRadius: '8px', background: '#171717' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -3594,6 +3722,7 @@ style={{ padding: '8px', background: '#191919', color: '#eee8dd', border: '1px s
                         padding: '10px', border: '1px solid #34332d', borderRadius: '6px', background: '#1d1d1d' }}>
                         <div style={{ flex: '1 1 170px', fontSize: '12px', lineHeight: 1.5, overflowWrap: 'anywhere' }}>
                           <strong style={{ color: '#eee8dd' }}>{appointment.clientName}</strong>
+                          {appointment.lifecycleStatus && <span style={{ marginLeft: '8px', color: '#bdb8ad' }}>{appointment.lifecycleStatus === 'cancelled' ? 'Cancelada' : 'No presentada'}</span>}
                           <div style={{ color: '#cab77d' }}>{appointment.dateKey.split('-').reverse().join('/')} · {appointment.time} · {appointment.phone}</div>
                           <div style={{ color: '#aaa' }}>{appointment.serviceSubcategory.replace(/^RESERVADO\s*/, '')}</div>
                         </div>
@@ -3648,7 +3777,7 @@ style={{ padding: '8px', background: '#191919', color: '#eee8dd', border: '1px s
                       const isBlocked = isDateBlockedByHoliday(dKey);
                       const isSelected = dKey === formatDateKey(fechaSeleccionada);
                       return (
-                        <button key={i} onClick={() => setFechaSeleccionada(dateObj)} style={{ backgroundColor: isBlocked ? '#441111' : (isSelected ? '#c6b27d' : '#1c1c1c'), color: isBlocked ? '#ff8888' : (isSelected ? '#000' : '#ccc'), border: isBlocked ? '1px solid #ff4444' : 'none', borderRadius: '4px', padding: '5px 0', fontSize: '13px', cursor: 'pointer', fontWeight: isSelected ? 'bold' : 'normal' }}>
+                        <button className="studio-mini-day" key={i} onClick={() => setFechaSeleccionada(dateObj)} style={{ backgroundColor: isBlocked ? '#441111' : (isSelected ? '#c6b27d' : '#1c1c1c'), color: isBlocked ? '#ff8888' : (isSelected ? '#000' : '#ccc'), border: isBlocked ? '1px solid #ff4444' : 'none', borderRadius: '4px', padding: '5px 0', fontSize: '13px', cursor: 'pointer', fontWeight: isSelected ? 'bold' : 'normal' }}>
                           {dateObj.getDate()}
                         </button>
                       );
@@ -4178,6 +4307,16 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
           {/* TAB 4: CLIENTES & ADN CAPILAR */}
           {adminTab === 'clients' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {returnToAppointmentId && <button type="button" onClick={() => {
+                const appointment = appointments.find(item => item.id === returnToAppointmentId);
+                setAdminTab('agenda'); setReturnToAppointmentId(null);
+                if (appointment) {
+                  const date = new Date(appointment.dateKey + 'T12:00:00');
+                  setFechaSeleccionada(date); setMesNavegacion(new Date(date.getFullYear(), date.getMonth(), 1));
+                  setViewApptModal(appointment);
+                } else alert('Esta cita ya no existe. Puedes buscar otra en la agenda.');
+              }} style={{ alignSelf: 'flex-start', padding: '10px 14px', background: '#242219', color: '#ddd0a4',
+                border: '1px solid #76683e', borderRadius: '7px', cursor: 'pointer' }}>← Volver a la cita</button>}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
                   <h3 style={{ color: '#c6b27d', fontSize: '28px', fontWeight: 'normal', fontFamily: 'serif', margin: '0 0 4px 0' }}>Clientas · Cuidado y seguimiento</h3>
@@ -4242,6 +4381,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                             }} style={{ background: 'transparent', border: '1px solid #c6b27d', color: '#c6b27d', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>
                               {isEditing ? 'Cerrar Edición' : 'Editar ficha y fórmulas'}
                             </button>
+                            <button type="button" onClick={() => setClientDetailsDraft({ ...c })} style={{ background: '#242219', border: '1px solid #76683e', color: '#ddd0a4', borderRadius: '6px', padding: '8px 12px', cursor: 'pointer', fontSize: '12px' }}>Editar datos y acceso</button>
                             <button type="button" onClick={() => openPassportEditor(c)} style={{ background: '#242219', border: '1px solid #5c5340', color: '#ddd0a4', borderRadius: '6px', padding: '8px 12px', cursor: 'pointer', fontSize: '12px' }}>Editar pasaporte e historial</button>
                             <button onClick={() => handleBorrarCliente(c.idNum)} title="Eliminar clienta" style={{ background: 'transparent', border: 'none', color: '#ff4444', fontSize: '14px', cursor: 'pointer' }}> X </button>
                           </div>
@@ -4526,6 +4666,25 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
           </div>
         </div>
       )}
+      {clientDetailsDraft && currentScreen === 'adminPanel' && <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'grid', placeItems: 'center', zIndex: 2450, padding: '16px' }}>
+        <form role="dialog" aria-modal="true" aria-labelledby="client-details-title" onSubmit={saveClientDetails}
+          style={{ background: '#141414', border: '1px solid #76683e', borderRadius: '12px', padding: '22px',
+            width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
+          <h3 id="client-details-title" style={{ color: '#cab77d' }}>Datos y acceso · {clientDetailsDraft.nombre}</h3>
+          {(['nombre', 'apellidos', 'telefono', 'email', 'pinAcceso', 'fechaNacimiento'] as const).map(field => <label key={field} style={{ display: 'block', color: '#bdb8ad', fontSize: '13px', marginBottom: '12px' }}>
+            {({ nombre: 'Nombre', apellidos: 'Apellidos', telefono: 'Teléfono', email: 'Email', pinAcceso: 'PIN de acceso · 4 números', fechaNacimiento: 'Fecha de nacimiento' })[field]}
+            <input value={clientDetailsDraft[field]} type={field === 'email' ? 'email' : field === 'pinAcceso' ? 'password' : field === 'telefono' ? 'tel' : 'text'}
+              required={field === 'nombre' || field === 'email' || field === 'pinAcceso'}
+              maxLength={field === 'pinAcceso' ? 4 : undefined} inputMode={field === 'pinAcceso' ? 'numeric' : undefined}
+              onChange={event => setClientDetailsDraft({ ...clientDetailsDraft, [field]: field === 'pinAcceso' ? event.target.value.replace(/[^0-9]/g, '').slice(0, 4) : event.target.value })}
+              style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '11px', marginTop: '6px', background: '#202020', color: '#eee8dd', border: '1px solid #555', borderRadius: '6px', fontSize: '15px' }} />
+          </label>)}
+          <p style={{ color: '#aaa', fontSize: '12px', lineHeight: 1.6 }}>Al cambiar el email, nombre o teléfono se actualizarán las citas vinculadas a esta ficha.</p>
+          <button type="submit" style={{ padding: '12px', background: '#c6b27d', border: 0, borderRadius: '6px', cursor: 'pointer' }}>Guardar datos</button>
+          <button type="button" onClick={() => setClientDetailsDraft(null)} style={{ padding: '12px', marginLeft: '10px', background: 'none', color: '#bbb', border: '1px solid #555', borderRadius: '6px', cursor: 'pointer' }}>Cancelar</button>
+        </form>
+      </div>}
+
       {passportDraft && currentScreen === 'adminPanel' && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', zIndex: 2400 }}>
           <div role="dialog" aria-modal="true" aria-labelledby="passport-editor-title" style={{ width: '100%', maxWidth: '660px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#141414', border: '1px solid #76683e', borderRadius: '14px', padding: '22px', boxSizing: 'border-box', color: '#eee8dd' }}>
@@ -4615,7 +4774,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
           style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 'min(440px, 92vw)', overflowY: 'auto',
             boxSizing: 'border-box', padding: '20px', background: '#141414', borderRight: '1px solid #76683e' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-            <h3 id="agenda-side-title" style={{ color: '#cab77d', fontFamily: 'serif', fontWeight: 'normal' }}>{agendaSidePanel === 'day' ? 'Citas del día' : 'Solicitudes y pagos pendientes'}</h3>
+            <h3 id="agenda-side-title" style={{ color: '#cab77d', fontFamily: 'serif', fontWeight: 'normal' }}>{agendaSidePanel === 'day' ? 'Citas del día' : pendingPanelFilter === 'approval' ? 'Solicitudes por aprobar' : pendingPanelFilter === 'payment' ? 'Bizum por confirmar' : 'Solicitudes y pagos pendientes'}</h3>
             <button autoFocus type="button" onClick={() => setAgendaSidePanel(null)} style={{ padding: '10px', background: 'none', color: '#ddd', border: '1px solid #555', borderRadius: '5px', cursor: 'pointer' }}>Cerrar</button>
           </div>
           {agendaSidePanel === 'day' ? (
@@ -4625,7 +4784,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {appointments.filter(item => item.dateKey === formatDateKey(fechaSeleccionada)).sort((a, b) => a.time.localeCompare(b.time)).map(item => <button type="button" key={item.id} onClick={() => setViewApptModal(item)} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '16px', textAlign: 'left', backgroundColor: adminAppointmentColor(item).background, border: `1px solid ${adminAppointmentColor(item).border}`, borderRadius: '10px', padding: '16px', cursor: 'pointer', color: '#eee8dd', width: '100%' }}>
                       <div style={{ minWidth: '55px' }}><strong style={{ fontSize: '19px' }}>{item.time}</strong><span style={{ display: 'block', color: '#bdb8ad', fontSize: '12px', marginTop: '6px' }}>{item.durationMinutes || 45} min</span></div>
-                      <div style={{ flex: '1 1 180px', fontSize: '14px', lineHeight: 1.6, overflowWrap: 'anywhere' }}><strong>{item.clientName}</strong><span style={{ display: 'block', color: '#d0ccc3' }}>{item.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</span><span style={{ display: 'block', fontSize: '12px', color: '#bdb8ad', marginTop: '8px' }}>{item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : item.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Confirmada'} · Ver detalles</span></div>
+                      <div style={{ flex: '1 1 180px', fontSize: '14px', lineHeight: 1.6, overflowWrap: 'anywhere' }}><strong>{item.clientName}</strong><span style={{ display: 'block', color: '#d0ccc3' }}>{item.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</span><span style={{ display: 'block', fontSize: '12px', color: '#bdb8ad', marginTop: '8px' }}>{item.lifecycleStatus === 'cancelled' ? 'Cancelada' : item.lifecycleStatus === 'no_show' ? 'No presentada' : item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : item.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Confirmada'} · Ver detalles</span></div>
                     </button>)}
                     {!appointments.some(item => item.dateKey === formatDateKey(fechaSeleccionada)) && <p style={{ color: '#aaa59b', fontSize: '14px', lineHeight: 1.6 }}>No hay citas registradas para este día. Puedes crear una con «Nueva cita» o elegir un hueco en el calendario.</p>}
                   </div>
@@ -4634,8 +4793,8 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 <details open style={{ marginTop: '14px', padding: '16px', backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '10px' }}>
                   <summary style={{ color: '#cab77d', cursor: 'pointer', fontSize: '14px' }}>Revisar solicitudes y pagos pendientes</summary>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '14px' }}>
-<h4 style={{ color: '#d7b76c', fontSize: '13px' }}>Solicitudes por aprobar</h4>                    {appointments.filter(item => item.saturdayApproval?.status === 'pending').map(item => <button type="button" key={item.id} onClick={() => setViewApptModal(item)} style={{ textAlign: 'left', padding: '14px', background: '#141414', border: '1px solid #34332d', borderRadius: '8px', color: '#ddd6c7', cursor: 'pointer', fontSize: '13px', lineHeight: 1.7 }}><strong>{item.clientName}</strong> · {item.dateKey.split('-').reverse().join('/')} · {item.time}<span style={{ display: 'block', color: item.saturdayApproval?.status === 'pending' ? '#d7b76c' : '#a8bad9' }}>{item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : 'Pendiente de Bizum'}</span></button>)}<h4 style={{ color: '#a8bad9', fontSize: '13px' }}>Bizum por confirmar</h4>                    {appointments.filter(item => item.advancePayment?.status === 'pending' && item.saturdayApproval?.status !== 'pending').map(item => <button type="button" key={item.id} onClick={() => setViewApptModal(item)} style={{ textAlign: 'left', padding: '14px', background: '#141414', border: '1px solid #34332d', borderRadius: '8px', color: '#ddd6c7', cursor: 'pointer', fontSize: '13px', lineHeight: 1.7 }}><strong>{item.clientName}</strong> · {item.dateKey.split('-').reverse().join('/')} · {item.time}<span style={{ display: 'block', color: item.saturdayApproval?.status === 'pending' ? '#d7b76c' : '#a8bad9' }}>{item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : 'Pendiente de Bizum'}</span></button>)}
-                    {!appointments.some(item => item.saturdayApproval?.status === 'pending' || item.advancePayment?.status === 'pending') && <p style={{ color: '#aaa59b', fontSize: '13px' }}>No hay solicitudes ni pagos pendientes.</p>}
+{pendingPanelFilter !== 'payment' && <h4 style={{ color: '#d7b76c', fontSize: '13px' }}>Solicitudes por aprobar</h4>}                    {appointments.filter(item => pendingPanelFilter !== 'payment' && isActiveAppointment(item) && item.saturdayApproval?.status === 'pending').map(item => <button type="button" key={item.id} onClick={() => setViewApptModal(item)} style={{ textAlign: 'left', padding: '14px', background: '#141414', border: '1px solid #34332d', borderRadius: '8px', color: '#ddd6c7', cursor: 'pointer', fontSize: '13px', lineHeight: 1.7 }}><strong>{item.clientName}</strong> · {item.dateKey.split('-').reverse().join('/')} · {item.time}<span style={{ display: 'block', color: item.saturdayApproval?.status === 'pending' ? '#d7b76c' : '#a8bad9' }}>{item.lifecycleStatus === 'cancelled' ? 'Cancelada' : item.lifecycleStatus === 'no_show' ? 'No presentada' : item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : 'Pendiente de Bizum'}</span></button>)}{pendingPanelFilter !== 'approval' && <h4 style={{ color: '#a8bad9', fontSize: '13px' }}>Bizum por confirmar</h4>}                    {appointments.filter(item => pendingPanelFilter !== 'approval' && isActiveAppointment(item) && item.advancePayment?.status === 'pending' && item.saturdayApproval?.status !== 'pending').map(item => <button type="button" key={item.id} onClick={() => setViewApptModal(item)} style={{ textAlign: 'left', padding: '14px', background: '#141414', border: '1px solid #34332d', borderRadius: '8px', color: '#ddd6c7', cursor: 'pointer', fontSize: '13px', lineHeight: 1.7 }}><strong>{item.clientName}</strong> · {item.dateKey.split('-').reverse().join('/')} · {item.time}<span style={{ display: 'block', color: item.saturdayApproval?.status === 'pending' ? '#d7b76c' : '#a8bad9' }}>{item.lifecycleStatus === 'cancelled' ? 'Cancelada' : item.lifecycleStatus === 'no_show' ? 'No presentada' : item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : 'Pendiente de Bizum'}</span></button>)}
+                    {!appointments.some(item => isActiveAppointment(item) && ((pendingPanelFilter !== 'payment' && item.saturdayApproval?.status === 'pending') || (pendingPanelFilter !== 'approval' && item.saturdayApproval?.status !== 'pending' && item.advancePayment?.status === 'pending'))) && <p style={{ color: '#aaa59b', fontSize: '13px' }}>No hay solicitudes ni pagos pendientes.</p>}
                   </div>
                 </details>
           )}
@@ -4650,20 +4809,49 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
             <p style={{ color: '#cab77d', fontSize: '14px', margin: 0 }}>{targetDateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {targetTime}</p>
             <form onSubmit={handleSaveModalAppointment} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <h4 style={{ color: '#eee8dd', fontSize: '16px', margin: '8px 0' }}>1. Datos de la clienta</h4>
-              <label style={{ color: '#bdb8ad', fontSize: '13px' }}>Elegir una clienta registrada
-                <select defaultValue="" onChange={e => {
-                  const client = listaClientes.find(item => String(item.idNum) === e.target.value);
-                  if (client) { setModalClientName(`${client.nombre} ${client.apellidos}`.trim()); setModalPhone(client.telefono); setModalEmail(client.email); }
-                  else { setModalClientName(''); setModalPhone(''); setModalEmail(''); }
-                }} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '12px', backgroundColor: '#191919', color: '#eee8dd', border: '1px solid #76683e', borderRadius: '6px', marginTop: '8px', fontSize: '14px' }}>
-                  <option value="">Introducir datos manualmente</option>
-                  {listaClientes.map(client => <option key={client.idNum} value={client.idNum}>{client.nombre} {client.apellidos} · {client.email}</option>)}
-                </select>
-              </label>
+              {!editingAppointment && <section style={{ background: '#191919', border: '1px solid #34332d', borderRadius: '8px', padding: '12px' }}>
+                <label htmlFor="new-appointment-client-search" style={{ color: '#cab77d', fontSize: '13px' }}>Buscar clienta registrada</label>
+                <input id="new-appointment-client-search" type="search" value={modalClientSearch} onChange={event => setModalClientSearch(event.target.value)}
+                  placeholder="Nombre, teléfono o email" style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '11px', marginTop: '8px',
+                    background: '#121212', color: '#eee8dd', border: '1px solid #555', borderRadius: '6px', fontSize: '15px' }} />
+                {!!modalClientSearch.trim() && <div style={{ maxHeight: '180px', overflowY: 'auto', marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                  {listaClientes.filter(client => {
+                    const query = normalizeCatalogSearch(modalClientSearch);
+                    const digits = modalClientSearch.replace(/[^0-9]/g, '');
+                    return normalizeCatalogSearch(client.nombre + ' ' + client.apellidos + ' ' + client.email).includes(query) ||
+                      (!!digits && /^[+()\s\d.-]+$/.test(modalClientSearch) && client.telefono.replace(/[^0-9]/g, '').includes(digits));
+                  }).map(client => <button type="button" key={client.idNum} onClick={() => {
+                    setModalClientName((client.nombre + ' ' + client.apellidos).trim()); setModalPhone(client.telefono); setModalEmail(client.email);
+                    setQuickClientMode(false); setQuickClientPin(''); setQuickClientMessage('Clienta seleccionada: ' + client.registroId); setModalClientSearch('');
+                  }} style={{ textAlign: 'left', padding: '10px', background: '#22221c', border: '1px solid #444', color: '#eee8dd', borderRadius: '5px', cursor: 'pointer' }}>
+                    <strong>{client.nombre} {client.apellidos}</strong><span style={{ display: 'block', color: '#aaa', fontSize: '11px', marginTop: '4px' }}>{client.telefono} · {client.email}</span>
+                  </button>)}
+                  {!listaClientes.some(client => {
+                    const query = normalizeCatalogSearch(modalClientSearch), digits = modalClientSearch.replace(/[^0-9]/g, '');
+                    return normalizeCatalogSearch(client.nombre + ' ' + client.apellidos + ' ' + client.email).includes(query) ||
+                      (!!digits && /^[+()\s\d.-]+$/.test(modalClientSearch) && client.telefono.replace(/[^0-9]/g, '').includes(digits));
+                  }) && <p role="status" style={{ color: '#aaa', fontSize: '12px' }}>No encontramos una ficha. Puedes darla de alta aquí.</p>}
+                </div>}
+                <button type="button" onClick={() => { setQuickClientMode(previous => !previous); setQuickClientMessage(''); setQuickClientPin(''); }}
+                  style={{ marginTop: '10px', padding: '9px', background: 'transparent', color: '#cab77d', border: '1px solid #76683e', borderRadius: '5px', cursor: 'pointer' }}>
+                  {quickClientMode ? 'Cancelar alta de ficha' : '+ Dar de alta nueva clienta'}
+                </button>
+                {quickClientMessage && <p role="status" style={{ color: '#b5c9b6', fontSize: '12px', lineHeight: 1.5 }}>{quickClientMessage}</p>}
+              </section>}
 
               <label style={{ color: '#bdb8ad', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '6px' }}>Nombre y apellidos<input type="text" placeholder="Nombre y Apellidos" value={modalClientName} onChange={(e) => setModalClientName(e.target.value)} required style={{ padding: '12px', backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '14px' }} /></label>
               <label style={{ color: '#bdb8ad', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '6px' }}>Teléfono<input type="text" placeholder="Teléfono móvil" value={modalPhone} onChange={(e) => setModalPhone(e.target.value)} style={{ padding: '12px', backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '14px' }} /></label>
               <label style={{ color: '#bdb8ad', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '6px' }}>Correo electrónico<input type="email" placeholder="Correo electrónico" value={modalEmail} onChange={(e) => setModalEmail(e.target.value)} style={{ padding: '12px', backgroundColor: '#1c1c1c', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '14px' }} /></label>
+              {quickClientMode && <section style={{ padding: '12px', border: '1px solid #76683e', borderRadius: '8px' }}>
+                <p style={{ color: '#bdb8ad', fontSize: '12px' }}>Usaremos el nombre, teléfono y correo indicados arriba para crear la ficha.</p>
+                <label style={{ display: 'block', color: '#cab77d', fontSize: '12px' }}>Apellidos<input value={quickClientSurname} onChange={event => setQuickClientSurname(event.target.value)}
+                  style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', margin: '6px 0 12px', background: '#222', color: '#fff', border: '1px solid #555', borderRadius: '5px' }} /></label>
+                <label style={{ display: 'block', color: '#cab77d', fontSize: '12px' }}>PIN de clienta · 4 números<input type="password" inputMode="numeric" maxLength={4} value={quickClientPin}
+                  onChange={event => setQuickClientPin(event.target.value.replace(/[^0-9]/g, '').slice(0, 4))}
+                  style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', margin: '6px 0 12px', background: '#222', color: '#fff', border: '1px solid #555', borderRadius: '5px' }} /></label>
+                <button type="button" onClick={saveQuickClient} style={{ padding: '11px', background: '#c6b27d', border: 0, borderRadius: '5px', cursor: 'pointer' }}>Crear ficha y continuar</button>
+                <p style={{ color: '#aaa', fontSize: '11px' }}>Crear la ficha no reserva la cita. Guarda después los servicios y el horario.</p>
+              </section>}
               <h4 style={{ color: '#eee8dd', fontSize: '16px', margin: '14px 0 4px' }}>2. Servicios de la cita</h4>
               <select aria-label="Categoría del servicio" value={modalCatIndex} onChange={(e) => {
                 setModalCatIndex(Number(e.target.value));
@@ -4724,11 +4912,46 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
             <p style={{ color: '#cab77d', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
             <h3 style={{ color: '#eee8dd', fontSize: '26px', fontFamily: 'serif', fontWeight: 'normal', margin: 0 }}>{viewApptModal.clientName}</h3>
             <div style={{ backgroundColor: adminAppointmentColor(viewApptModal).background, border: `1px solid ${adminAppointmentColor(viewApptModal).border}`, borderRadius: '10px', padding: '18px', color: '#eee8dd' }}>
-              <strong style={{ fontSize: '14px' }}>{viewApptModal.completedAt ? 'Realizada · Registrada en el pasaporte' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Cita confirmada'}</strong>
+              <strong style={{ fontSize: '14px' }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada · Hueco liberado' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada · Registro conservado' : viewApptModal.completedAt ? 'Realizada · Registrada en el pasaporte' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Cita confirmada'}</strong>
               <p style={{ fontFamily: 'serif', fontSize: '21px', margin: '12px 0 8px' }}>{new Date(`${viewApptModal.dateKey}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {viewApptModal.time}</p>
               <span style={{ color: '#bdb8ad', fontSize: '13px' }}>Duración total: {viewApptModal.durationMinutes || 45} min</span>
             </div>
-            {!viewApptModal.completedAt && <button type="button" onClick={() => {
+            {currentScreen === 'adminPanel' && <button type="button" onClick={() => {
+              const email = normalizeEmail(viewApptModal.email);
+              const matches = email ? listaClientes.filter(client => normalizeEmail(client.email) === email) : [];
+              if (matches.length !== 1) {
+                alert(matches.length > 1 ? 'Hay varias fichas con este email. Revisa sus datos en Clientas.' :
+                  'No hay una ficha vinculada al email de esta cita. Revisa o registra la clienta en Clientas.');
+                return;
+              }
+              const client = matches[0];
+              setReturnToAppointmentId(viewApptModal.id);
+              setBusquedaCliente(client.registroId || client.email);
+              setEditingClientId(null); setAgendaSidePanel(null); setViewApptModal(null);
+              setAdminTab('clients'); setAgendaExpanded(false);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }} style={{ padding: '12px', background: '#242219', color: '#ddd0a4',
+              border: '1px solid #76683e', borderRadius: '8px', cursor: 'pointer' }}>Abrir ficha de la clienta · Diagnóstico y fórmulas</button>}
+            {currentScreen === 'adminPanel' && <button type="button" onClick={() => {
+              if (!viewApptModal.services?.length) { alert('Esta cita antigua no tiene servicios estructurados. Crea una nueva cita y selecciona sus servicios.'); return; }
+              const services = viewApptModal.services.map(item => {
+                const category = catalog.find(category => category.subservices.some(service => service.id === item.sub.id));
+                const sub = category?.subservices.find(service => service.id === item.sub.id);
+                const variant = item.variant ? sub?.variants?.find(variant => variant.id === item.variant!.id) : null;
+                return sub && category && (!item.variant || variant) ? { categoryId: category.id, categoryName: category.title, sub, variant: variant || null } : null;
+              });
+              if (services.some(item => !item)) { alert('Algún servicio o variante ya no existe. Crea una nueva cita con el catálogo actual.'); return; }
+              const currentServices = services.filter((item): item is NonNullable<typeof item> => item !== null);
+              const error = getInactiveServiceError(currentServices) || getStylingError(currentServices) || getTonerError(currentServices);
+              if (error) { alert(error); return; }
+              setRepeatAppointmentMode(true);
+              setRescheduleModalAppt({ ...viewApptModal, services: currentServices, durationMinutes: getModalDuration(currentServices) });
+              const next = new Date(); next.setHours(12, 0, 0, 0); next.setDate(next.getDate() + 1);
+              setNewRescheduleDate(formatDateKey(next)); setNewRescheduleTime('');
+              setViewApptModal(null);
+            }} style={{ padding: '12px', background: '#242219', color: '#ddd0a4', border: '1px solid #76683e',
+              borderRadius: '8px', cursor: 'pointer' }}>Repetir cita · Elegir nueva fecha</button>}
+            {!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && <button type="button" onClick={() => {
               setEditingAppointment(viewApptModal);
               setTargetDateObj(new Date(viewApptModal.dateKey + 'T12:00:00'));
               setTargetDayName(viewApptModal.dayName); setTargetTime(viewApptModal.time);
@@ -4747,8 +4970,8 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               <span style={{ padding: '8px 0' }}>{viewApptModal.email}</span>
             </div>
             {viewApptModal.completedAt ? <p style={{ color: '#bdb8ad', fontSize: '13px', lineHeight: 1.6 }}>Visita registrada en el pasaporte. Puedes editar o borrar esa visita desde Clientes → Editar pasaporte e historial.</p> : <button type="button" onClick={() => markAppointmentCompleted(viewApptModal)} style={{ backgroundColor: '#26382b', border: '1px solid #526d59', color: '#d6e8d9', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Marcar como realizada · Añadir al pasaporte</button>}
-            <button type="button" onClick={() => { setRescheduleModalAppt(viewApptModal); setNewRescheduleDate(viewApptModal.dateKey); setNewRescheduleTime(viewApptModal.time); setViewApptModal(null); }} style={{ backgroundColor: '#242219', border: '1px solid #76683e', color: '#ddd0a4', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Cambiar fecha u hora</button>
-            {viewApptModal.saturdayApproval && (
+            <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(viewApptModal); setNewRescheduleDate(viewApptModal.dateKey); setNewRescheduleTime(viewApptModal.time); setViewApptModal(null); }} style={{ backgroundColor: '#242219', border: '1px solid #76683e', color: '#ddd0a4', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Cambiar fecha u hora</button>
+            {viewApptModal.saturdayApproval && isActiveAppointment(viewApptModal) && (
               <div style={{ border: '1px solid #76683e', padding: '12px', borderRadius: '8px', color: '#fff' }}>
                 <strong>{approvalTitle(viewApptModal.saturdayApproval.reason)}: {viewApptModal.saturdayApproval.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.saturdayApproval.status === 'accepted' ? 'Aceptado por Ana' : 'Rechazado'}</strong>
                 <p>{viewApptModal.saturdayApproval.reference}</p>
@@ -4770,7 +4993,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 {viewApptModal.saturdayApproval.status === 'accepted' && <a style={{ color: '#d4af37' }} target="_blank" rel="noreferrer" href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(viewApptModal.advancePayment?.status === 'pending' ? `Hola ${viewApptModal.clientName}. Ana ha aceptado tu solicitud para el ${viewApptModal.dateKey.split('-').reverse().join('/')} a las ${viewApptModal.time}. Para confirmar, realiza un Bizum de ${viewApptModal.advancePayment?.amount} € al ${bizConfig.bizumNumber}. Concepto: ${advancePaymentConcept(viewApptModal)}. Confirmaremos al comprobar el pago.` : generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time))}`}>Abrir WhatsApp para avisar a la clienta</a>}
               </div>
             )}
-            {viewApptModal.advancePayment && (
+            {viewApptModal.advancePayment && isActiveAppointment(viewApptModal) && (
               <div style={{ border: '1px solid #76683e', borderRadius: '8px', padding: '12px', color: '#fff', fontSize: '14px' }}>
                 <strong>Reserva anticipada: {viewApptModal.advancePayment.amount} € · {viewApptModal.advancePayment.status === 'confirmed' ? 'Pago confirmado' : 'Pendiente de pago'}</strong>
                 <p>Código: {viewApptModal.advancePayment.reference}</p>
@@ -4784,6 +5007,23 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 )}
               </div>
             )}
+            <section style={{ padding: '14px', background: '#191919', border: '1px solid #34332d', borderRadius: '8px' }}>
+              <label htmlFor="appointment-internal-notes" style={{ color: '#cab77d', fontSize: '13px' }}>Notas internas · Solo 360studio</label>
+              <textarea id="appointment-internal-notes" value={appointmentNoteDraft} onChange={event => setAppointmentNoteDraft(event.target.value)}
+                rows={3} placeholder="Detalles para preparar o hacer seguimiento de esta cita"
+                style={{ width: '100%', boxSizing: 'border-box', margin: '10px 0', padding: '10px', background: '#121212',
+                  color: '#eee8dd', border: '1px solid #555', borderRadius: '6px', fontSize: '14px', resize: 'vertical' }} />
+              <button type="button" onClick={() => {
+                const updated = { ...viewApptModal, internalNotes: appointmentNoteDraft };
+                setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
+                setViewApptModal(updated); alert('Notas internas guardadas.');
+              }} style={{ padding: '10px', background: '#c6b27d', color: '#17150f', border: 0, borderRadius: '6px', cursor: 'pointer' }}>Guardar notas</button>
+            </section>
+            {!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+              <button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'cancelled')} style={{ padding: '10px', border: '1px solid #77554b', color: '#d9b4a9', background: '#251c18', borderRadius: '6px', cursor: 'pointer' }}>Marcar cancelada</button>
+              <button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'no_show')} style={{ padding: '10px', border: '1px solid #665d4b', color: '#d4c6ac', background: '#25221c', borderRadius: '6px', cursor: 'pointer' }}>No presentada</button>
+            </div>}
+            {!isActiveAppointment(viewApptModal) && <p style={{ color: '#aaa', fontSize: '12px' }}>El registro se conserva en «Citas del día» y en el buscador. No ocupa un hueco ni se añade como visita realizada al pasaporte.</p>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px', borderTop: '1px solid rgba(212,175,55,0.2)', paddingTop: '12px' }}>
               <span style={{ color: '#d4af37', fontSize: '13px', fontWeight: 'bold' }}>Abrir mensaje de WhatsApp o copiar texto:</span>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
@@ -4811,11 +5051,11 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
       {rescheduleModalAppt && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1100 }}>
           <div style={{ backgroundColor: '#141414', border: '1px solid #76683e', borderRadius: '16px', padding: '25px', maxWidth: '500px', width: '100%', boxSizing: 'border-box', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <h3 style={{ color: '#d4af37', fontSize: '24px', fontWeight: 'normal', fontFamily: 'serif', margin: 0 }}>Cambiar fecha u hora</h3>
+            <h3 style={{ color: '#d4af37', fontSize: '24px', fontWeight: 'normal', fontFamily: 'serif', margin: 0 }}>{repeatAppointmentMode ? 'Repetir cita' : 'Cambiar fecha u hora'}</h3>
             <p style={{ color: '#aaa', fontSize: '14px', margin: 0 }}>Clienta: <strong style={{ color: '#fff' }}>{rescheduleModalAppt.clientName}</strong></p>
             <div style={{ backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '9px', padding: '14px', color: '#bdb8ad', fontSize: '13px', lineHeight: 1.7 }}>
-              Cita actual: {rescheduleModalAppt.dateKey.split('-').reverse().join('/')} · {rescheduleModalAppt.time}<br />
-              Duración: {rescheduleModalAppt.durationMinutes || 45} min. Los servicios se mantienen al cambiar la fecha.
+              {repeatAppointmentMode ? 'Cita de origen:' : 'Cita actual:'} {rescheduleModalAppt.dateKey.split('-').reverse().join('/')} · {rescheduleModalAppt.time}<br />
+              Duración: {rescheduleModalAppt.durationMinutes || 45} min. {repeatAppointmentMode ? 'Se creará una nueva cita con estos servicios y variantes. La cita original se conserva.' : 'Los servicios se mantienen al cambiar la fecha.'}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ color: '#d4af37', fontSize: '14px', fontWeight: 'bold' }}>Nueva Fecha:</label>
@@ -4824,6 +5064,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ color: '#d4af37', fontSize: '14px', fontWeight: 'bold' }}>Nueva Hora:</label>
               <select value={newRescheduleTime} onChange={(e) => setNewRescheduleTime(e.target.value)} style={{ padding: '12px', backgroundColor: '#1c1c1c', border: '1px solid #76683e', color: '#fff', borderRadius: '6px', fontSize: '14px' }}>
+                <option value="" disabled>Selecciona una hora</option>
                 {Array.from({ length: Math.ceil(1440 / agendaStep) }, (_, index) => minuteTime(index * agendaStep))
                   .filter(time => enableOutOfHours || isAgendaTimeWorking(new Date(newRescheduleDate + 'T12:00:00'), time, rescheduleModalAppt.durationMinutes || 45))
                   .map(h => (<option key={h} value={h}>{h}h</option>))}
@@ -4832,19 +5073,49 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
               <button type="button" onClick={() => setRescheduleModalAppt(null)} style={{ background: 'none', border: '1px solid #444', color: '#aaa', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
               <button type="button" onClick={() => {
+                if (!repeatAppointmentMode && !isActiveAppointment(rescheduleModalAppt)) { alert('Esta cita está cancelada o no presentada. Crea una nueva reserva.'); return; }
                 if (!/^\d{4}-\d{2}-\d{2}$/.test(newRescheduleDate) || !/^\d{2}:\d{2}$/.test(newRescheduleTime)) { alert('Elige una fecha y una hora válidas.'); return; }
                 if (isDateBlockedByHoliday(newRescheduleDate)) { alert('Este día está bloqueado por vacaciones o festivo.'); return; }
                 if (timeBlockConflict(newRescheduleDate, newRescheduleTime, rescheduleModalAppt.durationMinutes || 45)) { alert('La cita coincide con un periodo bloqueado.'); return; }
-                const conflict = getRescheduleConflict(rescheduleModalAppt, newRescheduleDate, newRescheduleTime);
+                const conflict = getRescheduleConflict(repeatAppointmentMode ? { ...rescheduleModalAppt, id: '' } : rescheduleModalAppt, newRescheduleDate, newRescheduleTime);
                 if (conflict && !enableDoubleBooking) { alert('La duración completa de esta cita coincide con otra reserva. Elige otra hora.'); return; }
                 const date = new Date(`${newRescheduleDate}T12:00:00`);
                 if (!enableOutOfHours && !isAgendaTimeWorking(date, newRescheduleTime, rescheduleModalAppt.durationMinutes || 45)) {
                   alert('La duración completa de la cita debe caber en el horario laboral.'); return;
                 }
+                if (repeatAppointmentMode) {
+                  if (new Date(newRescheduleDate + 'T' + newRescheduleTime + ':00').getTime() <= Date.now()) { alert('Elige una fecha y hora futuras para repetir la cita.'); return; }
+                  const services = rescheduleModalAppt.services || [];
+                  const error = getInactiveServiceError(services) || getStylingError(services) || getTonerError(services);
+                  if (error) { alert(error); return; }
+                  const repeated: Appointment = {
+                    id: crypto.randomUUID(), dateKey: newRescheduleDate, time: newRescheduleTime,
+                    dayName: date.toLocaleDateString('es-ES', { weekday: 'long' }),
+                    clientName: rescheduleModalAppt.clientName, phone: rescheduleModalAppt.phone, email: rescheduleModalAppt.email,
+                    durationMinutes: rescheduleModalAppt.durationMinutes, services,
+                    selectedVariant: services[0]?.variant || null,
+                    serviceCategory: Array.from(new Set(services.map(item => item.categoryName))).join(' + '),
+                    serviceSubcategory: 'RESERVADO ' + services.map(item => item.sub.name + (item.variant ? ' (' + item.variant.name + ')' : '')).join(' + '),
+                    remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false }
+                  };
+                  const reason = getApprovalReason(services, newRescheduleDate);
+                  setRescheduleModalAppt(null); setRepeatAppointmentMode(false);
+                  if (reason) {
+                    repeated.saturdayApproval = { status: 'pending', reason, reference: 'REV-' + crypto.randomUUID().slice(0, 8).toUpperCase() };
+                    repeated.serviceSubcategory = repeated.serviceSubcategory.replace(/^RESERVADO/, reason === 'saturday' ? 'PENDIENTE SÁBADO' : 'PENDIENTE VALORACIÓN');
+                    setSaturdayRequestModal(repeated); return;
+                  }
+                  if (bizConfig.advancePaymentEnabled && (repeated.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes) {
+                    repeated.advancePayment = createAdvancePayment();
+                    repeated.serviceSubcategory = repeated.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE BIZUM');
+                  }
+                  setAppointments(previous => [...previous, repeated]); setFechaSeleccionada(date); setViewApptModal(repeated);
+                  return;
+                }
                 setAppointments(previous => previous.map(a => a.id === rescheduleModalAppt.id ? { ...a, dateKey: newRescheduleDate, time: newRescheduleTime, dayName: date.toLocaleDateString('es-ES', { weekday: 'long' }) } : a));
                 setRescheduleModalAppt(null);
                 alert('¡Cita modificada con éxito!');
-              }} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>Guardar Cambios</button>
+              }} style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>{repeatAppointmentMode ? 'Crear nueva cita' : 'Guardar Cambios'}</button>
             </div>
           </div>
         </div>
