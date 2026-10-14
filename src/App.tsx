@@ -1325,6 +1325,7 @@ interface CatalogCategory {
 }
 
 interface ClientRecord {
+  createdAt?: string;
   idNum: number;
   registroId: string;
   nombre: string;
@@ -2118,7 +2119,7 @@ function StudioApp() {
     if (identityError) { alert(identityError); return; }
     const siguienteIdNum = listaClientes.length > 0 ? Math.max(...listaClientes.map(c => c.idNum || 0)) + 1 : 1;
     const idFormateado = `LSTUDIO-${String(siguienteIdNum).padStart(3, '0')}`;
-    const nuevoCliente: ClientRecord = {
+    const nuevoCliente: ClientRecord = { createdAt: new Date().toISOString(),
       idNum: siguienteIdNum,
       registroId: idFormateado,
       nombre: novoNombre.trim(),
@@ -2146,7 +2147,7 @@ function StudioApp() {
     if (identityError) { alert(identityError); return; }
     const siguienteIdNum = listaClientes.length > 0 ? Math.max(...listaClientes.map(c => c.idNum || 0)) + 1 : 1;
     const idFormateado = `LSTUDIO-${String(siguienteIdNum).padStart(3, '0')}`;
-    const nuevaClienta: ClientRecord = {
+    const nuevaClienta: ClientRecord = { createdAt: new Date().toISOString(),
       idNum: siguienteIdNum,
       registroId: idFormateado,
       nombre: regNombre.trim(),
@@ -2216,7 +2217,7 @@ function StudioApp() {
     const error = validateClientIdentity(modalEmail, quickClientPin);
     if (error) { alert(error); return; }
     const idNum = Math.max(0, ...listaClientes.map(client => client.idNum || 0)) + 1;
-    const client: ClientRecord = { idNum, registroId: 'LSTUDIO-' + String(idNum).padStart(3, '0'),
+    const client: ClientRecord = { createdAt: new Date().toISOString(), idNum, registroId: 'LSTUDIO-' + String(idNum).padStart(3, '0'),
       nombre: modalClientName.trim(), apellidos: quickClientSurname.trim(), fechaNacimiento: '',
       telefono: modalPhone.trim(), email: normalizeEmail(modalEmail), pinAcceso: quickClientPin,
       diagnostico: 'Pendiente de diagnóstico', ultimaVisita: 'Nuevo registro', proximaVisitaSugerida: '',
@@ -4806,16 +4807,14 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               const first = completedInPeriod.filter(item => item.email.trim().toLowerCase() === email).sort((a,b) => (a.dateKey + a.time).localeCompare(b.dateKey + b.time))[0];
               if (appointments.some(item => item.completedAt && isActiveAppointment(item) && item.email.trim().toLowerCase() === email && item.id !== first.id && (item.dateKey + item.time) < (first.dateKey + first.time))) returning++;
             });
-            const serviceTime = new Map<string,{ name: string; minutes: number; count: number }>();
-            booked.forEach(appointment => appointment.services?.forEach(item => {
-              const text = item.variant?.duration || item.sub.duration;
-              const value = text.match(/\d+(?:[.,]\d+)?/);
-              const duration = value ? Number(value[0].replace(',','.')) * (/\b(?:h|hora|horas)\b/i.test(text) && !/min/i.test(text) ? 60 : 1) : 0;
-              if (!Number.isFinite(duration) || duration <= 0) return;
-              const key = item.sub.id || item.sub.name; const current = serviceTime.get(key) || { name: item.sub.name, minutes: 0, count: 0 };
-              serviceTime.set(key,{ ...current, minutes: current.minutes + duration, count: current.count + 1 });
-            }));
-            const timeRanking = Array.from(serviceTime.values()).sort((a,b) => b.minutes - a.minutes);
+            const monthlyClients = new Map<string,number>();
+            listaClientes.forEach(client => {
+              if (!client.createdAt || !Number.isFinite(Date.parse(client.createdAt))) return;
+              const month = formatDateKey(new Date(client.createdAt)).slice(0,7);
+              monthlyClients.set(month, (monthlyClients.get(month) || 0) + 1);
+            });
+            const newClientsInPeriod = listaClientes.filter(client => client.createdAt && valid && formatDateKey(new Date(client.createdAt)) >= dashboardStart && formatDateKey(new Date(client.createdAt)) <= dashboardEnd).length;
+            const monthlyClientsRows = Array.from(monthlyClients.entries()).sort((a,b) => b[0].localeCompare(a[0])).slice(0,12);
             const ranking = Array.from(serviceCounts.values()).sort((a,b) => b.count - a.count);
             const minutes = (time: string) => { const [h,m] = time.split(':').map(Number); return h * 60 + m; };
             const days: { date: string; available: number; occupied: number }[] = [];
@@ -4963,7 +4962,15 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: '16px' }}>
               <section style={{ padding: '20px', background: '#1b1c18', border: '1px solid #3e4034', borderRadius: '12px' }}><h3 style={{ color: '#d8c58f', fontFamily: 'serif', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Reservas por canal</h3><p style={{ fontSize: '12px', color: '#aaa59b' }}>Todas las citas del periodo por fecha de cita, incluidas pendientes y canceladas. El canal empieza a registrarse con esta versión.</p>{channelRows.map(row => <p key={row.name} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '13px' }}><span>{row.name}</span><strong>{row.count}</strong></p>)}</section>
               <section style={{ padding: '20px', background: '#1b1c18', border: '1px solid #3e4034', borderRadius: '12px' }}><h3 style={{ color: '#d8c58f', fontFamily: 'serif', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Clientas que vuelven</h3><strong style={{ fontSize: '28px', color: '#d8c58f' }}>{returning}</strong><p style={{ fontSize: '13px' }}>De {attendedEmails.size} clientas atendidas en el periodo.</p><p style={{ fontSize: '12px', color: '#aaa59b' }}>Con una cita realizada anterior a su primera visita del periodo. Identificación por email; solo cuenta el historial de citas registrado aquí.</p></section>
-              <section style={{ padding: '20px', background: '#1b1c18', border: '1px solid #3e4034', borderRadius: '12px' }}><h3 style={{ color: '#d8c58f', fontFamily: 'serif', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Tiempo por servicio</h3><p style={{ fontSize: '12px', color: '#aaa59b' }}>Duración prevista de servicios confirmados y realizados; no mide el tiempo real empleado.</p>{timeRanking.slice(0,8).map(item => <div key={item.name} style={{ margin: '14px 0', fontSize: '13px' }}><span>{item.name}</span><span style={{ display: 'block', color: '#aaa59b', fontSize: '12px', marginTop: '5px' }}>{(item.minutes / 60).toFixed(1)} h total · {Math.round(item.minutes / item.count)} min de media · {item.count} servicios</span></div>)}{!timeRanking.length && <p style={{ fontSize: '13px' }}>Sin duraciones desglosadas en este periodo.</p>}</section>
+              <section style={{ padding: '20px', background: '#1b1c18', border: '1px solid #3e4034', borderRadius: '12px' }}>
+                <h3 style={{ color: '#d8c58f', fontFamily: 'serif', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Clientas nuevas por mes</h3>
+                <strong style={{ fontSize: '28px', color: '#d8c58f' }}>{newClientsInPeriod}</strong><p style={{ fontSize: '13px' }}>Altas en el periodo seleccionado</p>
+                <p style={{ fontSize: '12px', color: '#aaa59b' }}>Cuenta fichas nuevas del portal o creadas por Ana, según fecha de alta; no equivale a primeras visitas realizadas.</p>
+                {monthlyClientsRows.map(([month,count]) => <div key={month} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '13px', padding: '9px 0', borderTop: '1px solid #34352c' }}><span>{new Date(month + '-01T12:00:00').toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</span><strong>{count}</strong></div>)}
+                {!monthlyClientsRows.length && <p style={{ fontSize: '12px', color: '#aaa59b' }}>Todavía no hay altas con fecha registrada.</p>}
+                <p style={{ fontSize: '11px', color: '#aaa59b' }}>Histórico: últimos 12 meses con altas registradas. Fecha de alta desconocida: {listaClientes.filter(client => !client.createdAt || !Number.isFinite(Date.parse(client.createdAt))).length} fichas.</p>
+              </section>
+
             </div>
             <section style={{ background: '#1b1c18', border: '1px solid #3e4034', borderRadius: '12px', padding: '20px' }}>
               <h3 style={{ color: '#d8c58f', fontFamily: 'serif', fontWeight: 'normal', marginTop: 0 }}>Actividad web/app · Registro local</h3>
@@ -5053,17 +5060,32 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
 
           {/* TAB 7: VACACIONES Y FESTIVOS */}
           {adminTab === 'holidays' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div className="studio-holidays-premium" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <style>{`
+                .studio-holidays-premium form { background: #1b1c18 !important; border-color: #454634 !important; border-radius: 14px !important; padding: 22px !important; gap: 18px !important; }
+                .studio-holidays-premium input, .studio-holidays-premium select { min-height: 44px; box-sizing: border-box; font-size: 13px !important; padding: 11px !important; color-scheme: dark; border-radius: 8px !important; background: #131410 !important; border-color: #3f4233 !important; }
+                .studio-holidays-premium label { font-size: 12px !important; color: #aaa99b !important; margin-bottom: 5px; }
+                .studio-holidays-premium button { font-size: 12px !important; min-height: 40px; font-weight: normal !important; border-radius: 8px !important; }
+                .studio-holidays-premium form button[type=submit] { padding: 12px 20px !important; }
+                .studio-holidays-premium > div:last-child > div { background: #1b1c18 !important; border-color: #454634 !important; border-radius: 12px !important; padding: 18px !important; }
+                .studio-holidays-premium > div:last-child button { background: transparent !important; color: #bdb8ad !important; border-color: #4c4939 !important; }
+              `}</style>
               <div>
-                <h3 style={{ color: '#c6b27d', fontSize: '15px', fontFamily: 'serif', margin: '0 0 4px 0' }}>Gestión de Vacaciones & Festivos (Sincronizado con Agenda)</h3>
-                <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Bloquea días u horas donde el salón permanecerá cerrado.</p>
+                <h3 style={{ color: '#c6b27d', fontSize: '24px', fontWeight: 'normal', fontFamily: 'serif', margin: '0 0 4px 0' }}>Vacaciones y festivos</h3>
+                <p style={{ color: '#888', fontSize: '11px', margin: 0 }}>Planifica cierres de días completos. Se aplican a la agenda de Ana y a las horas disponibles del portal en este navegador.</p>
               </div>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', background: '#22231c', border: '1px solid #454634', borderRadius: '10px', padding: '14px', color: '#bdb8ad', fontSize: '12px' }}><span>Agenda de Ana + Portal de clientas · Bloqueo compartido local</span><button type="button" onClick={() => setAdminTab('agenda')} style={{ marginLeft: 'auto', cursor: 'pointer', color: '#ddd0a4', background: 'none', border: '1px solid #635739', borderRadius: '7px', padding: '9px 12px' }}>Ver agenda →</button></div>
+              {newHolidayStart && newHolidayEnd && newHolidayEnd >= newHolidayStart && appointments.some(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd) && <div style={{ color: '#dcc591', fontSize: '13px', padding: '14px', borderLeft: '2px solid #b69b60' }}>Hay {appointments.filter(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd).length} citas en estas fechas. Guardar el cierre no las cancela.</div>}
               <form onSubmit={(e) => {
                 e.preventDefault();
                 if (!newHolidayStart || !newHolidayEnd) {
                   alert('Por favor, indica fecha de inicio y fin.');
                   return;
                 }
+                if (newHolidayEnd < newHolidayStart) { alert('La fecha final debe ser igual o posterior a la inicial.'); return; }
+                if (holidaysList.some(block => newHolidayStart <= block.endDate && newHolidayEnd >= block.startDate)) { alert('Ya existe un cierre en estas fechas. Revisa los periodos guardados.'); return; }
+                const affected = appointments.filter(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd);
+                if (affected.length && !window.confirm(`Hay ${affected.length} citas en este periodo. Se conservarán y tendrás que revisarlas. ¿Guardar el cierre?`)) return;
                 const newBlock: HolidayBlock = {
                   id: Date.now().toString(),
                   startDate: newHolidayStart,
@@ -5077,13 +5099,13 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 setNewHolidayReason("");
                 alert('¡Periodo bloqueado correctamente y sincronizado con la agenda!');
               }} style={{ backgroundColor: '#181818', border: '1px solid #c6b27d', borderRadius: '10px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <h4 style={{ color: '#c6b27d', fontSize: '13px', margin: 0 }}>Bloquear Nuevo Periodo (Vacaciones / Festivo)</h4>
+                <h4 style={{ color: '#c6b27d', fontSize: '13px', margin: 0 }}>Nuevo cierre</h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <label style={{ color: '#aaa', fontSize: '11px' }}>Tipo:</label>
                     <select value={newHolidayType} onChange={(e) => setNewHolidayType(e.target.value as any)} style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }}>
-                      <option value="vacaciones">🏖️ Vacaciones</option>
-                      <option value="festivo">🎉 Festivo</option>
+                      <option value="vacaciones">Vacaciones</option>
+                      <option value="festivo">Festivo</option>
                     </select>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -5092,7 +5114,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                     <label style={{ color: '#aaa', fontSize: '11px' }}>Hasta el día:</label>
-                    <input type="date" value={newHolidayEnd} onChange={(e) => setNewHolidayEnd(e.target.value)} required style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
+                    <input type="date" min={newHolidayStart || undefined} value={newHolidayEnd} onChange={(e) => setNewHolidayEnd(e.target.value)} required style={{ padding: '8px', backgroundColor: '#121212', border: '1px solid #444', color: '#fff', borderRadius: '6px', fontSize: '11px' }} />
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -5101,34 +5123,34 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <button type="submit" style={{ backgroundColor: '#c6b27d', color: '#000', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}>
-                    Bloquear Fechas en Agenda
+                    Guardar cierre
                   </button>
                 </div>
               </form>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <h4 style={{ color: '#c6b27d', fontSize: '13px', margin: '5px 0 0 0' }}>Periodos Bloqueados Activos</h4>
+                <h4 style={{ color: '#c6b27d', fontSize: '13px', margin: '5px 0 0 0' }}>Cierres programados</h4>
                 {holidaysList.length === 0 ? (
                   <div style={{ backgroundColor: '#161616', padding: '15px', borderRadius: '8px', color: '#777', fontSize: '11px', textAlign: 'center' }}>
                     No hay vacaciones ni festivos bloqueados actualmente.
                   </div>
                 ) : (
-                  holidaysList.map((h) => (
+                  [...holidaysList].sort((a,b) => a.startDate.localeCompare(b.startDate)).map((h) => (
                     <div key={h.id} style={{ backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.3)', borderRadius: '8px', padding: '12px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                           <span style={{ backgroundColor: h.type === 'vacaciones' ? '#2e2010' : '#2e1010', color: h.type === 'vacaciones' ? '#c6b27d' : '#ff6666', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>
-                            {h.type === 'vacaciones' ? '🏖️ VACACIONES' : '🎉 FESTIVO'}
+                            {h.type === 'vacaciones' ? 'VACACIONES' : 'FESTIVO'}
                           </span>
                           <span style={{ color: '#fff', fontSize: '12px', fontWeight: 'bold' }}>{h.reason}</span>
                         </div>
-                        <span style={{ color: '#aaa', fontSize: '11px' }}>Desde el <strong>{h.startDate}</strong> hasta el <strong>{h.endDate}</strong></span>
+                        <span style={{ color: '#aaa', fontSize: '11px' }}>Desde el <strong>{h.startDate.split('-').reverse().join('/')}</strong> hasta el <strong>{h.endDate.split('-').reverse().join('/')}</strong></span>
                       </div>
                       <button onClick={() => {
                         if (window.confirm('¿Eliminar este bloqueo y permitir reservas en estas fechas?')) {
                           setHolidaysList(holidaysList.filter(item => item.id !== h.id));
                         }
                       }} style={{ backgroundColor: '#2a1212', border: '1px solid #552222', color: '#ff4444', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>
-                        Desbloquear / Eliminar
+                        Quitar cierre
                       </button>
                     </div>
                   ))
