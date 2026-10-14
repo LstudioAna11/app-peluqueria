@@ -2041,6 +2041,7 @@ function StudioApp() {
   const [fechaSeleccionada, setFechaSeleccionada] = useState<Date>(new Date());
   const [mesNavegacion, setMesNavegacion] = useState<Date>(new Date(2026, 9, 1));
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [targetDateObj, setTargetDateObj] = useState<Date>(new Date());
   const [targetDayName, setTargetDayName] = useState<string>("");
   const [targetTime, setTargetTime] = useState<string>("");
@@ -2215,6 +2216,7 @@ function StudioApp() {
       return;
     }
     if (!enableOutOfHours && !isAgendaTimeWorking(targetDate, time)) { alert('Este hueco está fuera del horario laboral.'); return; }
+    setEditingAppointment(null);
     setTargetDateObj(targetDate);
     setTargetDayName(dayName);
     setTargetTime(time);
@@ -2255,7 +2257,7 @@ function StudioApp() {
     return unavailable.length ? `Estos servicios ya no están disponibles para nuevas reservas: ${unavailable.map(item => item.sub.name).join(', ')}. Retíralos y selecciona otra opción.` : null;
   };
   const getApprovalReason = (items: { sub: SubService }[], dateKey: string): 'saturday' | 'assessment' | 'both' | null => {
-    const saturday = bizConfig.saturdayApprovalEnabled && new Date(`${dateKey}T12:00:00`).getDay() === 6;
+    const saturday = new Date(`${dateKey}T12:00:00`).getDay() === 6;
     const assessment = items.some(item => (catalog.flatMap(category => category.subservices).find(sub => sub.id === item.sub.id) || item.sub).requiresAssessment);
     return saturday && assessment ? 'both' : assessment ? 'assessment' : saturday ? 'saturday' : null;
   };
@@ -2333,6 +2335,7 @@ function StudioApp() {
   const handleSaveModalAppointment = (e: React.FormEvent) => {
     e.preventDefault();
     if (!modalClientName.trim()) return;
+    if (editingAppointment && !modalServices.length) { alert('Añade al menos un servicio a la cita.'); return; }
     const current = modalServices.length ? null : getModalService();
     const services = modalServices.length ? modalServices : current ? [current] : [];
     if (!services.length) return;
@@ -2346,7 +2349,7 @@ function StudioApp() {
     if (!enableOutOfHours && !isAgendaTimeWorking(targetDateObj, targetTime, durationMin)) {
       alert('La cita completa no cabe en el horario laboral. Elige otra hora o revisa la duración.'); return;
     }
-    if (!enableDoubleBooking && getRescheduleConflict({ id: '', durationMinutes: durationMin } as Appointment, formatDateKey(targetDateObj), targetTime)) {
+    if (!enableDoubleBooking && getRescheduleConflict({ id: editingAppointment?.id || '', durationMinutes: durationMin } as Appointment, formatDateKey(targetDateObj), targetTime)) {
       alert('La duración de esta cita se solapa con otra reserva.'); return;
     }
 
@@ -2366,6 +2369,26 @@ function StudioApp() {
       services,
       remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
     };
+
+    if (editingAppointment) {
+      if (!modalServices.length) { alert('Añade al menos un servicio a la lista de la cita.'); return; }
+      const needsNewAssessment = services.some(item => item.sub.requiresAssessment) &&
+        !(editingAppointment.services || []).some(item => item.sub.requiresAssessment);
+      const approval = needsNewAssessment ? { status: 'pending' as const, reason: 'assessment' as const,
+        reference: 'REV-' + crypto.randomUUID().slice(0, 8).toUpperCase() } : editingAppointment.saturdayApproval;
+      const payment = editingAppointment.advancePayment ||
+        (approval?.status !== 'pending' && bizConfig.advancePaymentEnabled && durationMin > bizConfig.advancePaymentThresholdMinutes ? createAdvancePayment() : undefined);
+      const prefix = approval?.status === 'pending' ? 'PENDIENTE VALORACIÓN' :
+        payment?.status === 'pending' ? 'PENDIENTE BIZUM' : 'RESERVADO';
+      const updated: Appointment = { ...editingAppointment, clientName: modalClientName,
+        phone: modalPhone, email: modalEmail, services, durationMinutes: durationMin,
+        saturdayApproval: approval, advancePayment: payment,
+        selectedVariant: services[0].variant, serviceCategory: newApp.serviceCategory,
+        serviceSubcategory: newApp.serviceSubcategory.replace(/^RESERVADO/, prefix) };
+      setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
+      setIsModalOpen(false); setEditingAppointment(null); setViewApptModal(updated);
+      return;
+    }
     const approvalReason = getApprovalReason(services, newApp.dateKey);
     if (approvalReason) {
       newApp.saturdayApproval = { status: 'pending', reason: approvalReason, reference: `REV-${crypto.randomUUID().slice(0, 8).toUpperCase()}` };
@@ -2670,7 +2693,7 @@ function StudioApp() {
       const end = Number(matches[i + 1][1]) * 60 + Number(matches[i + 1][2] || matches[i + 1][3] || 0);
       if (start >= 0 && end <= 1440 && start < end) ranges.push({ start, end });
     }
-    if (!ranges.length && day === 6 && bizConfig.saturdayApprovalEnabled &&
+    if (!ranges.length && day === 6 &&
         !/cerrado|closed/i.test(schedule)) {
       // Un aviso de sábado bajo demanda no equivale a salón cerrado.
       return [{ start: 10 * 60, end: 19 * 60 }];
@@ -2818,6 +2841,70 @@ function StudioApp() {
     .sort((a, b) => `${a.dateKey}T${a.time}`.localeCompare(`${b.dateKey}T${b.time}`))[0] : undefined;
   const clientAppointmentStatus = clientNextAppointment?.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación'
     : clientNextAppointment?.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Cita confirmada';
+
+
+  const renderDurationAgenda = (days: { name: string; dateObj: Date; dateFormatted: string }[]) => {
+    const minutes = (time: string) => { const [hour, minute] = time.split(':').map(Number); return hour * 60 + minute; };
+    return <div style={{ display: 'grid', gridTemplateColumns: '52px repeat(' + days.length + ', minmax(105px, 1fr))',
+      gridTemplateRows: 'auto repeat(' + hoursList.length + ', 30px)', gap: '2px',
+      minWidth: days.length > 1 ? '700px' : '280px' }}>
+      <div style={{ gridRow: 1, gridColumn: 1, color: '#aaa', padding: '8px', fontSize: '12px' }}>Hora</div>
+      {days.map((day, column) => <div key={'header-' + column} style={{ gridRow: 1, gridColumn: column + 2,
+        background: '#1e1e1e', color: '#cab77d', textAlign: 'center', padding: '8px', fontSize: '12px',
+        borderBottom: '2px solid #76683e' }}><strong>{day.name}</strong><div>{day.dateFormatted}</div>
+      </div>)}
+      {hoursList.map((time, row) => <React.Fragment key={time}>
+        <div style={{ gridRow: row + 2, gridColumn: 1, color: '#aaa', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{time}</div>
+        {days.map((day, column) => {
+          const key = formatDateKey(day.dateObj);
+          const holiday = isDateBlockedByHoliday(key);
+          const working = !holiday && (enableOutOfHours || isAgendaTimeWorking(day.dateObj, time));
+          const occupied = appointments.some(item => item.dateKey === key && item.saturdayApproval?.status !== 'rejected' &&
+            minutes(time) >= minutes(item.time) && minutes(time) < minutes(item.time) + (item.durationMinutes || 45));
+          return <button key={key} type="button" disabled={!working || (occupied && !enableDoubleBooking)}
+            aria-label={day.name + ' ' + day.dateFormatted + ' ' + time + (working ? ' Crear cita' : ' No disponible')}
+            onClick={() => handleCellClick(day.dateObj, day.name, time)} onDragOver={handleDragOver}
+            onDrop={event => handleDrop(event, day.dateObj, day.name, time)}
+            style={{ gridRow: row + 2, gridColumn: column + 2, border: '1px solid #292929', borderRadius: '3px',
+              background: holiday && day.dateObj.getDay() !== 6 ? '#241818' : working ? '#191919' : '#111', color: '#666', cursor: working ? 'pointer' : 'default',
+              padding: '2px', fontSize: '10px' }}>{holiday ? 'Cerrado' : working && !occupied ? '+' : ''}</button>;
+        })}
+      </React.Fragment>)}
+      {days.flatMap((day, column) => {
+        const daily = appointments.filter(item => item.dateKey === formatDateKey(day.dateObj) && item.saturdayApproval?.status !== 'rejected')
+          .sort((left, right) => left.time.localeCompare(right.time));
+        const laneEnds: number[] = [];
+        const placed = daily.map(item => {
+          const start = minutes(item.time), end = start + (item.durationMinutes || 45);
+          let lane = laneEnds.findIndex(value => value <= start);
+          if (lane < 0) lane = laneEnds.length;
+          laneEnds[lane] = end;
+          return { item, lane, start, end };
+        });
+        const lanes = Math.max(1, laneEnds.length);
+        return placed.map(({item, lane, start, end}) => {
+          const row = hoursList.indexOf(item.time);
+          if (row < 0) return null;
+          const span = Math.max(1, hoursList.filter(time => minutes(time) >= start && minutes(time) < end).length);
+          return <button type="button" key={item.id} draggable onDragStart={event => handleDragStart(event, item.id)}
+            onClick={() => setViewApptModal(item)} onDragOver={handleDragOver}
+            onDrop={event => { event.stopPropagation(); handleDrop(event, day.dateObj, day.name, item.time); }}
+            title={item.clientName + ' · ' + item.time + '–' + minuteTime(end) + ' · ' + item.serviceSubcategory}
+            style={{ gridRow: (row + 2) + ' / span ' + span, gridColumn: column + 2, zIndex: 2,
+              marginLeft: (lane * 100 / lanes) + '%', width: (100 / lanes) + '%', boxSizing: 'border-box',
+              alignSelf: 'stretch', minWidth: 0, textAlign: 'left', padding: '6px',
+              background: adminAppointmentColor(item).background, border: '1px solid ' + adminAppointmentColor(item).border,
+              color: '#eee8dd', borderRadius: '5px', cursor: 'pointer', overflow: 'hidden',
+              display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: '4px' }}>
+            <strong style={{ fontSize: '11px' }}>{item.time}–{minuteTime(end)}</strong>
+            <strong style={{ color: '#cab77d', fontSize: '12px', overflowWrap: 'anywhere' }}>{item.clientName}</strong>
+            <span style={{ fontSize: '11px', lineHeight: 1.35, overflowWrap: 'anywhere' }}>{item.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</span>
+            <span style={{ fontSize: '10px', color: '#bdb8ad' }}>{item.durationMinutes || 45} min · {item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Por aprobar' : item.advancePayment?.status === 'pending' ? 'Bizum pendiente' : 'Confirmada'}</span>
+          </button>;
+        });
+      })}
+    </div>;
+  };
 
   return (
     <div lang={currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang} dir={currentLang === 'ar' && currentScreen !== 'adminPanel' && currentScreen !== 'adminLogin' ? 'rtl' : 'ltr'} style={{ backgroundColor: '#000000', color: '#ffffff', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'sans-serif', margin: 0, padding: '20px', position: 'relative' }}>
@@ -3396,95 +3483,7 @@ style={{ padding: '8px', background: '#191919', color: '#eee8dd', border: '1px s
 
                 {/* VISTA DINÁMICA DE LA TABLA (SEMANAL vs DIARIA) */}
                 <div style={{ overflowX: 'auto', backgroundColor: '#161616', border: '1px solid rgba(212,175,55,0.2)', borderRadius: '10px', padding: '15px' }}>
-                  {agendaViewMode === 'week' ? (
-                    /* REJILLA VISTA SEMANAL (Lunes a Sábado) */
-                    <div style={{ display: 'grid', gridTemplateColumns: '54px repeat(6, minmax(90px, 1fr))', gap: '3px', minWidth: '610px' }}>
-                      <div style={{ padding: '8px', textAlign: 'center', color: '#777', fontSize: '13px', fontWeight: 'bold' }}>Hora</div>
-                      {semanaActual.map((day, idx) => {
-                        const dKey = formatDateKey(day.dateObj);
-                        const isBlocked = isDateBlockedByHoliday(dKey);
-                        return (
-                          <div key={idx} style={{ padding: '8px', textAlign: 'center', backgroundColor: isBlocked ? '#2e1414' : '#1e1e1e', borderRadius: '6px', borderBottom: isBlocked ? '2px solid #ff4444' : '2px solid #d4af37' }}>
-                            <div style={{ color: isBlocked ? '#ff8888' : '#d4af37', fontSize: '12px', fontWeight: 'bold' }}>{day.name}</div>
-                            <div style={{ color: '#aaa', fontSize: '12px' }}>{day.dateFormatted} {isBlocked ? '🔒' : ''}</div>
-                            {day.dateObj.getDay() === 6 && bizConfig.saturdayApprovalEnabled && !isBlocked && <div style={{ color: '#cab77d', fontSize: '10px', lineHeight: 1.4, marginTop: '4px' }}>Bajo confirmación de Ana</div>}
-                          </div>
-                        );
-                      })}
-                      {hoursList.map((time, hIdx) => (
-                        <React.Fragment key={hIdx}>
-                          <div style={{ padding: '8px 4px', textAlign: 'center', color: '#888', fontSize: '12px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                            {time}
-                          </div>
-                          {semanaActual.map((day, dIdx) => {
-                            const targetKey = formatDateKey(day.dateObj);
-                            const isBlocked = isDateBlockedByHoliday(targetKey) || (!enableOutOfHours && !isAgendaTimeWorking(day.dateObj, time) && !appointments.some(a => a.dateKey === targetKey && a.time === time));
-                            const appt = appointments.find(a => a.dateKey === targetKey && a.time === time);
-                            const occupiedByDuration = isTimeSlotOccupied(targetKey, time);
-                            return (
-                              <div key={dIdx} onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, day.dateObj, day.name, time)} onClick={() => handleCellClick(day.dateObj, day.name, time)} style={{ backgroundColor: isBlocked ? '#261212' : (appt ? adminAppointmentColor(appt).background : (occupiedByDuration ? '#1a1510' : '#1a1a1a')), border: isBlocked ? '1px solid #ff4444' : (appt ? `1px solid ${adminAppointmentColor(appt).border}` : (occupiedByDuration ? '1px dashed #554422' : '1px dashed #2c2c2c')), borderRadius: '6px', padding: '6px', minHeight: '48px', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                {isBlocked ? (
-                                  <div style={{ color: '#ff6666', fontSize: '13px', textAlign: 'center', fontWeight: 'bold' }}>{isDateBlockedByHoliday(targetKey) ? 'CERRADO' : day.dateObj.getDay() === 6 ? '—' : 'Fuera de horario'}</div>
-                                ) : appt ? (
-                                  <div draggable onDragStart={(e) => handleDragStart(e, appt.id)} title="Arrastra para mover a cualquier hora u otro día" style={{ fontSize: '12px' }}>
-                                    <div style={{ color: '#d4af37', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                      <span>{appt.clientName}</span>
-                                      <button onClick={(e) => handleDeleteAppointment(appt.id, e)} style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '12px', cursor: 'pointer' }}>X</button>
-                                    </div>
-                                    <div style={{ color: '#bbb', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{appt.serviceSubcategory}</div>
-                                  </div>
-                                ) : occupiedByDuration ? (
-                                  <div style={{ color: '#a68a4c', fontSize: '13px', textAlign: 'center', fontStyle: 'italic' }}>Ocupado</div>
-                                ) : (
-                                  <div style={{ color: '#444', fontSize: '13px', textAlign: 'center' }}>+ Libre</div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </React.Fragment>
-                      ))}
-                    </div>
-                  ) : (
-                    /* REJILLA VISTA DIARIA (Día único seleccionado) */
-                    <div style={{ display: 'grid', gridTemplateColumns: '70px 1fr', gap: '4px', minWidth: '400px' }}>
-                      <div style={{ padding: '8px', textAlign: 'center', color: '#777', fontSize: '13px', fontWeight: 'bold' }}>Hora</div>
-                      <div style={{ padding: '8px', textAlign: 'center', backgroundColor: isDateBlockedByHoliday(formatDateKey(diaSeleccionadoObj.dateObj)) ? '#2e1414' : '#1e1e1e', borderRadius: '6px', borderBottom: isDateBlockedByHoliday(formatDateKey(diaSeleccionadoObj.dateObj)) ? '2px solid #ff4444' : '2px solid #d4af37' }}>
-                        <div style={{ color: isDateBlockedByHoliday(formatDateKey(diaSeleccionadoObj.dateObj)) ? '#ff8888' : '#d4af37', fontSize: '13px', fontWeight: 'bold' }}>
-                          {diaSeleccionadoObj.name} ({diaSeleccionadoObj.dateFormatted}) {isDateBlockedByHoliday(formatDateKey(diaSeleccionadoObj.dateObj)) ? '🔒 CERRADO' : ''}
-                        </div>
-                      </div>
-                      {hoursList.map((time, hIdx) => {
-                        const targetKey = formatDateKey(diaSeleccionadoObj.dateObj);
-                        const isBlocked = isDateBlockedByHoliday(targetKey) || (!enableOutOfHours && !isAgendaTimeWorking(diaSeleccionadoObj.dateObj, time) && !appointments.some(a => a.dateKey === targetKey && a.time === time));
-                        const appt = appointments.find(a => a.dateKey === targetKey && a.time === time);
-                        const occupiedByDuration = isTimeSlotOccupied(targetKey, time);
-                        return (
-                          <React.Fragment key={hIdx}>
-                            <div style={{ padding: '10px 4px', textAlign: 'center', color: '#888', fontSize: '13px', borderBottom: '1px solid #222', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
-                              {time}
-                            </div>
-                            <div onDragOver={handleDragOver} onDrop={(e) => handleDrop(e, diaSeleccionadoObj.dateObj, diaSeleccionadoObj.name, time)} onClick={() => handleCellClick(diaSeleccionadoObj.dateObj, diaSeleccionadoObj.name, time)} style={{ backgroundColor: isBlocked ? '#261212' : (appt ? adminAppointmentColor(appt).background : (occupiedByDuration ? '#1a1510' : '#1a1a1a')), border: isBlocked ? '1px solid #ff4444' : (appt ? `1px solid ${adminAppointmentColor(appt).border}` : (occupiedByDuration ? '1px dashed #554422' : '1px dashed #2c2c2c')), borderRadius: '6px', padding: '10px', minHeight: '54px', cursor: 'pointer', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                              {isBlocked ? (
-                                <div style={{ color: '#ff6666', fontSize: '13px', textAlign: 'center', fontWeight: 'bold' }}>{isDateBlockedByHoliday(targetKey) ? 'CERRADO · FESTIVO / VACACIONES' : diaSeleccionadoObj.dateObj.getDay() === 6 ? 'Sin disponibilidad en esta hora' : 'Fuera del horario laboral'}</div>
-                              ) : appt ? (
-                                <div draggable onDragStart={(e) => handleDragStart(e, appt.id)} title="Arrastra para mover cita" style={{ fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <div>
-                                    <span style={{ color: '#d4af37', fontWeight: 'bold', marginRight: '10px' }}>{appt.clientName} ({appt.phone})</span>
-                                    <span style={{ color: '#bbb' }}>{appt.serviceSubcategory}</span>
-                                  </div>
-                                  <button onClick={(e) => handleDeleteAppointment(appt.id, e)} style={{ background: 'none', border: 'none', color: '#ff4444', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar X</button>
-                                </div>
-                              ) : occupiedByDuration ? (
-                                <div style={{ color: '#a68a4c', fontSize: '12px', textAlign: 'center', fontStyle: 'italic' }}>Ocupado por servicio de mayor duración</div>
-                              ) : (
-                                <div style={{ color: '#555', fontSize: '12px', textAlign: 'center' }}>+ Clic para agendar cita en este hueco</div>
-                              )}
-                            </div>
-                          </React.Fragment>
-                        );
-                      })}
-                    </div>
-                  )}
+                  {renderDurationAgenda(agendaViewMode === 'week' ? semanaActual : [diaSeleccionadoObj])}
                 </div>
               </div>
               <div className="studio-agenda-secondary" style={{ flexBasis: '100%', width: '100%' }}>
@@ -3647,7 +3646,7 @@ style={{ padding: '8px', background: '#191919', color: '#eee8dd', border: '1px s
                   {savedMsg}
                 </div>
               )}
-{configSubTab === 'reservas' && <div style={{ backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', color: '#fff' }}><h3 style={{ color: '#d4af37', margin: 0 }}>Reservas y cancelaciones</h3><label>Antelación mínima (días)<input type="number" min="0" value={tempConfig.minAdvanceDays} onChange={(e) => setTempConfig({ ...tempConfig, minAdvanceDays: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Hasta cuántos meses se puede reservar<input type="number" min="0" value={tempConfig.maxBookingMonths} onChange={(e) => setTempConfig({ ...tempConfig, maxBookingMonths: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Intervalo entre horas disponibles (minutos)<input type="number" min="0" value={tempConfig.slotIntervalMinutes} onChange={(e) => setTempConfig({ ...tempConfig, slotIntervalMinutes: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Antelación para solicitar cambios o cancelaciones (horas)<input type="number" min="0" value={tempConfig.cancellationHours} onChange={(e) => setTempConfig({ ...tempConfig, cancellationHours: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><p>La antelación para cancelar es una preferencia guardada. Su aplicación automática queda pendiente. El intervalo organiza las horas disponibles; no añade tiempo de preparación entre citas.</p><button onClick={() => handleSaveSection('Reservas y cancelaciones')} style={{ backgroundColor: '#d4af37', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Guardar configuración</button></div>}{configSubTab === 'anticipada' && <div style={{ backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', color: '#fff' }}><h3 style={{ color: '#d4af37', margin: 0 }}>Reserva anticipada y sábados</h3><label><input type="checkbox" checked={tempConfig.advancePaymentEnabled} onChange={(e) => setTempConfig({ ...tempConfig, advancePaymentEnabled: e.target.checked })} /> Solicitar reserva anticipada</label><label>Importe de la reserva anticipada (€)<input type="text"  value={tempConfig.depositAmount} onChange={(e) => setTempConfig({ ...tempConfig, depositAmount: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Solicitarla cuando la cita supere estos minutos<input type="number" min="0" value={tempConfig.advancePaymentThresholdMinutes} onChange={(e) => setTempConfig({ ...tempConfig, advancePaymentThresholdMinutes: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Número de Bizum<input type="tel"  value={tempConfig.bizumNumber} onChange={(e) => setTempConfig({ ...tempConfig, bizumNumber: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label><input type="checkbox" checked={tempConfig.saturdayApprovalEnabled} onChange={(e) => setTempConfig({ ...tempConfig, saturdayApprovalEnabled: e.target.checked })} /> Los sábados requieren aprobación de Ana</label><p>Los sábados se aprueban antes de solicitar el pago. El plazo de pago se acuerda con la clienta; no hay caducidad automática.</p><button onClick={() => handleSaveSection('Reserva anticipada y sábados')} style={{ backgroundColor: '#d4af37', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Guardar configuración</button></div>}{configSubTab === 'avisos' && <div style={{ backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', color: '#fff' }}><h3 style={{ color: '#d4af37', margin: 0 }}>Avisos y recordatorios</h3><label>WhatsApp del Studio<input type="tel"  value={tempConfig.studioWhatsapp} onChange={(e) => setTempConfig({ ...tempConfig, studioWhatsapp: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Correo del Studio<input type="email"  value={tempConfig.studioEmail} onChange={(e) => setTempConfig({ ...tempConfig, studioEmail: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Recordatorio antes de la cita (horas)<input type="number" min="0" value={tempConfig.reminderHours} onChange={(e) => setTempConfig({ ...tempConfig, reminderHours: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><p style={{ color: '#d4af37' }}>Envío automático pendiente de configurar.</p><p>Estos datos guardan tus preferencias. No envían mensajes ni programan recordatorios hasta conectar un servicio de envío. El registro de entregas y errores estará disponible con esa conexión.</p><button onClick={() => handleSaveSection('Avisos y recordatorios')} style={{ backgroundColor: '#d4af37', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Guardar configuración</button></div>}{configSubTab === 'backup' && <div style={{ backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', color: '#fff' }}><h3 style={{ color: '#d4af37', margin: 0 }}>Copia de seguridad</h3><p>Descarga el catálogo, las citas, la configuración y los registros locales. Guarda el archivo en un lugar privado: puede contener datos personales y PIN.</p><button type="button" onClick={() => {
+{configSubTab === 'reservas' && <div style={{ backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', color: '#fff' }}><h3 style={{ color: '#d4af37', margin: 0 }}>Reservas y cancelaciones</h3><label>Antelación mínima (días)<input type="number" min="0" value={tempConfig.minAdvanceDays} onChange={(e) => setTempConfig({ ...tempConfig, minAdvanceDays: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Hasta cuántos meses se puede reservar<input type="number" min="0" value={tempConfig.maxBookingMonths} onChange={(e) => setTempConfig({ ...tempConfig, maxBookingMonths: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Intervalo entre horas disponibles (minutos)<input type="number" min="0" value={tempConfig.slotIntervalMinutes} onChange={(e) => setTempConfig({ ...tempConfig, slotIntervalMinutes: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Antelación para solicitar cambios o cancelaciones (horas)<input type="number" min="0" value={tempConfig.cancellationHours} onChange={(e) => setTempConfig({ ...tempConfig, cancellationHours: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><p>La antelación para cancelar es una preferencia guardada. Su aplicación automática queda pendiente. El intervalo organiza las horas disponibles; no añade tiempo de preparación entre citas.</p><button onClick={() => handleSaveSection('Reservas y cancelaciones')} style={{ backgroundColor: '#d4af37', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Guardar configuración</button></div>}{configSubTab === 'anticipada' && <div style={{ backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', color: '#fff' }}><h3 style={{ color: '#d4af37', margin: 0 }}>Reserva anticipada y sábados</h3><label><input type="checkbox" checked={tempConfig.advancePaymentEnabled} onChange={(e) => setTempConfig({ ...tempConfig, advancePaymentEnabled: e.target.checked })} /> Solicitar reserva anticipada</label><label>Importe de la reserva anticipada (€)<input type="text"  value={tempConfig.depositAmount} onChange={(e) => setTempConfig({ ...tempConfig, depositAmount: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Solicitarla cuando la cita supere estos minutos<input type="number" min="0" value={tempConfig.advancePaymentThresholdMinutes} onChange={(e) => setTempConfig({ ...tempConfig, advancePaymentThresholdMinutes: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Número de Bizum<input type="tel"  value={tempConfig.bizumNumber} onChange={(e) => setTempConfig({ ...tempConfig, bizumNumber: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><p>Las citas de los sábados requieren siempre la confirmación de Ana.</p><p>Los sábados se aprueban antes de solicitar el pago. El plazo de pago se acuerda con la clienta; no hay caducidad automática.</p><button onClick={() => handleSaveSection('Reserva anticipada y sábados')} style={{ backgroundColor: '#d4af37', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Guardar configuración</button></div>}{configSubTab === 'avisos' && <div style={{ backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', color: '#fff' }}><h3 style={{ color: '#d4af37', margin: 0 }}>Avisos y recordatorios</h3><label>WhatsApp del Studio<input type="tel"  value={tempConfig.studioWhatsapp} onChange={(e) => setTempConfig({ ...tempConfig, studioWhatsapp: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Correo del Studio<input type="email"  value={tempConfig.studioEmail} onChange={(e) => setTempConfig({ ...tempConfig, studioEmail: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><label>Recordatorio antes de la cita (horas)<input type="number" min="0" value={tempConfig.reminderHours} onChange={(e) => setTempConfig({ ...tempConfig, reminderHours: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#181818', color: '#fff', border: '1px solid #444', borderRadius: '6px', marginTop: '6px' }} /></label><p style={{ color: '#d4af37' }}>Envío automático pendiente de configurar.</p><p>Estos datos guardan tus preferencias. No envían mensajes ni programan recordatorios hasta conectar un servicio de envío. El registro de entregas y errores estará disponible con esa conexión.</p><button onClick={() => handleSaveSection('Avisos y recordatorios')} style={{ backgroundColor: '#d4af37', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Guardar configuración</button></div>}{configSubTab === 'backup' && <div style={{ backgroundColor: '#191919', border: '1px solid #34332d', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', color: '#fff' }}><h3 style={{ color: '#d4af37', margin: 0 }}>Copia de seguridad</h3><p>Descarga el catálogo, las citas, la configuración y los registros locales. Guarda el archivo en un lugar privado: puede contener datos personales y PIN.</p><button type="button" onClick={() => {
 const data: Record<string, string | null> = {}; for (let index = 0; index < localStorage.length; index++) { const key = localStorage.key(index); if (key?.startsWith('lst_')) data[key] = localStorage.getItem(key); }
 data.lst_master_catalog = JSON.stringify(catalog); data.lst_business_config = JSON.stringify(bizConfig);
 const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, createdAt: new Date().toISOString(), data }, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `LStudio_copia_${new Date().toISOString().slice(0,10)}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -4473,7 +4472,11 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 2100 }}>
           <div role="dialog" aria-modal="true" aria-labelledby="saturday-request-title" style={{ backgroundColor: '#141414', border: '1px solid #d4af37', borderRadius: '16px', padding: '25px', maxWidth: '440px', width: '100%', color: '#fff' }}>
             <h3 id="saturday-request-title" style={{ color: '#d4af37' }}>{t('reviewTitle')}</h3>
-            <p>{t('reviewExplanation')}</p>
+            <p>{saturdayRequestModal.saturdayApproval?.reason === 'saturday' || saturdayRequestModal.saturdayApproval?.reason === 'both'
+              ? (currentLang === 'es' || currentScreen === 'adminPanel'
+                ? 'Las citas de los sábados necesitan la confirmación de Ana. Puedes registrar tu solicitud, pero la cita solo quedará confirmada cuando Ana la acepte.'
+                : t('reviewExplanation'))
+              : t('reviewExplanation')}</p>
             <p>{saturdayRequestModal.dateKey.split('-').reverse().join('/')} · {saturdayRequestModal.time}</p>
             <p>{saturdayRequestModal.serviceSubcategory.replace(/^PENDIENTE (?:SÁBADO|VALORACIÓN) /, '')}</p>
             {bizConfig.advancePaymentEnabled && (saturdayRequestModal.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes && <p>{tf('reviewDeposit', {amount: bizConfig.depositAmount})}</p>}
@@ -4505,7 +4508,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
       {isModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
           <div style={{ backgroundColor: '#141414', border: '1px solid #76683e', borderRadius: '16px', padding: '25px', maxWidth: '560px', boxSizing: 'border-box', width: '100%', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>Nueva cita · 360studio</h3>
+            <h3 style={{ color: '#d4af37', fontSize: '16px', fontFamily: 'serif', margin: 0 }}>{editingAppointment ? 'Editar servicios · 360studio' : 'Nueva cita · 360studio'}</h3>
             <p style={{ color: '#cab77d', fontSize: '14px', margin: 0 }}>{targetDateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {targetTime}</p>
             <form onSubmit={handleSaveModalAppointment} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <h4 style={{ color: '#eee8dd', fontSize: '16px', margin: '8px 0' }}>1. Datos de la clienta</h4>
@@ -4569,7 +4572,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               <small style={{ color: '#aaa' }}>Selecciona cada servicio y pulsa «Añadir servicio». Si repites uno, se actualiza su variante. Se guardarán los servicios de la lista; sin lista, se guardará el servicio seleccionado.</small>
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
                 <button type="button" onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: '1px solid #444', color: '#aaa', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
-                <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>Guardar Cita</button>
+                <button type="submit" style={{ backgroundColor: '#d4af37', color: '#000', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>{editingAppointment ? 'Guardar cambios' : 'Guardar Cita'}</button>
               </div>
             </form>
           </div>
@@ -4587,6 +4590,16 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               <p style={{ fontFamily: 'serif', fontSize: '21px', margin: '12px 0 8px' }}>{new Date(`${viewApptModal.dateKey}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {viewApptModal.time}</p>
               <span style={{ color: '#bdb8ad', fontSize: '13px' }}>Duración total: {viewApptModal.durationMinutes || 45} min</span>
             </div>
+            {!viewApptModal.completedAt && <button type="button" onClick={() => {
+              setEditingAppointment(viewApptModal);
+              setTargetDateObj(new Date(viewApptModal.dateKey + 'T12:00:00'));
+              setTargetDayName(viewApptModal.dayName); setTargetTime(viewApptModal.time);
+              setModalClientName(viewApptModal.clientName); setModalPhone(viewApptModal.phone); setModalEmail(viewApptModal.email);
+              setModalServices(viewApptModal.services || []);
+              setModalCatIndex(0); setModalSubIndex(0); setModalSelectedVariant(catalog[0]?.subservices[0]?.variants?.[0] || null);
+              setViewApptModal(null); setIsModalOpen(true);
+            }} style={{ background: '#242219', color: '#ddd0a4', border: '1px solid #76683e',
+              borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>Editar servicios y duración</button>}
             <section>
               <h4 style={{ color: '#cab77d', fontSize: '14px', margin: '0 0 12px' }}>Servicios reservados</h4>
               {viewApptModal.services?.length ? viewApptModal.services.map((item, index) => <div key={index} style={{ backgroundColor: '#191919', padding: '14px', border: '1px solid #34332d', borderRadius: '8px', marginBottom: '8px', fontSize: '14px', lineHeight: 1.6, color: '#ddd6c7' }}><strong>{item.sub.name}</strong>{item.variant && <span style={{ display: 'block', color: '#bdb8ad' }}>{item.variant.name}</span>}<span style={{ display: 'block', color: '#cab77d', fontSize: '13px' }}>{item.variant?.price || item.sub.price} · {item.variant?.duration || item.sub.duration}</span></div>) : <p style={{ color: '#ddd6c7', fontSize: '14px', lineHeight: 1.6, overflowWrap: 'anywhere' }}>{viewApptModal.serviceSubcategory}</p>}
