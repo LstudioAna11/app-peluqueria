@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ImagePlus, Trash2 } from 'lucide-react';
 import './catalog.css';
 import * as studioApi from './studioApi';
 
@@ -1310,6 +1310,8 @@ type ServiceTranslation = Partial<Pick<SubService, 'name' | 'description' | 'inc
 interface SubService {
   translations?: Record<string, ServiceTranslation>;
   imageUrl?: string;
+  imageIsAiPlaceholder?: boolean;
+  imagePosition?: { x: number; y: number };
   active?: boolean;
   requiresAssessment?: boolean;
   tonerPolicy?: StylingPolicy;
@@ -1591,6 +1593,18 @@ const INITIAL_CATALOG: CatalogCategory[] = [
   }
 ];
 
+const SERVICE_AI_IMAGES: Record<string, { imageUrl: string; imageIsAiPlaceholder: boolean; imagePosition: { x: number; y: number } }> = {
+  s1: { imageUrl: '/s1.webp', imageIsAiPlaceholder: true, imagePosition: { x: 50, y: 30 } },
+  s2: { imageUrl: '/s2.webp', imageIsAiPlaceholder: true, imagePosition: { x: 50, y: 30 } },
+  s3: { imageUrl: '/s3.webp', imageIsAiPlaceholder: true, imagePosition: { x: 50, y: 30 } },
+  s4: { imageUrl: '/s4.webp', imageIsAiPlaceholder: true, imagePosition: { x: 50, y: 35 } },
+  s5: { imageUrl: '/s5.webp', imageIsAiPlaceholder: true, imagePosition: { x: 50, y: 30 } },
+  s6: { imageUrl: '/s6.webp', imageIsAiPlaceholder: true, imagePosition: { x: 50, y: 40 } },
+  s7: { imageUrl: '/s7.webp', imageIsAiPlaceholder: true, imagePosition: { x: 50, y: 35 } },
+  s8: { imageUrl: '/s8.webp', imageIsAiPlaceholder: true, imagePosition: { x: 50, y: 30 } },
+  s9: { imageUrl: '/s9.webp', imageIsAiPlaceholder: true, imagePosition: { x: 50, y: 35 } }
+};
+
 const formatDateKey = (d: Date) => {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -1812,11 +1826,86 @@ function StudioApp() {
   // CATÁLOGO UNIFICADO Y SINCRONIZADO EN TIEMPO REAL
   const [catalog, setCatalog] = useState<CatalogCategory[]>(() => {
     const saved = localStorage.getItem('lst_master_catalog');
-    return saved ? readStoredValue('lst_master_catalog', saved) : INITIAL_CATALOG;
+    const parsed = saved ? readStoredValue('lst_master_catalog', saved) : INITIAL_CATALOG;
+    // Añadir fotos iniciales solo a servicios sin foto propia guardada.
+    return parsed.map((category: CatalogCategory) => ({
+      ...category,
+      subservices: category.subservices.map(sub => {
+        const seed = SERVICE_AI_IMAGES[sub.id];
+        if (!seed) return sub;
+        return {
+          ...seed,
+          ...sub,
+          imageIsAiPlaceholder: sub.imageUrl && sub.imageUrl !== seed.imageUrl ? sub.imageIsAiPlaceholder : seed.imageIsAiPlaceholder
+        };
+      })
+    }));
   });
 
   const [savedCatalogSnapshot, setSavedCatalogSnapshot] = useState(() => JSON.stringify(catalog));
   const catalogHasChanges = JSON.stringify(catalog) !== savedCatalogSnapshot;
+
+  const [photoUploadBusy, setPhotoUploadBusy] = useState(false);
+  const updateSubserviceField = (categoryId: string, subId: string, patch: Partial<SubService>) => {
+    setCatalog(catalog.map(c => c.id !== categoryId ? c : {
+      ...c,
+      subservices: c.subservices.map(s => s.id !== subId ? s : { ...s, ...patch })
+    }));
+  };
+  const handleServicePhotoSelect = async (categoryId: string, subId: string, file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { alert('Elige un archivo de imagen.'); return; }
+    if (file.size > 8 * 1024 * 1024) { alert('La imagen supera 8 MB. Elige una más ligera.'); return; }
+    if (!studioApi.serverConfigured || studioApi.storedRole() !== 'admin' || !studioApi.currentToken()) {
+      alert('Para gestionar fotografías necesitas entrar en 360studio con el PIN maestro.'); return;
+    }
+    setPhotoUploadBusy(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+        reader.readAsDataURL(file);
+      });
+      const uploaded = await studioApi.uploadServiceImage(studioApi.currentToken()!, dataUrl);
+      updateSubserviceField(categoryId, subId, { imageUrl: uploaded.url, imageIsAiPlaceholder: false });
+      alert('Foto subida. Pulsa "Guardar catálogo" para hacerla visible en el portal de clientas.');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'No se pudo subir la foto.');
+    } finally {
+      setPhotoUploadBusy(false);
+    }
+  };
+  const handleServicePhotoDelete = async (categoryId: string, subId: string) => {
+    const sub = catalog.find(c => c.id === categoryId)?.subservices.find(s => s.id === subId);
+    if (!sub) return;
+    if (!window.confirm('¿Eliminar la fotografía de este servicio? El portal mostrará el marcador de marca hasta que subas otra.')) return;
+    if (!studioApi.serverConfigured || studioApi.storedRole() !== 'admin' || !studioApi.currentToken()) {
+      alert('Para gestionar fotografías necesitas entrar en 360studio con el PIN maestro.'); return;
+    }
+    setPhotoUploadBusy(true);
+    try {
+      const marker = /^https:\/\/.+\/storage\/v1\/object\/public\/service-images\/(.+)$/.exec(sub.imageUrl || '');
+      if (marker) await studioApi.deleteServiceImage(studioApi.currentToken()!, marker[1]);
+      const updated = catalog.map(c => c.id !== categoryId ? c : {
+        ...c,
+        subservices: c.subservices.map(s => s.id !== subId ? s : { ...s, imageUrl: undefined, imageIsAiPlaceholder: false })
+      });
+      setCatalog(updated);
+      localStorage.setItem('lst_master_catalog', JSON.stringify(updated));
+      setSavedCatalogSnapshot(JSON.stringify(updated));
+      if (studioApi.serverConfigured && studioApi.storedRole() === 'admin') {
+        studioApi.pushCatalog(studioApi.currentToken()!, updated).catch(() => {
+          setCatalogSavedMsg('Guardado en este dispositivo. No se pudo sincronizar con el servidor: revisa tu conexión e inténtalo de nuevo.');
+        });
+      }
+      alert('Fotografía eliminada y guardada. El portal mostrará el marcador de marca.');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'No se pudo eliminar la foto.');
+    } finally {
+      setPhotoUploadBusy(false);
+    }
+  };
 
   const handleSaveCatalogMaster = () => {
     localStorage.setItem('lst_master_catalog', JSON.stringify(catalog));
@@ -2623,7 +2712,7 @@ function StudioApp() {
     return (
       <article key={sub.id} id={`portal-service-${sub.id}`} className="lst-card" style={{ boxShadow: '0 6px 18px rgba(60, 50, 40, 0.05)' }}>
         {(serviceImage
-          ? <button type="button" style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'zoom-in' }} onClick={() => setLightboxImage(serviceImage)} aria-label="Ampliar imagen"><img className="lst-card-media" src={serviceImage} alt={serviceText(sub, 'name') || sub.name} loading="lazy" /></button>
+          ? <button type="button" style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'zoom-in' }} onClick={() => setLightboxImage(serviceImage)} aria-label="Ampliar imagen"><img className="lst-card-media" style={{ objectPosition: `${sub.imagePosition?.x ?? 50}% ${sub.imagePosition?.y ?? 50}%` }} src={serviceImage} alt={serviceText(sub, 'name') || sub.name} loading="lazy" />{sub.imageIsAiPlaceholder && <span className="lst-ai-tag">Imagen ilustrativa</span>}</button>
           : <div className="studio-service-media studio-service-media-empty" aria-hidden="true"><span>LS</span><small>{bizConfig.name}</small></div>)}
         <div className="lst-card-footer">
           <div style={{ minWidth: 0 }}>
@@ -3346,6 +3435,7 @@ function StudioApp() {
         .lst-app-header-btn:hover { background: rgba(44, 37, 33, 0.06); }
         .lst-card { background: #F6F1E7; border: 1px solid #E4DCCF; border-radius: 14px; overflow: hidden; }
         .lst-card-media { width: 100%; height: 200px; object-fit: cover; display: block; }
+        .lst-ai-tag { position: absolute; top: 10px; right: 10px; background: rgba(28, 22, 18, 0.62); color: #FBF6EC; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; }
         .lst-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-top: 1px solid #E4DCCF; }
         .lst-card-footer strong { display: block; font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.04em; font-size: 19px; font-weight: 500; color: #2C2521; }
         .lst-card-footer span { display: block; color: #6E645A; font-size: 13px; margin-top: 3px; }
@@ -3382,6 +3472,7 @@ function StudioApp() {
         .lst-c-card { flex: 0 0 240px; scroll-snap-align: start; background: #F6F1E7; border: 1px solid #E4DCCF; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
         .lst-c-media { display: block; width: 100%; height: 190px; padding: 0; border: none; background: #EFE9DF; cursor: pointer; overflow: hidden; }
         .lst-c-media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease; }
+        .lst-c-media .lst-ai-tag { position: absolute; top: 10px; right: 10px; background: rgba(28, 22, 18, 0.62); color: #FBF6EC; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; }
         .lst-c-media:hover img { transform: scale(1.04); }
         .lst-c-media-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 100%; }
         .lst-c-media-fallback strong { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 38px; letter-spacing: 4px; color: #C99E52; line-height: 1; }
@@ -3791,7 +3882,10 @@ function StudioApp() {
                     <article key={sub.id} id={"portal-service-" + sub.id} className="lst-c-card">
                       <button type="button" className="lst-c-media" onClick={() => openDetail(sub)} aria-label={name + ' · ' + t('viewService')}>
                         {sub.imageUrl
-                          ? <img src={sub.imageUrl} alt={name} loading="lazy" decoding="async" />
+                          ? <>
+                            <img src={sub.imageUrl} alt={name} loading="lazy" decoding="async" style={{ objectPosition: `${sub.imagePosition?.x ?? 50}% ${sub.imagePosition?.y ?? 50}%` }} />
+                            {sub.imageIsAiPlaceholder && <span className="lst-ai-tag">Imagen ilustrativa</span>}
+                          </>
                           : <span className="lst-c-media-fallback"><strong>LS</strong><small>{bizConfig.name}</small></span>}
                       </button>
                       <div className="lst-c-body">
@@ -3840,7 +3934,7 @@ function StudioApp() {
             <span style={{ width: 40, display: 'block' }} aria-hidden="true" />
           </div>
           {detailImage
-            ? <button type="button" style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'zoom-in' }} onClick={() => setLightboxImage(detailImage)} aria-label="Ampliar imagen"><img className="lst-card-media" style={{ height: 280, borderRadius: 14 }} src={detailImage} alt={serviceText(detailSub, 'name') || detailSub.name} /></button>
+            ? <button type="button" style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'zoom-in', position: 'relative' }} onClick={() => setLightboxImage(detailImage)} aria-label="Ampliar imagen"><img className="lst-card-media" style={{ height: 280, borderRadius: 14, objectPosition: `${viewServiceDetail.sub.imagePosition?.x ?? 50}% ${viewServiceDetail.sub.imagePosition?.y ?? 50}%` }} src={detailImage} alt={serviceText(detailSub, 'name') || detailSub.name} />{viewServiceDetail.sub.imageIsAiPlaceholder && <span className="lst-ai-tag">Imagen ilustrativa</span>}</button>
             : <div className="studio-service-media studio-service-media-empty" style={{ height: 280, borderRadius: 14 }} aria-hidden="true"><span>LS</span><small>{bizConfig.name}</small></div>}
           <header style={{ display: 'flex', flexDirection: 'column' }}>
             <span className="lst-detail-eyebrow">{categoryText(viewServiceDetail.cat)}</span>
@@ -4800,12 +4894,33 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                         <p>Los complementos suman su precio y duración. Incluido significa que el acabado ya forma parte del servicio; Añadir pide elegirlo por separado.</p>
                                       </details>
                                     </section>
-                                    <div className="studio-editor-data" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                      <label style={{ color: '#C99E52', fontSize: '12px' }}>Imagen del servicio (URL de la foto):</label>
-                                      <input type="url" value={sub.imageUrl || ''} onChange={(e) => {
-                                        const val = e.target.value;
-                                        setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s2 => s2.id === sub.id ? { ...s2, imageUrl: val } : s2) } : c));
-                                      }} placeholder="Pega aquí la URL de la foto del resultado (https://...)" style={{ backgroundColor: '#FFFFFF', border: '1px solid #C5A059', color: '#2C2521', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
+                                    <div className="studio-editor-data" style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#FFFFFF', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px' }}>
+                                      <label style={{ color: '#C99E52', fontSize: '12px', fontWeight: 'bold' }}>Fotografía del servicio</label>
+                                      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                                        <div style={{ width: '140px', height: '105px', borderRadius: '8px', overflow: 'hidden', background: '#EFE9DF', flexShrink: 0, border: '1px solid #E6D5B8' }}>
+                                          {sub.imageUrl
+                                            ? <img src={sub.imageUrl} alt={'Foto actual de ' + sub.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${sub.imagePosition?.x ?? 50}% ${sub.imagePosition?.y ?? 50}%` }} />
+                                            : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#C99E52', fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '26px', letterSpacing: '3px' }}>LS</span>}
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '180px' }}>
+                                          <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', minHeight: '44px', padding: '10px 14px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#2C2521', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: photoUploadBusy ? 'wait' : 'pointer' }}>
+                                            <ImagePlus size={16} strokeWidth={1.8} aria-hidden="true" />
+                                            {photoUploadBusy ? 'Subiendo…' : (sub.imageUrl ? 'Sustituir por otra foto' : 'Subir foto desde el dispositivo')}
+                                            <input type="file" accept="image/*" disabled={photoUploadBusy} onChange={(e) => { handleServicePhotoSelect(cat.id, sub.id, e.target.files?.[0]); e.target.value = ''; }} style={{ display: 'none' }} />
+                                          </label>
+                                          {sub.imageUrl && <button type="button" disabled={photoUploadBusy} onClick={() => handleServicePhotoDelete(cat.id, sub.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 14px', background: '#FFFFFF', color: '#C0392B', border: '1px solid #dfaaa3', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                                            <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" /> Eliminar foto
+                                          </button>}
+                                          {sub.imageUrl && <>
+                                            <label style={{ color: '#7A7067', fontSize: '12px' }}>Encuadre horizontal: {sub.imagePosition?.x ?? 50}%</label>
+                                            <input type="range" min={0} max={100} value={sub.imagePosition?.x ?? 50} onChange={(e) => updateSubserviceField(cat.id, sub.id, { imagePosition: { x: Number(e.target.value), y: sub.imagePosition?.y ?? 50 } })} style={{ accentColor: '#C99E52' }} />
+                                            <label style={{ color: '#7A7067', fontSize: '12px' }}>Encuadre vertical: {sub.imagePosition?.y ?? 50}%</label>
+                                            <input type="range" min={0} max={100} value={sub.imagePosition?.y ?? 50} onChange={(e) => updateSubserviceField(cat.id, sub.id, { imagePosition: { x: sub.imagePosition?.x ?? 50, y: Number(e.target.value) } })} style={{ accentColor: '#C99E52' }} />
+                                          </>}
+                                          {sub.imageIsAiPlaceholder && <p style={{ color: '#7A7067', fontSize: '11px', margin: 0 }}>Esta es una imagen ilustrativa generada. Al subir tu propia foto se retirará la etiqueta del portal.</p>}
+                                        </div>
+                                      </div>
+                                      <input type="url" value={sub.imageUrl || ''} onChange={(e) => updateSubserviceField(cat.id, sub.id, { imageUrl: e.target.value, imageIsAiPlaceholder: e.target.value ? false : sub.imageIsAiPlaceholder })} placeholder="O pega la URL de una foto (https://...)" style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6D5B8', color: '#2C2521', padding: '6px', borderRadius: '4px', fontSize: '13px' }} />
                                     </div>
                                     <div className="studio-editor-data" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                       <label style={{ color: '#C99E52', fontSize: '12px' }}>Qué incluye:</label>

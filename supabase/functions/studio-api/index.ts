@@ -111,6 +111,33 @@ Deno.serve(async (req: Request) => {
     }
 
     // ---------- admin-only mutations ----------
+    if (action === "service-image" && req.method === "POST") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const dataUrl = String(body.dataUrl ?? "");
+      const match = /^data:(image\/(png|jpeg|webp));base64,(.+)$/.exec(dataUrl);
+      if (!match) return json({ error: "Formato de imagen no soportado" }, 400);
+      const [, mime, , base64] = match;
+      const bytes = Uint8Array.from(atob(base64), (ch) => ch.charCodeAt(0));
+      if (bytes.length > 4 * 1024 * 1024) return json({ error: "La imagen supera 4 MB" }, 400);
+      const ext = mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg";
+      const path = `services/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await admin.storage.from("service-images").upload(path, bytes, {
+        contentType: mime, upsert: false,
+      });
+      if (upErr) return json({ error: upErr.message }, 500);
+      const { data: pub } = admin.storage.from("service-images").getPublicUrl(path);
+      return json({ ok: true, url: pub.data.publicUrl, path });
+    }
+
+    if (action === "service-image" && req.method === "DELETE") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const path = String(body.path ?? "");
+      if (!/^services\/[a-f0-9-]+\.(png|jpe?g|webp)$/.test(path)) return json({ error: "Ruta no válida" }, 400);
+      const { error } = await admin.storage.from("service-images").remove([path]);
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true });
+    }
+
     if (action === "catalog" && req.method === "PUT") {
       if (!isAdmin) return json({ error: "Solo administración" }, 403);
       const rows = (body.catalog as any[]).map((category, index) => ({

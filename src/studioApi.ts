@@ -136,3 +136,15 @@ export const updateAppointmentOnServer = (token: string, patch: ServerAppointmen
 
 export const deleteAppointmentOnServer = (token: string, id: string) =>
   call<{ ok: true }>('appointment', { method: 'DELETE', token, body: { id } });
+
+export interface UploadedServiceImage {
+  ok: true;
+  url: string;
+  path: string;
+}
+
+export const uploadServiceImage = (token: string, dataUrl: string) =>
+  call<UploadedServiceImage>('service-image', { method: 'POST', token, body: { dataUrl } });
+
+export const deleteServiceImage = (token: string, path: string) =>
+  call<{ ok: true }>('service-image', { method: 'DELETE', token, body: { path } });
