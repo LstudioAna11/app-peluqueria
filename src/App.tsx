@@ -1681,7 +1681,7 @@ class PortalErrorBoundary extends React.Component<
   }
   render() {
     if (!this.state.failed) return this.props.children;
-    return <main style={{ minHeight: '100vh', background: '#D8D0C5', color: '#2B2521',
+    return <main style={{ minHeight: '100vh', background: '#FFFFFF', color: '#2B2521',
       display: 'grid', placeContent: 'center', padding: '24px', textAlign: 'center' }}>
       <h1 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', color: '#B98A3E' }}>L’Studio Ana</h1>
       <p>No hemos podido abrir el portal. Tus datos guardados se conservan.</p>
@@ -2519,7 +2519,7 @@ function StudioApp() {
     return text.includes(portalSearchQuery);
   };
   const portalSearchCount = catalog.reduce((total, category) => total + category.subservices.filter(service => portalServiceMatches(category, service)).length, 0);
-  const translationLanguagePicker = () => <label style={{ display: 'block', color: '#7A7067', fontSize: '13px', margin: '12px 0' }}>Idioma<select value={catalogTranslationLang} onChange={event => setCatalogTranslationLang(event.target.value)} style={{ display: 'block', width: '100%', padding: '12px', marginTop: '6px', background: '#D8D0C5', color: '#2B2521', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '7px' }}>{Object.keys(TRANSLATIONS).filter(language => language !== 'es').map(language => <option key={language} value={language}>{({en: 'English', fr: 'Français', it: 'Italiano', pt: 'Português', de: 'Deutsch', nl: 'Nederlands', pl: 'Polski', cs: 'Čeština', nb: 'Norsk', sv: 'Svenska', ar: 'العربية'} as Record<string, string>)[language]}</option>)}</select></label>;
+  const translationLanguagePicker = () => <label style={{ display: 'block', color: '#7A7067', fontSize: '13px', margin: '12px 0' }}>Idioma<select value={catalogTranslationLang} onChange={event => setCatalogTranslationLang(event.target.value)} style={{ display: 'block', width: '100%', padding: '12px', marginTop: '6px', background: '#FFFFFF', color: '#2B2521', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '7px' }}>{Object.keys(TRANSLATIONS).filter(language => language !== 'es').map(language => <option key={language} value={language}>{({en: 'English', fr: 'Français', it: 'Italiano', pt: 'Português', de: 'Deutsch', nl: 'Nederlands', pl: 'Polski', cs: 'Čeština', nb: 'Norsk', sv: 'Svenska', ar: 'العربية'} as Record<string, string>)[language]}</option>)}</select></label>;
   const updateServiceTranslation = (categoryId: string, serviceId: string, field: keyof ServiceTranslation, value: string) => {
     setCatalog(previous => previous.map(category => category.id !== categoryId ? category : {
       ...category, subservices: category.subservices.map(service => service.id !== serviceId ? service : {
@@ -3103,13 +3103,13 @@ function StudioApp() {
     return <div className="studio-agenda-grid" style={{ display: 'grid', gridTemplateColumns: '52px repeat(' + days.length + ', minmax(105px, 1fr))',
       gridTemplateRows: 'auto repeat(' + hoursList.length + ', ' + agendaRowHeight + 'px)', gap: '2px',
       minWidth: days.length > 1 ? '700px' : '280px' }}>
-      <div style={{ gridRow: 1, gridColumn: 1, color: '#7A7067', padding: '8px', fontSize: '12px' }}>Hora</div>
+      <div style={{ gridRow: 1, gridColumn: 1, color: '#FDFBF7', padding: '8px', fontSize: '12px' }}>Hora</div>
       {days.map((day, column) => <div key={'header-' + column} className={`studio-agenda-day-heading ${formatDateKey(day.dateObj) === formatDateKey(agendaNow) ? 'studio-agenda-today' : ''}`} style={{ gridRow: 1, gridColumn: column + 2,
         background: '#F9F8F6', color: '#2B2521', textAlign: 'center', padding: '8px', fontSize: '12px',
-        borderBottom: '1px solid rgba(212, 175, 55, 0.3)' }}><strong>{day.name}</strong><div>{day.dateFormatted}</div>
+        borderBottom: '1px solid rgba(212, 175, 55, 0.35)' }}><strong>{day.name}</strong><div>{day.dateFormatted}</div>
       </div>)}
       {hoursList.map((time, row) => <React.Fragment key={time}>
-        <div style={{ gridRow: row + 2, gridColumn: 1, color: '#7A7067', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{time}</div>
+        <div style={{ gridRow: row + 2, gridColumn: 1, color: '#FDFBF7', fontSize: '11px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{time}</div>
         {days.map((day, column) => {
           const key = formatDateKey(day.dateObj);
           const holiday = isDateBlockedByHoliday(key);
@@ -3121,7 +3121,7 @@ function StudioApp() {
             onClick={() => chooseSlotAction(day.dateObj, day.name, time)} onDragOver={handleDragOver}
             onDrop={event => handleDrop(event, day.dateObj, day.name, time)}
             style={{ gridRow: row + 2, gridColumn: column + 2, border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '1px',
-              background: holiday && day.dateObj.getDay() !== 6 ? '#FBEAEA' : working ? '#FFFFFF' : '#EFEAE2', color: '#7A7067', cursor: working ? 'pointer' : 'default',
+              background: holiday && day.dateObj.getDay() !== 6 ? '#FBEAEA' : working ? '#FFFFFF' : 'rgba(255,255,255,0.14)', color: '#FDFBF7', cursor: working ? 'pointer' : 'default',
               padding: '2px', fontSize: '10px' }}>{holiday ? 'Cerrado' : ''}</button>;
         })}
       </React.Fragment>)}
@@ -3185,7 +3185,7 @@ function StudioApp() {
   };
 
   return (
-    <div lang={currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang} dir={currentLang === 'ar' && currentScreen !== 'adminPanel' && currentScreen !== 'adminLogin' ? 'rtl' : 'ltr'} style={{ backgroundColor: '#D8D0C5', color: '#2B2521', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: "'Garet', 'Poppins', sans-serif", margin: 0, padding: '20px', position: 'relative' }}>
+    <div lang={currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang} dir={currentLang === 'ar' && currentScreen !== 'adminPanel' && currentScreen !== 'adminLogin' ? 'rtl' : 'ltr'} style={{ backgroundColor: 'transparent', color: '#FDFBF7', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: "'Garet', 'Poppins', sans-serif", margin: 0, padding: '20px', position: 'relative' }}>
       
       {/* PESTAÑA DESPLEGABLE MULTIIDIOMA */}
       <div hidden={currentScreen === 'adminPanel' || currentScreen === 'adminLogin'} style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 1000 }}>
@@ -3224,26 +3224,26 @@ function StudioApp() {
       {currentScreen === 'clientPin' && (
         <main style={{ width: '100%', maxWidth: '460px', boxSizing: 'border-box', padding: '60px 24px 30px', textAlign: 'center' }}>
           <style>{`
-            .studio-editorial-pin { background: transparent; border: none; border-bottom: 1px solid #B98A3E; border-radius: 0; color: #2C2521; width: 100%; height: 64px; font-family: 'Royal Hefana', 'Cormorant Garamond', Georgia, serif; font-size: 30px; letter-spacing: 18px; text-align: center; box-sizing: border-box; padding: 8px 0 8px 18px; outline: none; }
+            .studio-editorial-pin { background: transparent; border: none; border-bottom: 1px solid #B98A3E; border-radius: 0; color: #2B2521; width: 100%; height: 64px; font-family: 'Royal Hefana', 'Cormorant Garamond', Georgia, serif; font-size: 30px; letter-spacing: 18px; text-align: center; box-sizing: border-box; padding: 8px 0 8px 18px; outline: none; }
             .studio-editorial-pin:focus { border-bottom-color: #B98A3E; }
-            .studio-editorial-enter:hover { background: #E8C88B !important; }
+            .studio-editorial-enter:hover { background: #E5C158 !important; }
             .studio-editorial-enter:focus-visible, .studio-editorial-logo:focus-visible { outline: 2px solid #B98A3E; outline-offset: 5px; }
             @media (max-width: 600px) { .studio-editorial-logo img { width: 180px !important; height: auto !important; } }
           `}</style>
           <button className="studio-editorial-logo" type="button" onClick={handleLogoClick} aria-label="L’Studio Ana" style={{ display: 'inline-block', border: 'none', background: 'none', padding: 0, cursor: 'pointer', marginBottom: '18px' }}>
             <img src={STUDIO_BRAND_LOGO} alt="L’A · Hair Experience" draggable={false} style={{ width: '210px', height: 'auto', objectFit: 'contain', display: 'block', mixBlendMode: 'screen' }} />
           </button>
-          <h1 style={{ color: '#2B2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '30px', letterSpacing: '1px', margin: '0 0 12px' }}>L’Studio Ana</h1>
+          <h1 style={{ color: '#FDFBF7', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '30px', letterSpacing: '1px', margin: '0 0 12px' }}>L’Studio Ana</h1>
           <p style={{ color: '#B98A3E', fontSize: '10px', letterSpacing: '3px', textTransform: 'uppercase', margin: '0 0 40px', lineHeight: 1.6 }}>{t('subtitle')}</p>
           <form onSubmit={handleClientPinSubmit} style={{ maxWidth: '280px', margin: '0 auto' }}>
-            <label htmlFor="client-access-pin" style={{ display: 'block', color: '#7A7067', fontSize: '13px', marginBottom: '10px' }}>{t('enterPin')}</label>
+            <label htmlFor="client-access-pin" style={{ display: 'block', color: '#FDFBF7', fontSize: '13px', marginBottom: '10px' }}>{t('enterPin')}</label>
             <input id="client-access-pin" className="studio-editorial-pin" dir="ltr" type="password" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} autoComplete="off" value={pin} onChange={event => { setPin(event.target.value.replace(/[^0-9]/g, '').slice(0, 4)); setPinError(false); }} aria-invalid={pinError} aria-describedby={pinError ? 'client-pin-error' : undefined} required />
             {pinError && <p id="client-pin-error" role="alert" style={{ color: '#C0392B', fontSize: '13px' }}>PIN incorrecto</p>}
             <button className="studio-editorial-enter" type="submit" disabled={pin.length !== 4} style={{ width: '100%', minHeight: '48px', background: 'linear-gradient(135deg, #D4AF37 0%, #B8972E 100%)', color: '#1C1816', border: 'none', borderRadius: '3px', padding: '14px', marginTop: '24px', fontSize: '13px', letterSpacing: '1px', cursor: 'pointer', opacity: pin.length === 4 ? 1 : 0.45 }}>{t('enterPortal')}</button>
           </form>
-          <div style={{ width: '34px', height: '1px', background: '#E0D8CE', margin: '30px auto 20px' }} />
+          <div style={{ width: '34px', height: '1px', background: 'rgba(212, 175, 55, 0.5)', margin: '30px auto 20px' }} />
           <button type="button" onClick={() => setCurrentScreen('clientRegistration')} style={{ background: 'none', border: 'none', color: '#B98A3E', padding: '12px 4px', minHeight: '44px', fontSize: '12px', cursor: 'pointer', lineHeight: 1.6 }}>{t('firstTimeRegister')}</button>
-          {showInstallBanner && <p style={{ color: '#7A7067', fontSize: '11px', lineHeight: 1.7, margin: '16px 0 0' }}>{t('installDesc')}</p>}
+          {showInstallBanner && <p style={{ color: '#FDFBF7', fontSize: '11px', lineHeight: 1.7, margin: '16px 0 0' }}>{t('installDesc')}</p>}
         </main>
       )}
 
@@ -3251,30 +3251,30 @@ function StudioApp() {
       {currentScreen === 'clientRegistration' && (
         <div className="studio-registration" style={{ maxWidth: '440px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '0', padding: '48px 20px 24px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <style>{`
-            .studio-registration input { background: #FFFFFF !important; border: 1px solid rgba(212, 175, 55, 0.22) !important; border-radius: 5px !important; min-height: 46px; box-sizing: border-box; width: 100%; padding: 12px !important; font-size: 16px !important; color: #2C2521 !important; }
+            .studio-registration input { background: #FFFFFF !important; border: 1px solid rgba(212, 175, 55, 0.22) !important; border-radius: 5px !important; min-height: 46px; box-sizing: border-box; width: 100%; padding: 12px !important; font-size: 16px !important; color: #2B2521 !important; }
             .studio-registration input:focus { outline: none; border-color: #B98A3E !important; }
             .studio-registration label { font-size: 12px !important; color: #7A7067 !important; margin-bottom: 4px; }
             .studio-registration button:focus-visible { outline: 2px solid #B98A3E; outline-offset: 4px; }
           `}</style>
           <img src={STUDIO_BRAND_LOGO} alt="L’A · Hair Experience" style={{ width: '150px', height: 'auto', mixBlendMode: 'screen', display: 'block', margin: '0 auto 12px' }} />
-          <h2 style={{ color: '#B98A3E', fontSize: '25px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0, textAlign: 'center' }}>{t('clientRegistrationTitle')}</h2>
-          <p style={{ color: '#7A7067', fontSize: '13px', lineHeight: 1.7, textAlign: 'center', margin: '0 0 10px 0' }}>{t('clientRegistrationDesc')}</p>
+          <h2 style={{ color: '#FDFBF7', fontSize: '25px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0, textAlign: 'center' }}>{t('clientRegistrationTitle')}</h2>
+          <p style={{ color: '#FDFBF7', fontSize: '13px', lineHeight: 1.7, textAlign: 'center', margin: '0 0 10px 0' }}>{t('clientRegistrationDesc')}</p>
           <form onSubmit={handleRegistroClientaPortalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <label style={{ color: '#B98A3E', fontSize: '11px', fontWeight: 'bold' }}>{t('nameLabel')}</label>
               <input type="text" placeholder="Ej. Ana" value={regNombre} onChange={(e) => setRegNombre(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '10px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2B2521', borderRadius: '6px', fontSize: '12px' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{ color: '#7A7067', fontSize: '11px' }}>{t('surnamesLabel')}</label>
+              <label style={{ color: '#FDFBF7', fontSize: '11px' }}>{t('surnamesLabel')}</label>
               <input type="text" placeholder="Ej. García López" value={regApellidos} onChange={(e) => setRegApellidos(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2B2521', borderRadius: '6px', fontSize: '12px' }} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ color: '#7A7067', fontSize: '11px' }}>{t('birthDateLabel')}</label>
+                <label style={{ color: '#FDFBF7', fontSize: '11px' }}>{t('birthDateLabel')}</label>
                 <input type="text" placeholder="DD/MM/AAAA" value={regNacimiento} onChange={(e) => setRegNacimiento(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2B2521', borderRadius: '6px', fontSize: '12px' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <label style={{ color: '#7A7067', fontSize: '11px' }}>{t('phoneLabel')}</label>
+                <label style={{ color: '#FDFBF7', fontSize: '11px' }}>{t('phoneLabel')}</label>
                 <input type="tel" autoComplete="tel" placeholder="600111222" value={regTelefono} onChange={(e) => setRegTelefono(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2B2521', borderRadius: '6px', fontSize: '12px' }} />
               </div>
             </div>
@@ -3290,7 +3290,7 @@ function StudioApp() {
               {t('completeRegisterBtn')}
             </button>
           </form>
-          <button onClick={() => setCurrentScreen('clientPin')} style={{ background: 'none', border: 'none', color: '#7A7067', fontSize: '12px', minHeight: '44px', cursor: 'pointer', textAlign: 'center' }}>
+          <button onClick={() => setCurrentScreen('clientPin')} style={{ background: 'none', border: 'none', color: '#FDFBF7', fontSize: '12px', minHeight: '44px', cursor: 'pointer', textAlign: 'center' }}>
             {t('backToPin')}
           </button>
         </div>
@@ -3298,20 +3298,20 @@ function StudioApp() {
 
       {/* 2. PORTAL CLIENTE */}
       {currentScreen === 'clientPortal' && (
-        <div style={{ maxWidth: '600px', width: '100%', backgroundColor: '#D8D0C5', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ maxWidth: '600px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212, 175, 55, 0.2)', paddingBottom: '15px' }}>
             <div>
               <h2 style={{ color: '#B98A3E', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em' }}>{bizConfig.name}</h2>
-              <p style={{ color: '#7A7067', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>{t('subtitle')}</p>
+              <p style={{ color: '#FDFBF7', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>{t('subtitle')}</p>
             </div>
-            <button onClick={() => { setPin(""); setCurrentScreen('clientPin'); }} style={{ background: 'none', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#B98A3E', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
+            <button onClick={() => { setPin(""); setCurrentScreen('clientPin'); }} style={{ background: 'none', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#B98A3E', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
               {t('logout')}
             </button>
           </div>
           <div style={{ padding: '8px 0 4px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <p style={{ color: '#2B2521', fontSize: '28px', lineHeight: 1.2, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>{t('hello')}, {currentClientRecord?.nombre || t('welcome')}.</p>
-            <p style={{ color: '#7A7067', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('careIntro')}</p>
-            <details style={{ color: '#7A7067', fontSize: '12px', marginTop: '6px' }}>
+            <p style={{ color: '#FDFBF7', fontSize: '28px', lineHeight: 1.2, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>{t('hello')}, {currentClientRecord?.nombre || t('welcome')}.</p>
+            <p style={{ color: '#FDFBF7', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('careIntro')}</p>
+            <details style={{ color: '#FDFBF7', fontSize: '12px', marginTop: '6px' }}>
               <summary style={{ cursor: 'pointer', padding: '6px 0' }}>{t('myDetails')}</summary>
               <p style={{ overflowWrap: 'anywhere' }}>{currentClientRecord?.email} · ID #{currentClientRecord?.idNum} · {currentClientRecord?.registroId}</p>
             </details>
@@ -3327,18 +3327,18 @@ function StudioApp() {
               <p style={{ color: '#7A7067', margin: 0, lineHeight: 1.6, fontSize: '14px', overflowWrap: 'anywhere' }}>{clientNextAppointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
               <p style={{ color: '#7A7067', margin: 0, fontSize: '12px' }}>Con Ana · {bizConfig.location}</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', paddingTop: '4px' }}>
-                <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(clientNextAppointment); setNewRescheduleTime(clientNextAppointment.time); setNewRescheduleDate(clientNextAppointment.dateKey); }} style={{ background: 'transparent', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#B98A3E', minHeight: '44px', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>{t('changeDate')}</button>
+                <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(clientNextAppointment); setNewRescheduleTime(clientNextAppointment.time); setNewRescheduleDate(clientNextAppointment.dateKey); }} style={{ background: 'transparent', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#B98A3E', minHeight: '44px', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>{t('changeDate')}</button>
                 <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola Ana, quiero consultar mi cita del ${clientNextAppointment.dateKey.split('-').reverse().join('/')} a las ${clientNextAppointment.time}.`)}`} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', color: '#B98A3E', padding: '10px 0', minHeight: '24px', fontSize: '13px' }}>{t('askAppointment')}</a>
               </div>
             </> : <>
               <p style={{ color: '#2B2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '23px', margin: 0 }}>{t('experienceStart')}</p>
-              <p style={{ color: '#7A7067', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('noUpcoming')}</p>
+              <p style={{ color: '#FDFBF7', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('noUpcoming')}</p>
             </>}
           </section>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ background: 'linear-gradient(135deg, #D4AF37 0%, #B8972E 100%)', color: '#1C1816', border: 'none', minHeight: '54px', padding: '16px 20px', borderRadius: '10px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>{t('catalog')}</button>
             <button type="button" onClick={() => setCurrentScreen('clientHistoryPage')} style={{ background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.22)', minHeight: '48px', padding: '14px 20px', borderRadius: '10px', fontSize: '14px', cursor: 'pointer' }}>{t('history')}</button>
-            <div style={{ textAlign: 'center', padding: '10px 0', color: '#7A7067', fontSize: '13px', lineHeight: 1.7 }}>
+            <div style={{ textAlign: 'center', padding: '10px 0', color: '#FDFBF7', fontSize: '13px', lineHeight: 1.7 }}>
               ¿No sabes qué servicio elegir? <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#B98A3E' }}>{t('guidance')}</a>
               <a href={`tel:${bizConfig.phone}`} style={{ display: 'block', color: '#7A7067', marginTop: '4px' }}>{t('callStudio')}</a>
             </div>
@@ -3358,7 +3358,7 @@ function StudioApp() {
             </div>
             <h3 style={{ color: '#2B2521', fontSize: '19px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>Nos vemos en el Studio</h3>
             <p style={{ color: '#B98A3E', fontSize: '13px', margin: 0, lineHeight: 1.6 }}>Un espacio para ti y para el cuidado de tu cabello.</p>
-            <p style={{ color: '#7A7067', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{bizConfig.location}</p>
+            <p style={{ color: '#FDFBF7', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{bizConfig.location}</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '18px' }}>
               <a href={bizConfig.googleMapsUrl} target="_blank" rel="noreferrer" style={{ color: '#B98A3E', fontSize: '14px', padding: '10px 0' }}>{t('directions')}</a>
               <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#B98A3E', fontSize: '14px', padding: '10px 0' }}>WhatsApp del Studio</a>
@@ -3396,8 +3396,8 @@ function StudioApp() {
                     </div>
                   ))}
                 </div>
-                <input type="text" value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} onFocus={(e) => e.target.select()} style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', padding: '10px', fontSize: '13px' }} />
-                <button type="submit" style={{ backgroundColor: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.3)', padding: '12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+                <input type="text" value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} onFocus={(e) => e.target.select()} style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', padding: '10px', fontSize: '13px' }} />
+                <button type="submit" style={{ backgroundColor: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.35)', padding: '12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
                   {t('sendReview')}
                 </button>
               </form>
@@ -3405,16 +3405,16 @@ function StudioApp() {
           </div>
           </details>
           <footer style={{ borderTop: '1px solid #302f29', paddingTop: '18px', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '20px' }}>
-            <a href={bizConfig.instagramUrl} target="_blank" rel="noreferrer" style={{ color: '#7A7067', fontSize: '12px', padding: '8px 0', textDecoration: 'none' }}>Instagram</a>
-            <a href={bizConfig.facebookUrl} target="_blank" rel="noreferrer" style={{ color: '#7A7067', fontSize: '12px', padding: '8px 0', textDecoration: 'none' }}>Facebook</a>
-            <a href={bizConfig.tiktokUrl} target="_blank" rel="noreferrer" style={{ color: '#7A7067', fontSize: '12px', padding: '8px 0', textDecoration: 'none' }}>TikTok</a>
+            <a href={bizConfig.instagramUrl} target="_blank" rel="noreferrer" style={{ color: '#FDFBF7', fontSize: '12px', padding: '8px 0', textDecoration: 'none' }}>Instagram</a>
+            <a href={bizConfig.facebookUrl} target="_blank" rel="noreferrer" style={{ color: '#FDFBF7', fontSize: '12px', padding: '8px 0', textDecoration: 'none' }}>Facebook</a>
+            <a href={bizConfig.tiktokUrl} target="_blank" rel="noreferrer" style={{ color: '#FDFBF7', fontSize: '12px', padding: '8px 0', textDecoration: 'none' }}>TikTok</a>
           </footer>
         </div>
       )}
 
       {/* 2.2. CATÁLOGO & RESERVA SINCRONIZADO CON LA INTRANET */}
       {currentScreen === 'catalogBooking' && (
-        <div style={{ maxWidth: '700px', width: '100%', backgroundColor: '#D8D0C5', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '16px', padding: '20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ maxWidth: '700px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <style>{`
             .studio-client-category-heading { padding: 9px 13px !important; min-height: 56px !important; text-align: start !important; }
             .studio-client-category-title { font-size: 15px !important; line-height: 1.3 !important; }
@@ -3431,9 +3431,9 @@ function StudioApp() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212, 175, 55, 0.2)', paddingBottom: '15px' }}>
             <div>
               <h2 style={{ color: '#B98A3E', fontSize: '18px', letterSpacing: '3px', margin: '0 0 3px 0', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em' }}>{bizConfig.name}</h2>
-              <p style={{ color: '#7A7067', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>{t('servicesSelectionTitle')}</p>
+              <p style={{ color: '#FDFBF7', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>{t('servicesSelectionTitle')}</p>
             </div>
-            <button onClick={() => setCurrentScreen('clientPortal')} style={{ background: 'none', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#B98A3E', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
+            <button onClick={() => setCurrentScreen('clientPortal')} style={{ background: 'none', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#B98A3E', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
               {t('backToPortal')}
             </button>
           </div>
@@ -3444,24 +3444,24 @@ function StudioApp() {
           )}
           <div>
             <h1 style={{ fontSize: '28px', lineHeight: 1.25, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', color: '#2B2521', margin: '0 0 10px', fontWeight: 'normal' }}>{t('experienceTitle')}</h1>
-            <p style={{ color: '#7A7067', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('experienceIntro')}</p>
+            <p style={{ color: '#FDFBF7', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('experienceIntro')}</p>
           </div>
           <section aria-label={t('searchServices')} style={{ background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '12px', padding: '16px' }}>
             <label htmlFor="portal-service-search" style={{ color: '#B98A3E', fontSize: '13px', display: 'block', marginBottom: '10px' }}>{t('searchServices')}</label>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <input id="portal-service-search" type="search" value={portalSearch} onChange={event => { setPortalSearch(event.target.value); setPortalSearchExpanded({}); }} placeholder={t('searchPlaceholder')} style={{ flex: 1, minWidth: 0, width: '100%', boxSizing: 'border-box', minHeight: '48px', padding: '12px', background: '#D8D0C5', color: '#2B2521', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px', fontSize: '16px' }} />
-              {!!portalSearch && <button type="button" aria-label={t('clearSearch')} onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); }} style={{ minHeight: '48px', minWidth: '48px', background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px', cursor: 'pointer', fontSize: '22px' }}>×</button>}
+              <input id="portal-service-search" type="search" value={portalSearch} onChange={event => { setPortalSearch(event.target.value); setPortalSearchExpanded({}); }} placeholder={t('searchPlaceholder')} style={{ flex: 1, minWidth: 0, width: '100%', boxSizing: 'border-box', minHeight: '48px', padding: '12px', background: '#FFFFFF', color: '#2B2521', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '8px', fontSize: '16px' }} />
+              {!!portalSearch && <button type="button" aria-label={t('clearSearch')} onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); }} style={{ minHeight: '48px', minWidth: '48px', background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '8px', cursor: 'pointer', fontSize: '22px' }}>×</button>}
             </div>
             {!!portalSearchQuery && <p role="status" aria-live="polite" style={{ color: '#7A7067', fontSize: '13px', margin: '12px 0 0' }}>{portalSearchCount ? `${t('searchResults')}: ${portalSearchCount}` : t('noSearchResults')}</p>}
           </section>
-          <button type="button" onClick={() => { setCurrentScreen('clientHistoryPage'); window.setTimeout(() => document.getElementById('service-advisor')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} style={{ textAlign: 'start', background: 'linear-gradient(135deg, #F9F8F6, #F1EDE6)', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '12px', color: '#B98A3E', minHeight: '54px', padding: '16px', fontSize: '14px', cursor: 'pointer' }}>{t('advisorAccess')} →</button>
+          <button type="button" onClick={() => { setCurrentScreen('clientHistoryPage'); window.setTimeout(() => document.getElementById('service-advisor')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} style={{ textAlign: 'start', background: 'linear-gradient(135deg, #F9F8F6, #F1EDE6)', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '12px', color: '#B98A3E', minHeight: '54px', padding: '16px', fontSize: '14px', cursor: 'pointer' }}>{t('advisorAccess')} →</button>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '7px' }}>
             {catalog.filter(cat => cat.subservices.some(sub => portalServiceMatches(cat, sub))).map(cat => {
               const isCategoryExpanded = portalSearchQuery ? (portalSearchExpanded[cat.id] ?? true) : !!expandedCategories[cat.id];
               return <section key={cat.id} style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '10px', overflow: 'hidden' }}>
                 <button className="studio-client-category-heading" type="button" aria-expanded={isCategoryExpanded} onClick={() => portalSearchQuery ? setPortalSearchExpanded(previous => ({ ...previous, [cat.id]: !isCategoryExpanded })) : setExpandedCategories({ ...expandedCategories, [cat.id]: !isCategoryExpanded })} style={{ display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center', gap: '12px', background: 'transparent', border: 'none', padding: '20px', textAlign: 'left', cursor: 'pointer', minHeight: '60px' }}>
-                  <span><span className="studio-client-category-title" style={{ color: '#2B2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '19px', lineHeight: 1.4, display: 'block' }}>{categoryText(cat)}</span><span style={{ color: '#7A7067', fontSize: '12px', display: 'block', marginTop: '3px' }}>{cat.subservices.filter(sub => portalServiceMatches(cat, sub)).length} {t('servicesCount')}</span></span>
+                  <span><span className="studio-client-category-title" style={{ color: '#2B2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '19px', lineHeight: 1.4, display: 'block' }}>{categoryText(cat)}</span><span style={{ color: '#FDFBF7', fontSize: '12px', display: 'block', marginTop: '3px' }}>{cat.subservices.filter(sub => portalServiceMatches(cat, sub)).length} {t('servicesCount')}</span></span>
                   <span className="studio-client-category-action" style={{ color: '#B98A3E', fontSize: '13px', flexShrink: 0 }}>{isCategoryExpanded ? t('closeCategory') : t('exploreCategory')}</span>
                 </button>
                 {isCategoryExpanded && <div style={{ padding: '0 14px 14px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -3470,7 +3470,7 @@ function StudioApp() {
                     const isSelected = !!selection;
                     const isExpanded = !!expandedSubDetails[sub.id];
                     const isBalayagePreview = normalizeCatalogSearch(sub.name).includes('balayage');
-                    return <article className="studio-client-service" id={`portal-service-${sub.id}`} key={sub.id} style={{ backgroundColor: isSelected ? '#F7EFDD' : '#FFFFFF', border: isSelected ? '1px solid #C99E52' : '1px solid rgba(212, 175, 55, 0.3)', borderRadius: isBalayagePreview ? '18px' : '10px', padding: isBalayagePreview ? '24px' : '18px', display: 'flex', flexDirection: 'column', gap: isBalayagePreview ? '16px' : '12px', backgroundImage: isBalayagePreview ? 'linear-gradient(135deg, rgba(202,183,125,0.08), transparent)' : undefined }}>
+                    return <article className="studio-client-service" id={`portal-service-${sub.id}`} key={sub.id} style={{ backgroundColor: isSelected ? '#F7EFDD' : '#FFFFFF', border: isSelected ? '1px solid #C99E52' : '1px solid rgba(212, 175, 55, 0.35)', borderRadius: isBalayagePreview ? '18px' : '10px', padding: isBalayagePreview ? '24px' : '18px', display: 'flex', flexDirection: 'column', gap: isBalayagePreview ? '16px' : '12px', backgroundImage: isBalayagePreview ? 'linear-gradient(135deg, rgba(202,183,125,0.08), transparent)' : undefined }}>
                       {isBalayagePreview && <span style={{ color: '#B98A3E', fontSize: '10px', letterSpacing: '2px' }}>L’STUDIO · EXPERIENCIA PERSONALIZADA</span>}
                       <div className="studio-client-service-title" style={{ color: '#2B2521', fontSize: isBalayagePreview ? '26px' : '16px', fontFamily: isBalayagePreview ? 'serif' : undefined, lineHeight: 1.35, fontWeight: isBalayagePreview ? 'normal' : 'bold' }}>{serviceText(sub, 'name')}</div>
                       {isBalayagePreview ? <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '14px', borderBottom: '1px solid #39362b', paddingBottom: '16px' }}><strong style={{ color: '#B98A3E', fontSize: '22px', fontWeight: 'normal' }}>{selection?.variant?.price || sub.price}</strong><span style={{ color: '#7A7067', fontSize: '13px' }}>{selection?.variant?.duration || sub.duration}</span></div> : <div style={{ color: '#7A7067', fontSize: '13px', lineHeight: 1.6 }}>{selection?.variant?.duration || sub.duration}<span style={{ color: '#B98A3E', fontWeight: 'bold', marginLeft: '12px' }}>{selection?.variant?.price || sub.price}</span></div>}
@@ -3484,7 +3484,7 @@ function StudioApp() {
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                         <button type="button" aria-pressed={isSelected} onClick={() => {
                           setSelectedServicesToBook(previous => isSelected ? previous.filter(item => item.sub.id !== sub.id) : [...previous, { sub, variant: null }]);
-                        }} style={{ backgroundColor: isSelected ? '#B98A3E' : '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: isSelected ? '#1C1816' : '#B98A3E', padding: '11px 16px', minHeight: '44px', borderRadius: '7px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}>{isSelected ? t('selectedRemove') : t('addAppointment')}</button>
+                        }} style={{ backgroundColor: isSelected ? '#B98A3E' : '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: isSelected ? '#1C1816' : '#B98A3E', padding: '11px 16px', minHeight: '44px', borderRadius: '7px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer' }}>{isSelected ? t('selectedRemove') : t('addAppointment')}</button>
                         <button type="button" aria-expanded={isExpanded} onClick={() => setExpandedSubDetails({ ...expandedSubDetails, [sub.id]: !isExpanded })} style={{ background: 'transparent', border: 'none', color: '#7A7067', padding: '11px 8px', minHeight: '44px', cursor: 'pointer', fontSize: '13px' }}>{isExpanded ? t('closeDetails') : t('viewIncludes')}</button>
                       </div>
                       {isSelected && sub.hasVariants && !!sub.variants?.length && <fieldset style={{ border: 0, padding: 0, margin: 0 }}>
@@ -3511,7 +3511,7 @@ function StudioApp() {
               </section>;
             })}
           </div>
-          {selectedServicesToBook.length > 0 && <section aria-label="Resumen de tu selección" style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', padding: '20px', borderRadius: '12px' }}>
+          {selectedServicesToBook.length > 0 && <section aria-label="Resumen de tu selección" style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', padding: '20px', borderRadius: '12px' }}>
             <h2 style={{ color: '#2B2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '20px', margin: '0 0 14px', fontWeight: 'normal' }}>Tu selección</h2>
             {selectedServicesToBook.map(item => <div key={item.sub.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid rgba(212, 175, 55, 0.22)' }}>
               <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#B98A3E' }}>{serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#B98A3E' }}>{item.sub.hasVariants && !item.variant ? t('chooseOption') : (item.variant?.price || item.sub.price) + ' · ' + (item.variant?.duration || item.sub.duration)}</span></div>
@@ -3519,7 +3519,7 @@ function StudioApp() {
             </div>)}
             <p style={{ color: '#7A7067', fontSize: '13px', margin: '14px 0 0' }}>Duración de los servicios: {getModalDuration(selectedServicesToBook)} min</p>
           </section>}
-          <div style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', overflow: 'hidden' }}>
             <h2 style={{ fontSize: '14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', color: '#B98A3E', margin: 0 }}>{t('selectDate')}</h2>
             {selectedServicesToBook.length === 0 ? (
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(12,12,12,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, padding: '20px', textAlign: 'center' }}>
@@ -3548,9 +3548,9 @@ function StudioApp() {
 
       {/* AGENDA CLIENTAS · SEMANA Y HORAS DISPONIBLES */}
       {currentScreen === 'visualAgenda' && (
-        <div style={{ maxWidth: '680px', width: '100%', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '16px', padding: '20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '22px' }}>
+        <div style={{ maxWidth: '680px', width: '100%', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '16px', padding: '20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '22px' }}>
           <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#B98A3E', padding: '10px 0', cursor: 'pointer' }}>{t('backServices')}</button>
-          <div><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', color: '#2B2521', fontSize: '28px', fontWeight: 'normal', margin: '0 0 8px' }}>{t('chooseMoment')}</h2><p style={{ color: '#7A7067', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('fullSlots')} · {getModalDuration(selectedServicesToBook)} min.</p></div>
+          <div><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', color: '#2B2521', fontSize: '28px', fontWeight: 'normal', margin: '0 0 8px' }}>{t('chooseMoment')}</h2><p style={{ color: '#FDFBF7', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('fullSlots')} · {getModalDuration(selectedServicesToBook)} min.</p></div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
             <button type="button" aria-label={t('previousWeek')} onClick={() => { const day = new Date(bookingDate); day.setDate(day.getDate() - 7); choosePortalDate(day); }} style={{ padding: '12px', background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '8px', cursor: 'pointer' }}>←</button>
             <span style={{ color: '#2B2521', fontSize: '14px', textAlign: 'center' }}>{portalWeekStart.toLocaleDateString(portalLocale, { month: 'long', year: 'numeric' })}</span>
@@ -3567,7 +3567,7 @@ function StudioApp() {
           <section><h3 style={{ color: '#2B2521', fontSize: '16px', margin: '0 0 16px' }}>{bookingDate.toLocaleDateString(portalLocale, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
             {!portalTimes.length ? <p style={{ color: '#7A7067', fontSize: '14px', lineHeight: 1.6 }}>{t('noSlotsDay')}</p> : ['morning', 'afternoon'].map(period => {
               const times = portalTimes.filter(time => period === 'morning' ? Number(time.slice(0, 2)) < 14 : Number(time.slice(0, 2)) >= 14);
-              return times.length ? <div key={period} style={{ marginBottom: '18px' }}><p style={{ color: '#7A7067', fontSize: '12px' }}>{t(period)}</p><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(76px, 1fr))', gap: '9px' }}>{times.map(time => <button type="button" key={time} aria-pressed={time === selectedVisualTime} onClick={() => setSelectedVisualTime(time)} style={{ minHeight: '48px', backgroundColor: time === selectedVisualTime ? '#B98A3E' : '#FFFFFF', color: time === selectedVisualTime ? '#1C1816' : '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px', fontSize: '15px', cursor: 'pointer' }}>{time}</button>)}</div></div> : null;
+              return times.length ? <div key={period} style={{ marginBottom: '18px' }}><p style={{ color: '#7A7067', fontSize: '12px' }}>{t(period)}</p><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(76px, 1fr))', gap: '9px' }}>{times.map(time => <button type="button" key={time} aria-pressed={time === selectedVisualTime} onClick={() => setSelectedVisualTime(time)} style={{ minHeight: '48px', backgroundColor: time === selectedVisualTime ? '#B98A3E' : '#FFFFFF', color: time === selectedVisualTime ? '#1C1816' : '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '8px', fontSize: '15px', cursor: 'pointer' }}>{time}</button>)}</div></div> : null;
             })}
           </section>
           <div style={{ borderTop: '1px solid rgba(212, 175, 55, 0.22)', paddingTop: '18px' }}>
@@ -3580,14 +3580,14 @@ function StudioApp() {
 
       {/* 2.3. PASAPORTE DE EXPERIENCIAS DE AUTOR */}
       {currentScreen === 'clientHistoryPage' && (
-        <div style={{ maxWidth: '700px', width: '100%', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '16px', padding: '15px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ maxWidth: '700px', width: '100%', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '16px', padding: '15px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <button type="button" onClick={() => setCurrentScreen('clientPortal')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#B98A3E', padding: '10px 0', minHeight: '44px', fontSize: '13px', cursor: 'pointer' }}>{t('backToPortal')}</button>
           <header>
             <p style={{ color: '#B98A3E', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', margin: '0 0 12px' }}>L’Studio Ana · Cuidado personalizado</p>
             <h2 style={{ color: '#2B2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '24px', fontWeight: 'normal', lineHeight: 1.25, margin: '0 0 12px' }}>{t('passportTitle')}</h2>
             <p style={{ color: '#7A7067', fontSize: '13px', lineHeight: 1.6, margin: 0 }}>{currentClientRecord?.nombre && <span>{currentClientRecord.nombre} · </span>}{t('passportIntro')}</p>
           </header>
-          <section style={{ background: 'linear-gradient(135deg, #F9F8F6, #F1EDE6)', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '10px', padding: '15px' }}>
+          <section style={{ background: 'linear-gradient(135deg, #F9F8F6, #F1EDE6)', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '10px', padding: '15px' }}>
             <span style={{ color: '#B98A3E', fontSize: '11px', letterSpacing: '1px' }}>01 · CONOCEMOS TU CABELLO</span>
             <h3 style={{ color: '#2B2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '19px', margin: '8px 0' }}>{t('hairDna')}</h3>
             <p style={{ color: '#7A7067', fontSize: '13px', lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: 0 }}>{currentClientRecord?.dniCapilar || t('emptyDna')}</p>
@@ -3617,19 +3617,19 @@ function StudioApp() {
             <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ width: '100%', minHeight: '52px', background: 'linear-gradient(135deg, #D4AF37 0%, #B8972E 100%)', color: '#1C1816', border: 'none', borderRadius: '9px', padding: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}>{t('bookNext')}</button>
             {currentClientRecord?.ultimaVisita && <p style={{ color: '#7A7067', fontSize: '12px', marginBottom: 0 }}>Última visita registrada: {currentClientRecord.ultimaVisita}</p>}
           </section>
-          <section id="service-advisor" style={{ scrollMarginTop: '24px', background: 'linear-gradient(135deg, #F9F8F6, #F1EDE6)', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <section id="service-advisor" style={{ scrollMarginTop: '24px', background: 'linear-gradient(135deg, #F9F8F6, #F1EDE6)', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <h3 style={{ color: '#2B2521', fontSize: '21px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{t('advisorTitle')}</h3>
             <p style={{ color: '#7A7067', fontSize: '13px', lineHeight: 1.7, margin: 0 }}>{t('advisorIntro')}</p>
             <form onSubmit={handleRunAiRecommendation} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <textarea aria-label={t('advisorTitle')} value={clientWishText} onChange={event => { setClientWishText(event.target.value); setAiRecommendation(null); }} placeholder={t('advisorPlaceholder')} rows={3} style={{ width: '100%', boxSizing: 'border-box', background: '#D8D0C5', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '10px', padding: '14px', fontSize: '16px', lineHeight: 1.6, resize: 'vertical' }} />
+              <textarea aria-label={t('advisorTitle')} value={clientWishText} onChange={event => { setClientWishText(event.target.value); setAiRecommendation(null); }} placeholder={t('advisorPlaceholder')} rows={3} style={{ width: '100%', boxSizing: 'border-box', background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '10px', padding: '14px', fontSize: '16px', lineHeight: 1.6, resize: 'vertical' }} />
               <button type="submit" disabled={!clientWishText.trim()} style={{ minHeight: '50px', background: 'linear-gradient(135deg, #D4AF37 0%, #B8972E 100%)', color: '#1C1816', border: 'none', borderRadius: '9px', padding: '14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', opacity: clientWishText.trim() ? 1 : 0.5 }}>{t('advisorButton')}</button>
             </form>
             {aiRecommendation !== null && <div role="status" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {!aiRecommendation.some(id => catalog.some(category => category.subservices.some(service => service.id === id && service.active !== false))) && <p style={{ color: '#7A7067', lineHeight: 1.7 }}>{t('advisorNone')}</p>}
-              {aiRecommendation.map(id => { const category = catalog.find(item => item.subservices.some(service => service.id === id)); const service = category?.subservices.find(item => item.id === id && item.active !== false); if (!category || !service) return null; return <article key={id} style={{ background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', padding: '12px', borderRadius: '12px' }}>
+              {!aiRecommendation.some(id => catalog.some(category => category.subservices.some(service => service.id === id && service.active !== false))) && <p style={{ color: '#FDFBF7', lineHeight: 1.7 }}>{t('advisorNone')}</p>}
+              {aiRecommendation.map(id => { const category = catalog.find(item => item.subservices.some(service => service.id === id)); const service = category?.subservices.find(item => item.id === id && item.active !== false); if (!category || !service) return null; return <article key={id} style={{ background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', padding: '12px', borderRadius: '12px' }}>
                 <h4 style={{ color: '#2B2521', fontSize: '18px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: '0 0 10px' }}>{serviceText(service, 'name')}</h4>
                 <p style={{ color: '#7A7067', fontSize: '13px', lineHeight: 1.7 }}>{t('advisorReason')}</p>
-                <button type="button" onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); setExpandedCategories(previous => ({...previous, [category.id]: true})); setExpandedSubDetails(previous => ({...previous, [id]: true})); setCurrentScreen('catalogBooking'); window.setTimeout(() => document.getElementById(`portal-service-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }} style={{ minHeight: '44px', padding: '12px 16px', background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px', cursor: 'pointer' }}>{t('advisorView')}</button>
+                <button type="button" onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); setExpandedCategories(previous => ({...previous, [category.id]: true})); setExpandedSubDetails(previous => ({...previous, [id]: true})); setCurrentScreen('catalogBooking'); window.setTimeout(() => document.getElementById(`portal-service-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }} style={{ minHeight: '44px', padding: '12px 16px', background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '8px', cursor: 'pointer' }}>{t('advisorView')}</button>
               </article>; })}
               <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#B98A3E', padding: '12px 0' }}>WhatsApp · Ana</a>
             </div>}
@@ -3646,11 +3646,11 @@ function StudioApp() {
           <style>{`
             .studio-admin-access-input:focus { border-bottom-color: #B98A3E !important; outline: none; }
             .studio-admin-access-button:focus-visible { outline: 2px solid #B98A3E; outline-offset: 4px; }
-            .studio-admin-access-button:hover { background: #E8C88B !important; }
+            .studio-admin-access-button:hover { background: #E5C158 !important; }
             @media (max-width: 600px) { .studio-admin-access-logo { width: 180px !important; } }
           `}</style>
           <img className="studio-admin-access-logo" src={STUDIO_BRAND_LOGO} alt="L’A · Hair Experience" style={{ width: '210px', height: 'auto', display: 'block', margin: '0 auto 26px', mixBlendMode: 'screen' }} />
-          <h1 style={{ color: '#2B2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '32px', fontWeight: 'normal', margin: '0 0 12px', letterSpacing: '1px' }}>360studio</h1>
+          <h1 style={{ color: '#FDFBF7', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '32px', fontWeight: 'normal', margin: '0 0 12px', letterSpacing: '1px' }}>360studio</h1>
           <p style={{ color: '#B98A3E', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '3px', lineHeight: 1.6, margin: '0 0 40px' }}>Intranet privada · L’Studio Ana</p>
           <form onSubmit={handleAdminLoginSubmit} style={{ maxWidth: '280px', margin: '0 auto' }}>
             <label htmlFor="studio-admin-access-pin" style={{ color: '#7A7067', fontSize: '13px', display: 'block', marginBottom: '10px' }}>Introduce tu PIN maestro</label>
@@ -3658,14 +3658,14 @@ function StudioApp() {
             {adminError && <p id="studio-admin-access-error" role="alert" style={{ color: '#C0392B', fontSize: '13px', margin: '12px 0 0' }}>PIN maestro incorrecto.</p>}
             <button className="studio-admin-access-button" type="submit" disabled={adminPin.length !== 4} style={{ width: '100%', minHeight: '48px', background: 'linear-gradient(135deg, #D4AF37 0%, #B8972E 100%)', color: '#1C1816', border: 'none', borderRadius: '3px', padding: '14px', marginTop: '24px', fontSize: '13px', letterSpacing: '1px', cursor: 'pointer', opacity: adminPin.length === 4 ? 1 : 0.45 }}>Entrar en 360studio</button>
           </form>
-          <div style={{ width: '34px', height: '1px', background: '#E0D8CE', margin: '30px auto 16px' }} />
+          <div style={{ width: '34px', height: '1px', background: 'rgba(212, 175, 55, 0.5)', margin: '30px auto 16px' }} />
           <button type="button" onClick={() => { setAdminPin(''); setAdminError(false); setCurrentScreen('clientPin'); }} style={{ background: 'none', border: 'none', color: '#B98A3E', fontSize: '12px', padding: '12px', minHeight: '44px', cursor: 'pointer' }}>Volver al portal</button>
         </main>
       )}
 
       {/* 4. PANEL DE ADMINISTRACIÓN */}
       {currentScreen === 'adminPanel' && (
-        <div className={`studio-admin-shell ${agendaExpanded && adminTab === 'agenda' ? 'studio-agenda-expanded' : ''}`} style={{ maxWidth: '1680px', width: '100%', backgroundColor: '#D8D0C5', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div className={`studio-admin-shell ${agendaExpanded && adminTab === 'agenda' ? 'studio-agenda-expanded' : ''}`} style={{ maxWidth: '1680px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <style>{`
             .studio-desktop-nav { display: none; }
             
@@ -3696,13 +3696,13 @@ function StudioApp() {
               .studio-mini-day { width: 32px !important; height: 32px !important; }
               .studio-agenda-scroll { padding: 6px !important; max-height: 65vh; overflow: auto !important; overscroll-behavior: contain; }
             }
-.studio-admin-shell { background: #FFFFFF !important; border-color: #E6D5B8 !important; color: #2C2521; font-family: Arial, sans-serif; }
+.studio-admin-shell { background: transparent !important; border-color: rgba(212, 175, 55, 0.35) !important; color: #FDFBF7; font-family: Arial, sans-serif; }
             .studio-admin-header { border-color: #E6D5B8 !important; }
             .studio-admin-header h2 { color: #B98A3E !important; font-weight: normal; }
             .studio-desktop-nav { background: #FFFFFF !important; border-color: #E6D5B8 !important; border-radius: 10px !important; }
             .studio-desktop-nav button { transition: background .18s, color .18s; }
             .studio-desktop-nav button:hover { background: rgba(201, 158, 82, 0.08) !important; }
-            .studio-desktop-nav button[aria-current=page] { background: #FFFFFF !important; border-color: #E0D8CE !important; color: #d6c79f !important; }
+            .studio-desktop-nav button[aria-current=page] { background: #F9F8F6 !important; border-color: rgba(212, 175, 55, 0.35) !important; color: #B8972E !important; }
             .studio-calendar-main { gap: 11px !important; }
             .studio-agenda-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
             .studio-agenda-toolbar > div { margin: 0 !important; }
@@ -3710,7 +3710,7 @@ function StudioApp() {
             .studio-agenda-toolbar h2 { display: none; }
             .studio-agenda-toolbar button { min-height: 38px; border-color: #E0D8CE !important; font-size: 12px !important; color: #B98A3E !important; }
             .studio-agenda-toolbar button[aria-pressed=true] { background: rgba(201, 158, 82, 0.12) !important; color: #7A5C1E !important; border-color: #C99E52 !important; }
-            .studio-agenda-toolbar .studio-new-appointment { background: #B98A3E !important; border-color: #B98A3E !important; color: #2C2521 !important; font-weight: 600; }
+            .studio-agenda-toolbar .studio-new-appointment { background: linear-gradient(135deg, #D4AF37 0%, #B8972E 100%) !important; border-color: #B8972E !important; color: #1C1816 !important; font-weight: 600; }
             .studio-agenda-stat { border: none !important; background: transparent !important; padding: 4px 12px 4px 0 !important; gap: 6px !important; }
             .studio-agenda-stat span { font-size: 11px !important; color: #7A7067 !important; }
             .studio-agenda-stat strong { font-size: 13px !important; }
@@ -3720,8 +3720,8 @@ function StudioApp() {
             .studio-calendar-tools > summary { list-style: none; font-size: 12px !important; letter-spacing: .3px; }
             .studio-calendar-tools .studio-calendar-settings { padding: 12px 0 4px; border-top: 1px solid #E6D5B8; margin-top: 12px; }
             .studio-calendar-settings summary { cursor: pointer; font-size: 11px; margin-bottom: 10px; }
-            .studio-agenda-grid { background: #2C252131f; gap: 1px !important; }
-            .studio-agenda-day-heading { background: #F9F8F6 !important; color: #2C2521 !important; padding: 10px 5px !important; }
+            .studio-agenda-grid { background: #2B252131f; gap: 1px !important; }
+            .studio-agenda-day-heading { background: #F9F8F6 !important; color: #2B2521 !important; padding: 10px 5px !important; }
             .studio-agenda-slot { transition: background .15s; border: none !important; }
             .studio-agenda-slot:not(:disabled):hover { background: #F9F8F6 !important; }
             .studio-agenda-slot:not(:disabled):hover::after { content: '+'; color: #B98A3E; font-size: 15px; }
@@ -3755,7 +3755,7 @@ function StudioApp() {
               .studio-admin-shell { display: grid !important; grid-template-columns: 155px minmax(0, 1fr); column-gap: 16px !important; align-items: start; }
               .studio-admin-header { grid-column: 1 / -1; }
               .studio-mobile-nav { display: none !important; }
-              .studio-desktop-nav { display: flex; flex-direction: column; gap: 5px; position: sticky; top: 20px; padding: 12px 7px; border: 1px solid #5A5248; border-radius: 14px; background: #E6D5B8; }
+              .studio-desktop-nav { display: flex; flex-direction: column; gap: 5px; position: sticky; top: 20px; padding: 12px 7px; border: 1px solid rgba(212, 175, 55, 0.35); border-radius: 14px; background: #FFFFFF; }
               .studio-calendar-tools { width: 100% !important; flex-shrink: 0; }
               .studio-calendar-main { flex-basis: 100% !important; }
             }
@@ -3781,7 +3781,7 @@ function StudioApp() {
             <details style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '9px', padding: '14px' }}>
               <summary style={{ color: '#B98A3E', cursor: 'pointer', fontSize: '14px' }}>Más opciones{!['agenda', 'clients', 'catalog'].includes(adminTab) ? ' · ' + ({ config: 'Configuración', detractors: 'Buzón', crm: 'CRM e informes', demands: 'Demandas · Oportunidades de cita', holidays: 'Vacaciones y festivos' } as Record<string, string>)[adminTab] : ''}</summary>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '8px', marginTop: '14px' }}>
-                {([['config', 'Configuración'], ['detractors', `Buzón (${feedbackList.filter(f => !f.resolvedAt).length})`], ['crm', 'CRM e informes'], ['demands', 'Demandas · Oportunidades de cita'], ['holidays', 'Vacaciones y festivos']] as const).map(([tab, label]) => <button type="button" key={tab} aria-current={adminTab === tab ? 'page' : undefined} onClick={() => setAdminTab(tab)} style={{ minHeight: '44px', padding: '10px 12px', textAlign: 'left', backgroundColor: adminTab === tab ? '#FFFFFF' : '#D8D0C5', border: '1px solid rgba(212, 175, 55, 0.22)', color: adminTab === tab ? '#B98A3E' : '#7A7067', borderRadius: '7px', fontSize: '13px', cursor: 'pointer' }}>{label}</button>)}
+                {([['config', 'Configuración'], ['detractors', `Buzón (${feedbackList.filter(f => !f.resolvedAt).length})`], ['crm', 'CRM e informes'], ['demands', 'Demandas · Oportunidades de cita'], ['holidays', 'Vacaciones y festivos']] as const).map(([tab, label]) => <button type="button" key={tab} aria-current={adminTab === tab ? 'page' : undefined} onClick={() => setAdminTab(tab)} style={{ minHeight: '44px', padding: '10px 12px', textAlign: 'left', backgroundColor: adminTab === tab ? '#FFFFFF' : 'transparent', border: '1px solid rgba(212, 175, 55, 0.35)', color: adminTab === tab ? '#B98A3E' : '#FDFBF7', borderRadius: '7px', fontSize: '13px', cursor: 'pointer' }}>{label}</button>)}
               </div>
             </details>
           </nav>
@@ -3802,21 +3802,21 @@ function StudioApp() {
 style={{ padding: '9px 14px', background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '7px', cursor: 'pointer' }}>
 {agendaExpanded ? 'Volver a vista normal' : 'Ampliar agenda'}</button>
                 <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '16px', marginBottom: '0' }}>
-                  <div><h2 style={{ color: '#2B2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '22px', fontWeight: 'normal', margin: 0 }}>Agenda Maestra</h2></div>
-                  <button type="button" onClick={() => setFechaSeleccionada(new Date())} style={{ padding: '9px 14px', background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#B98A3E', borderRadius: '8px', cursor: 'pointer' }}>Ir a hoy</button>
+                  <div><h2 style={{ color: '#FDFBF7', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '22px', fontWeight: 'normal', margin: 0 }}>Agenda Maestra</h2></div>
+                  <button type="button" onClick={() => setFechaSeleccionada(new Date())} style={{ padding: '9px 14px', background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#B98A3E', borderRadius: '8px', cursor: 'pointer' }}>Ir a hoy</button>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '0' }}>
-                  {(['day', 'week'] as const).map(view => <button type="button" key={view} aria-pressed={agendaViewMode === view} onClick={() => setAgendaViewMode(view)} style={{ backgroundColor: agendaViewMode === view ? '#B98A3E' : '#FFFFFF', color: agendaViewMode === view ? '#1C1816' : '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.3)', padding: '9px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>{view === 'day' ? 'Día' : 'Semana'}</button>)}
+                  {(['day', 'week'] as const).map(view => <button type="button" key={view} aria-pressed={agendaViewMode === view} onClick={() => setAgendaViewMode(view)} style={{ backgroundColor: agendaViewMode === view ? '#B98A3E' : '#FFFFFF', color: agendaViewMode === view ? '#1C1816' : '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.35)', padding: '9px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>{view === 'day' ? 'Día' : 'Semana'}</button>)}
                   <button className="studio-new-appointment" type="button" onClick={() => {
                     if (isDateBlockedByHoliday(formatDateKey(fechaSeleccionada))) { alert('El día seleccionado está bloqueado. Elige otra fecha.'); return; }
                     const freeTime = hoursList.find(time => !isTimeSlotOccupied(formatDateKey(fechaSeleccionada), time));
                     if (!freeTime) { alert('No hay huecos libres en el día seleccionado.'); return; }
                     handleCellClick(fechaSeleccionada, diaSeleccionadoObj.name, freeTime);
-                  }} style={{ backgroundColor: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.3)', padding: '9px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>+ Nueva cita</button>
+                  }} style={{ backgroundColor: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.35)', padding: '9px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>+ Nueva cita</button>
                 <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#7A7067', fontSize: '12px' }}>Ir a fecha
 <input aria-label="Elegir fecha de la agenda" type="date" value={formatDateKey(fechaSeleccionada)}
 onChange={event => { if (event.target.value) setFechaSeleccionada(new Date(event.target.value + 'T12:00:00')); }}
-style={{ padding: '8px', background: '#FFFFFF', color: '#2B2521', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '6px' }} /></label></div>
+style={{ padding: '8px', background: '#FFFFFF', color: '#2B2521', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '6px' }} /></label></div>
 
 
 </div>
@@ -3836,7 +3836,7 @@ style={{ padding: '8px', background: '#FFFFFF', color: '#2B2521', border: '1px s
                     <label htmlFor="agenda-search" style={{ color: '#B98A3E', fontSize: '12px', flexShrink: 0 }}>Buscar cita</label>
                     <input id="agenda-search" type="search" value={appointmentSearch} onChange={event => setAppointmentSearch(event.target.value)}
                       placeholder="Nombre o teléfono de la clienta" style={{ flex: 1, minWidth: 0, padding: '9px', border: '1px solid rgba(212, 175, 55, 0.22)',
-                        background: '#D8D0C5', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
+                        background: '#FFFFFF', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
                     {!!appointmentSearch && <button type="button" aria-label="Limpiar búsqueda" onClick={() => setAppointmentSearch('')}
                       style={{ padding: '8px', background: 'none', border: 0, color: '#B98A3E', cursor: 'pointer' }}>×</button>}
                   </div>
@@ -3844,14 +3844,14 @@ style={{ padding: '8px', background: '#FFFFFF', color: '#2B2521', border: '1px s
                     <p role="status" aria-live="polite" style={{ color: '#7A7067', fontSize: '12px', margin: '6px 0' }}>{appointmentSearchResults.length} citas encontradas · Todas las fechas</p>
                     <div style={{ maxHeight: '250px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       {appointmentSearchResults.map(appointment => <article key={appointment.id} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px',
-                        padding: '10px', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '6px', background: '#D8D0C5' }}>
+                        padding: '10px', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '6px', background: 'rgba(255,255,255,0.35)' }}>
                         <div style={{ flex: '1 1 170px', fontSize: '12px', lineHeight: 1.5, overflowWrap: 'anywhere' }}>
                           <strong style={{ color: '#2B2521' }}>{appointment.clientName}</strong>
                           {appointment.lifecycleStatus && <span style={{ marginLeft: '8px', color: '#7A7067' }}>{appointment.lifecycleStatus === 'cancelled' ? 'Cancelada' : 'No presentada'}</span>}
                           <div style={{ color: '#B98A3E' }}>{appointment.dateKey.split('-').reverse().join('/')} · {appointment.time} · {appointment.phone}</div>
                           <div style={{ color: '#7A7067' }}>{appointment.serviceSubcategory.replace(/^RESERVADO\s*/, '')}</div>
                         </div>
-                        <button type="button" onClick={() => setViewApptModal(appointment)} style={{ padding: '9px', color: '#B98A3E', background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '5px', cursor: 'pointer' }}>Ver cita</button>
+                        <button type="button" onClick={() => setViewApptModal(appointment)} style={{ padding: '9px', color: '#B98A3E', background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '5px', cursor: 'pointer' }}>Ver cita</button>
                         <button type="button" onClick={() => {
                           const date = new Date(appointment.dateKey + 'T12:00:00');
                           setFechaSeleccionada(date); setMesNavegacion(new Date(date.getFullYear(), date.getMonth(), 1));
@@ -3973,16 +3973,16 @@ style={{ padding: '8px', background: '#FFFFFF', color: '#2B2521', border: '1px s
                 .studio-settings-layout { display: grid; grid-template-columns: 170px minmax(0,1fr); gap: 20px; align-items: start; }
                 .studio-settings-nav { display: flex; flex-direction: column; gap: 5px; position: sticky; top: 16px; }
                 .studio-settings-nav button { text-align: left; padding: 12px; min-height: 44px; border: 1px solid transparent; border-radius: 8px; color: #7A7067; background: transparent; font-size: 13px; cursor: pointer; }
-                .studio-settings-nav button[aria-current=page] { background: #E6D5B8; border-color: #B98A3E; color: #B98A3E; }
+                .studio-settings-nav button[aria-current=page] { background: #F9F8F6; border-color: #B98A3E; color: #B98A3E; }
                 .studio-settings-content { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
                 .studio-settings-savebar { position: sticky; top: 0; z-index: 8; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; background: #F9F8F6; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 9px; font-size: 12px; color: #7A7067; }
-                .studio-settings-savebar button { padding: 10px 15px; min-height: 40px; border: 0; border-radius: 7px; background: linear-gradient(135deg, #D4AF37 0%, #B8972E 100%); color: #2C2521; cursor: pointer; }
+                .studio-settings-savebar button { padding: 10px 15px; min-height: 40px; border: 0; border-radius: 7px; background: linear-gradient(135deg, #D4AF37 0%, #B8972E 100%); color: #2B2521; cursor: pointer; }
                 .studio-settings-savebar button:disabled { opacity: .45; cursor: default; }
-                .studio-security-pin { background: #E6D5B8; border: 1px solid #5A5248; border-radius: 12px; padding: 20px; }
+                .studio-security-pin { background: #F9F8F6; border: 1px solid rgba(212, 175, 55, 0.35); border-radius: 12px; padding: 20px; color: #2B2521; }
                 .studio-security-pin h3 { font-size: 16px; color: #B98A3E; margin-top: 0; }
                 @media(max-width: 750px) { .studio-settings-layout { grid-template-columns: minmax(0,1fr); gap: 12px; } .studio-settings-nav { position: static; flex-direction: row; overflow-x: auto; } .studio-settings-nav button { flex-shrink: 0; white-space: nowrap; } }
               `}</style>
-              <header><p style={{ color: '#B98A3E', fontSize: '14px', letterSpacing: '2px', margin: '0 0 8px' }}>360studio · AJUSTES DEL STUDIO</p><h2 style={{ color: '#2B2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '28px', fontWeight: 'normal', margin: '0 0 10px' }}>Configuración</h2><p style={{ color: '#7A7067', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>Elige un apartado, revisa sus opciones y guarda los cambios.</p></header>
+              <header><p style={{ color: '#B98A3E', fontSize: '14px', letterSpacing: '2px', margin: '0 0 8px' }}>360studio · AJUSTES DEL STUDIO</p><h2 style={{ color: '#2B2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '28px', fontWeight: 'normal', margin: '0 0 10px' }}>Configuración</h2><p style={{ color: '#FDFBF7', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>Elige un apartado, revisa sus opciones y guarda los cambios.</p></header>
               <div className="studio-settings-layout">
               <nav className="studio-settings-nav" aria-label="Apartados de configuración">
                 {([['marca', 'Datos del Studio'], ['schedule', 'Horarios'], ['reservas', 'Reservas'], ['avisos', 'Avisos'], ['backup', 'Acceso y seguridad']] as const).map(([tab, label]) => <button type="button" key={tab} aria-current={configSubTab === tab ? 'page' : undefined} onClick={() => setConfigSubTab(tab)}>{label}</button>)}
@@ -4016,7 +4016,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                       onChange={(e) => setTempConfig({ ...tempConfig, whatsappTemplate: e.target.value })} 
                       onFocus={(e) => e.target.select()} 
                       rows={3} 
-                      style={{ padding: '10px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} 
+                      style={{ padding: '10px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} 
                     />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 280px', gap: '15px', alignItems: 'stretch' }}>
@@ -4032,7 +4032,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                     </div>
                     <div style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '12px', padding: '15px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                       <span style={{ color: '#B98A3E', fontSize: '14px', fontWeight: 'bold', marginBottom: '5px' }}>Vista Previa en Tiempo Real</span>
-                      <div style={{ width: '100%', backgroundColor: '#D8D0C5', border: '1px solid rgba(212, 175, 55, 0.4)', borderRadius: '10px', padding: '12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ width: '100%', backgroundColor: 'rgba(255,255,255,0.35)', border: '1px solid rgba(212, 175, 55, 0.4)', borderRadius: '10px', padding: '12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <img src={STUDIO_HEADER_LOGO} alt={tempConfig.name} style={{ width: '100%', height: '45px', objectFit: 'contain' }} />
                         <div style={{ textAlign: 'center', fontSize: '8px', color: '#7A7067', letterSpacing: '1px' }}>PORTAL PRIVADO</div>
                         <div style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '6px', padding: '12px' }}>
@@ -4049,20 +4049,20 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                         <label style={{ color: '#7A7067', fontSize: '14px' }}>Nombre oficial</label>
-                        <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig({ ...tempConfig, name: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '12px' }} />
+                        <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig({ ...tempConfig, name: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '12px' }} />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                         <label style={{ color: '#7A7067', fontSize: '14px' }}>Teléfono del Salón</label>
-                        <input type="text" value={tempConfig.phone} onChange={(e) => setTempConfig({ ...tempConfig, phone: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '12px' }} />
+                        <input type="text" value={tempConfig.phone} onChange={(e) => setTempConfig({ ...tempConfig, phone: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '12px' }} />
                       </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                       <label style={{ color: '#7A7067', fontSize: '14px' }}>Dirección del Studio</label>
-                      <input type="text" value={tempConfig.location} onChange={(e) => setTempConfig({ ...tempConfig, location: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '12px' }} />
+                      <input type="text" value={tempConfig.location} onChange={(e) => setTempConfig({ ...tempConfig, location: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '12px' }} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                       <label style={{ color: '#7A7067', fontSize: '14px' }}>Descripción Corporativa</label>
-                      <textarea value={tempConfig.description} onChange={(e) => setTempConfig({ ...tempConfig, description: e.target.value })} onFocus={(e) => e.target.select()} rows={3} style={{ padding: '10px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} />
+                      <textarea value={tempConfig.description} onChange={(e) => setTempConfig({ ...tempConfig, description: e.target.value })} onFocus={(e) => e.target.select()} rows={3} style={{ padding: '10px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} />
                     </div>
                   </div>
 
@@ -4076,15 +4076,15 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                     <h4 style={{ color: '#B98A3E', fontSize: '13px', margin: 0, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em' }}>Redes Sociales del Salón</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                       <label style={{ color: '#7A7067', fontSize: '14px' }}>Instagram URL:</label>
-                      <input type="text" value={tempConfig.instagramUrl} onChange={(e) => setTempConfig({ ...tempConfig, instagramUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
+                      <input type="text" value={tempConfig.instagramUrl} onChange={(e) => setTempConfig({ ...tempConfig, instagramUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                       <label style={{ color: '#7A7067', fontSize: '14px' }}>Facebook URL:</label>
-                      <input type="text" value={tempConfig.facebookUrl} onChange={(e) => setTempConfig({ ...tempConfig, facebookUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
+                      <input type="text" value={tempConfig.facebookUrl} onChange={(e) => setTempConfig({ ...tempConfig, facebookUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                       <label style={{ color: '#7A7067', fontSize: '14px' }}>Tik Tok URL:</label>
-                      <input type="text" value={tempConfig.tiktokUrl} onChange={(e) => setTempConfig({ ...tempConfig, tiktokUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
+                      <input type="text" value={tempConfig.tiktokUrl} onChange={(e) => setTempConfig({ ...tempConfig, tiktokUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
@@ -4132,7 +4132,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 
                 .studio-service-editor[open] { position: fixed !important; inset: 0 0 0 auto; width: min(670px, 96vw); max-height: 100vh; overflow-y: auto; z-index: 1800; box-sizing: border-box; border: 1px solid #B98A3E !important; border-radius: 0 !important; box-shadow: -20px 0 60px rgba(60, 50, 40, 0.12); padding: 20px !important; background: #FFFFFF !important; }
                 .studio-service-editor[open] > summary { display: none; }
-                .studio-editor-toolbar { position: sticky; top: -20px; z-index: 4; background: #E6D5B8; border-bottom: 1px solid #E0D8CE; padding: 15px 0; }
+                .studio-editor-toolbar { position: sticky; top: -20px; z-index: 4; background: #F9F8F6; border-bottom: 1px solid rgba(212, 175, 55, 0.35); padding: 15px 0; }
                 .studio-service-editor[data-editor-tab=data] .studio-editor-options,
                 .studio-service-editor[data-editor-tab=data] .studio-editor-booking,
                 .studio-service-editor[data-editor-tab=data] .studio-editor-languages,
@@ -4145,21 +4145,21 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 .studio-service-editor[data-editor-tab=languages] .studio-editor-data,
                 .studio-service-editor[data-editor-tab=languages] .studio-editor-options,
                 .studio-service-editor[data-editor-tab=languages] .studio-editor-booking { display: none !important; }
-.studio-catalog-savebar { position: sticky; top: 0; z-index: 20; background: #E6D5B8; border-bottom: 1px solid #5A5248; padding: 12px 0; }
+.studio-catalog-savebar { position: sticky; top: 0; z-index: 20; background: #F9F8F6; border-bottom: 1px solid rgba(212, 175, 55, 0.35); padding: 12px 0; }
                 .studio-catalog-savebar h3 { font-size: 24px !important; }
                 .studio-catalog-category { padding: 10px 12px !important; gap: 7px !important; background: #FFFFFF !important; border-color: #5A5248 !important; }
                 .studio-catalog-category > div:first-child { padding: 4px !important; gap: 10px !important; }
                 .studio-catalog-category h3 { font-size: 20px !important; margin: 4px 0 !important; }
                 .studio-catalog-category > details:not([open]) { padding: 8px 10px !important; background: transparent !important; border: none !important; }
                 .studio-catalog-category > details > summary { font-size: 11px !important; }
-                .studio-catalog-service-row { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 7px !important; padding: 8px 10px !important; background: #FFFFFF !important; border: 1px solid #5A5248 !important; border-radius: 6px !important; }
+                .studio-catalog-service-row { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 7px !important; padding: 8px 10px !important; background: #FFFFFF !important; border: 1px solid rgba(212, 175, 55, 0.35) !important; border-radius: 6px !important; }
                 .studio-catalog-service-heading { padding: 0 !important; gap: 10px !important; }
                 .studio-catalog-service-heading > div:first-child { flex: 1 1 180px !important; }
                 .studio-catalog-service-heading h4 { font-family: Arial, sans-serif !important; font-size: 14px !important; margin: 0 0 4px !important; }
                 .studio-catalog-service-heading span { font-size: 12px !important; }
                 .studio-catalog-service-heading button { min-height: 38px !important; padding: 8px 10px !important; font-size: 12px !important; }
                 .studio-catalog-service-row > .studio-service-editor:not([open]) { padding: 0 !important; border: none !important; background: transparent !important; }
-                .studio-catalog-service-row > .studio-service-editor > summary { list-style: none; padding: 10px 12px !important; background: #E6D5B8; border: 1px solid #5A5248; border-radius: 6px; font-size: 12px !important; color: #B98A3E !important; cursor: pointer; }
+                .studio-catalog-service-row > .studio-service-editor > summary { list-style: none; padding: 10px 12px !important; background: #F9F8F6; border: 1px solid rgba(212, 175, 55, 0.35); border-radius: 6px; font-size: 12px !important; color: #B98A3E !important; cursor: pointer; }
                 .studio-catalog-service-row > .studio-service-editor[open] { grid-column: 1 / -1; }
                 @media (max-width: 700px) {
                   .studio-catalog-service-row { grid-template-columns: 1fr !important; }
@@ -4181,17 +4181,17 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 .studio-booking-buttons legend { color: #7A7067; font-size: 12px; padding: 0; margin-bottom: 9px; }
                 .studio-condition-choices { display: flex; gap: 7px; flex-wrap: wrap; }
                 .studio-condition-choices button { flex: 1 1 110px; padding: 10px 12px; min-height: 42px; border: 1px solid #5A5248; border-radius: 8px; background: #F9F8F6; color: #7A7067; font-size: 12px; cursor: pointer; }
-                .studio-condition-choices button[aria-pressed=true] { border-color: #B98A3E; background: #E6D5B8; color: #B98A3E; }
+                .studio-condition-choices button[aria-pressed=true] { border-color: #B8972E; background: rgba(212, 175, 55, 0.12); color: #B8972E; }
                 .studio-condition-choices button:focus-visible { outline: 2px solid #B98A3E; outline-offset: 3px; }
                 .studio-condition-finishes { border-top: 1px solid #5A5248; padding-top: 16px; }
                 .studio-condition-unset { display: block; font-size: 11px; color: #7A7067; margin-top: 8px; }
                 .studio-condition-reset { margin-top: 7px; background: none; border: 0; color: #7A7067; font-size: 11px; cursor: pointer; text-decoration: underline; padding: 4px 0; }
-                .studio-new-form { padding: 18px !important; border: 1px solid #5A5248 !important; border-radius: 10px !important; gap: 14px !important; }
+                .studio-new-form { padding: 18px !important; border: 1px solid rgba(212, 175, 55, 0.35) !important; border-radius: 10px !important; gap: 14px !important; }
                 .studio-new-field { display: flex; flex-direction: column; gap: 7px; flex: 1 1 160px; min-width: 0; color: #7A7067; font-size: 12px; }
                 .studio-new-field input { width: 100% !important; box-sizing: border-box; padding: 11px !important; min-height: 42px; border-radius: 7px !important; }
                 .studio-new-form button { min-height: 42px; padding: 10px 14px !important; }
-                .studio-service-editor { background: #E6D5B8; border-radius: 12px; padding: 18px !important; }
-                .studio-service-editor input:not([type=checkbox]), .studio-service-editor select, .studio-service-editor textarea { box-sizing: border-box; min-height: 44px; font-size: 14px !important; padding: 12px !important; border: 1px solid rgba(212, 175, 55, 0.22) !important; border-radius: 8px !important; background: #F9F8F6 !important; color: #2C2521 !important; max-width: 100%; }
+                .studio-service-editor { background: #F9F8F6; border: 1px solid rgba(212, 175, 55, 0.35); color: #2B2521; border-radius: 12px; padding: 18px !important; }
+                .studio-service-editor input:not([type=checkbox]), .studio-service-editor select, .studio-service-editor textarea { box-sizing: border-box; min-height: 44px; font-size: 14px !important; padding: 12px !important; border: 1px solid rgba(212, 175, 55, 0.22) !important; border-radius: 8px !important; background: #F9F8F6 !important; color: #2B2521 !important; max-width: 100%; }
                 .studio-service-editor textarea { min-height: 90px; resize: vertical !important; }
                 .studio-service-editor label { color: #7A7067 !important; font-size: 13px !important; line-height: 1.6; }
                 .studio-base-field { display: flex; flex-direction: column; gap: 6px; flex: 1 1 150px; min-width: 0; }
@@ -4255,23 +4255,23 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                           <h3 style={{ color: '#2B2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '24px', fontWeight: 'normal', lineHeight: 1.4, margin: '8px 0' }}>{cat.title}</h3>
                           <span style={{ color: '#7A7067', fontSize: '13px' }}>{cat.subservices.length} servicios · {cat.subservices.filter(sub => sub.active !== false).length} activos</span>
                         </div>
-                        <button type="button" aria-expanded={isCategoryExpandedAdmin} onClick={() => setExpandedCategories({ ...expandedCategories, [`admin_cat_${cat.id}`]: !isCategoryExpandedAdmin })} style={{ background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#B98A3E', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>{isCategoryExpandedAdmin ? 'Ocultar servicios −' : 'Ver servicios +'}</button>
+                        <button type="button" aria-expanded={isCategoryExpandedAdmin} onClick={() => setExpandedCategories({ ...expandedCategories, [`admin_cat_${cat.id}`]: !isCategoryExpandedAdmin })} style={{ background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#B98A3E', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>{isCategoryExpandedAdmin ? 'Ocultar servicios −' : 'Ver servicios +'}</button>
                       </div>
                       <details style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '9px', padding: '14px' }}>
                         <summary style={{ color: '#B98A3E', cursor: 'pointer', fontSize: '13px' }}>Editar categoría y ordenar</summary>
-                        <details style={{ border: '1px solid rgba(212, 175, 55, 0.3)', padding: '14px', borderRadius: '8px', marginTop: '14px' }}>
+                        <details style={{ border: '1px solid rgba(212, 175, 55, 0.35)', padding: '14px', borderRadius: '8px', marginTop: '14px' }}>
                           <summary style={{ color: '#B98A3E', cursor: 'pointer' }}>Idiomas · Nombre de la categoría</summary>
                           {translationLanguagePicker()}
                           <p style={{ color: '#7A7067', fontSize: '12px' }}>Original: {cat.title}. Un campo vacío muestra el original en español.</p>
-                          <input aria-label="Nombre traducido de la categoría" dir={catalogTranslationLang === 'ar' ? 'rtl' : 'ltr'} lang={catalogTranslationLang} value={cat.translations?.[catalogTranslationLang]?.title || ''} onChange={event => { const title = event.target.value; setCatalog(previous => previous.map(category => category.id !== cat.id ? category : { ...category, translations: { ...category.translations, [catalogTranslationLang]: { title } } })); }} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', background: '#D8D0C5', color: '#2B2521', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '7px' }} />
+                          <input aria-label="Nombre traducido de la categoría" dir={catalogTranslationLang === 'ar' ? 'rtl' : 'ltr'} lang={catalogTranslationLang} value={cat.translations?.[catalogTranslationLang]?.title || ''} onChange={event => { const title = event.target.value; setCatalog(previous => previous.map(category => category.id !== cat.id ? category : { ...category, translations: { ...category.translations, [catalogTranslationLang]: { title } } })); }} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', background: '#FFFFFF', color: '#2B2521', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '7px' }} />
                         </details>
 
                         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '12px', marginTop: '16px' }}>
-                          <label style={{ color: '#7A7067', fontSize: '13px' }}>Código<input type="text" value={cat.code} onChange={e => handleUpdateCategoryCode(cat.id, e.target.value)} style={{ display: 'block', width: '90px', padding: '12px', boxSizing: 'border-box', marginTop: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#B98A3E', borderRadius: '7px' }} /></label>
-                          <label style={{ flex: '1 1 220px', color: '#7A7067', fontSize: '13px' }}>Nombre de la categoría<input type="text" value={cat.title} onChange={e => handleUpdateCategoryTitle(cat.id, e.target.value)} style={{ display: 'block', width: '100%', padding: '12px', boxSizing: 'border-box', marginTop: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '7px', fontSize: '14px' }} /></label>
+                          <label style={{ color: '#7A7067', fontSize: '13px' }}>Código<input type="text" value={cat.code} onChange={e => handleUpdateCategoryCode(cat.id, e.target.value)} style={{ display: 'block', width: '90px', padding: '12px', boxSizing: 'border-box', marginTop: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#B98A3E', borderRadius: '7px' }} /></label>
+                          <label style={{ flex: '1 1 220px', color: '#7A7067', fontSize: '13px' }}>Nombre de la categoría<input type="text" value={cat.title} onChange={e => handleUpdateCategoryTitle(cat.id, e.target.value)} style={{ display: 'block', width: '100%', padding: '12px', boxSizing: 'border-box', marginTop: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '7px', fontSize: '14px' }} /></label>
                           <button type="button" disabled={catIdx === 0} onClick={() => handleMoveCategory(catIdx, -1)} style={{ background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.22)', color: '#B98A3E', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Subir ↑</button>
                           <button type="button" disabled={catIdx === catalog.length - 1} onClick={() => handleMoveCategory(catIdx, 1)} style={{ background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.22)', color: '#B98A3E', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Bajar ↓</button>
-                          <button type="button" onClick={() => handleDeleteCategory(cat.id)} style={{ background: '#D8D0C5', border: '1px solid #74433e', color: '#C0392B', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Eliminar categoría</button>
+                          <button type="button" onClick={() => handleDeleteCategory(cat.id)} style={{ background: '#FFFFFF', border: '1px solid #74433e', color: '#C0392B', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Eliminar categoría</button>
                         </div>
                         <p style={{ color: '#7A7067', fontSize: '12px', marginBottom: 0 }}>Después de modificar el nombre, código u orden, pulsa «Guardar catálogo».</p>
                       </details>
@@ -4284,7 +4284,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                 <div className="studio-catalog-service-heading" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '14px', padding: '8px' }}>
                                   <div style={{ flex: '1 1 220px' }}><h4 style={{ color: '#2B2521', fontSize: '18px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', lineHeight: 1.4, margin: '0 0 8px' }}>{sub.name}</h4><span style={{ color: '#B98A3E', fontSize: '14px' }}>{sub.price}</span><span style={{ color: '#7A7067', fontSize: '13px', marginLeft: '14px' }}>{sub.duration}</span></div>
                                   <span style={{ color: sub.active === false ? '#7A7067' : '#2E7D32', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '20px', padding: '6px 12px', fontSize: '12px' }}>{sub.active === false ? 'Desactivado' : 'Activo'}</span>
-                                  <button type="button" onClick={() => { setPreviewServiceId(sub.id); setPreviewVariantId(sub.hasVariants ? sub.variants?.[0]?.id || '' : ''); }} style={{ background: 'none', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '7px', padding: '10px 14px', minHeight: '44px', cursor: 'pointer' }}>Vista previa</button>
+                                  <button type="button" onClick={() => { setPreviewServiceId(sub.id); setPreviewVariantId(sub.hasVariants ? sub.variants?.[0]?.id || '' : ''); }} style={{ background: 'none', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '7px', padding: '10px 14px', minHeight: '44px', cursor: 'pointer' }}>Vista previa</button>
                                 </div>
                                 <details open={catalogEditorId === sub.id} onToggle={event => {
                                   if (event.currentTarget.open) { if (catalogEditorId !== sub.id) { setCatalogEditorId(sub.id); setCatalogEditorTab('data'); } }
@@ -4299,7 +4299,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                     <nav aria-label="Apartados del servicio" style={{ display: 'flex', flexWrap: 'wrap', gap: '7px', margin: '15px 0' }}>
                                       {([['data', 'Datos'], ['options', 'Opciones'], ['booking', 'Reserva'], ['languages', 'Idiomas']] as const).map(([tab, label]) =>
                                         <button type="button" key={tab} aria-pressed={catalogEditorTab === tab} onClick={() => setCatalogEditorTab(tab)}
-                                          style={{ background: catalogEditorTab === tab ? '#B98A3E' : '#FFFFFF', color: catalogEditorTab === tab ? '#1C1816' : '#B98A3E', padding: '10px', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '6px', cursor: 'pointer' }}>{label}</button>)}
+                                          style={{ background: catalogEditorTab === tab ? '#B98A3E' : '#FFFFFF', color: catalogEditorTab === tab ? '#1C1816' : '#B98A3E', padding: '10px', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '6px', cursor: 'pointer' }}>{label}</button>)}
                                     </nav>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
                                       <button type="button" onClick={handleSaveCatalogMaster} style={{ background: 'linear-gradient(135deg, #D4AF37 0%, #B8972E 100%)', color: '#1C1816', padding: '10px', border: 0, cursor: 'pointer' }}>Guardar cambios</button>
@@ -4310,7 +4310,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                     {catalogSavedMsg && <p role="status" style={{ color: '#2E7D32', fontSize: '12px' }}>{catalogSavedMsg}</p>}
                                   </div>
 
-                                  <details open className="studio-editor-languages" style={{ padding: '16px', marginTop: '16px', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '10px' }}>
+                                  <details open className="studio-editor-languages" style={{ padding: '16px', marginTop: '16px', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '10px' }}>
                                     <summary style={{ color: '#B98A3E', cursor: 'pointer' }}>Idiomas · Traducciones del servicio</summary>
                                     <p style={{ color: '#7A7067', fontSize: '13px', lineHeight: 1.6 }}>Escribe la traducción de cada campo. Si queda vacío, el portal mostrará el contenido original en español. Los precios y la duración se mantienen comunes.</p>
                                     <label>Idioma de la traducción<select value={catalogTranslationLang} onChange={event => setCatalogTranslationLang(event.target.value)} style={{ display: 'block', width: '100%', margin: '8px 0 16px' }}>
@@ -4345,15 +4345,15 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                     <label className="studio-base-field">Nombre del servicio<input type="text" value={sub.name} onChange={(e) => {
                                       const updatedName = e.target.value;
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, name: updatedName } : s) } : c));
-                                    }} style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', flex: 1 }} /></label>
+                                    }} style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', flex: 1 }} /></label>
                                     <label className="studio-base-field">Precio base<input type="text" value={sub.price} onChange={(e) => {
                                       const updatedPrice = e.target.value;
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, price: updatedPrice } : s) } : c));
-                                    }} style={{ backgroundColor: '#D8D0C5', border: '1px solid #B98A3E', color: '#B98A3E', padding: '4px 8px', borderRadius: '4px', fontSize: '14px', width: '100px' }} /></label>
+                                    }} style={{ backgroundColor: '#FFFFFF', border: '1px solid #B98A3E', color: '#B98A3E', padding: '4px 8px', borderRadius: '4px', fontSize: '14px', width: '100px' }} /></label>
                                     <label className="studio-base-field">Duración base<input type="text" value={sub.duration} onChange={(e) => {
                                       const updatedDur = e.target.value;
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, duration: updatedDur } : s) } : c));
-                                    }} style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#7A7067', padding: '4px 8px', borderRadius: '4px', fontSize: '14px', width: '80px' }} /></label>
+                                    }} style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#7A7067', padding: '4px 8px', borderRadius: '4px', fontSize: '14px', width: '80px' }} /></label>
                                   </div>
                                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
                                     <label style={{ color: '#B98A3E', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
@@ -4375,7 +4375,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                     <input type="text" value={sub.alertText || ''} onChange={(e) => {
                                       const val = e.target.value;
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, alertText: val } : s) } : c));
-                                    }} placeholder="Texto del aviso (ej. ⚠️ Recuerda añadir tu peinado)" style={{ width: '100%', padding: '6px', backgroundColor: '#D8D0C5', border: '1px solid #B98A3E', color: '#2B2521', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }} />
+                                    }} placeholder="Texto del aviso (ej. ⚠️ Recuerda añadir tu peinado)" style={{ width: '100%', padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid #B98A3E', color: '#2B2521', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }} />
                                   )}
                                 </div>
                                 {sub.hasVariants && (
@@ -4406,9 +4406,9 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                       ))}
                                     </div>
                                     <form className="studio-new-form" onSubmit={(e) => handleAddVariant(cat.id, sub.id, e)} style={{ display: 'flex', gap: '8px', marginTop: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                      <label className="studio-new-field">Nombre de la opción *<input required type="text" placeholder="Nombre (ej. M)" value={newVariantName} onChange={(e) => setNewVariantName(e.target.value)} style={{ width: '80px', padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} /></label>
-                                      <label className="studio-new-field">Precio *<input required type="text" placeholder="Precio (ej. 320,00 €)" value={newVariantPrice} onChange={(e) => setNewVariantPrice(e.target.value)} style={{ width: '120px', padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} /></label>
-                                      <label className="studio-new-field">Duración *<input required type="text" placeholder="Duración (ej. 240 min)" value={newVariantDuration} onChange={(e) => setNewVariantDuration(e.target.value)} style={{ width: '110px', padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} /></label>
+                                      <label className="studio-new-field">Nombre de la opción *<input required type="text" placeholder="Nombre (ej. M)" value={newVariantName} onChange={(e) => setNewVariantName(e.target.value)} style={{ width: '80px', padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} /></label>
+                                      <label className="studio-new-field">Precio *<input required type="text" placeholder="Precio (ej. 320,00 €)" value={newVariantPrice} onChange={(e) => setNewVariantPrice(e.target.value)} style={{ width: '120px', padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} /></label>
+                                      <label className="studio-new-field">Duración *<input required type="text" placeholder="Duración (ej. 240 min)" value={newVariantDuration} onChange={(e) => setNewVariantDuration(e.target.value)} style={{ width: '110px', padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} /></label>
                                       <p style={{ width: '100%', fontSize: '12px', color: '#7A7067', margin: 0 }}>Se añadirá a la lista. Pulsa Guardar catálogo para conservarla.</p>
                                       <button type="button" onClick={() => { setNewVariantName(''); setNewVariantPrice(''); setNewVariantDuration(''); }} style={{ padding: '10px 14px', background: 'transparent', border: '1px solid rgba(212, 175, 55, 0.22)', color: '#7A7067', borderRadius: '7px', cursor: 'pointer' }}>Cancelar</button>
                                       <button type="submit" style={{ background: 'linear-gradient(135deg, #D4AF37 0%, #B8972E 100%)', color: '#1C1816', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>+ Añadir opción</button>
@@ -4423,7 +4423,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                       <textarea value={sub.description} onChange={(e) => {
                                         const val = e.target.value;
                                         setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, description: val } : s) } : c));
-                                      }} rows={2} style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
+                                      }} rows={2} style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
                                     </div>
 <section className="studio-editor-booking studio-booking-buttons" style={{ padding: '16px', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '10px', background: '#FFFFFF' }}>
                                       <h4 style={{ color: '#2B2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '17px', margin: '0 0 18px' }}>Condiciones de reserva</h4>
@@ -4461,14 +4461,14 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                       <input type="text" value={sub.includesText || ''} onChange={(e) => {
                                         const val = e.target.value;
                                         setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, includesText: val } : s) } : c));
-                                      }} style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
+                                      }} style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
                                     </div>
                                     <div className="studio-editor-data" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                       <label style={{ color: '#B98A3E', fontSize: '12px' }}>Qué se consigue:</label>
                                       <input type="text" value={sub.achievedText || ''} onChange={(e) => {
                                         const val = e.target.value;
                                         setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, achievedText: val } : s) } : c));
-                                      }} style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
+                                      }} style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
                                     </div>
                                   </div>
                                 )}
@@ -4480,29 +4480,29 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                           {isAddingSub === cat.id ? (
                             <form className="studio-new-form" onSubmit={(e) => handleAddSubserviceSubmit(cat.id, e)} style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#FFFFFF', padding: '12px', borderRadius: '6px', border: '1px solid rgba(212, 175, 55, 0.22)', marginTop: '5px' }}>
                               <h5 style={{ color: '#B98A3E', fontSize: '12px', margin: 0 }}>Nuevo servicio</h5>
-                              <label className="studio-new-field">Nombre del servicio *<input type="text" placeholder="Nombre del servicio" value={newSubName} onChange={(e) => setNewSubName(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} /></label>
-                              <label className="studio-new-field">Descripción para la clienta<input type="text" placeholder="Descripción breve" value={newSubDesc} onChange={(e) => setNewSubDesc(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} /></label>
+                              <label className="studio-new-field">Nombre del servicio *<input type="text" placeholder="Nombre del servicio" value={newSubName} onChange={(e) => setNewSubName(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} /></label>
+                              <label className="studio-new-field">Descripción para la clienta<input type="text" placeholder="Descripción breve" value={newSubDesc} onChange={(e) => setNewSubDesc(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} /></label>
                               <div style={{ display: 'flex', gap: '8px' }}>
-                                <label className="studio-new-field">Duración *<input required type="text" placeholder="Duración (ej. 45 min)" value={newSubDur} onChange={(e) => setNewSubDur(e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} /></label>
+                                <label className="studio-new-field">Duración *<input required type="text" placeholder="Duración (ej. 45 min)" value={newSubDur} onChange={(e) => setNewSubDur(e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} /></label>
                               </div>
                               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                <select aria-label="Tipo de precio" value={newSubPriceType} onChange={(e) => setNewSubPriceType(e.target.value as any)} style={{ padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#B98A3E', borderRadius: '4px', fontSize: '14px' }}>
+                                <select aria-label="Tipo de precio" value={newSubPriceType} onChange={(e) => setNewSubPriceType(e.target.value as any)} style={{ padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#B98A3E', borderRadius: '4px', fontSize: '14px' }}>
                                   <option value="desde">Desde</option>
                                   <option value="aprox">Aprox.</option>
                                   <option value="fijo">Fijo</option>
                                   <option value="consultar">Consultar</option>
                                 </select>
-                                <label className="studio-new-field">Precio<input type="text" placeholder="Precio (ej. 45 €)" value={newSubPrice} onChange={(e) => setNewSubPrice(e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} /></label>
+                                <label className="studio-new-field">Precio<input type="text" placeholder="Precio (ej. 45 €)" value={newSubPrice} onChange={(e) => setNewSubPrice(e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} /></label>
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 <label style={{ color: '#B98A3E', fontSize: '12px' }}>Qué incluye:</label>
-                                <input type="text" placeholder="Ej. Lavado sensorial y protector térmico" value={newSubIncludes} onChange={(e) => setNewSubIncludes(e.target.value)} style={{ padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} />
+                                <input type="text" placeholder="Ej. Lavado sensorial y protector térmico" value={newSubIncludes} onChange={(e) => setNewSubIncludes(e.target.value)} style={{ padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} />
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                                 <label style={{ color: '#B98A3E', fontSize: '12px' }}>Qué se consigue:</label>
-                                <input type="text" placeholder="Ej. Brillo extremo y duración prolongada" value={newSubAchieved} onChange={(e) => setNewSubAchieved(e.target.value)} style={{ padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} />
+                                <input type="text" placeholder="Ej. Brillo extremo y duración prolongada" value={newSubAchieved} onChange={(e) => setNewSubAchieved(e.target.value)} style={{ padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} />
                               </div>
-                              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', padding: '8px', borderRadius: '4px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              <div style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', padding: '8px', borderRadius: '4px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                   <input type="checkbox" checked={newSubAlertBadge} onChange={(e) => setNewSubAlertBadge(e.target.checked)} style={{ accentColor: '#B98A3E' }} />
                                   <span style={{ color: '#B98A3E', fontSize: '14px', fontWeight: 'bold' }}>Activar aviso en este servicio</span>
@@ -4543,7 +4543,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                   setViewApptModal(appointment);
                 } else alert('Esta cita ya no existe. Puedes buscar otra en la agenda.');
               }} style={{ alignSelf: 'flex-start', padding: '10px 14px', background: '#FFFFFF', color: '#B98A3E',
-                border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '7px', cursor: 'pointer' }}>← Volver a la cita</button>}
+                border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '7px', cursor: 'pointer' }}>← Volver a la cita</button>}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
                   <h3 style={{ color: '#B98A3E', fontSize: '28px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Clientas · Cuidado y seguimiento</h3>
@@ -4557,14 +4557,14 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 <form onSubmit={handleGuardarNuevoCliente} style={{ backgroundColor: '#FFFFFF', border: '1px solid #B98A3E', borderRadius: '8px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                   <h4 style={{ color: '#B98A3E', fontSize: '13px', margin: 0 }}>Nueva Ficha de Clienta</h4>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-                    <input type="text" placeholder="Nombre *" value={novoNombre} onChange={(e) => setNovoNombre(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
-                    <input type="text" placeholder="Apellidos" value={novoApellidos} onChange={(e) => setNovoApellidos(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
-                    <input type="text" placeholder="Fecha Nacimiento" value={novoNacimiento} onChange={(e) => setNovoNacimiento(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
-                    <input type="text" placeholder="Teléfono" value={novoTelefono} onChange={(e) => setNovoTelefono(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
-                    <input type="email" placeholder="Email (Identificador) *" value={novoEmail} onChange={(e) => setNovoEmail(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
-                    <input type="text" placeholder="PIN acceso (4 digs)" maxLength={4} value={novoPin} onChange={(e) => setNovoPin(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
+                    <input type="text" placeholder="Nombre *" value={novoNombre} onChange={(e) => setNovoNombre(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
+                    <input type="text" placeholder="Apellidos" value={novoApellidos} onChange={(e) => setNovoApellidos(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
+                    <input type="text" placeholder="Fecha Nacimiento" value={novoNacimiento} onChange={(e) => setNovoNacimiento(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
+                    <input type="text" placeholder="Teléfono" value={novoTelefono} onChange={(e) => setNovoTelefono(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
+                    <input type="email" placeholder="Email (Identificador) *" value={novoEmail} onChange={(e) => setNovoEmail(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
+                    <input type="text" placeholder="PIN acceso (4 digs)" maxLength={4} value={novoPin} onChange={(e) => setNovoPin(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
                   </div>
-                  <input type="text" placeholder="Diagnóstico capilar o notas" value={novoDiagnostico} onChange={(e) => setNovoDiagnostico(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
+                  <input type="text" placeholder="Diagnóstico capilar o notas" value={novoDiagnostico} onChange={(e) => setNovoDiagnostico(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} />
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <button type="submit" style={{ background: 'linear-gradient(135deg, #D4AF37 0%, #B8972E 100%)', color: '#1C1816', border: 'none', padding: '8px 16px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Guardar Clienta</button>
                   </div>
@@ -4608,8 +4608,8 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                             }} style={{ background: 'transparent', border: '1px solid #B98A3E', color: '#B98A3E', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>
                               {isEditing ? 'Cerrar Edición' : 'Editar ficha y fórmulas'}
                             </button>
-                            <button type="button" onClick={() => setClientDetailsDraft({ ...c })} style={{ background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#B98A3E', borderRadius: '6px', padding: '8px 12px', cursor: 'pointer', fontSize: '12px' }}>Editar datos y acceso</button>
-                            <button type="button" onClick={() => openPassportEditor(c)} style={{ background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#B98A3E', borderRadius: '6px', padding: '8px 12px', cursor: 'pointer', fontSize: '12px' }}>Editar pasaporte e historial</button>
+                            <button type="button" onClick={() => setClientDetailsDraft({ ...c })} style={{ background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#B98A3E', borderRadius: '6px', padding: '8px 12px', cursor: 'pointer', fontSize: '12px' }}>Editar datos y acceso</button>
+                            <button type="button" onClick={() => openPassportEditor(c)} style={{ background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#B98A3E', borderRadius: '6px', padding: '8px 12px', cursor: 'pointer', fontSize: '12px' }}>Editar pasaporte e historial</button>
                             <button onClick={() => handleBorrarCliente(c.idNum)} title="Eliminar clienta" style={{ background: 'transparent', border: 'none', color: '#C0392B', fontSize: '14px', cursor: 'pointer' }}> X </button>
                           </div>
                         </div>
@@ -4624,24 +4624,24 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                               <div>
                                 <label style={{ color: '#B98A3E', fontSize: '12px', display: 'block', marginBottom: '2px' }}>Última Visita:</label>
-                                <input type="text" value={editAdminUltimaVisita} onChange={(e) => setEditAdminUltimaVisita(e.target.value)} style={{ width: '100%', padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} />
+                                <input type="text" value={editAdminUltimaVisita} onChange={(e) => setEditAdminUltimaVisita(e.target.value)} style={{ width: '100%', padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} />
                               </div>
                               <div>
                                 <label style={{ color: '#B98A3E', fontSize: '12px', display: 'block', marginBottom: '2px' }}>Próxima Visita Sugerida:</label>
-                                <input type="text" value={editAdminProxima} onChange={(e) => setEditAdminProxima(e.target.value)} style={{ width: '100%', padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} />
+                                <input type="text" value={editAdminProxima} onChange={(e) => setEditAdminProxima(e.target.value)} style={{ width: '100%', padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} />
                               </div>
                             </div>
                             <div>
                               <label style={{ color: '#B98A3E', fontSize: '12px', display: 'block', marginBottom: '2px' }}>DNI Capilar Activo (Visible en Pasaporte de la clienta):</label>
-                              <input type="text" value={editAdminDniCapilar} onChange={(e) => setEditAdminDniCapilar(e.target.value)} placeholder="Ej. Porosidad: Media | Hidratación: Necesaria" style={{ width: '100%', padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} />
+                              <input type="text" value={editAdminDniCapilar} onChange={(e) => setEditAdminDniCapilar(e.target.value)} placeholder="Ej. Porosidad: Media | Hidratación: Necesaria" style={{ width: '100%', padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} />
                             </div>
                             <div>
                               <label style={{ color: '#B98A3E', fontSize: '12px', display: 'block', marginBottom: '2px' }}>Mantenimiento en Casa (Visible en Pasaporte de la clienta):</label>
-                              <input type="text" value={editAdminPrescripcionCasa} onChange={(e) => setEditAdminPrescripcionCasa(e.target.value)} placeholder="Ej. Champú Hidratante | Sérum Nutritivo" style={{ width: '100%', padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} />
+                              <input type="text" value={editAdminPrescripcionCasa} onChange={(e) => setEditAdminPrescripcionCasa(e.target.value)} placeholder="Ej. Champú Hidratante | Sérum Nutritivo" style={{ width: '100%', padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '4px', fontSize: '14px' }} />
                             </div>
                             <div>
                               <label style={{ color: '#B98A3E', fontSize: '12px', display: 'block', marginBottom: '2px' }}>Fórmulas y Notas (Uso Exclusivo Intranet):</label>
-                              <textarea value={editAdminFormulas} onChange={(e) => setEditAdminFormulas(e.target.value)} rows={2} style={{ width: '100%', padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '4px', fontSize: '14px', resize: 'none' }} />
+                              <textarea value={editAdminFormulas} onChange={(e) => setEditAdminFormulas(e.target.value)} rows={2} style={{ width: '100%', padding: '6px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '4px', fontSize: '14px', resize: 'none' }} />
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
                               <button onClick={() => setEditingClientId(null)} style={{ background: 'none', border: 'none', color: '#7A7067', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
@@ -4654,14 +4654,14 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                               <h4 style={{ color: '#B98A3E', fontSize: '14px', margin: '0 0 10px' }}>Pasaporte capilar</h4>
                               <strong style={{ color: '#2B2521' }}>Diagnóstico</strong><p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: '6px 0 14px' }}>{c.dniCapilar || 'Sin diagnóstico registrado'}</p>
                               <strong style={{ color: '#2B2521' }}>Cuidados en casa</strong><p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: '6px 0' }}>{c.prescripcionCasa || 'Sin recomendaciones registradas'}</p>
-                              <button type="button" onClick={() => openPassportEditor(c)} style={{ background: 'none', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#B98A3E', padding: '10px 12px', borderRadius: '6px', cursor: 'pointer', marginTop: '12px' }}>Editar pasaporte</button>
+                              <button type="button" onClick={() => openPassportEditor(c)} style={{ background: 'none', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#B98A3E', padding: '10px 12px', borderRadius: '6px', cursor: 'pointer', marginTop: '12px' }}>Editar pasaporte</button>
                             </section>
                             <section style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '10px', padding: '18px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', color: '#7A7067', fontSize: '14px', lineHeight: 1.7 }}>
                               <h4 style={{ color: '#B98A3E', fontSize: '14px', margin: '0 0 10px' }}>Seguimiento</h4>
                               <p>Última visita: <span style={{ color: '#2B2521' }}>{c.ultimaVisita || 'Sin registrar'}</span></p>
                               <p>Próxima recomendada: <span style={{ color: '#2B2521' }}>{c.proximaVisitaSugerida || 'Sin indicar'}</span></p>
                               <p>{c.pastVisits?.length || 0} visitas en el historial</p>
-                              <button type="button" onClick={() => openPassportEditor(c)} style={{ background: 'none', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#B98A3E', padding: '10px 12px', borderRadius: '6px', cursor: 'pointer' }}>Ver y editar historial</button>
+                              <button type="button" onClick={() => openPassportEditor(c)} style={{ background: 'none', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#B98A3E', padding: '10px 12px', borderRadius: '6px', cursor: 'pointer' }}>Ver y editar historial</button>
                             </section>
                             <details style={{ gridColumn: '1 / -1', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '10px', padding: '18px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', color: '#7A7067', fontSize: '14px' }}>
                               <summary style={{ cursor: 'pointer', color: '#B98A3E' }}>Fórmulas y notas de la intranet</summary>
@@ -4685,8 +4685,8 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 .studio-review-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,330px),1fr)); gap: 16px; align-items: start; }
                 .studio-review-card { padding: 22px !important; border: 1px solid rgba(212, 175, 55, 0.22) !important; border-radius: 14px !important; background: linear-gradient(145deg,#24251f,#181914) !important; box-shadow: 0 8px 24px #0002; gap: 17px !important; }
                 .studio-review-card > div:first-child { align-items: baseline !important; flex-wrap: wrap; gap: 8px; }
-                .studio-review-card > div:first-child > span:first-child { font-size: 14px !important; font-weight: normal !important; color: #ded0a8 !important; }
-                .studio-review-card > p { background: transparent !important; border: 0 !important; padding: 0 !important; color: #dedbd1 !important; font-style: normal !important; font-size: 13px !important; line-height: 1.8 !important; }
+                .studio-review-card > div:first-child > span:first-child { font-size: 14px !important; font-weight: normal !important; color: #B8972E !important; }
+                .studio-review-card > p { background: transparent !important; border: 0 !important; padding: 0 !important; color: #2B2521 !important; font-style: normal !important; font-size: 13px !important; line-height: 1.8 !important; }
                 .studio-mailbox-premium .studio-review-response { border: 0 !important; border-top: 1px solid rgba(212, 175, 55, 0.22) !important; border-radius: 0 !important; background: transparent !important; padding: 12px 0 0 !important; }
                 .studio-review-response summary { display: flex; justify-content: space-between; color: #B98A3E; list-style: none; font-size: 12px; }
                 .studio-review-response summary::-webkit-details-marker { display: none; }
@@ -4695,13 +4695,13 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 .studio-review-response a { background: #EAF4EA !important; color: #2E7D32 !important; padding: 10px 12px !important; }
                 .studio-review-card > div:last-child { justify-content: flex-start !important; margin: 0 !important; }
                 .studio-review-card > div:last-child button { border: 0 !important; background: transparent !important; padding: 4px 0 !important; min-height: 32px; color: #7A7067 !important; }
-                .studio-mailbox-premium { color: #dfdbcf; }
-                .studio-mailbox-premium > div { border-color: #3d3e33 !important; }
+                .studio-mailbox-premium { color: #2B2521; }
+                .studio-mailbox-premium > div { border-color: rgba(212, 175, 55, 0.35) !important; }
                 .studio-mailbox-premium button, .studio-mailbox-premium a { font-size: 12px !important; font-weight: normal !important; letter-spacing: .2px; }
                 .studio-mailbox-premium button { min-height: 38px; border-radius: 7px !important; }
                 .studio-mailbox-premium button[aria-pressed] { padding: 10px 16px !important; border-color: #E0D8CE !important; background: #FFFFFF !important; color: #7A7067 !important; }
-                .studio-mailbox-premium button[aria-pressed=true] { background: #FFFFFF !important; border-color: #B98A3E !important; color: #e3d3a8 !important; }
-                .studio-mailbox-premium details { background: #E6D5B8; border-color: #3d3e33 !important; }
+                .studio-mailbox-premium button[aria-pressed=true] { background: #F9F8F6 !important; border-color: #B8972E !important; color: #B8972E !important; }
+                .studio-mailbox-premium details { background: #F9F8F6; border-color: rgba(212, 175, 55, 0.35) !important; }
                 .studio-mailbox-premium summary { font-size: 13px; padding: 2px; }
                 .studio-mailbox-premium textarea { box-sizing: border-box; width: 100%; min-height: 88px; padding: 13px !important; font-size: 13px !important; line-height: 1.6; background: #FFFFFF !important; border-color: #E0D8CE !important; border-radius: 8px !important; }
                 .studio-mailbox-premium textarea:focus { outline: 1px solid #a68f59; }
@@ -4740,10 +4740,10 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                           <span style={{ color: '#B98A3E', fontWeight: 'bold', fontSize: '12px' }}>★ {fb.rating}/5 · {fb.clientName.replace(/\s*\(PIN\s+[^)]*\)/gi, '')}</span>
                           <span style={{ color: '#7A7067', fontSize: '10px' }}>{fb.date}</span>
                         </div>
-                        <p style={{ color: '#2B2521', fontSize: '12px', margin: 0, fontStyle: 'italic', backgroundColor: '#D8D0C5', padding: '10px', borderRadius: '6px', borderLeft: '2px solid #a68f59' }}>
+                        <p style={{ color: '#2B2521', fontSize: '12px', margin: 0, fontStyle: 'italic', backgroundColor: '#F9F8F6', padding: '10px', borderRadius: '6px', borderLeft: '2px solid #a68f59' }}>
                           "{fb.comment}"
                         </p>
-                        <details className="studio-review-response" style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px', padding: '12px', display: 'block' }}>
+                        <details className="studio-review-response" style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '8px', padding: '12px', display: 'block' }}>
                           <summary>Responder a la clienta <span>＋</span></summary>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ color: '#B98A3E', fontSize: '11px', fontWeight: 'bold' }}>Respuesta para la clienta</span>
@@ -4856,8 +4856,8 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               @media print {
                 body * { visibility: hidden !important; }
                 .studio-crm-report, .studio-crm-report * { visibility: visible !important; }
-                .studio-crm-report { position: absolute !important; left: 0; top: 0; width: 100% !important; background: white !important; color: #2C2521 !important; padding: 16px !important; box-sizing: border-box; }
-                .studio-crm-report * { color: #2C2521 !important; box-shadow: none !important; }
+                .studio-crm-report { position: absolute !important; left: 0; top: 0; width: 100% !important; background: white !important; color: #2B2521 !important; padding: 16px !important; box-sizing: border-box; }
+                .studio-crm-report * { color: #2B2521 !important; box-shadow: none !important; }
                 .studio-crm-report section, .studio-crm-report > div { break-inside: avoid; border-color: #E0D8CE !important; background: white !important; }
                 .studio-crm-report button, .studio-crm-report input, .studio-crm-export, .studio-crm-report summary { display: none !important; }
                 .studio-crm-report { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
@@ -4877,8 +4877,8 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 const csv = '\uFEFF' + rows.map(row => row.map(cell).join(';')).join('\r\n');
                 const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
                 const link = document.createElement('a'); link.href = url; link.download = `CRM-${dashboardStart}-${dashboardEnd}.csv`; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-              }} style={{ padding: '10px 16px', background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px', cursor: 'pointer' }}>Descargar CSV</button>
-              <button type="button" disabled={!valid} onClick={() => window.print()} style={{ padding: '10px 16px', background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px', cursor: 'pointer' }}>Imprimir / Guardar PDF</button>
+              }} style={{ padding: '10px 16px', background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '8px', cursor: 'pointer' }}>Descargar CSV</button>
+              <button type="button" disabled={!valid} onClick={() => window.print()} style={{ padding: '10px 16px', background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '8px', cursor: 'pointer' }}>Imprimir / Guardar PDF</button>
             </div>
             <header><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '25px', fontWeight: 'normal', color: '#B98A3E', margin: '0 0 8px' }}>Dashboard · CRM e informes</h2><p style={{ fontSize: '13px', color: '#7A7067' }}>Resumen de todos los registros guardados en este navegador.</p></header>
 
@@ -4943,7 +4943,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
             <div style={{ background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <span style={{ color: '#B98A3E', fontSize: '12px' }}>Periodo de comparación</span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {([{ label: '7 días', days: 7 }, { label: '15 días', days: 15 }, { label: '1 mes', days: 0 }]).map(option => <button type="button" key={option.label} onClick={() => { const end = new Date(); const start = new Date(end); if (option.days) start.setDate(start.getDate() - option.days + 1); else { const day = start.getDate(); start.setDate(1); start.setMonth(start.getMonth() - 1); const last = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate(); start.setDate(Math.min(day,last)); start.setDate(start.getDate() + 1); } setCompareStart(formatDateKey(start)); setCompareEnd(formatDateKey(end)); }} style={{ padding: '10px 16px', minHeight: '40px', background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '7px', cursor: 'pointer' }}>{option.label}</button>)}
+                {([{ label: '7 días', days: 7 }, { label: '15 días', days: 15 }, { label: '1 mes', days: 0 }]).map(option => <button type="button" key={option.label} onClick={() => { const end = new Date(); const start = new Date(end); if (option.days) start.setDate(start.getDate() - option.days + 1); else { const day = start.getDate(); start.setDate(1); start.setMonth(start.getMonth() - 1); const last = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate(); start.setDate(Math.min(day,last)); start.setDate(start.getDate() + 1); } setCompareStart(formatDateKey(start)); setCompareEnd(formatDateKey(end)); }} style={{ padding: '10px 16px', minHeight: '40px', background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '7px', cursor: 'pointer' }}>{option.label}</button>)}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'end' }}>
                 <label style={{ fontSize: '12px', color: '#7A7067' }}>Desde<input aria-label="Fecha inicial del informe" type="date" value={compareStart} max={compareEnd || undefined} onChange={e => setCompareStart(e.target.value)} style={{ display: 'block', colorScheme: 'dark', padding: '10px', marginTop: '6px', background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '7px' }} /></label>
@@ -4979,7 +4979,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               <details style={{ marginTop: '18px', fontSize: '12px' }}><summary>Origen de las visitas</summary>{Array.from(new Set(trafficEvents.filter(item => item.type === 'visit').map(item => item.source))).map(source => <p key={source}>{source} · {trafficEvents.filter(item => item.type === 'visit' && item.source === source).length}</p>)}</details>
             </section>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '12px' }}>{[{ label: 'Clientas registradas', count: listaClientes.length }, { label: 'Visitas realizadas', count: appointments.filter(item => !!item.completedAt && item.lifecycleStatus !== 'cancelled' && item.lifecycleStatus !== 'no_show').length }, { label: 'Citas canceladas', count: appointments.filter(item => item.lifecycleStatus === 'cancelled').length }, { label: 'Ausencias', count: appointments.filter(item => item.lifecycleStatus === 'no_show').length }].map(metric => <div key={metric.label} style={{ padding: '20px', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '12px', background: '#FFFFFF' }}><span style={{ fontSize: '12px', color: '#7A7067' }}>{metric.label}</span><strong style={{ display: 'block', fontSize: '28px', color: '#B98A3E', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', marginTop: '12px' }}>{metric.count}</strong></div>)}</div>
-            <button type="button" onClick={() => setAdminTab('demands')} style={{ alignSelf: 'flex-start', padding: '12px 16px', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px', background: '#FFFFFF', color: '#B98A3E', cursor: 'pointer' }}>Ver demandas y oportunidades de cita →</button>
+            <button type="button" onClick={() => setAdminTab('demands')} style={{ alignSelf: 'flex-start', padding: '12px 16px', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '8px', background: '#FFFFFF', color: '#B98A3E', cursor: 'pointer' }}>Ver demandas y oportunidades de cita →</button>
           </section>;
           })()}
 
@@ -5013,8 +5013,8 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
             const unfinished = valid ? bookingAttempts.filter(item => (item.registered ? demandFilter === 'recovered' || demandFilter === 'all' : attemptClock - Date.parse(item.updatedAt) >= 30 * 60000) && demandFilter !== 'no_slots' && (demandFilter !== 'contacted' || !!item.contactedAt) && (demandFilter !== 'recovered' || !!item.recoveredAt) && formatDateKey(new Date(item.updatedAt)) >= from && formatDateKey(new Date(item.updatedAt)) <= to) : [];
             return <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', color: '#B98A3E' }}>
               <header><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '25px', fontWeight: 'normal', color: '#B98A3E', margin: '0 0 8px' }}>Demanda · Oportunidades de cita</h2><p style={{ fontSize: '13px', color: '#7A7067' }}>Intentos registrados en este navegador. No representa todas las visitas a la app.</p></header>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>{(['hoy', '7d', '30d', 'personalizado'] as const).map(period => <button type="button" key={period} onClick={() => setCrmPeriod(period)} aria-pressed={crmPeriod === period} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid rgba(212, 175, 55, 0.3)', background: crmPeriod === period ? '#FFFFFF' : '#FFFFFF', color: '#B98A3E', cursor: 'pointer' }}>{({ hoy: 'Hoy', '7d': '7 días', '30d': '30 días', personalizado: 'Elegir fechas' })[period]}</button>)}</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>{([['all','Todas'], ['no_slots','Sin hueco'], ['unfinished','Sin terminar'], ['contacted','Contactadas'], ['recovered','Recuperadas']] as const).map(([filter,label]) => <button key={filter} type="button" aria-pressed={demandFilter === filter} onClick={() => setDemandFilter(filter)} style={{ padding: '9px 12px', borderRadius: '7px', background: demandFilter === filter ? '#FFFFFF' : '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.3)', cursor: 'pointer' }}>{label}</button>)}</div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>{(['hoy', '7d', '30d', 'personalizado'] as const).map(period => <button type="button" key={period} onClick={() => setCrmPeriod(period)} aria-pressed={crmPeriod === period} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid rgba(212, 175, 55, 0.35)', background: crmPeriod === period ? '#FFFFFF' : '#FFFFFF', color: '#B98A3E', cursor: 'pointer' }}>{({ hoy: 'Hoy', '7d': '7 días', '30d': '30 días', personalizado: 'Elegir fechas' })[period]}</button>)}</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>{([['all','Todas'], ['no_slots','Sin hueco'], ['unfinished','Sin terminar'], ['contacted','Contactadas'], ['recovered','Recuperadas']] as const).map(([filter,label]) => <button key={filter} type="button" aria-pressed={demandFilter === filter} onClick={() => setDemandFilter(filter)} style={{ padding: '9px 12px', borderRadius: '7px', background: demandFilter === filter ? '#FFFFFF' : '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.35)', cursor: 'pointer' }}>{label}</button>)}</div>
               {crmPeriod === 'personalizado' && <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}><label>Desde <input type="date" value={demandStart} onChange={e => setDemandStart(e.target.value)} /></label><label>Hasta <input type="date" value={demandEnd} onChange={e => setDemandEnd(e.target.value)} /></label>{!valid && <span>Elige un periodo válido.</span>}</div>}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: '12px' }}>{[{ label: 'Búsquedas sin hueco', count: periodDemands.filter(item => item.reason === 'sin_disponibilidad').length }, { label: 'Reservas sin terminar', count: periodAttempts.filter(item => !item.registered && attemptClock - Date.parse(item.updatedAt) >= 30 * 60000).length }, { label: 'Clientas contactadas', count: new Set([...periodDemands.filter(item => item.contactedAt).map(item => item.clientEmail || item.phone || item.id), ...periodAttempts.filter(item => item.contactedAt).map(item => item.email)]).size }, { label: 'Clientas recuperadas', count: new Set([...periodDemands.filter(item => item.recoveredAt).map(item => item.clientEmail || item.phone || item.id), ...periodAttempts.filter(item => item.recoveredAt).map(item => item.email)]).size }].map(metric => <div key={metric.label} style={{ padding: '20px', background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '12px' }}><span style={{ fontSize: '12px', color: '#7A7067' }}>{metric.label}</span><strong style={{ display: 'block', fontSize: '28px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', color: '#B98A3E', marginTop: '12px' }}>{metric.count}</strong></div>)}</div>
               <p style={{ fontSize: '12px', color: '#7A7067' }}>Una búsqueda sin hueco no confirma abandono. Una reserva sin terminar lleva 30 minutos sin cambios de paso; su motivo es desconocido. Los registros antiguos pueden proceder de datos de ejemplo.</p>
@@ -5025,7 +5025,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 <div><h4 style={{ fontSize: '13px', fontWeight: 'normal', color: '#B98A3E' }}>Días buscados sin hueco</h4>{demandDaysRanking.map(([day,count]) => <div key={day} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid #34352c', fontSize: '13px' }}><span>{['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][day]}</span><strong>{count}</strong></div>)}{!demandDaysRanking.length && <p style={{ color: '#7A7067', fontSize: '12px' }}>No hay fechas deseadas registradas en este periodo.</p>}<p style={{ color: '#7A7067', fontSize: '11px' }}>Se agrupa por el día que quería reservar la clienta. Las horas deseadas todavía no se registran.</p></div>
                 <div><h4 style={{ fontSize: '13px', fontWeight: 'normal', color: '#B98A3E' }}>Servicios buscados sin hueco</h4>{demandServicesRanking.slice(0,8).map(([name,count]) => <div key={name} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid #34352c', fontSize: '13px' }}><span>{name}</span><strong>{count}</strong></div>)}{!demandServicesRanking.length && <p style={{ color: '#7A7067', fontSize: '12px' }}>No hay servicios buscados sin hueco en estas fechas.</p>}<p style={{ color: '#7A7067', fontSize: '11px' }}>Las combinaciones y variantes se muestran como fueron seleccionadas.</p></div>
               </div>
-              <button type="button" onClick={() => { setDemandFilter('no_slots'); }} style={{ marginTop: '12px', padding: '10px 14px', background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '7px', cursor: 'pointer' }}>Ver intentos y contactar →</button>
+              <button type="button" onClick={() => { setDemandFilter('no_slots'); }} style={{ marginTop: '12px', padding: '10px 14px', background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '7px', cursor: 'pointer' }}>Ver intentos y contactar →</button>
             </section>
               <section style={{ padding: '20px', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '12px', background: '#FFFFFF' }}>
                 <h3 style={{ color: '#B98A3E', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Recorrido de reserva</h3>
@@ -5038,7 +5038,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 <p style={{ fontSize: '12px', color: '#7A7067' }}>Último paso observado. No mide todas las entradas ni confirma que la clienta haya cerrado la app.</p>
                 {unfinished.map(item => <div key={item.id} style={{ padding: '12px 0', borderTop: '1px solid #3e4034', fontSize: '13px' }}><strong>{item.name}</strong><p>{item.services}</p><span style={{ color: '#7A7067', fontSize: '12px' }}>{item.registered ? 'Recuperada · Cita registrada' : item.step + ' · Motivo desconocido'} · {item.date || 'Sin fecha'} {item.time} · Último paso: {new Date(item.updatedAt).toLocaleString('es-ES')}</span>
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '12px' }}>
-                    <button type="button" onClick={() => { setBusquedaCliente(item.email); setAdminTab('clients'); }} style={{ background: 'none', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.3)', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>Ver ficha</button>
+                    <button type="button" onClick={() => { setBusquedaCliente(item.email); setAdminTab('clients'); }} style={{ background: 'none', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.35)', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>Ver ficha</button>
                     {listaClientes.find(client => client.email.trim().toLowerCase() === item.email)?.telefono && <a target="_blank" rel="noreferrer" style={{ color: '#B98A3E', padding: '8px' }} href={`https://wa.me/${(() => { const phone = (listaClientes.find(client => client.email.trim().toLowerCase() === item.email)?.telefono || '').replace(/\D/g,''); return (phone.length === 9 ? '34' : '') + phone; })()}?text=${encodeURIComponent(`Hola ${item.name.split(' ')[0]}, soy Ana de ${bizConfig.name}. Si necesitas ayuda para terminar tu reserva, podemos revisar fechas y servicios juntas.`)}`}>Abrir WhatsApp</a>}
                     <button type="button" onClick={() => setBookingAttempts(previous => previous.map(record => record.id !== item.id ? record : { ...record, contactedAt: record.contactedAt ? undefined : new Date().toISOString() }))} style={{ background: 'none', color: '#7A7067', border: '1px solid rgba(212, 175, 55, 0.22)', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>{item.contactedAt ? 'Contactada · Deshacer' : 'Marcar contactada'}</button>
                   </div></div>)}
@@ -5049,7 +5049,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}><strong>{item.clientName}</strong><span style={{ color: '#7A7067', fontSize: '12px' }}>{item.date} · {item.recoveredAt ? 'Recuperada' : item.reason === 'sin_disponibilidad' ? 'Sin hueco' : 'Registro anterior'}</span></div>
                 <p style={{ color: '#B98A3E', fontSize: '13px' }}>{item.serviceName}</p><p style={{ fontSize: '12px', color: '#7A7067' }}>Fecha deseada: {item.desiredDate || 'Sin registrar'} · {item.clientNote}</p>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  {item.clientEmail && <button type="button" onClick={() => { setBusquedaCliente(item.clientEmail || ''); setAdminTab('clients'); }} style={{ background: 'none', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.3)', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>Ver ficha</button>}
+                  {item.clientEmail && <button type="button" onClick={() => { setBusquedaCliente(item.clientEmail || ''); setAdminTab('clients'); }} style={{ background: 'none', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.35)', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>Ver ficha</button>}
                   {item.phone && <a target="_blank" rel="noreferrer" style={{ color: '#B98A3E', fontSize: '12px' }} href={`https://wa.me/${item.phone.replace(/\D/g, '').length === 9 ? '34' : ''}${item.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${item.clientName.split(' ')[0]}, soy Ana de ${bizConfig.name}. Si sigues buscando cita, podemos revisar alternativas de fecha para tus servicios.`)}`}>Abrir WhatsApp</a>}
                   <button type="button" onClick={() => setLostDemandsList(previous => previous.map(record => record.id !== item.id ? record : { ...record, contactedAt: new Date().toISOString() }))} style={{ background: 'none', color: '#7A7067', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '6px', padding: '8px', cursor: 'pointer' }}>{item.contactedAt ? 'Contactada' : 'Marcar contactada'}</button>
                   <button type="button" onClick={() => setLostDemandsList(previous => previous.map(record => record.id !== item.id ? record : { ...record, recoveredAt: record.recoveredAt ? undefined : new Date().toISOString() }))} style={{ background: 'none', color: '#7A7067', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '6px', padding: '8px', cursor: 'pointer' }}>{item.recoveredAt ? 'Deshacer recuperación' : 'Marcar recuperada'}</button>
@@ -5062,19 +5062,19 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
           {adminTab === 'holidays' && (
             <div className="studio-holidays-premium" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <style>{`
-                .studio-holidays-premium form { background: #FFFFFF !important; border-color: #454634 !important; border-radius: 14px !important; padding: 22px !important; gap: 18px !important; }
+                .studio-holidays-premium form { background: #FFFFFF !important; border-color: rgba(212, 175, 55, 0.35) !important; border-radius: 14px !important; padding: 22px !important; gap: 18px !important; }
                 .studio-holidays-premium input, .studio-holidays-premium select { min-height: 44px; box-sizing: border-box; font-size: 13px !important; padding: 11px !important; color-scheme: light; border-radius: 8px !important; background: #FFFFFF !important; border-color: #E0D8CE !important; }
                 .studio-holidays-premium label { font-size: 12px !important; color: #7A7067 !important; margin-bottom: 5px; }
                 .studio-holidays-premium button { font-size: 12px !important; min-height: 40px; font-weight: normal !important; border-radius: 8px !important; }
                 .studio-holidays-premium form button[type=submit] { padding: 12px 20px !important; }
-                .studio-holidays-premium > div:last-child > div { background: #FFFFFF !important; border-color: #454634 !important; border-radius: 12px !important; padding: 18px !important; }
+                .studio-holidays-premium > div:last-child > div { background: #FFFFFF !important; border-color: rgba(212, 175, 55, 0.35) !important; border-radius: 12px !important; padding: 18px !important; }
                 .studio-holidays-premium > div:last-child button { background: transparent !important; color: #7A7067 !important; border-color: #E0D8CE !important; }
               `}</style>
               <div>
                 <h3 style={{ color: '#B98A3E', fontSize: '24px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Vacaciones y festivos</h3>
                 <p style={{ color: '#7A7067', fontSize: '11px', margin: 0 }}>Planifica cierres de días completos. Se aplican a la agenda de Ana y a las horas disponibles del portal en este navegador.</p>
               </div>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', background: '#FFFFFF', border: '1px solid #454634', borderRadius: '10px', padding: '14px', color: '#7A7067', fontSize: '12px' }}><span>Agenda de Ana + Portal de clientas · Bloqueo compartido local</span><button type="button" onClick={() => setAdminTab('agenda')} style={{ marginLeft: 'auto', cursor: 'pointer', color: '#B98A3E', background: 'none', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '7px', padding: '9px 12px' }}>Ver agenda →</button></div>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', background: '#FFFFFF', border: '1px solid #454634', borderRadius: '10px', padding: '14px', color: '#7A7067', fontSize: '12px' }}><span>Agenda de Ana + Portal de clientas · Bloqueo compartido local</span><button type="button" onClick={() => setAdminTab('agenda')} style={{ marginLeft: 'auto', cursor: 'pointer', color: '#B98A3E', background: 'none', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '7px', padding: '9px 12px' }}>Ver agenda →</button></div>
               {newHolidayStart && newHolidayEnd && newHolidayEnd >= newHolidayStart && appointments.some(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd) && <div style={{ color: '#B98A3E', fontSize: '13px', padding: '14px', borderLeft: '2px solid #b69b60' }}>Hay {appointments.filter(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd).length} citas en estas fechas. Guardar el cierre no las cancela.</div>}
               <form onSubmit={(e) => {
                 e.preventDefault();
@@ -5102,24 +5102,24 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 <h4 style={{ color: '#B98A3E', fontSize: '13px', margin: 0 }}>Nuevo cierre</h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ color: '#7A7067', fontSize: '11px' }}>Tipo:</label>
-                    <select value={newHolidayType} onChange={(e) => setNewHolidayType(e.target.value as any)} style={{ padding: '8px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '11px' }}>
+                    <label style={{ color: '#FDFBF7', fontSize: '11px' }}>Tipo:</label>
+                    <select value={newHolidayType} onChange={(e) => setNewHolidayType(e.target.value as any)} style={{ padding: '8px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '11px' }}>
                       <option value="vacaciones">Vacaciones</option>
                       <option value="festivo">Festivo</option>
                     </select>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ color: '#7A7067', fontSize: '11px' }}>Desde el día:</label>
-                    <input type="date" value={newHolidayStart} onChange={(e) => setNewHolidayStart(e.target.value)} required style={{ padding: '8px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '11px' }} />
+                    <label style={{ color: '#FDFBF7', fontSize: '11px' }}>Desde el día:</label>
+                    <input type="date" value={newHolidayStart} onChange={(e) => setNewHolidayStart(e.target.value)} required style={{ padding: '8px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '11px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ color: '#7A7067', fontSize: '11px' }}>Hasta el día:</label>
-                    <input type="date" min={newHolidayStart || undefined} value={newHolidayEnd} onChange={(e) => setNewHolidayEnd(e.target.value)} required style={{ padding: '8px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '11px' }} />
+                    <label style={{ color: '#FDFBF7', fontSize: '11px' }}>Hasta el día:</label>
+                    <input type="date" min={newHolidayStart || undefined} value={newHolidayEnd} onChange={(e) => setNewHolidayEnd(e.target.value)} required style={{ padding: '8px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '11px' }} />
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ color: '#7A7067', fontSize: '11px' }}>Motivo o descripción:</label>
-                  <input type="text" placeholder="Ej. Vacaciones de verano o Festivo local de Elche" value={newHolidayReason} onChange={(e) => setNewHolidayReason(e.target.value)} style={{ padding: '8px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#2B2521', borderRadius: '6px', fontSize: '11px' }} />
+                  <label style={{ color: '#FDFBF7', fontSize: '11px' }}>Motivo o descripción:</label>
+                  <input type="text" placeholder="Ej. Vacaciones de verano o Festivo local de Elche" value={newHolidayReason} onChange={(e) => setNewHolidayReason(e.target.value)} style={{ padding: '8px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#2B2521', borderRadius: '6px', fontSize: '11px' }} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <button type="submit" style={{ background: 'linear-gradient(135deg, #D4AF37 0%, #B8972E 100%)', color: '#1C1816', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>
@@ -5135,7 +5135,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                   </div>
                 ) : (
                   [...holidaysList].sort((a,b) => a.startDate.localeCompare(b.startDate)).map((h) => (
-                    <div key={h.id} style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px', padding: '12px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                    <div key={h.id} style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '8px', padding: '12px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                           <span style={{ backgroundColor: h.type === 'vacaciones' ? '#F7EFDD' : '#FCEDEB', color: h.type === 'vacaciones' ? '#B98A3E' : '#C0392B', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>
@@ -5166,7 +5166,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
         style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 1700 }} />}
       {registeredAppointment && <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'grid', placeItems: 'center', padding: '16px', zIndex: 3000 }}>
         <div role="dialog" aria-modal="true" aria-labelledby="appointment-registered-title" style={{ width: '100%', maxWidth: '440px', boxSizing: 'border-box',
-          background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '14px', padding: '26px', color: '#2B2521' }}>
+          background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '14px', padding: '26px', color: '#2B2521' }}>
           <h3 id="appointment-registered-title" style={{ margin: '0 0 14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '26px', fontWeight: 'normal', color: '#B98A3E' }}>Cita registrada</h3>
           <p style={{ lineHeight: 1.7 }}>{registeredAppointment.clientName}<br />
             {registeredAppointment.dateKey.split('-').reverse().join('/')} · {registeredAppointment.time}</p>
@@ -5214,7 +5214,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
             display: 'grid', placeItems: 'center', padding: '16px', zIndex: 2200 }}>
           <article role="dialog" aria-modal="true" aria-labelledby="catalog-preview-title" onClick={event => event.stopPropagation()}
             style={{ width: '100%', maxWidth: '590px', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box',
-              background: '#FFFFFF', color: '#2B2521', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '16px', boxShadow: '0 20px 60px rgba(60, 50, 40, 0.12)' }}>
+              background: '#FFFFFF', color: '#2B2521', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '16px', boxShadow: '0 20px 60px rgba(60, 50, 40, 0.12)' }}>
             <div style={{ position: 'sticky', top: 0, zIndex: 2, padding: '14px 22px', background: '#FFFFFF',
               borderBottom: '1px solid #32332c', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
               <span style={{ color: '#7A7067', fontSize: '11px', letterSpacing: '1px' }}>VISTA PREVIA · CATÁLOGO</span>
@@ -5234,7 +5234,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               </div>
               {previewService.description && <p style={{ color: '#7A7067', fontSize: '13px', lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: '22px 0' }}>{previewService.description}</p>}
               {!!tags.length && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px', margin: '18px 0' }}>
-                {tags.map(tag => <span key={tag} style={{ fontSize: '11px', color: '#B98A3E', padding: '7px 10px', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '20px', lineHeight: 1.4 }}>{tag}</span>)}
+                {tags.map(tag => <span key={tag} style={{ fontSize: '11px', color: '#B98A3E', padding: '7px 10px', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '20px', lineHeight: 1.4 }}>{tag}</span>)}
               </div>}
               {previewService.showAlertBadge && previewService.alertText && <p style={{ fontSize: '13px', lineHeight: 1.7, padding: '12px 14px',
                 borderLeft: '2px solid #C99E52', background: '#FFFFFF', color: '#B98A3E', margin: '18px 0', whiteSpace: 'pre-wrap' }}>{previewService.alertText}</p>}
@@ -5253,11 +5253,11 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 </div>
               </section>}
               {([{ title: 'Qué incluye', text: previewService.includesText }, { title: 'Qué consigues', text: previewService.achievedText }]
-                .filter(section => !!section.text?.trim()).map(section => <section key={section.title} style={{ borderTop: '1px solid rgba(212, 175, 55, 0.3)', paddingTop: '20px', marginTop: '22px' }}>
+                .filter(section => !!section.text?.trim()).map(section => <section key={section.title} style={{ borderTop: '1px solid rgba(212, 175, 55, 0.35)', paddingTop: '20px', marginTop: '22px' }}>
                   <h3 style={{ color: '#B98A3E', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '16px', fontWeight: 'normal', margin: '0 0 10px' }}>{section.title}</h3>
                   <p style={{ color: '#7A7067', fontSize: '12px', lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: 0, overflowWrap: 'anywhere' }}>{section.text}</p>
                 </section>))}
-              <footer style={{ marginTop: '26px', borderTop: '1px solid rgba(212, 175, 55, 0.3)', paddingTop: '16px', color: '#7A7067', fontSize: '11px', lineHeight: 1.7 }}>
+              <footer style={{ marginTop: '26px', borderTop: '1px solid rgba(212, 175, 55, 0.35)', paddingTop: '16px', color: '#7A7067', fontSize: '11px', lineHeight: 1.7 }}>
                 Esta vista permite revisar el servicio y sus opciones sin crear una cita. Guarda el catálogo para conservar los cambios.
               </footer>
             </div>
@@ -5266,7 +5266,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
       })()}
       {clientDetailsDraft && currentScreen === 'adminPanel' && <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'grid', placeItems: 'center', zIndex: 2450, padding: '16px' }}>
         <form role="dialog" aria-modal="true" aria-labelledby="client-details-title" onSubmit={saveClientDetails}
-          style={{ background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '12px', padding: '22px',
+          style={{ background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '12px', padding: '22px',
             width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
           <h3 id="client-details-title" style={{ color: '#B98A3E' }}>Datos y acceso · {clientDetailsDraft.nombre}</h3>
           {(['nombre', 'apellidos', 'telefono', 'email', 'pinAcceso', 'fechaNacimiento'] as const).map(field => <label key={field} style={{ display: 'block', color: '#7A7067', fontSize: '13px', marginBottom: '12px' }}>
@@ -5275,7 +5275,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               required={field === 'nombre' || field === 'email' || field === 'pinAcceso'}
               maxLength={field === 'pinAcceso' ? 4 : undefined} inputMode={field === 'pinAcceso' ? 'numeric' : undefined}
               onChange={event => setClientDetailsDraft({ ...clientDetailsDraft, [field]: field === 'pinAcceso' ? event.target.value.replace(/[^0-9]/g, '').slice(0, 4) : event.target.value })}
-              style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '11px', marginTop: '6px', background: '#D8D0C5', color: '#2B2521', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '6px', fontSize: '15px' }} />
+              style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '11px', marginTop: '6px', background: '#FFFFFF', color: '#2B2521', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '6px', fontSize: '15px' }} />
           </label>)}
           <p style={{ color: '#7A7067', fontSize: '12px', lineHeight: 1.6 }}>Al cambiar el email, nombre o teléfono se actualizarán las citas vinculadas a esta ficha.</p>
           <button type="submit" style={{ padding: '12px', background: 'linear-gradient(135deg, #D4AF37 0%, #B8972E 100%)', border: 0, borderRadius: '6px', cursor: 'pointer' }}>Guardar datos</button>
@@ -5285,13 +5285,13 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
 
       {passportDraft && currentScreen === 'adminPanel' && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', zIndex: 2400 }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="passport-editor-title" style={{ width: '100%', maxWidth: '660px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '14px', padding: '22px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', boxSizing: 'border-box', color: '#2B2521' }}>
+          <div role="dialog" aria-modal="true" aria-labelledby="passport-editor-title" style={{ width: '100%', maxWidth: '660px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '14px', padding: '22px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', boxSizing: 'border-box', color: '#2B2521' }}>
             <h3 id="passport-editor-title" style={{ color: '#B98A3E', marginTop: 0 }}>Pasaporte · {passportDraft.nombre} {passportDraft.apellidos}</h3>
             <p style={{ fontSize: '13px', color: '#7A7067', lineHeight: 1.6 }}>Estos datos serán visibles en el portal de la clienta. Incluye solo las notas que quieras compartir con ella.</p>
             {([['dniCapilar', 'DNI capilar / diagnóstico'], ['prescripcionCasa', 'Cuidado en casa'], ['ultimaVisita', 'Última visita registrada'], ['proximaVisitaSugerida', 'Próxima visita recomendada']] as const).map(([field, label]) => <label key={field} style={{ display: 'block', marginBottom: '16px', fontSize: '13px' }}>{label}<textarea value={passportDraft[field] || ''} onChange={e => setPassportDraft({ ...passportDraft, [field]: e.target.value })} rows={field === 'dniCapilar' || field === 'prescripcionCasa' ? 3 : 1} style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#FFFFFF', color: '#2B2521', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '6px', padding: '10px', marginTop: '7px', fontSize: '14px' }} /></label>)}
             <h4 style={{ color: '#B98A3E' }}>Historial de visitas</h4>
             {(passportDraft.pastVisits || []).map((visit, index) => <div key={index} style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.25)', padding: '14px', borderRadius: '8px', marginBottom: '12px' }}>
-              {(['date', 'service', 'stylist', 'notes'] as const).map(field => <label key={field} style={{ display: 'block', marginBottom: '10px', fontSize: '12px' }}>{({ date: 'Fecha', service: 'Servicio realizado', stylist: 'Profesional', notes: 'Notas para la clienta' })[field]}<input type="text" value={visit[field]} onChange={e => setPassportDraft({ ...passportDraft, pastVisits: (passportDraft.pastVisits || []).map((item, i) => i === index ? { ...item, [field]: e.target.value } : item) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', marginTop: '5px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '6px', color: '#2B2521' }} /></label>)}
+              {(['date', 'service', 'stylist', 'notes'] as const).map(field => <label key={field} style={{ display: 'block', marginBottom: '10px', fontSize: '12px' }}>{({ date: 'Fecha', service: 'Servicio realizado', stylist: 'Profesional', notes: 'Notas para la clienta' })[field]}<input type="text" value={visit[field]} onChange={e => setPassportDraft({ ...passportDraft, pastVisits: (passportDraft.pastVisits || []).map((item, i) => i === index ? { ...item, [field]: e.target.value } : item) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', marginTop: '5px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '6px', color: '#2B2521' }} /></label>)}
               <button type="button" onClick={() => { if (window.confirm('¿Quitar esta visita del historial? Se aplicará al guardar.')) setPassportDraft({ ...passportDraft, pastVisits: (passportDraft.pastVisits || []).filter((_, i) => i !== index) }); }} style={{ color: '#C0392B', background: 'none', border: '1px solid #74433e', padding: '8px', borderRadius: '5px', cursor: 'pointer' }}>Borrar visita</button>
             </div>)}
             <button type="button" onClick={() => setPassportDraft({ ...passportDraft, pastVisits: [...(passportDraft.pastVisits || []), { date: formatDateKey(new Date()), service: '', stylist: 'Ana', notes: '' }] })} style={{ padding: '10px', cursor: 'pointer' }}>+ Añadir visita realizada</button>
@@ -5340,7 +5340,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
       )}
 
       {slotAction && currentScreen === 'adminPanel' && <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'grid', placeItems: 'center', zIndex: 2500, padding: '16px' }}>
-        <div role="dialog" aria-modal="true" aria-labelledby="slot-action-title" style={{ background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '12px', padding: '22px', width: '100%', maxWidth: '400px', boxSizing: 'border-box' }}>
+        <div role="dialog" aria-modal="true" aria-labelledby="slot-action-title" style={{ background: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '12px', padding: '22px', width: '100%', maxWidth: '400px', boxSizing: 'border-box' }}>
           <h3 id="slot-action-title" style={{ color: '#B98A3E' }}>{blockMode ? 'Bloquear tiempo' : '¿Qué quieres hacer?'}</h3>
           <p>{slotAction.date.toLocaleDateString('es-ES')} · {slotAction.time}</p>
           {!blockMode ? <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
@@ -5402,7 +5402,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
       {/* MODAL NUEVA CITA ADMIN */}
       {isModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', maxWidth: '560px', boxSizing: 'border-box', width: '100%', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', maxWidth: '560px', boxSizing: 'border-box', width: '100%', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <h3 style={{ color: '#B98A3E', fontSize: '16px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>{editingAppointment ? 'Editar servicios · 360studio' : 'Nueva cita · 360studio'}</h3>
             <p style={{ color: '#B98A3E', fontSize: '14px', margin: 0 }}>{targetDateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {targetTime}</p>
             <form onSubmit={handleSaveModalAppointment} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -5411,7 +5411,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 <label htmlFor="new-appointment-client-search" style={{ color: '#B98A3E', fontSize: '13px' }}>Buscar clienta registrada</label>
                 <input id="new-appointment-client-search" type="search" value={modalClientSearch} onChange={event => setModalClientSearch(event.target.value)}
                   placeholder="Nombre, teléfono o email" style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '11px', marginTop: '8px',
-                    background: '#D8D0C5', color: '#2B2521', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '6px', fontSize: '15px' }} />
+                    background: '#FFFFFF', color: '#2B2521', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '6px', fontSize: '15px' }} />
                 {!!modalClientSearch.trim() && <div style={{ maxHeight: '180px', overflowY: 'auto', marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
                   {listaClientes.filter(client => {
                     const query = normalizeCatalogSearch(modalClientSearch);
@@ -5431,7 +5431,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                   }) && <p role="status" style={{ color: '#7A7067', fontSize: '12px' }}>No encontramos una ficha. Puedes darla de alta aquí.</p>}
                 </div>}
                 <button type="button" onClick={() => { setQuickClientMode(previous => !previous); setQuickClientMessage(''); setQuickClientPin(''); }}
-                  style={{ marginTop: '10px', padding: '9px', background: 'transparent', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '5px', cursor: 'pointer' }}>
+                  style={{ marginTop: '10px', padding: '9px', background: 'transparent', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '5px', cursor: 'pointer' }}>
                   {quickClientMode ? 'Cancelar alta de ficha' : '+ Dar de alta nueva clienta'}
                 </button>
                 {quickClientMessage && <p role="status" style={{ color: '#2E7D32', fontSize: '12px', lineHeight: 1.5 }}>{quickClientMessage}</p>}
@@ -5440,7 +5440,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               <label style={{ color: '#7A7067', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '6px' }}>Nombre y apellidos<input type="text" placeholder="Nombre y Apellidos" value={modalClientName} onChange={(e) => setModalClientName(e.target.value)} required style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} /></label>
               <label style={{ color: '#7A7067', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '6px' }}>Teléfono<input type="text" placeholder="Teléfono móvil" value={modalPhone} onChange={(e) => setModalPhone(e.target.value)} style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} /></label>
               <label style={{ color: '#7A7067', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '6px' }}>Correo electrónico<input type="email" placeholder="Correo electrónico" value={modalEmail} onChange={(e) => setModalEmail(e.target.value)} style={{ padding: '12px', backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2B2521', borderRadius: '6px', fontSize: '14px' }} /></label>
-              {quickClientMode && <section style={{ padding: '12px', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px' }}>
+              {quickClientMode && <section style={{ padding: '12px', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '8px' }}>
                 <p style={{ color: '#7A7067', fontSize: '12px' }}>Usaremos el nombre, teléfono y correo indicados arriba para crear la ficha.</p>
                 <label style={{ display: 'block', color: '#B98A3E', fontSize: '12px' }}>Apellidos<input value={quickClientSurname} onChange={event => setQuickClientSurname(event.target.value)}
                   style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', margin: '6px 0 12px', background: '#FFFFFF', color: '#2B2521', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '5px' }} /></label>
@@ -5480,7 +5480,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                   </select>
                 </div>
               )}
-              <button type="button" onClick={handleAddModalService} style={{ background: 'none', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#B98A3E', padding: '10px', borderRadius: '6px', cursor: 'pointer' }}>+ Añadir servicio a la cita</button>
+              <button type="button" onClick={handleAddModalService} style={{ background: 'none', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#B98A3E', padding: '10px', borderRadius: '6px', cursor: 'pointer' }}>+ Añadir servicio a la cita</button>
               {modalServices.length > 0 && (
                 <div aria-live="polite" style={{ border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '6px', padding: '10px', color: '#2B2521', fontSize: '14px' }}>
                   <strong>Servicios de esta cita</strong>
@@ -5506,7 +5506,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
       {/* MODAL DETALLE CITA */}
       {viewApptModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', maxWidth: '560px', width: '100%', boxSizing: 'border-box', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', maxWidth: '560px', width: '100%', boxSizing: 'border-box', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <p style={{ color: '#B98A3E', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
             <h3 style={{ color: '#2B2521', fontSize: '26px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{viewApptModal.clientName}</h3>
             <div style={{ backgroundColor: adminAppointmentColor(viewApptModal).background, border: `1px solid ${adminAppointmentColor(viewApptModal).border}`, borderRadius: '10px', padding: '18px', color: '#2B2521' }}>
@@ -5529,7 +5529,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               setAdminTab('clients'); setAgendaExpanded(false);
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }} style={{ padding: '12px', background: '#FFFFFF', color: '#B98A3E',
-              border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px', cursor: 'pointer' }}>Abrir ficha de la clienta · Diagnóstico y fórmulas</button>}
+              border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '8px', cursor: 'pointer' }}>Abrir ficha de la clienta · Diagnóstico y fórmulas</button>}
             {currentScreen === 'adminPanel' && <button type="button" onClick={() => {
               if (!viewApptModal.services?.length) { alert('Esta cita antigua no tiene servicios estructurados. Crea una nueva cita y selecciona sus servicios.'); return; }
               const services = viewApptModal.services.map(item => {
@@ -5547,7 +5547,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               const next = new Date(); next.setHours(12, 0, 0, 0); next.setDate(next.getDate() + 1);
               setNewRescheduleDate(formatDateKey(next)); setNewRescheduleTime('');
               setViewApptModal(null);
-            }} style={{ padding: '12px', background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.3)',
+            }} style={{ padding: '12px', background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.35)',
               borderRadius: '8px', cursor: 'pointer' }}>Repetir cita · Elegir nueva fecha</button>}
             {!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && <button type="button" onClick={() => {
               setEditingAppointment(viewApptModal);
@@ -5557,7 +5557,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               setModalServices(viewApptModal.services || []);
               setModalCatIndex(0); setModalSubIndex(0); setModalSelectedVariant(catalog[0]?.subservices[0]?.variants?.[0] || null);
               setViewApptModal(null); setIsModalOpen(true);
-            }} style={{ background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.3)',
+            }} style={{ background: '#FFFFFF', color: '#B98A3E', border: '1px solid rgba(212, 175, 55, 0.35)',
               borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>Editar servicios y duración</button>}
             <section>
               <h4 style={{ color: '#B98A3E', fontSize: '14px', margin: '0 0 12px' }}>Servicios reservados</h4>
@@ -5570,7 +5570,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
             {viewApptModal.completedAt ? <p style={{ color: '#7A7067', fontSize: '13px', lineHeight: 1.6 }}>Visita registrada en el pasaporte. Puedes editar o borrar esa visita desde Clientes → Editar pasaporte e historial.</p> : <button type="button" onClick={() => markAppointmentCompleted(viewApptModal)} style={{ backgroundColor: '#EAF4EA', border: '1px solid #526d59', color: '#A5D6A7', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Marcar como realizada · Añadir al pasaporte</button>}
             <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(viewApptModal); setNewRescheduleDate(viewApptModal.dateKey); setNewRescheduleTime(viewApptModal.time); setViewApptModal(null); }} style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#B98A3E', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Cambiar fecha u hora</button>
             {viewApptModal.saturdayApproval && isActiveAppointment(viewApptModal) && (
-              <div style={{ border: '1px solid rgba(212, 175, 55, 0.3)', padding: '12px', borderRadius: '8px', color: '#2B2521' }}>
+              <div style={{ border: '1px solid rgba(212, 175, 55, 0.35)', padding: '12px', borderRadius: '8px', color: '#2B2521' }}>
                 <strong>{approvalTitle(viewApptModal.saturdayApproval.reason)}: {viewApptModal.saturdayApproval.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.saturdayApproval.status === 'accepted' ? 'Aceptado por Ana' : 'Rechazado'}</strong>
                 <p>{viewApptModal.saturdayApproval.reference}</p>
                 {viewApptModal.saturdayApproval.status === 'pending' && (
@@ -5592,7 +5592,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               </div>
             )}
             {viewApptModal.advancePayment && isActiveAppointment(viewApptModal) && (
-              <div style={{ border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px', padding: '12px', color: '#2B2521', fontSize: '14px' }}>
+              <div style={{ border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '8px', padding: '12px', color: '#2B2521', fontSize: '14px' }}>
                 <strong>Reserva anticipada: {viewApptModal.advancePayment.amount} € · {viewApptModal.advancePayment.status === 'confirmed' ? 'Pago confirmado' : 'Pendiente de pago'}</strong>
                 <p>Código: {viewApptModal.advancePayment.reference}</p>
                 {viewApptModal.advancePayment.status === 'pending' && (
@@ -5609,7 +5609,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               <label htmlFor="appointment-internal-notes" style={{ color: '#B98A3E', fontSize: '13px' }}>Notas internas · Solo 360studio</label>
               <textarea id="appointment-internal-notes" value={appointmentNoteDraft} onChange={event => setAppointmentNoteDraft(event.target.value)}
                 rows={3} placeholder="Detalles para preparar o hacer seguimiento de esta cita"
-                style={{ width: '100%', boxSizing: 'border-box', margin: '10px 0', padding: '10px', background: '#D8D0C5',
+                style={{ width: '100%', boxSizing: 'border-box', margin: '10px 0', padding: '10px', background: '#FFFFFF',
                   color: '#2B2521', border: '1px solid rgba(212, 175, 55, 0.22)', borderRadius: '6px', fontSize: '14px', resize: 'vertical' }} />
               <button type="button" onClick={() => {
                 const updated = { ...viewApptModal, internalNotes: appointmentNoteDraft };
@@ -5619,7 +5619,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
             </section>
             {!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
               <button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'cancelled')} style={{ padding: '10px', border: '1px solid rgba(212, 175, 55, 0.22)', color: '#C0392B', background: '#FFFFFF', borderRadius: '6px', cursor: 'pointer' }}>Marcar cancelada</button>
-              <button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'no_show')} style={{ padding: '10px', border: '1px solid rgba(212, 175, 55, 0.3)', color: '#7A7067', background: '#FFFFFF', borderRadius: '6px', cursor: 'pointer' }}>No presentada</button>
+              <button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'no_show')} style={{ padding: '10px', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#7A7067', background: '#FFFFFF', borderRadius: '6px', cursor: 'pointer' }}>No presentada</button>
             </div>}
             {!isActiveAppointment(viewApptModal) && <p style={{ color: '#7A7067', fontSize: '12px' }}>El registro se conserva en «Citas del día» y en el buscador. No ocupa un hueco ni se añade como visita realizada al pasaporte.</p>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px', borderTop: '1px solid rgba(212, 175, 55, 0.2)', paddingTop: '12px' }}>
@@ -5648,7 +5648,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
       {/* MODAL MODIFICAR HORA DE CITA */}
       {rescheduleModalAppt && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1100 }}>
-          <div style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', maxWidth: '500px', width: '100%', boxSizing: 'border-box', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', maxWidth: '500px', width: '100%', boxSizing: 'border-box', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <h3 style={{ color: '#B98A3E', fontSize: '24px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>{repeatAppointmentMode ? 'Repetir cita' : 'Cambiar fecha u hora'}</h3>
             <p style={{ color: '#7A7067', fontSize: '14px', margin: 0 }}>Clienta: <strong style={{ color: '#2B2521' }}>{rescheduleModalAppt.clientName}</strong></p>
             <div style={{ backgroundColor: '#FFFFFF', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '9px', padding: '14px', color: '#7A7067', fontSize: '13px', lineHeight: 1.7 }}>

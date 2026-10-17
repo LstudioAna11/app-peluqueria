@@ -7,19 +7,20 @@
     -webkit-tap-highlight-color: transparent;
   }
   :root {
-    --bg-taupe: #D8D0C5;
-    --bg-sand: #D8D0C5;
+    --bg-taupe: #8C827A;
+    --bg-sand: #8C827A;
     --card-white: #F9F8F6;
-    --border-sand: rgba(212, 175, 55, 0.3);
-    --border-input: rgba(212, 175, 55, 0.22);
+    --border-sand: rgba(212, 175, 55, 0.35);
+    --border-input: rgba(212, 175, 55, 0.35);
     --text-topo: #2B2521;
+    --text-on-taupe: #FDFBF7;
     --text-topo-secondary: #7A7067;
     --ink: #1C1816;
     --gold: #D4AF37;
     --gold-deep: #B8972E;
     --gold-gradient: linear-gradient(135deg, #D4AF37 0%, #B8972E 100%);
-    --gold-border: rgba(212, 175, 55, 0.3);
-    --card-shadow: 0 10px 30px rgba(60, 50, 40, 0.07);
+    --gold-border: rgba(212, 175, 55, 0.35);
+    --card-shadow: 0 10px 30px rgba(40, 32, 26, 0.12);
     --success: #2E7D32;
     --success-bg: #EAF4EA;
     --error: #C0392B;
@@ -27,8 +28,8 @@
     --info: #4A6FA5;
   }
   body {
-    background-color: var(--bg-sand);
-    color: var(--text-topo);
+    background-color: var(--bg-taupe);
+    color: var(--text-on-taupe);
     font-family: 'Garet', 'Poppins', 'Inter', 'Helvetica Neue', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
