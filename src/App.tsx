@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info } from 'lucide-react';
 import './catalog.css';
 import * as studioApi from './studioApi';
 
@@ -2592,45 +2593,43 @@ function StudioApp() {
     const selection = selectedServicesToBook.find(item => item.sub.id === sub.id);
     const isSelected = !!selection;
     const isCompactService = !!sub.isTonerService || !!sub.isStylingService;
-    return (
-      <article key={sub.id} id={`portal-service-${sub.id}`} className={isCompactService ? 'studio-service-card studio-service-card-compact' : 'studio-service-card'}>
-        {!isCompactService && (serviceImage
-          ? <button type="button" className="studio-service-media studio-service-media-photo" onClick={() => setLightboxImage(serviceImage)} aria-label="Ampliar imagen"><img src={serviceImage} alt={serviceText(sub, 'name') || sub.name} loading="lazy" /></button>
-          : <div className="studio-service-media studio-service-media-empty" aria-hidden="true"><span>LS</span><small>{bizConfig.name}</small></div>)}
-        <div className="studio-service-card-body">
-          <div className="studio-service-card-head">
-            <h3 className="studio-service-card-title">{serviceText(sub, 'name') || sub.name}</h3>
-            <p className="studio-service-card-meta"><span>{sub.duration}</span><strong>{sub.price}</strong></p>
-          </div>
-          {!!serviceText(sub, 'description') && <p className="studio-service-card-desc">{serviceText(sub, 'description')}</p>}
-          <div className="studio-service-chips">
-            {sub.requiresAssessment && <span className="studio-service-chip">Valoración previa</span>}
-            {tonerLabel(sub) && <span className="studio-service-chip">{tonerLabel(sub)}</span>}
-            {stylingLabel(sub) && <span className="studio-service-chip">{stylingLabel(sub)}</span>}
-          </div>
-          {sub.showAlertBadge && <p className="studio-service-note">{sub.alertText || 'Recuerda añadir tu peinado para asegurar el tiempo en agenda.'}</p>}
-          {isSelected && sub.hasVariants && sub.variants && sub.variants.length > 0 && (
-            <div className="studio-service-variants">
-              <span className="studio-service-variants-label">{t('choosePack')}</span>
-              <div className="studio-service-variants-grid">
-                {sub.variants.map(variant => (
-                  <button key={variant.id} type="button" aria-pressed={selection?.variant?.id === variant.id}
-                    onClick={() => setSelectedServicesToBook(previous => previous.map(item => item.sub.id === sub.id ? { ...item, variant } : item))}
-                    className={selection?.variant?.id === variant.id ? 'studio-variant-chip studio-variant-chip-active' : 'studio-variant-chip'}>
-                    <strong>{variantText(variant, sub)}</strong>
-                    {variant.description && <span>{variant.description}</span>}
-                    <span>{variant.price} · {variant.duration}</span>
-                  </button>
-                ))}
-              </div>
-              {!selection?.variant && <span className="studio-service-variants-hint">{t('chooseOption')}</span>}
+    if (isCompactService) {
+      return (
+        <article key={sub.id} id={`portal-service-${sub.id}`} className="studio-service-card studio-service-card-compact">
+          <div className="studio-service-card-body">
+            <div className="studio-service-card-head">
+              <h3 className="studio-service-card-title">{serviceText(sub, 'name') || sub.name}</h3>
+              <p className="studio-service-card-meta"><span>{sub.duration}</span><strong>{sub.price}</strong></p>
             </div>
-          )}
-          <div className="studio-service-card-actions">
-            <button type="button" aria-pressed={isSelected} onClick={() => {
+            <div className="studio-service-card-actions">
+              <button type="button" aria-pressed={isSelected} onClick={() => {
+                setSelectedServicesToBook(previous => isSelected ? previous.filter(item => item.sub.id !== sub.id) : [...previous, { sub, variant: null }]);
+              }} className={isSelected ? 'studio-btn-gold studio-btn-gold-active' : 'studio-btn-gold'}>{isSelected ? t('selectedRemove') : t('addAppointment')}</button>
+              <button type="button" onClick={() => { setViewServiceDetail({ cat, sub }); setCurrentScreen('serviceDetail'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="studio-btn-ghost">{t('viewService')}</button>
+            </div>
+          </div>
+        </article>
+      );
+    }
+    return (
+      <article key={sub.id} id={`portal-service-${sub.id}`} className="lst-card" style={{ boxShadow: '0 6px 18px rgba(60, 50, 40, 0.05)' }}>
+        {(serviceImage
+          ? <button type="button" style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'zoom-in' }} onClick={() => setLightboxImage(serviceImage)} aria-label="Ampliar imagen"><img className="lst-card-media" src={serviceImage} alt={serviceText(sub, 'name') || sub.name} loading="lazy" /></button>
+          : <div className="studio-service-media studio-service-media-empty" aria-hidden="true"><span>LS</span><small>{bizConfig.name}</small></div>)}
+        <div className="lst-card-footer">
+          <div style={{ minWidth: 0 }}>
+            <strong>{serviceText(sub, 'name') || sub.name}</strong>
+            <span>{serviceText(sub, 'description') || (sub.duration + ' · ' + sub.price)}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <button type="button" onClick={() => { setViewServiceDetail({ cat, sub }); setCurrentScreen('serviceDetail'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="lst-btn-ver">
+              {t('viewService')} <ArrowRight size={15} strokeWidth={2} aria-hidden="true" />
+            </button>
+            <button type="button" aria-pressed={isSelected} aria-label={isSelected ? t('selectedRemove') : t('addAppointment')} onClick={() => {
               setSelectedServicesToBook(previous => isSelected ? previous.filter(item => item.sub.id !== sub.id) : [...previous, { sub, variant: null }]);
-            }} className={isSelected ? 'studio-btn-gold studio-btn-gold-active' : 'studio-btn-gold'}>{isSelected ? t('selectedRemove') : t('addAppointment')}</button>
-            <button type="button" onClick={() => { setViewServiceDetail({ cat, sub }); setCurrentScreen('serviceDetail'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="studio-btn-ghost">{t('viewService')}</button>
+            }} style={{ width: 38, height: 38, minWidth: 38, borderRadius: '50%', border: isSelected ? 'none' : '1px solid #C99E52', background: isSelected ? 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)' : 'transparent', color: isSelected ? '#FFFFFF' : '#8F6D24', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16 }}>
+              {isSelected ? '✓' : '+'}
+            </button>
           </div>
         </div>
       </article>
@@ -3328,8 +3327,39 @@ function StudioApp() {
   };
 
   return (
-    <div lang={currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang} dir={currentLang === 'ar' && currentScreen !== 'adminPanel' && currentScreen !== 'adminLogin' ? 'rtl' : 'ltr'} style={{ backgroundColor: 'transparent', color: '#2C2521', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: "'Garet', 'Poppins', sans-serif", margin: 0, padding: '20px', position: 'relative' }}>
+    <div lang={currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang} dir={currentLang === 'ar' && currentScreen !== 'adminPanel' && currentScreen !== 'adminLogin' ? 'rtl' : 'ltr'} style={{ backgroundColor: '#E9E3D8', color: '#2C2521', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', fontFamily: "'Garet', 'Poppins', sans-serif", margin: 0, padding: '20px 20px 96px', position: 'relative' }}>
       
+      <style>{`
+        .lst-app-header { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 520px; padding: 4px 0 12px; }
+        .lst-app-header-title { color: #2C2521; font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.05em; font-size: 24px; margin: 0; text-align: center; }
+        .lst-app-header-sub { color: #8F6D24; font-size: 8px; letter-spacing: 3px; text-transform: uppercase; margin: 2px 0 0; text-align: center; }
+        .lst-app-header-btn { background: none; border: none; color: #2C2521; width: 40px; height: 40px; min-width: 40px; min-height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 50%; padding: 0; }
+        .lst-app-header-btn:hover { background: rgba(44, 37, 33, 0.06); }
+        .lst-card { background: #F6F1E7; border: 1px solid #E4DCCF; border-radius: 14px; overflow: hidden; }
+        .lst-card-media { width: 100%; height: 200px; object-fit: cover; display: block; }
+        .lst-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-top: 1px solid #E4DCCF; }
+        .lst-card-footer strong { display: block; font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.04em; font-size: 19px; font-weight: 500; color: #2C2521; }
+        .lst-card-footer span { display: block; color: #6E645A; font-size: 13px; margin-top: 3px; }
+        .lst-btn-ver { display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #C99E52 0%, #B3823B 100%); color: #FFFFFF; border: none; padding: 9px 16px; min-height: 38px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .lst-btn-ver:hover { filter: brightness(1.06); }
+        .lst-bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; background: #F6F1E7; border-top: 1px solid #E4DCCF; display: flex; justify-content: space-around; padding: 6px 8px calc(10px + env(safe-area-inset-bottom)); max-width: 640px; margin: 0 auto; }
+        .lst-bottom-nav button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; color: #6E645A; font-size: 11px; cursor: pointer; padding: 6px 0; }
+        .lst-bottom-nav button.lst-bottom-active { color: #B8863B; }
+        .lst-bottom-nav button:hover { color: #B8863B; }
+        .lst-detail-eyebrow { color: #B8863B; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
+        .lst-detail-title { font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.04em; font-size: 30px; font-weight: 500; color: #2C2521; margin: 6px 0 0; }
+        .lst-detail-desc { color: #6E645A; font-size: 14px; line-height: 1.6; margin: 8px 0 0; }
+        .lst-include-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid #EFE9DD; }
+        .lst-include-row:last-child { border-bottom: none; }
+        .lst-include-icon { width: 38px; height: 38px; min-width: 38px; border-radius: 50%; background: #F6F1E7; border: 1px solid #E4DCCF; display: flex; align-items: center; justify-content: center; color: #B8863B; }
+        .lst-include-label { color: #2C2521; font-size: 14px; }
+        .lst-price-box { display: flex; align-items: center; gap: 10px; border: 1px solid #E4DCCF; background: #F6F1E7; border-radius: 10px; padding: 12px 14px; color: #2C2521; font-size: 13px; }
+        .lst-cta-full { width: 100%; min-height: 54px; background: linear-gradient(135deg, #C99E52 0%, #B3823B 100%); color: #FFFFFF; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .lst-cta-full:hover { filter: brightness(1.06); }
+        .lst-btn-back { background: none; border: none; color: #2C2521; width: 40px; height: 40px; min-width: 40px; min-height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+        .lst-btn-back:hover { background: rgba(44, 37, 33, 0.06); border-radius: 50%; }
+        @media (max-width: 640px) { .lst-bottom-nav { max-width: 100%; } }
+      `}</style>
       {/* PESTAÑA DESPLEGABLE MULTIIDIOMA */}
       <div hidden={currentScreen === 'adminPanel' || currentScreen === 'adminLogin'} style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 1000 }}>
         <select aria-label="Language / Idioma" dir="ltr"
@@ -3362,6 +3392,23 @@ function StudioApp() {
           <option value="ar">العربية</option>
         </select>
       </div>
+
+      {!['clientPin', 'clientRegistration', 'adminLogin', 'adminPanel'].includes(currentScreen) && (
+        <nav className="lst-bottom-nav" aria-label="Navegación principal">
+          <button type="button" className={currentScreen === 'clientPortal' ? 'lst-bottom-active' : ''} onClick={() => { setViewServiceDetail(null); setCurrentScreen('clientPortal'); }}>
+            <Home size={20} strokeWidth={1.7} aria-hidden="true" /><span>Inicio</span>
+          </button>
+          <button type="button" className={currentScreen === 'catalogBooking' || currentScreen === 'serviceDetail' ? 'lst-bottom-active' : ''} onClick={() => { setViewServiceDetail(null); setCurrentScreen('catalogBooking'); }}>
+            <Scissors size={20} strokeWidth={1.7} aria-hidden="true" /><span>Servicios</span>
+          </button>
+          <button type="button" className={currentScreen === 'visualAgenda' ? 'lst-bottom-active' : ''} onClick={() => { if (currentScreen !== 'visualAgenda') setCurrentScreen('catalogBooking'); }}>
+            <CalendarDays size={20} strokeWidth={1.7} aria-hidden="true" /><span>Mis citas</span>
+          </button>
+          <button type="button" className={currentScreen === 'clientHistoryPage' ? 'lst-bottom-active' : ''} onClick={() => setCurrentScreen('clientHistoryPage')}>
+            <User size={20} strokeWidth={1.7} aria-hidden="true" /><span>Perfil</span>
+          </button>
+        </nav>
+      )}
 
       {/* 1. ACCESO PIN CLIENTE */}
       {currentScreen === 'clientPin' && (
@@ -3441,19 +3488,20 @@ function StudioApp() {
 
       {/* 2. PORTAL CLIENTE */}
       {currentScreen === 'clientPortal' && (
-        <div style={{ maxWidth: '600px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212, 175, 55, 0.2)', paddingBottom: '15px' }}>
-            <div>
-              <h2 style={{ color: '#C99E52', fontSize: '18px', letterSpacing: '0.05em', margin: '0 0 3px 0', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif" }}>{bizConfig.name}</h2>
-              <p style={{ color: '#2C2521', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>{t('subtitle')}</p>
+        <div className="lst-page" style={{ maxWidth: '520px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          <div className="lst-app-header">
+            <span style={{ width: 40, display: 'block' }} aria-hidden="true" />
+            <div style={{ textAlign: 'center' }}>
+              <h2 className="lst-app-header-title">{bizConfig.name}</h2>
+              <p className="lst-app-header-sub">{t('subtitle')}</p>
             </div>
-            <button onClick={() => { setPin(""); setCurrentScreen('clientPin'); }} style={{ background: 'none', border: '1px solid #C5A059', color: '#C99E52', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
-              {t('logout')}
+            <button className="lst-app-header-btn" onClick={() => { setPin(""); setCurrentScreen('clientPin'); }} aria-label={t('logout')}>
+              <LogOut size={20} strokeWidth={1.7} aria-hidden="true" />
             </button>
           </div>
-          <div style={{ padding: '8px 0 4px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <p style={{ color: '#2C2521', fontSize: '28px', lineHeight: 1.2, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>{t('hello')}, {currentClientRecord?.nombre || t('welcome')}.</p>
-            <p style={{ color: '#2C2521', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('careIntro')}</p>
+          <div style={{ padding: '6px 0 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <p style={{ color: '#2C2521', fontSize: '30px', lineHeight: 1.2, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em', margin: 0 }}>Tu cabello, tu esencia</p>
+            <p style={{ color: '#6E645A', fontSize: '15px', lineHeight: 1.6, margin: 0 }}>{t('hello')}, {currentClientRecord?.nombre || t('welcome')}. {t('careIntro')}</p>
             <details style={{ color: '#2C2521', fontSize: '12px', marginTop: '6px' }}>
               <summary style={{ cursor: 'pointer', padding: '6px 0' }}>{t('myDetails')}</summary>
               <p style={{ overflowWrap: 'anywhere' }}>{currentClientRecord?.email} · ID #{currentClientRecord?.idNum} · {currentClientRecord?.registroId}</p>
@@ -3478,9 +3526,9 @@ function StudioApp() {
               <p style={{ color: '#2C2521', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('noUpcoming')}</p>
             </>}
           </section>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#2C2521', border: 'none', minHeight: '54px', padding: '16px 20px', borderRadius: '10px', fontWeight: 'bold', fontSize: '15px', cursor: 'pointer' }}>{t('catalog')}</button>
-            <button type="button" onClick={() => setCurrentScreen('clientHistoryPage')} style={{ background: '#FFFFFF', color: '#2C2521', border: '1px solid #E6D5B8', minHeight: '48px', padding: '14px 20px', borderRadius: '10px', fontSize: '14px', cursor: 'pointer' }}>{t('history')}</button>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ background: '#F6F1E7', border: '1px solid #E4DCCF', borderRadius: '12px', minHeight: '64px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#2C2521', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}><Scissors size={18} strokeWidth={1.7} aria-hidden="true" />{t('catalog')}</button>
+            <button type="button" onClick={() => setCurrentScreen('clientHistoryPage')} style={{ background: '#F6F1E7', border: '1px solid #E4DCCF', borderRadius: '12px', minHeight: '64px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#2C2521', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}><BookOpen size={18} strokeWidth={1.7} aria-hidden="true" />{t('history')}</button>
             <div style={{ textAlign: 'center', padding: '10px 0', color: '#2C2521', fontSize: '13px', lineHeight: 1.7 }}>
               ¿No sabes qué servicio elegir? <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#2C2521' }}>{t('guidance')}</a>
               <a href={`tel:${bizConfig.phone}`} style={{ display: 'block', color: '#7A7067', marginTop: '4px' }}>{t('callStudio')}</a>
@@ -3611,15 +3659,12 @@ function StudioApp() {
               const activeCategory = catalog.find(cat => cat.id === activeCatalogTab) || catalog[0];
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <nav aria-label="Categorías de servicios" style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', WebkitOverflowScrolling: 'touch' }}>
+                  <nav aria-label="Categorías de servicios" className="lst-app-tabs" style={{ maxWidth: 'none' }}>
                     {catalog.map(cat => {
                       const tabActive = activeCategory?.id === cat.id;
                       return (
                         <button key={cat.id} type="button" aria-pressed={tabActive} onClick={() => setActiveCatalogTab(cat.id)}
-                          style={{ flexShrink: 0, minHeight: '44px', padding: '10px 18px', borderRadius: '999px', fontSize: '13px', cursor: 'pointer', whiteSpace: 'nowrap',
-                            border: tabActive ? '1px solid #C99E52' : '1px solid #E6D5B8',
-                            background: tabActive ? 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)' : '#FFFFFF',
-                            color: tabActive ? '#FFFFFF' : '#2C2521', fontWeight: tabActive ? 600 : 400 }}>
+                          className={tabActive ? 'lst-app-tab lst-app-tab-active' : 'lst-app-tab'}>
                           {categoryText(cat)}
                         </button>
                       );
@@ -3674,22 +3719,28 @@ function StudioApp() {
         const detailImage = detailSub.imageUrl;
         const detailSelection = selectedServicesToBook.find(item => item.sub.id === detailSub.id);
         return (
-        <div style={{ maxWidth: '700px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          <button type="button" onClick={() => { setViewServiceDetail(null); setCurrentScreen('catalogBooking'); }} style={{ alignSelf: 'flex-start', background: 'none', border: '1px solid #C5A059', color: '#C99E52', padding: '8px 16px', borderRadius: '20px', fontSize: '12px', cursor: 'pointer' }}>{t('backToCatalog')}</button>
+        <div className="lst-page" style={{ maxWidth: '520px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div className="lst-app-header">
+            <button type="button" className="lst-btn-back" onClick={() => { setViewServiceDetail(null); setCurrentScreen('catalogBooking'); }} aria-label={t('backToCatalog')}><ArrowLeft size={20} strokeWidth={1.7} aria-hidden="true" /></button>
+            <div style={{ textAlign: 'center' }}>
+              <h2 className="lst-app-header-title">{bizConfig.name}</h2>
+              <p className="lst-app-header-sub">{t('subtitle')}</p>
+            </div>
+            <span style={{ width: 40, display: 'block' }} aria-hidden="true" />
+          </div>
           {detailImage
-            ? <button type="button" className="studio-service-media studio-service-media-photo studio-service-media-detail" onClick={() => setLightboxImage(detailImage)} aria-label="Ampliar imagen"><img src={detailImage} alt={serviceText(detailSub, 'name') || detailSub.name} /></button>
-            : <div className="studio-service-media studio-service-media-empty studio-service-media-detail" aria-hidden="true"><span>LS</span><small>{bizConfig.name}</small></div>}
-          <header style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <span style={{ color: '#7A7067', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase' }}>{categoryText(viewServiceDetail.cat)}</span>
-            <h1 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '30px', fontWeight: 'normal', lineHeight: 1.25, margin: 0 }}>{serviceText(detailSub, 'name') || detailSub.name}</h1>
-            {!!serviceText(detailSub, 'description') && <p style={{ color: '#7A7067', fontSize: '14px', lineHeight: 1.7, margin: 0 }}>{serviceText(detailSub, 'description')}</p>}
-            <p style={{ color: '#2C2521', fontSize: '15px', margin: '4px 0 0' }}><strong style={{ color: '#C99E52', fontSize: '22px', fontWeight: 'normal' }}>{detailSelection?.variant?.price || detailSub.price}</strong><span style={{ color: '#7A7067', fontSize: '13px', marginLeft: '12px' }}>{detailSelection?.variant?.duration || detailSub.duration}</span></p>
+            ? <button type="button" style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'zoom-in' }} onClick={() => setLightboxImage(detailImage)} aria-label="Ampliar imagen"><img className="lst-card-media" style={{ height: 280, borderRadius: 14 }} src={detailImage} alt={serviceText(detailSub, 'name') || detailSub.name} /></button>
+            : <div className="studio-service-media studio-service-media-empty" style={{ height: 280, borderRadius: 14 }} aria-hidden="true"><span>LS</span><small>{bizConfig.name}</small></div>}
+          <header style={{ display: 'flex', flexDirection: 'column' }}>
+            <span className="lst-detail-eyebrow">{categoryText(viewServiceDetail.cat)}</span>
+            <h1 className="lst-detail-title">{serviceText(detailSub, 'name') || detailSub.name}</h1>
+            {!!serviceText(detailSub, 'description') && <p className="lst-detail-desc">{serviceText(detailSub, 'description')}</p>}
           </header>
-          <section className="studio-ficha-section">
-            <h2>{t('serviceIncludesTitle')}</h2>
-            <div className="studio-ficha-row"><strong>{t('descriptionLabel')}</strong><span>{serviceText(detailSub, 'description') || '—'}</span></div>
-            {!!serviceText(detailSub, 'includesText') && <div className="studio-ficha-row"><strong>{t('includesLabel')}</strong><span>{serviceText(detailSub, 'includesText')}</span></div>}
-            {!!serviceText(detailSub, 'achievedText') && <div className="studio-ficha-row"><strong>{t('resultsLabel')}</strong><span>{serviceText(detailSub, 'achievedText')}</span></div>}
+          <section style={{ background: '#F6F1E7', border: '1px solid #E4DCCF', borderRadius: 14, padding: '6px 16px' }}>
+            <h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", fontWeight: 500, fontSize: 19, color: '#2C2521', margin: '12px 0 4px', letterSpacing: '0.04em' }}>{t('serviceIncludesTitle')}</h2>
+            <div className="lst-include-row"><span className="lst-include-icon"><UserRoundSearch size={17} strokeWidth={1.7} aria-hidden="true" /></span><span className="lst-include-label">{serviceText(detailSub, 'description') || detailSub.name}</span></div>
+            {!!serviceText(detailSub, 'includesText') && <div className="lst-include-row"><span className="lst-include-icon"><Scissors size={17} strokeWidth={1.7} aria-hidden="true" /></span><span className="lst-include-label">{serviceText(detailSub, 'includesText')}</span></div>}
+            {!!serviceText(detailSub, 'achievedText') && <div className="lst-include-row"><span className="lst-include-icon"><Sparkles size={17} strokeWidth={1.7} aria-hidden="true" /></span><span className="lst-include-label">{serviceText(detailSub, 'achievedText')}</span></div>}
           </section>
           {(detailSub.requiresAssessment || tonerLabel(detailSub) || stylingLabel(detailSub) || detailSub.showAlertBadge) && (
             <section className="studio-ficha-section">
@@ -3700,6 +3751,7 @@ function StudioApp() {
               {detailSub.showAlertBadge && <div className="studio-ficha-condition"><strong>Aviso</strong><span>{detailSub.alertText || 'Recuerda añadir tu peinado para asegurar el tiempo en agenda.'}</span></div>}
             </section>
           )}
+          <div className="lst-price-box"><Info size={17} strokeWidth={1.7} aria-hidden="true" /> {detailSelection?.variant?.price || detailSub.price} · {detailSelection?.variant?.duration || detailSub.duration}</div>
           {detailSub.hasVariants && detailSub.variants && detailSub.variants.length > 0 && (
             <section className="studio-ficha-section">
               <h2>{t('serviceOptionsTitle')}</h2>
@@ -3716,7 +3768,7 @@ function StudioApp() {
               </div>
             </section>
           )}
-          <button type="button" onClick={() => { setSelectedServicesToBook(previous => previous.some(item => item.sub.id === detailSub.id) ? previous : [...previous, { sub: detailSub, variant: null }]); setCurrentScreen('catalogBooking'); }} className="studio-btn-gold studio-ficha-cta">{t('chooseAndBook')}</button>
+          <button type="button" onClick={() => { setSelectedServicesToBook(previous => previous.some(item => item.sub.id === detailSub.id) ? previous : [...previous, { sub: detailSub, variant: null }]); setCurrentScreen('catalogBooking'); }} className="lst-cta-full">{t('chooseAndBook')} <ArrowRight size={18} strokeWidth={2} aria-hidden="true" /></button>
         </div>
         );
       })()}
@@ -3729,7 +3781,7 @@ function StudioApp() {
 
       {/* AGENDA CLIENTAS · SEMANA Y HORAS DISPONIBLES */}
       {currentScreen === 'visualAgenda' && (
-        <div style={{ maxWidth: '680px', width: '100%', backgroundColor: '#FFFFFF', border: '1px solid #C5A059', borderRadius: '16px', padding: '20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '22px' }}>
+        <div style={{ maxWidth: '520px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#C99E52', padding: '10px 0', cursor: 'pointer' }}>{t('backServices')}</button>
           <div><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', color: '#2C2521', fontSize: '28px', fontWeight: 'normal', margin: '0 0 8px' }}>{t('chooseMoment')}</h2><p style={{ color: '#2C2521', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('fullSlots')} · {getModalDuration(selectedServicesToBook)} min.</p></div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
@@ -3761,7 +3813,7 @@ function StudioApp() {
 
       {/* 2.3. PASAPORTE DE EXPERIENCIAS DE AUTOR */}
       {currentScreen === 'clientHistoryPage' && (
-        <div style={{ maxWidth: '700px', width: '100%', backgroundColor: '#FFFFFF', border: '1px solid #C5A059', borderRadius: '16px', padding: '15px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+        <div style={{ maxWidth: '520px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <button type="button" onClick={() => setCurrentScreen('clientPortal')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#C99E52', padding: '10px 0', minHeight: '44px', fontSize: '13px', cursor: 'pointer' }}>{t('backToPortal')}</button>
           <header>
             <p style={{ color: '#C99E52', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', margin: '0 0 12px' }}>L’Studio Ana · Cuidado personalizado</p>
