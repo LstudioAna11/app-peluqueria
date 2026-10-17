@@ -9,17 +9,20 @@
   :root {
     --bg-taupe: #8C827A;
     --bg-sand: #8C827A;
-    --card-white: #F9F8F6;
-    --border-sand: rgba(212, 175, 55, 0.35);
-    --border-input: rgba(212, 175, 55, 0.35);
-    --text-topo: #2B2521;
+    --card-silk: #F2ECE4;
+    --card-white: #F2ECE4;
+    --linen: #E2D9CD;
+    --border-sand: #C5A059;
+    --border-input: #C5A059;
+    --text-topo: #241E1A;
     --text-on-taupe: #FDFBF7;
-    --text-topo-secondary: #7A7067;
-    --ink: #1C1816;
+    --text-topo-secondary: #6E645B;
+    --ink: #1C1612;
     --gold: #D4AF37;
     --gold-deep: #B8972E;
+    --gold-text-dark: #8F6D24;
     --gold-gradient: linear-gradient(135deg, #D4AF37 0%, #B8972E 100%);
-    --gold-border: rgba(212, 175, 55, 0.35);
+    --gold-border: #C5A059;
     --card-shadow: 0 10px 30px rgba(40, 32, 26, 0.12);
     --success: #2E7D32;
     --success-bg: #EAF4EA;
@@ -38,7 +41,7 @@
   }
   ::selection {
     background: rgba(212, 175, 55, 0.3);
-    color: #2B2521;
+    color: #241E1A;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;
@@ -94,7 +97,7 @@
     transition: all 0.3s ease;
   }
   .btn-outline-gold:hover:not(:disabled) {
-    background: rgba(212, 175, 55, 0.1);
+    background: var(--linen);
     border-color: var(--gold);
   }
   .border-gold-soft {
