@@ -987,7 +987,7 @@ const TRANSLATIONS: Record<string, Record<string, string>> = {
     nextAppt: "Próxima Cita",
     salonHours: "Horarios del Salón:",
     leaveReview: "Déjanos tu opinión & Reseña Google",
-    sendReview: "Enviar Reseña",
+    sendReview: "Enviar mi opinión",
     selectServices: "1. Selecciona tus servicios deseados:",
     selectDate: "2. Selecciona Fecha y Hora Laboral:",
     openVisualAgenda: "Abrir Agenda Visual Interactiva",
@@ -3925,13 +3925,10 @@ function StudioApp() {
             <p style={{ color: '#D8C29A', fontSize: '13px', margin: 0, lineHeight: 1.6 }}>Un espacio para ti y para el cuidado de tu cabello.</p>
             <p style={{ color: '#2C2521', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{bizConfig.location}</p>
           </section>
-          <details style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '12px', padding: '18px', boxShadow: '0 10px 26px rgba(0, 0, 0, 0.22)' }}>
-            <summary style={{ color: '#8F6D24', fontSize: '14px', cursor: 'pointer', lineHeight: 1.6 }}>¿Cómo fue tu experiencia? Comparte tu opinión</summary>
-          <div style={{ backgroundColor: '#EADCC7', border: 'none', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: '#D8C29A', fontSize: '13px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'bold' }}>{t('leaveReview')}</span>
-            </div>
-            <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ color: '#D8C29A', fontSize: '13px' }}>Compartir mi experiencia en Google ↗</a>
+          <details style={{ background: 'linear-gradient(160deg, #221D19 0%, #322A25 100%)', border: '1px solid rgba(212, 175, 55, 0.45)', borderRadius: '14px', padding: '20px 18px', boxShadow: '0 14px 34px rgba(0, 0, 0, 0.35)' }}>
+            <summary style={{ color: '#E4C687', fontSize: '15px', cursor: 'pointer', lineHeight: 1.5, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em' }}>¿Cómo fue tu experiencia? Comparte tu opinión</summary>
+          <div style={{ borderRadius: '12px', padding: '16px 0 0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ color: '#D8C29A', fontSize: '13px', minHeight: '44px', display: 'flex', alignItems: 'center' }}>Compartir mi experiencia en Google ↗</a>
             {feedbackSubmitted ? (
               <div style={{ textAlign: 'center', padding: '12px', backgroundColor: '#EAF4EA', border: '1px solid #2E7D32', borderRadius: '8px' }}>
                 <p style={{ color: '#2E7D32', fontSize: '12px', fontWeight: 'bold', margin: '0 0 4px 0' }}>¡Gracias por compartir tu opinión!</p>
@@ -3943,7 +3940,7 @@ function StudioApp() {
               </div>
             ) : (
               <form onSubmit={handleSendFeedback} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '4px 0' }}>
                   {[
                     { val: 1, label: 'Mala' },
                     { val: 2, label: 'Regular' },
@@ -3951,14 +3948,18 @@ function StudioApp() {
                     { val: 4, label: 'Buena' },
                     { val: 5, label: 'Excelente' }
                   ].map((item) => (
-                    <div key={item.val} onClick={() => handleRatingSelect(item.val)} style={{ textAlign: 'center', cursor: 'pointer', opacity: selectedRating === item.val ? 1 : 0.4, transform: selectedRating === item.val ? 'scale(1.1)' : 'scale(1)', transition: 'all 0.3s ease' }}>
-                      <div style={{ fontSize: '24px', color: '#D8C29A' }}>★</div>
-                      <div style={{ fontSize: '10px', color: selectedRating === item.val ? '#B3823B' : '#7A7067', marginTop: '2px' }}>{item.label}</div>
+                    <div key={item.val} role="radio" aria-checked={selectedRating === item.val} aria-label={item.label} onClick={() => handleRatingSelect(item.val)} style={{ textAlign: 'center', cursor: 'pointer', opacity: selectedRating === item.val ? 1 : 0.45, transform: selectedRating === item.val ? 'scale(1.12)' : 'scale(1)', transition: 'all 0.3s ease', padding: '8px 6px', minWidth: '44px' }}>
+                      <div style={{ fontSize: '30px', color: selectedRating === item.val ? '#E4C687' : '#D8C29A', textShadow: selectedRating === item.val ? '0 0 14px rgba(212, 175, 55, 0.45)' : 'none', transition: 'all 0.3s ease' }}>★</div>
+                      <div style={{ fontSize: '10px', color: selectedRating === item.val ? '#E4C687' : '#D6CBB8', marginTop: '4px', letterSpacing: '0.03em' }}>{item.label}</div>
                     </div>
                   ))}
                 </div>
-                <input type="text" value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} onFocus={(e) => e.target.select()} style={{ backgroundColor: '#F3E8D7', border: '1px solid rgba(44, 37, 33, 0.18)', color: '#2C2521', borderRadius: '6px', padding: '10px', fontSize: '13px' }} />
-                <button type="submit" style={{ backgroundColor: '#EADCC7', color: '#2C2521', border: '1px solid rgba(44, 37, 33, 0.2)', padding: '12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label htmlFor="portal-feedback-comment" style={{ color: '#E4C687', fontSize: '15px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em' }}>Cuéntanos tu experiencia</label>
+                  <p style={{ color: '#FFF8EE', fontSize: '13px', margin: 0, lineHeight: 1.6 }}>¿Qué servicio te has realizado y cómo ha sido tu experiencia en L’Studio Ana? Nos encantará saber cómo te has sentido y qué destacarías de tu visita.</p>
+                  <textarea id="portal-feedback-comment" value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} placeholder="Escribe aquí tu experiencia…" rows={4} style={{ backgroundColor: 'rgba(234, 220, 199, 0.07)', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#FFF8EE', borderRadius: '10px', padding: '12px', fontSize: '14px', lineHeight: 1.55, width: '100%', boxSizing: 'border-box', resize: 'vertical', minHeight: '44px' }} />
+                </div>
+                <button type="submit" style={{ backgroundColor: '#C49A58', color: '#29231F', border: 'none', padding: '14px', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', minHeight: '48px', letterSpacing: '0.03em', boxShadow: '0 8px 20px rgba(196, 154, 88, 0.3)' }}>
                   {t('sendReview')}
                 </button>
               </form>
