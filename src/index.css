@@ -7,23 +7,23 @@
     -webkit-tap-highlight-color: transparent;
   }
   :root {
-    --bg-taupe: #8C827A;
-    --bg-sand: #8C827A;
-    --card-silk: #F2ECE4;
-    --card-white: #F2ECE4;
-    --linen: #E2D9CD;
-    --border-sand: #C5A059;
+    --bg-taupe: #F4F1EA;
+    --bg-sand: #F4F1EA;
+    --card-silk: #FFFFFF;
+    --card-white: #FFFFFF;
+    --linen: #EFE9DF;
+    --border-sand: #E6D5B8;
     --border-input: #C5A059;
-    --text-topo: #241E1A;
-    --text-on-taupe: #FDFBF7;
-    --text-topo-secondary: #6E645B;
-    --ink: #1C1612;
-    --gold: #D4AF37;
-    --gold-deep: #B8972E;
+    --text-topo: #2C2521;
+    --text-on-taupe: #2C2521;
+    --text-topo-secondary: #7A7067;
+    --ink: #2C2521;
+    --gold: #C99E52;
+    --gold-deep: #B3823B;
     --gold-text-dark: #8F6D24;
-    --gold-gradient: linear-gradient(135deg, #D4AF37 0%, #B8972E 100%);
-    --gold-border: #C5A059;
-    --card-shadow: 0 10px 30px rgba(40, 32, 26, 0.12);
+    --gold-gradient: linear-gradient(135deg, #C99E52 0%, #B3823B 100%);
+    --gold-border: #C99E52;
+    --card-shadow: 0 10px 30px rgba(60, 50, 40, 0.06);
     --success: #2E7D32;
     --success-bg: #EAF4EA;
     --error: #C0392B;
@@ -40,8 +40,8 @@
     color: rgba(122, 112, 103, 0.6);
   }
   ::selection {
-    background: rgba(212, 175, 55, 0.3);
-    color: #241E1A;
+    background: rgba(201, 158, 82, 0.3);
+    color: #2C2521;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;
@@ -65,13 +65,13 @@
 
 @layer utilities {
   .gold-text {
-    background: linear-gradient(135deg, #D4AF37 0%, #B8972E 100%);
+    background: linear-gradient(135deg, #C99E52 0%, #B3823B 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
   }
   .gold-border {
-    border-image: linear-gradient(135deg, #D4AF37, #B8972E) 1;
+    border-image: linear-gradient(135deg, #C99E52, #B3823B) 1;
   }
   .card-lux {
     background: var(--card-white);
@@ -86,8 +86,8 @@
     transition: all 0.3s ease;
   }
   .btn-gold:hover:not(:disabled) {
-    background: linear-gradient(135deg, #E5C158, #C9A638);
-    box-shadow: 0 6px 18px rgba(212, 175, 55, 0.3);
+    background: linear-gradient(135deg, #D4AF6E, #C9924A);
+    box-shadow: 0 6px 18px rgba(201, 158, 82, 0.3);
     transform: translateY(-1px);
   }
   .btn-outline-gold {
