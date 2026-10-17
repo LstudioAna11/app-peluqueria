@@ -7,17 +7,18 @@
     -webkit-tap-highlight-color: transparent;
   }
   :root {
-    --taupe-dark: #2B2825;
-    --taupe-card: #38332E;
-    --taupe-card-raised: #3D3833;
-    --champagne-gold: #D4AF37;
-    --champagne-gold-light: #E5C158;
-    --gold-gradient: linear-gradient(135deg, #D4AF37, #B38928);
-    --ivory: #FDFBF7;
-    --sand: #A89F91;
-    --ink: #1A1816;
-    --gold-border: rgba(212, 175, 55, 0.2);
-    --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    --taupe-dark: #1C1A18;
+    --taupe-card: #2E2A26;
+    --taupe-input: #262320;
+    --taupe-input-border: #3D3833;
+    --champagne-gold: #E6C687;
+    --champagne-gold-deep: #C49A45;
+    --gold-gradient: linear-gradient(135deg, #E6C687 0%, #C49A45 100%);
+    --ivory: #F5F0EB;
+    --sand: #D1C7BD;
+    --ink: #141210;
+    --gold-border: rgba(212, 175, 55, 0.25);
+    --card-shadow: 0 12px 30px rgba(0, 0, 0, 0.3);
   }
   body {
     background-color: var(--taupe-dark);
@@ -26,14 +27,15 @@
     -webkit-font-smoothing: antialiased;
   }
   ::placeholder {
-    color: rgba(168, 159, 145, 0.6);
+    color: rgba(209, 199, 189, 0.55);
   }
   ::selection {
-    background: rgba(212, 175, 55, 0.35);
-    color: #FDFBF7;
+    background: rgba(230, 198, 135, 0.35);
+    color: #F5F0EB;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;
+    letter-spacing: 0.05em;
   }
   button, input, select, textarea {
     font-family: inherit;
@@ -43,31 +45,38 @@
 
 @layer utilities {
   .gold-text {
-    background: linear-gradient(135deg, #E5C158 0%, #D4AF37 50%, #A8862B 100%);
+    background: linear-gradient(135deg, #E6C687 0%, #C49A45 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
   }
   .gold-border {
-    border-image: linear-gradient(135deg, #E5C158, #D4AF37, #A8862B) 1;
+    border-image: linear-gradient(135deg, #E6C687, #C49A45) 1;
   }
   .card-lux {
     background: var(--taupe-card);
     box-shadow: var(--card-shadow);
     border: 1px solid var(--gold-border);
+    border-radius: 0.75rem;
   }
   .btn-gold {
     background: var(--gold-gradient);
     color: var(--ink);
+    font-weight: 600;
     transition: all 0.3s ease;
   }
   .btn-gold:hover:not(:disabled) {
-    background: linear-gradient(135deg, #E5C158, #D4AF37);
-    box-shadow: 0 6px 18px rgba(212, 175, 55, 0.35);
+    background: linear-gradient(135deg, #F0D9A8, #E6C687);
+    box-shadow: 0 6px 18px rgba(230, 198, 135, 0.35);
     transform: translateY(-1px);
   }
   .border-gold-soft {
     border: 1px solid var(--gold-border);
+  }
+  .input-lux {
+    background: var(--taupe-input);
+    border: 1px solid var(--taupe-input-border);
+    color: var(--ivory);
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
