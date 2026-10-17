@@ -2394,7 +2394,6 @@ function StudioApp() {
       }
       try {
         await studioApi.authenticate(adminPin);
-        if (!/^d{4}$/.test(adminPin)) throw new Error('pin');
         setCurrentScreen('adminPanel');
         setAdminError(false);
         setAdminPin("");
