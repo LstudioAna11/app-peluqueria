@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Instagram, Facebook, Music2 } from 'lucide-react';
+import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
 import './catalog.css';
 import * as studioApi from './studioApi';
 
@@ -60,7 +60,7 @@ const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
   scheduleMonday: "10:00h a 13:30h",
   scheduleTueWed: "10:00h a 18:00h",
   scheduleThuFri: "10:00h a 19:00h",
-  scheduleSaturday: "09:00h a 19:00h",
+  scheduleSaturday: "09:00h a 13:00h",
   welcomeMessage: "¡Bienvenida!",
   masterPin: "0000",
   instagramUrl: "https://instagram.com",
@@ -3911,13 +3911,26 @@ function StudioApp() {
             ¿No sabes qué servicio elegir? <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#FFF8EE' }}>{t('guidance')}</a>
             <a href={`tel:${bizConfig.phone}`} style={{ display: 'block', color: '#D6CBB8', marginTop: '4px' }}>{t('callStudio')}</a>
           </div>
-          <details style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '12px', padding: '18px', boxShadow: '0 10px 26px rgba(0, 0, 0, 0.22)' }}>
-            <summary style={{ color: '#8F6D24', fontSize: '14px', cursor: 'pointer', minHeight: '24px' }}>{t('studioHours')}</summary>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '18px', color: '#4E443B', fontSize: '13px', lineHeight: 1.6 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}><span>Lunes</span><span style={{ color: '#2C2521' }}>{bizConfig.scheduleMonday}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}><span>Martes y miércoles</span><span style={{ color: '#2C2521' }}>{bizConfig.scheduleTueWed}</span></div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}><span>Jueves y viernes</span><span style={{ color: '#2C2521' }}>{bizConfig.scheduleThuFri}</span></div>
-              <div><span style={{ color: '#D8C29A' }}>Sábados</span><p style={{ margin: '4px 0 0', overflowWrap: 'anywhere' }}>{bizConfig.scheduleSaturday}</p></div>
+          <details style={{ backgroundColor: '#26201B', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '14px', padding: '20px 18px', boxShadow: '0 10px 26px rgba(0, 0, 0, 0.22)' }}>
+            <summary style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '19px', fontWeight: 'normal', cursor: 'pointer', minHeight: '24px', display: 'flex', alignItems: 'center', gap: '10px', listStyle: 'none' }}>
+              <Clock3 size={19} strokeWidth={1.7} aria-hidden="true" style={{ color: '#E4C687', flexShrink: 0 }} />
+              {t('studioHours')}
+              <span aria-hidden="true" style={{ marginLeft: 'auto', color: '#D8C29A', fontSize: '13px', transition: 'transform 0.3s ease' }}>⌄</span>
+            </summary>
+            <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column' }}>
+              {[
+                { day: 'Lunes', time: bizConfig.scheduleMonday },
+                { day: 'Martes y miércoles', time: bizConfig.scheduleTueWed },
+                { day: 'Jueves y viernes', time: bizConfig.scheduleThuFri },
+                { day: 'Sábados', time: bizConfig.scheduleSaturday }
+              ].map((row, index) => (
+                <div key={row.day} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '16px', padding: '13px 0', borderTop: index === 0 ? 'none' : '1px solid rgba(255, 248, 238, 0.08)' }}>
+                  <span style={{ color: '#FFF8EE', fontSize: '14px', lineHeight: 1.5 }}>{row.day}</span>
+                  <span style={{ color: '#FFF8EE', fontSize: '14px', lineHeight: 1.5, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                    {(row.time.match(/(\d{1,2}:\d{2})\D+(\d{1,2}:\d{2})/) || []).slice(1).join('–') || row.time}
+                  </span>
+                </div>
+              ))}
             </div>
           </details>
           <section aria-label="Visítanos" style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
