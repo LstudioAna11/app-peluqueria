@@ -1339,6 +1339,9 @@ interface CatalogCategory {
   code: string;
   title: string;
   icon?: string;
+  imageUrl?: string;
+  imageIsAiPlaceholder?: boolean;
+  imagePosition?: { x: number; y: number };
   subservices: SubService[];
 }
 
@@ -1872,6 +1875,57 @@ function StudioApp() {
       alert('Foto subida. Pulsa "Guardar catálogo" para hacerla visible en el portal de clientas.');
     } catch (error) {
       alert(error instanceof Error ? error.message : 'No se pudo subir la foto.');
+    } finally {
+      setPhotoUploadBusy(false);
+    }
+  };
+  const storagePathFromUrl = (url: string | undefined) =>
+    (/^https:\/\/.+\/storage\/v1\/object\/public\/service-images\/(.+)$/.exec(url || '') || [])[1];
+  const handleCategoryPhotoSelect = async (catId: string, file: File | undefined) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { alert('Elige un archivo de imagen.'); return; }
+    if (file.size > 8 * 1024 * 1024) { alert('La imagen supera 8 MB. Elige una más ligera.'); return; }
+    if (!studioApi.serverConfigured || studioApi.storedRole() !== 'admin' || !studioApi.currentToken()) {
+      alert('Para gestionar fotografías necesitas entrar en 360studio con el PIN maestro.'); return;
+    }
+    setPhotoUploadBusy(true);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result));
+        reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+        reader.readAsDataURL(file);
+      });
+      const uploaded = await studioApi.uploadServiceImage(studioApi.currentToken()!, dataUrl);
+      setCatalog(catalog.map(c => c.id !== catId ? c : { ...c, imageUrl: uploaded.url, imageIsAiPlaceholder: false }));
+      alert('Foto de la categoría subida. Pulsa "Guardar catálogo" para hacerla visible en el portal de clientas.');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'No se pudo subir la foto.');
+    } finally {
+      setPhotoUploadBusy(false);
+    }
+  };
+  const handleCategoryPhotoDelete = async (catId: string) => {
+    if (!window.confirm('¿Eliminar la fotografía de esta categoría? Volverá a mostrarse la foto de su primer servicio.')) return;
+    if (!studioApi.serverConfigured || studioApi.storedRole() !== 'admin' || !studioApi.currentToken()) {
+      alert('Para gestionar fotografías necesitas entrar en 360studio con el PIN maestro.'); return;
+    }
+    setPhotoUploadBusy(true);
+    try {
+      const marker = storagePathFromUrl(catalog.find(c => c.id === catId)?.imageUrl);
+      if (marker) await studioApi.deleteServiceImage(studioApi.currentToken()!, marker);
+      const updated = catalog.map(c => c.id !== catId ? c : { ...c, imageUrl: undefined, imageIsAiPlaceholder: false });
+      setCatalog(updated);
+      localStorage.setItem('lst_master_catalog', JSON.stringify(updated));
+      setSavedCatalogSnapshot(JSON.stringify(updated));
+      if (studioApi.serverConfigured && studioApi.storedRole() === 'admin') {
+        studioApi.pushCatalog(studioApi.currentToken()!, updated).catch(() => {
+          setCatalogSavedMsg('Guardado en este dispositivo. No se pudo sincronizar con el servidor: revisa tu conexión e inténtalo de nuevo.');
+        });
+      }
+      alert('Fotografía de la categoría eliminada y guardada.');
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'No se pudo eliminar la foto.');
     } finally {
       setPhotoUploadBusy(false);
     }
@@ -3784,8 +3838,8 @@ function StudioApp() {
                 return (
                   <button key={cat.id} type="button" className="lst-cat-card" onClick={() => { setActiveCatalogTab(cat.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
                     <span className="lst-cat-thumb" aria-hidden="true">
-                      {firstService?.imageUrl
-                        ? <img src={firstService.imageUrl} alt="" loading="lazy" decoding="async" />
+                      {(cat.imageUrl || firstService?.imageUrl)
+                        ? <img src={(cat.imageUrl || firstService!.imageUrl)} alt="" loading="lazy" decoding="async" style={{ objectPosition: `${(cat.imageUrl ? cat.imagePosition?.x : firstService!.imagePosition?.x) ?? 50}% ${(cat.imageUrl ? cat.imagePosition?.y : firstService!.imagePosition?.y) ?? 50}%` }} />
                         : <strong>LS</strong>}
                     </span>
                     <span className="lst-cat-info">
@@ -4705,6 +4759,28 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                         </details>
 
                         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '12px', marginTop: '16px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', backgroundColor: '#FFFFFF', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px' }}>
+                            <label style={{ color: '#C99E52', fontSize: '12px', fontWeight: 'bold' }}>Fotografía de la categoría</label>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                              <div style={{ width: '140px', height: '105px', borderRadius: '8px', overflow: 'hidden', background: '#EFE9DF', flexShrink: 0, border: '1px solid #E6D5B8' }}>
+                                {(() => { const first = cat.subservices.find(s => s.active !== false); const shown = cat.imageUrl || first?.imageUrl; return shown
+                                  ? <img src={shown} alt={'Foto de ' + cat.title} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${(cat.imageUrl ? cat.imagePosition?.x : first?.imagePosition?.x) ?? 50}% ${(cat.imageUrl ? cat.imagePosition?.y : first?.imagePosition?.y) ?? 50}%` }} />
+                                  : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#C99E52', fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '26px', letterSpacing: '3px' }}>LS</span>; })()}
+                              </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '180px' }}>
+                                <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', minHeight: '44px', padding: '10px 14px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#2C2521', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: photoUploadBusy ? 'wait' : 'pointer' }}>
+                                  <ImagePlus size={16} strokeWidth={1.8} aria-hidden="true" />
+                                  {photoUploadBusy ? 'Subiendo…' : (cat.imageUrl ? 'Sustituir foto de la categoría' : 'Subir foto de la categoría')}
+                                  <input type="file" accept="image/*" disabled={photoUploadBusy} onChange={(e) => { handleCategoryPhotoSelect(cat.id, e.target.files?.[0]); e.target.value = ''; }} style={{ display: 'none' }} />
+                                </label>
+                                {cat.imageUrl && <button type="button" disabled={photoUploadBusy} onClick={() => handleCategoryPhotoDelete(cat.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 14px', background: '#FFFFFF', color: '#C0392B', border: '1px solid #dfaaa3', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                                  <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" /> Eliminar foto
+                                </button>}
+                                {cat.imageUrl && <p style={{ color: '#7A7067', fontSize: '11px', margin: 0 }}>La miniatura del listado de categorías del portal usa esta foto.</p>}
+                                {!cat.imageUrl && <p style={{ color: '#7A7067', fontSize: '11px', margin: 0 }}>Si no subes una foto propia, la categoría muestra la foto de su primer servicio.</p>}
+                              </div>
+                            </div>
+                          </div>
                           <label style={{ color: '#7A7067', fontSize: '13px' }}>Código<input type="text" value={cat.code} onChange={e => handleUpdateCategoryCode(cat.id, e.target.value)} style={{ display: 'block', width: '90px', padding: '12px', boxSizing: 'border-box', marginTop: '6px', backgroundColor: '#FFFFFF', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '7px' }} /></label>
                           <label style={{ flex: '1 1 220px', color: '#7A7067', fontSize: '13px' }}>Nombre de la categoría<input type="text" value={cat.title} onChange={e => handleUpdateCategoryTitle(cat.id, e.target.value)} style={{ display: 'block', width: '100%', padding: '12px', boxSizing: 'border-box', marginTop: '6px', backgroundColor: '#FFFFFF', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '7px', fontSize: '14px' }} /></label>
                           <button type="button" disabled={catIdx === 0} onClick={() => handleMoveCategory(catIdx, -1)} style={{ background: '#FFFFFF', border: '1px solid #E6D5B8', color: '#2C2521', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Subir ↑</button>
