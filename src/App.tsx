@@ -3832,7 +3832,7 @@ function StudioApp() {
         return (
         <div className="lst-page" style={{ maxWidth: '520px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div className="lst-app-header">
-            <button type="button" className="lst-btn-back" onClick={() => { setViewServiceDetail(null); setCurrentScreen('catalogBooking'); }} aria-label={t('backToCatalog')}><ArrowLeft size={20} strokeWidth={1.7} aria-hidden="true" /></button>
+            <button type="button" className="lst-btn-back" onClick={() => { setViewServiceDetail(null); setCurrentScreen('categoryScreen'); }} aria-label={t('backToCatalog')}><ArrowLeft size={20} strokeWidth={1.7} aria-hidden="true" /></button>
             <div style={{ textAlign: 'center' }}>
               <h2 className="lst-app-header-title">{bizConfig.name}</h2>
               <p className="lst-app-header-sub">{t('subtitle')}</p>
@@ -3973,7 +3973,7 @@ function StudioApp() {
               {aiRecommendation.map(id => { const category = catalog.find(item => item.subservices.some(service => service.id === id)); const service = category?.subservices.find(item => item.id === id && item.active !== false); if (!category || !service) return null; return <article key={id} style={{ background: '#FFFFFF', border: '1px solid #C5A059', padding: '12px', borderRadius: '12px' }}>
                 <h4 style={{ color: '#2C2521', fontSize: '18px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: '0 0 10px' }}>{serviceText(service, 'name')}</h4>
                 <p style={{ color: '#7A7067', fontSize: '13px', lineHeight: 1.7 }}>{t('advisorReason')}</p>
-                <button type="button" onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); setActiveCatalogTab(category.id); setExpandedCategories(previous => ({...previous, [category.id]: true})); setExpandedSubDetails(previous => ({...previous, [id]: true})); setCurrentScreen('catalogBooking'); window.setTimeout(() => document.getElementById(`portal-service-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }} style={{ minHeight: '44px', padding: '12px 16px', background: '#FFFFFF', color: '#2C2521', border: '1px solid #C5A059', borderRadius: '8px', cursor: 'pointer' }}>{t('advisorView')}</button>
+                <button type="button" onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); setActiveCatalogTab(category.id); setViewServiceDetail(null); setCurrentScreen('categoryScreen'); window.setTimeout(() => document.getElementById(`portal-service-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }} style={{ minHeight: '44px', padding: '12px 16px', background: '#FFFFFF', color: '#2C2521', border: '1px solid #C5A059', borderRadius: '8px', cursor: 'pointer' }}>{t('advisorView')}</button>
               </article>; })}
               <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#C99E52', padding: '12px 0' }}>WhatsApp · Ana</a>
             </div>}
