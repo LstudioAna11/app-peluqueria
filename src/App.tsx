@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
+import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ChevronDown, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
 import './catalog.css';
 import * as studioApi from './studioApi';
 
@@ -4084,19 +4084,12 @@ function StudioApp() {
             <h1 style={{ fontSize: '26px', lineHeight: 1.25, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', color: '#FFF8EE', margin: '0 0 8px', fontWeight: 400 }}>{t('experienceTitle')}</h1>
             <p style={{ color: '#F0E6D2', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('experienceIntro')}</p>
           </div>
-          <section aria-label={t('searchServices')} style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <label htmlFor="portal-service-search" style={{ color: '#8F6D24', fontSize: '12px', display: 'block' }}>{t('searchServices')}</label>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <input id="portal-service-search" type="search" value={portalSearch} onChange={event => { setPortalSearch(event.target.value); setPortalSearchExpanded({}); }} placeholder={t('searchPlaceholder')} style={{ flex: 1, minWidth: 0, width: '100%', boxSizing: 'border-box', minHeight: '40px', padding: '8px 10px', background: '#F3E8D7', color: '#2C2521', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 8, fontSize: '16px' }} />
-              {!!portalSearch && <button type="button" aria-label={t('clearSearch')} onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); }} style={{ minHeight: '40px', minWidth: '40px', background: '#EADCC7', color: '#2C2521', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 8, cursor: 'pointer', fontSize: '20px' }}>×</button>}
-            </div>
-            {!!portalSearchQuery && <p role="status" aria-live="polite" style={{ color: '#D6CBB8', fontSize: '13px', margin: 0 }}>{portalSearchCount ? t('searchResults') + ': ' + portalSearchCount : t('noSearchResults')}</p>}
-          </section>
-          <section style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-              <h3 style={{ color: '#2C2521', fontSize: '14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{t('advisorTitle')}</h3>
-              <p style={{ color: '#5C5248', fontSize: '11px', lineHeight: 1.4, margin: 0 }}>{t('advisorIntro')}</p>
-            </div>
+          <details style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, padding: '8px 12px' }}>
+            <summary style={{ cursor: 'pointer', color: '#2C2521', fontSize: '14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', listStyle: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              {t('advisorTitle')}
+              <ChevronDown size={16} strokeWidth={1.7} aria-hidden="true" style={{ flexShrink: 0, color: '#8F6D24' }} />
+            </summary>
+            <p style={{ color: '#5C5248', fontSize: '11px', lineHeight: 1.4, margin: '8px 0' }}>{t('advisorIntro')}</p>
             <form onSubmit={handleRunAiRecommendation} style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
               <textarea aria-label={t('advisorTitle')} value={clientWishText} onChange={event => { setClientWishText(event.target.value); setAiRecommendation(null); }} placeholder={t('advisorPlaceholder')} rows={1} style={{ flex: 1, minWidth: 0, width: '100%', boxSizing: 'border-box', background: '#F3E8D7', border: '1px solid rgba(44, 37, 33, 0.18)', color: '#2C2521', borderRadius: '8px', padding: '8px 10px', fontSize: '13px', lineHeight: 1.5, minHeight: '36px', resize: 'none' }} />
               <button type="submit" disabled={!clientWishText.trim()} style={{ minHeight: '36px', padding: '8px 14px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', opacity: clientWishText.trim() ? 1 : 0.5 }}>{t('advisorButton')}</button>
@@ -4110,21 +4103,10 @@ function StudioApp() {
               </article>; })}
               <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#8F6D24', padding: '12px 0' }}>WhatsApp · Ana</a>
             </div>}
-          </section>
-
-          {portalSearchQuery ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', minWidth: 0 }}>
-              {catalog.filter(cat => cat.subservices.some(sub => portalServiceMatches(cat, sub))).map(cat => (
-                <div key={cat.id} style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: 0 }}>
-                  <h3 style={{ color: '#D8C29A', fontSize: '13px', letterSpacing: '0.5px', margin: 0, fontWeight: 400, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif" }}>{categoryText(cat)}</h3>
-                  {cat.subservices.filter(sub => portalServiceMatches(cat, sub)).map(sub => renderCatalogCard(cat, sub))}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '20px', fontWeight: 400, margin: '4px 0 2px' }}>Elige una categoría</h2>
-              {catalog.map(cat => {
+          </details>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '20px', fontWeight: 400, margin: '4px 0 2px' }}>Elige una categoría</h2>
+            {catalog.map(cat => {
                 const count = cat.subservices.filter(sub => sub.active !== false).length;
                 const firstService = cat.subservices.find(sub => sub.active !== false);
                 return (
@@ -4143,7 +4125,6 @@ function StudioApp() {
                 );
               })}
             </div>
-          )}
 
           {selectedServicesToBook.length > 0 && <section aria-label="Resumen de tu selección" style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', padding: '20px', borderRadius: 12 }}>
             <h2 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '20px', margin: '0 0 14px', fontWeight: 400 }}>Tu selección</h2>
