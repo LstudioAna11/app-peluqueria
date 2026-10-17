@@ -1707,6 +1707,13 @@ function readStoredValue(key: string, raw: string): any {
   return records;
 }
 
+const AGENDA_SWATCHES = [
+  { id: 'champagne', label: 'Champán', panel: '#EADCC7', soft: '#F3E8D7', border: '#E6D5B8' },
+  { id: 'sage', label: 'Salvia', panel: '#DCE3D8', soft: '#E9EFE5', border: '#C3CFBF' },
+  { id: 'terracotta', label: 'Terracota', panel: '#EBCFB9', soft: '#F4E1D2', border: '#D9B697' },
+  { id: 'blush', label: 'Rosa polvo', panel: '#EFD9D2', soft: '#F7E8E2', border: '#E2C4B8' },
+] as const;
+
 class PortalErrorBoundary extends React.Component<
   { children: React.ReactNode }, { failed: boolean }
 > {
@@ -1792,6 +1799,7 @@ function StudioApp() {
   
   // NUEVO ESTADO: VISTA DE AGENDA MAESTRA ('week' | 'day')
   const [agendaViewMode, setAgendaViewMode] = useState<'week' | 'day'>(() => window.matchMedia('(max-width: 700px)').matches ? 'day' : 'week');
+  const [agendaSwatch, setAgendaSwatch] = useState<'champagne' | 'sage' | 'terracotta' | 'blush'>('champagne');
   const [appointmentSearch, setAppointmentSearch] = useState('');
   const [agendaSidePanel, setAgendaSidePanel] = useState<'day' | 'pending' | null>(null);
   const [pendingPanelFilter, setPendingPanelFilter] = useState<'all' | 'approval' | 'payment'>('all');
@@ -4535,6 +4543,31 @@ function StudioApp() {
               <div className="studio-calendar-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px', minWidth: 0, overflowX: 'auto' }}>
 
 <div className="studio-agenda-toolbar">
+<div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', width: '100%' }}>
+                  <span style={{ color: '#5C5248', fontSize: '12px' }}>Muestra de color (temporal):</span>
+                  {AGENDA_SWATCHES.map(swatch => (
+                    <button key={swatch.id} type="button" aria-pressed={agendaSwatch === swatch.id}
+                      onClick={() => setAgendaSwatch(swatch.id)}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '7px 12px', borderRadius: '999px', cursor: 'pointer', fontSize: '12px',
+                        background: agendaSwatch === swatch.id ? swatch.panel : 'transparent',
+                        border: agendaSwatch === swatch.id ? '2px solid #8F6D24' : '1px solid #5C5248', color: '#2C2521' }}>
+                      <span aria-hidden="true" style={{ width: 14, height: 14, borderRadius: '50%', background: swatch.panel, border: '1px solid #5C5248', display: 'inline-block' }} />
+                      {swatch.label}
+                    </button>
+                  ))}
+                </div>
+                {agendaSwatch !== 'champagne' && (() => {
+                  const swatch = AGENDA_SWATCHES.find(s => s.id === agendaSwatch)!;
+                  return <style>{`
+                    .studio-agenda-layout { --sw-panel: ${swatch.panel}; --sw-soft: ${swatch.soft}; --sw-border: ${swatch.border}; }
+                    .studio-agenda-layout [style*="EADCC7"] { background-color: var(--sw-panel) !important; }
+                    .studio-agenda-layout [style*="F3E8D7"] { background-color: var(--sw-soft) !important; }
+                    .studio-agenda-layout [style*="234,220,199"] { background-color: var(--sw-panel) !important; }
+                    .studio-agenda-layout [style*="E6D5B8"] { border-color: var(--sw-border) !important; }
+                    .studio-agenda-layout [style*="rgba(212, 175, 55"] { border-color: var(--sw-border) !important; }
+                    .studio-agenda-layout [style*="rgba(228, 198, 135"] { border-color: var(--sw-border) !important; }
+                  `}</style>;
+                })()}
 
 <button type="button" aria-pressed={agendaExpanded} onClick={() => setAgendaExpanded(previous => !previous)}
 style={{ padding: '9px 14px', background: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '7px', cursor: 'pointer' }}>
