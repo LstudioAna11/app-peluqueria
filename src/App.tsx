@@ -3930,12 +3930,19 @@ function StudioApp() {
           <div style={{ borderRadius: '12px', padding: '16px 0 0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ color: '#D8C29A', fontSize: '13px', minHeight: '44px', display: 'flex', alignItems: 'center' }}>Compartir mi experiencia en Google ↗</a>
             {feedbackSubmitted ? (
-              <div style={{ textAlign: 'center', padding: '12px', backgroundColor: '#EAF4EA', border: '1px solid #2E7D32', borderRadius: '8px' }}>
-                <p style={{ color: '#2E7D32', fontSize: '12px', fontWeight: 'bold', margin: '0 0 4px 0' }}>¡Gracias por compartir tu opinión!</p>
-                {true && (
-                  <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: '6px', background: '#C49A58', color: '#29231F', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', textDecoration: 'none' }}>
-                    Dejar Reseña en Google
-                  </a>
+              <div style={{ textAlign: 'center', padding: '14px 12px', borderRadius: '8px', backgroundColor: selectedRating >= 4 ? '#EAF4EA' : '#F3E8D7', border: `1px solid ${selectedRating >= 4 ? '#2E7D32' : 'rgba(212, 175, 55, 0.45)'}` }}>
+                <p style={{ color: selectedRating >= 4 ? '#2E7D32' : '#8F6D24', fontSize: '12px', fontWeight: 'bold', margin: '0 0 4px 0' }}>
+                  {selectedRating >= 4 ? '¡Gracias por compartir tu opinión!' : 'Gracias por tu sinceridad'}
+                </p>
+                {selectedRating >= 4 ? (
+                  <>
+                    <p style={{ color: '#4E443B', fontSize: '12px', margin: '0 0 8px 0', lineHeight: 1.5 }}>¿Nos ayudas contándolo también en Google? Tu opinión ayuda a otras personas a descubrir el Studio.</p>
+                    <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', background: '#C49A58', color: '#29231F', padding: '10px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', textDecoration: 'none', minHeight: '44px', lineHeight: '24px' }}>
+                      Compartir mi reseña en Google ↗
+                    </a>
+                  </>
+                ) : (
+                  <p style={{ color: '#4E443B', fontSize: '12px', margin: 0, lineHeight: 1.5 }}>Tu comentario ha llegado directamente a Ana en la intranet del Studio. Lo revisará personalmente y se pondrá en contacto contigo para cuidar cada detalle.</p>
                 )}
               </div>
             ) : (
