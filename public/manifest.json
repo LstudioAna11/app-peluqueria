@@ -4,8 +4,8 @@
   "description": "L'Studio Ana - Hair Experience | Portal del Cliente y Gestión 360studio",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#121212",
-  "theme_color": "#D4AF37",
+  "background_color": "#F4F1EA",
+  "theme_color": "#F4F1EA",
   "orientation": "portrait-primary",
   "icons": [
     {

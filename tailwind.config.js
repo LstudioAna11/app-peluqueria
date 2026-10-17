@@ -5,17 +5,17 @@ export default {
     extend: {
       colors: {
         brand: {
-          black: '#1C1A18',
-          card: '#2E2A26',
-          'card-light': '#3D3833',
-          gold: '#E6C687',
-          'gold-light': '#F0D9A8',
-          'gold-dark': '#C49A45',
-          ivory: '#F5F0EB',
-          cream: '#F5F0EB',
-          charcoal: '#1C1A18',
-          'charcoal-light': '#2E2A26',
-          'charcoal-muted': '#D1C7BD',
+          black: '#F4F1EA',
+          card: '#FFFFFF',
+          'card-light': '#FDFBF7',
+          gold: '#C99E52',
+          'gold-light': '#E8C88B',
+          'gold-dark': '#B98A3E',
+          ivory: '#2C2521',
+          cream: '#F4F1EA',
+          charcoal: '#2C2521',
+          'charcoal-light': '#7A7067',
+          'charcoal-muted': '#7A7067',
         },
       },
       fontFamily: {
