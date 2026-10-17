@@ -305,6 +305,12 @@ Deno.serve(async (req: Request) => {
 
     if (action === "appointment" && req.method === "PUT") {
       const patch: Record<string, unknown> = {};
+      if (!isAdmin) {
+        // client scope: cancellation only
+        if (body.lifecycleStatus !== 'cancelled') return json({ error: "Solo puedes cancelar la cita" }, 403);
+        patch.lifecycle_status = 'cancelled';
+        if (body.clientSnapshot !== undefined) patch.client_snapshot = body.clientSnapshot;
+      } else {
       if (body.dateKey && body.time) patch.starts_at = `${body.dateKey}T${body.time}:00`;
       if (body.dayName !== undefined) patch.dayName = body.dayName;
       if (body.durationMinutes) patch.duration_minutes = Number(body.durationMinutes);
@@ -324,14 +330,17 @@ Deno.serve(async (req: Request) => {
       }
       if (body.clientSnapshot !== undefined) patch.client_snapshot = body.clientSnapshot;
       if (body.completedAt !== undefined) patch.completed_at = body.completedAt;
+      }
 
       let query = admin.from("studio_appointments").update(patch);
-      if (isAdmin) query = query.eq("id", body.id);
+      if (isAdmin) query = query.or(`source_legacy_id.eq.${body.id},id.eq.${body.id}`);
       else {
-        // client scope: only own appointments
-        const { data: own } = await admin.from("studio_appointments").select("id").eq("id", body.id).eq("client_id", tokenRow.client_id).maybeSingle();
+        // client scope: only own appointments, matched by server id or portal legacy id
+        const { data: own } = await admin.from("studio_appointments").select("id")
+          .or(`id.eq.${body.id},source_legacy_id.eq.${body.id}`)
+          .eq("client_id", tokenRow.client_id).maybeSingle();
         if (!own) return json({ error: "Cita no encontrada" }, 404);
-        query = query.eq("id", body.id).eq("client_id", tokenRow.client_id);
+        query = query.or(`id.eq.${body.id},source_legacy_id.eq.${body.id}`).eq("client_id", tokenRow.client_id);
       }
       const { error } = await query;
       if (error) return json({ error: error.message }, 500);

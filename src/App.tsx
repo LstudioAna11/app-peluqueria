@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ImagePlus, Trash2 } from 'lucide-react';
+import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ImagePlus, Trash2, Globe } from 'lucide-react';
 import './catalog.css';
 import * as studioApi from './studioApi';
 
@@ -1739,6 +1739,7 @@ function StudioApp() {
   
   const [currentLang, setCurrentLang] = useState<string>(() => { const saved = localStorage.getItem('lst_portal_language'); return saved && TRANSLATIONS[saved] ? saved : 'es'; });
   useEffect(() => { localStorage.setItem('lst_portal_language', currentLang); }, [currentLang]);
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
   const portalLocale = ({ es: 'es-ES', en: 'en-GB', fr: 'fr-FR', it: 'it-IT', pt: 'pt-PT', de: 'de-DE', nl: 'nl-NL', pl: 'pl-PL', cs: 'cs-CZ', nb: 'nb-NO', sv: 'sv-SE', ar: 'ar-MA' } as Record<string, string>)[currentLang] || 'es-ES';
   const t = (key: string) => TRANSLATIONS[currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang]?.[key] || TRANSLATIONS['es'][key] || key;
   const tf = (key: string, values: Record<string, string | number | undefined>) => t(key).replace(/\{(\w+)\}/g, (token, name: string) => values[name] === undefined ? token : String(values[name]));
@@ -2218,6 +2219,7 @@ function StudioApp() {
     setPassportDraft(null);
     alert('Pasaporte guardado. Los cambios se reflejan en el portal de esta clienta en este navegador.');
   };
+  const [cancelApptModal, setCancelApptModal] = useState<Appointment | null>(null);
   const [rescheduleModalAppt, setRescheduleModalAppt] = useState<Appointment | null>(null);
   const [repeatAppointmentMode, setRepeatAppointmentMode] = useState(false);
   const [newRescheduleTime, setNewRescheduleTime] = useState<string>('10:00');
@@ -2475,6 +2477,28 @@ function StudioApp() {
       studioApi.updateAppointmentOnServer(studioApi.currentToken()!, {
         id: updated.id, lifecycleStatus: updated.lifecycleStatus ?? null,
       }).catch(() => undefined);
+    }
+  };
+
+  const handleConfirmCancelAppointment = (appointment: Appointment) => {
+    if (appointment.lifecycleStatus === 'cancelled' || appointment.completedAt) { setCancelApptModal(null); return; }
+    const updated: Appointment = { ...appointment, lifecycleStatus: 'cancelled', statusChangedAt: new Date().toISOString(),
+      remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false } };
+    setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
+    setCancelApptModal(null);
+    if (studioApi.serverConfigured && studioApi.currentToken()) {
+      studioApi.updateAppointmentOnServer(studioApi.currentToken()!, {
+        id: updated.id,
+        lifecycleStatus: 'cancelled',
+        clientSnapshot: {
+          clientName: appointment.clientName, phone: appointment.phone, email: appointment.email,
+          serviceCategory: appointment.serviceCategory, serviceSubcategory: appointment.serviceSubcategory,
+          dayName: appointment.dayName, selectedVariant: appointment.selectedVariant ?? null,
+          remindersStatus: updated.remindersStatus,
+        },
+      }).catch(() => {
+        alert('No se pudo comunicar la cancelación al Studio. Inténtalo de nuevo en unos segundos o avísanos por WhatsApp.');
+      });
     }
   };
 
@@ -3559,6 +3583,11 @@ function StudioApp() {
     .sort((a, b) => `${a.dateKey}T${a.time}`.localeCompare(`${b.dateKey}T${b.time}`))[0] : undefined;
   const clientAppointmentStatus = clientNextAppointment?.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación'
     : clientNextAppointment?.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Cita confirmada';
+  const clientUpcomingAppointments = currentClientRecord ? appointments
+    .filter(appointment => isActiveAppointment(appointment) && !!normalizeEmail(currentClientRecord.email) && normalizeEmail(appointment.email) === normalizeEmail(currentClientRecord.email)
+      && new Date(`${appointment.dateKey}T${appointment.time}:00`).getTime() >= Date.now()
+      && !appointment.completedAt && appointment.saturdayApproval?.status !== 'rejected')
+    .sort((a, b) => `${a.dateKey}T${a.time}`.localeCompare(`${b.dateKey}T${b.time}`)) : [];
 
 
   const renderAgendaLinks = () => <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '4px 5px 10px 12px' }}>
@@ -3724,37 +3753,26 @@ function StudioApp() {
         }
         @media (min-width: 900px) { .lst-carousel-arrow { display: flex; } }
       `}</style>
-      {/* PESTAÑA DESPLEGABLE MULTIIDIOMA */}
-      <div hidden={currentScreen === 'adminPanel' || currentScreen === 'adminLogin'} style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 1000 }}>
-        <select aria-label="Language / Idioma" dir="ltr"
-          value={currentLang} 
-          onChange={(e) => setCurrentLang(e.target.value)}
-          style={{
-            backgroundColor: '#F3E8D7',
-            color: '#2C2521',
-            border: '1px solid #C5A059',
-            borderRadius: '8px',
-            padding: '8px 12px',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            cursor: 'pointer',
-            outline: 'none',
-            fontFamily: "'Garet', 'Poppins', sans-serif"
-          }}
-        >
-                    <option value="es">Español</option>
-          <option value="en">English</option>
-          <option value="fr">Français</option>
-          <option value="it">Italiano</option>
-          <option value="pt">Português</option>
-          <option value="de">Deutsch</option>
-          <option value="nl">Nederlands</option>
-          <option value="pl">Polski</option>
-          <option value="cs">Čeština</option>
-          <option value="nb">Norsk</option>
-          <option value="sv">Svenska</option>
-          <option value="ar">العربية</option>
-        </select>
+      {/* IDIOMA + SESIÓN · fila superior compacta */}
+      <div hidden={currentScreen === 'adminPanel' || currentScreen === 'adminLogin'} style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 1000, display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {currentScreen === 'clientPortal' && (
+          <button type="button" className="lst-app-header-btn" onClick={() => { setPin(""); setLangMenuOpen(false); setCurrentScreen('clientPin'); }} aria-label={t('logout')} style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, background: '#221D19', border: '1px solid rgba(212, 175, 55, 0.4)', color: '#E4C687' }}>
+            <LogOut size={20} strokeWidth={1.7} aria-hidden="true" />
+          </button>
+        )}
+        <div style={{ position: 'relative' }}>
+          <button type="button" aria-haspopup="listbox" aria-expanded={langMenuOpen} aria-label="Language / Idioma" onClick={() => setLangMenuOpen(open => !open)} style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, background: '#221D19', border: '1px solid rgba(212, 175, 55, 0.4)', borderRadius: '999px', color: '#FFF8EE', fontSize: '12px', fontWeight: 700, letterSpacing: '1px', cursor: 'pointer', padding: 0 }}>
+            <Globe size={16} strokeWidth={1.7} style={{ color: '#E4C687' }} aria-hidden="true" />{currentLang.toUpperCase()}
+          </button>
+          {langMenuOpen && <>
+            <div aria-hidden="true" onClick={() => setLangMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 998, background: 'transparent' }} />
+            <div role="listbox" aria-label="Language / Idioma" style={{ position: 'absolute', top: '52px', right: 0, zIndex: 999, background: '#221D19', border: '1px solid rgba(212, 175, 55, 0.4)', borderRadius: '12px', padding: '6px', minWidth: '160px', maxHeight: '56vh', overflowY: 'auto', boxShadow: '0 16px 38px rgba(0, 0, 0, 0.5)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+              {([['es', 'Español'], ['en', 'English'], ['fr', 'Français'], ['it', 'Italiano'], ['pt', 'Português'], ['de', 'Deutsch'], ['nl', 'Nederlands'], ['pl', 'Polski'], ['cs', 'Čeština'], ['nb', 'Norsk'], ['sv', 'Svenska'], ['ar', 'العربية']] as const).map(([code, label]) => (
+                <button key={code} type="button" role="option" aria-selected={currentLang === code} onClick={() => { setCurrentLang(code); setLangMenuOpen(false); }} style={{ textAlign: 'left', background: currentLang === code ? 'rgba(201, 158, 82, 0.16)' : 'transparent', border: 'none', borderLeft: currentLang === code ? '2px solid #C99E52' : '2px solid transparent', color: currentLang === code ? '#E4C687' : '#FFF8EE', fontSize: '13px', padding: '10px 12px', minHeight: '44px', borderRadius: '8px', cursor: 'pointer' }}>{label}</button>
+              ))}
+            </div>
+          </>}
+        </div>
       </div>
 
       {!['clientPin', 'clientRegistration', 'adminLogin', 'adminPanel'].includes(currentScreen) && (
@@ -3765,7 +3783,7 @@ function StudioApp() {
           <button type="button" className={currentScreen === 'catalogBooking' || currentScreen === 'categoryScreen' || currentScreen === 'serviceDetail' ? 'lst-bottom-active' : ''} onClick={() => { setViewServiceDetail(null); setCurrentScreen('catalogBooking'); }}>
             <Scissors size={20} strokeWidth={1.7} aria-hidden="true" /><span>Servicios</span>
           </button>
-          <button type="button" className={currentScreen === 'visualAgenda' ? 'lst-bottom-active' : ''} onClick={() => { if (currentScreen !== 'visualAgenda') setCurrentScreen('catalogBooking'); }}>
+          <button type="button" className={currentScreen === 'clientPortal' ? 'lst-bottom-active' : ''} onClick={() => { setViewServiceDetail(null); setCurrentScreen('clientPortal'); window.setTimeout(() => document.getElementById('mis-citas-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120); }}>
             <CalendarDays size={20} strokeWidth={1.7} aria-hidden="true" /><span>Mis citas</span>
           </button>
           <button type="button" className={currentScreen === 'clientHistoryPage' ? 'lst-bottom-active' : ''} onClick={() => setCurrentScreen('clientHistoryPage')}>
@@ -3880,9 +3898,19 @@ function StudioApp() {
               <p style={{ overflowWrap: 'anywhere' }}>{currentClientRecord?.email} · ID #{currentClientRecord?.idNum} · {currentClientRecord?.registroId}</p>
             </details>
           </div>
-          <section aria-label="Tu próxima cita" style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '14px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <section aria-label="Reserva tu cita" style={{ background: 'linear-gradient(135deg, #221D19 0%, #322A25 100%)', border: '1px solid rgba(212, 175, 55, 0.45)', borderRadius: '14px', padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ width: 40, height: 40, minWidth: 40, borderRadius: '50%', background: 'rgba(201, 158, 82, 0.14)', border: '1px solid rgba(212, 175, 55, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E4C687' }}><Scissors size={19} strokeWidth={1.7} aria-hidden="true" /></span>
+              <div>
+                <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.03em', fontSize: '19px', fontWeight: 'normal', margin: 0 }}>Reserva tu cita</h3>
+                <p style={{ color: '#D6CBB8', fontSize: '12px', margin: '2px 0 0', lineHeight: 1.5 }}>Elige tus servicios y tu momento en el Studio.</p>
+              </div>
+            </div>
+            <button type="button" onClick={() => { setViewServiceDetail(null); setPortalSearch(''); setPortalSearchExpanded({}); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ width: '100%', minHeight: '52px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>{t('bookNext')} <ArrowRight size={17} strokeWidth={2} aria-hidden="true" /></button>
+          </section>
+          <section id="mis-citas-section" aria-label="Mis citas" style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '14px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px' }}>
-              <span style={{ color: '#8F6D24', fontSize: '11px', letterSpacing: '1px' }}>{t('nextVisit')}</span>
+              <span style={{ color: '#8F6D24', fontSize: '11px', letterSpacing: '1px' }}>MIS CITAS</span>
               <span style={{ backgroundColor: 'rgba(44, 37, 33, 0.07)', color: '#4E443B', fontSize: '10px', padding: '3px 9px', borderRadius: '20px' }}>{clientAppointmentStatus}</span>
             </div>
             {clientNextAppointment ? <>
@@ -3893,13 +3921,29 @@ function StudioApp() {
               <p style={{ color: '#4E443B', margin: 0, lineHeight: 1.5, fontSize: '12px', overflowWrap: 'anywhere' }}>{clientNextAppointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
               <p style={{ color: '#4E443B', margin: 0, fontSize: '11px' }}>Estilista: Ana · L’Studio Ana — Hair Experience</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', paddingTop: '2px' }}>
-                <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(clientNextAppointment); setNewRescheduleTime(clientNextAppointment.time); setNewRescheduleDate(clientNextAppointment.dateKey); }} style={{ background: 'transparent', border: '1px solid rgba(44, 37, 33, 0.2)', color: '#8F6D24', minHeight: '40px', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>{t('changeDate')}</button>
-                <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola Ana, quiero consultar mi cita del ${clientNextAppointment.dateKey.split('-').reverse().join('/')} a las ${clientNextAppointment.time}.`)}`} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', color: '#8F6D24', padding: '8px 0', minHeight: '24px', fontSize: '12px' }}>{t('askAppointment')}</a>
+                <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(clientNextAppointment); setNewRescheduleTime(clientNextAppointment.time); setNewRescheduleDate(clientNextAppointment.dateKey); }} style={{ background: 'transparent', border: '1px solid rgba(44, 37, 33, 0.2)', color: '#8F6D24', minHeight: '44px', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>{t('changeDate')}</button>
+                <button type="button" onClick={() => setCancelApptModal(clientNextAppointment)} style={{ background: 'transparent', border: '1px solid rgba(155, 60, 45, 0.45)', color: '#9B3C2D', minHeight: '44px', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>Cancelar cita</button>
+                <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola Ana, quiero consultar mi cita del ${clientNextAppointment.dateKey.split('-').reverse().join('/')} a las ${clientNextAppointment.time}.`)}`} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', color: '#8F6D24', padding: '10px 0', minHeight: '44px', fontSize: '12px' }}>{t('askAppointment')}</a>
               </div>
             </> : <>
               <p style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '17px', margin: 0 }}>{t('experienceStart')}</p>
               <p style={{ color: '#4E443B', fontSize: '12px', lineHeight: 1.5, margin: 0 }}>{t('noUpcoming')}</p>
             </>}
+            {clientUpcomingAppointments.length > 1 && (
+              <details style={{ borderTop: '1px solid rgba(44, 37, 33, 0.12)', paddingTop: '8px', color: '#2C2521', fontSize: '12px' }}>
+                <summary style={{ cursor: 'pointer', padding: '6px 0', color: '#8F6D24', minHeight: '32px' }}>Otras citas próximas ({clientUpcomingAppointments.length - 1})</summary>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {clientUpcomingAppointments.slice(1).map(appointment => <article key={appointment.id} style={{ background: 'rgba(255, 255, 255, 0.55)', border: '1px solid rgba(44, 37, 33, 0.12)', borderRadius: '8px', padding: '10px' }}>
+                    <strong style={{ fontSize: '12px' }}>{new Date(`${appointment.dateKey}T12:00:00`).toLocaleDateString(portalLocale, { day: 'numeric', month: 'short' })} · {appointment.time}</strong>
+                    <p style={{ color: '#4E443B', fontSize: '11px', margin: '4px 0 8px', overflowWrap: 'anywhere' }}>{appointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                      <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(appointment); setNewRescheduleTime(appointment.time); setNewRescheduleDate(appointment.dateKey); }} style={{ background: 'transparent', border: '1px solid rgba(44, 37, 33, 0.2)', color: '#8F6D24', minHeight: '40px', padding: '6px 12px', borderRadius: '7px', cursor: 'pointer', fontSize: '11px' }}>{t('changeDate')}</button>
+                      <button type="button" onClick={() => setCancelApptModal(appointment)} style={{ background: 'transparent', border: '1px solid rgba(155, 60, 45, 0.45)', color: '#9B3C2D', minHeight: '40px', padding: '6px 12px', borderRadius: '7px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>Cancelar cita</button>
+                    </div>
+                  </article>)}
+                </div>
+              </details>
+            )}
           </section>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '12px', minHeight: '64px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#2C2521', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}><Scissors size={18} strokeWidth={1.7} aria-hidden="true" />{t('catalog')}</button>
@@ -6496,6 +6540,27 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 setRescheduleModalAppt(null);
                 alert('¡Cita modificada con éxito!');
               }} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#2C2521', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{repeatAppointmentMode ? 'Crear nueva cita' : 'Guardar Cambios'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {cancelApptModal && (
+        <div role="dialog" aria-modal="true" aria-label="Cancelar cita" style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(28, 22, 18, 0.78)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ background: '#221D19', border: '1px solid rgba(212, 175, 55, 0.45)', borderRadius: '16px', padding: '24px', maxWidth: '420px', width: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '88vh', overflowY: 'auto' }}>
+            <h3 style={{ color: '#C99E52', fontSize: '24px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>Cancelar cita</h3>
+            <div style={{ backgroundColor: 'rgba(255, 248, 238, 0.06)', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '9px', padding: '14px', color: '#FFF8EE', fontSize: '13px', lineHeight: 1.7 }}>
+              {cancelApptModal.dateKey.split('-').reverse().join('/')} · {cancelApptModal.time}<br />
+              <span style={{ color: '#D6CBB8' }}>{(cancelApptModal.services?.length ? cancelApptModal.services.map(item => item.sub.name + (item.variant ? ` (${item.variant.name})` : '')).join(' + ') : cancelApptModal.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, ''))}</span>
+            </div>
+            {cancelApptModal.advancePayment?.status === 'pending' && (
+              <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.6, margin: 0, background: 'rgba(201, 158, 82, 0.1)', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px', padding: '10px 12px' }}>
+                Esta cita tiene un anticipo pendiente de {cancelApptModal.advancePayment.amount} € (ref. {cancelApptModal.advancePayment.reference}). Al cancelar, la reserva queda liberada; el tratamiento del anticipo se ajusta a la política de reservas del Studio y lo revisa Ana. No se aplica ningún reembolso automático.
+              </p>
+            )}
+            <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>La cita pasará a “Cancelada” en tu historial y se liberará el hueco en la agenda del Studio. Los recordatorios programados quedan anulados.</p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: '4px' }}>
+              <button type="button" onClick={() => setCancelApptModal(null)} style={{ background: 'none', border: '1px solid rgba(212, 175, 55, 0.4)', color: '#FFF8EE', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>Mantener mi cita</button>
+              <button type="button" onClick={() => handleConfirmCancelAppointment(cancelApptModal)} style={{ background: '#9B3C2D', border: 'none', color: '#FFF8EE', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Confirmar cancelación</button>
             </div>
           </div>
         </div>
