@@ -4092,12 +4092,14 @@ function StudioApp() {
             </div>
             {!!portalSearchQuery && <p role="status" aria-live="polite" style={{ color: '#D6CBB8', fontSize: '13px', margin: 0 }}>{portalSearchCount ? t('searchResults') + ': ' + portalSearchCount : t('noSearchResults')}</p>}
           </section>
-          <section style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h3 style={{ color: '#2C2521', fontSize: '21px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{t('advisorTitle')}</h3>
-            <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.7, margin: 0 }}>{t('advisorIntro')}</p>
-            <form onSubmit={handleRunAiRecommendation} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <textarea aria-label={t('advisorTitle')} value={clientWishText} onChange={event => { setClientWishText(event.target.value); setAiRecommendation(null); }} placeholder={t('advisorPlaceholder')} rows={3} style={{ width: '100%', boxSizing: 'border-box', background: '#F3E8D7', border: '1px solid rgba(44, 37, 33, 0.18)', color: '#2C2521', borderRadius: '10px', padding: '14px', fontSize: '16px', lineHeight: 1.6, resize: 'vertical' }} />
-              <button type="submit" disabled={!clientWishText.trim()} style={{ minHeight: '50px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '9px', padding: '14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', opacity: clientWishText.trim() ? 1 : 0.5 }}>{t('advisorButton')}</button>
+          <section style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+              <h3 style={{ color: '#2C2521', fontSize: '14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{t('advisorTitle')}</h3>
+              <p style={{ color: '#5C5248', fontSize: '11px', lineHeight: 1.4, margin: 0 }}>{t('advisorIntro')}</p>
+            </div>
+            <form onSubmit={handleRunAiRecommendation} style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+              <textarea aria-label={t('advisorTitle')} value={clientWishText} onChange={event => { setClientWishText(event.target.value); setAiRecommendation(null); }} placeholder={t('advisorPlaceholder')} rows={1} style={{ flex: 1, minWidth: 0, width: '100%', boxSizing: 'border-box', background: '#F3E8D7', border: '1px solid rgba(44, 37, 33, 0.18)', color: '#2C2521', borderRadius: '8px', padding: '8px 10px', fontSize: '13px', lineHeight: 1.5, minHeight: '36px', resize: 'none' }} />
+              <button type="submit" disabled={!clientWishText.trim()} style={{ minHeight: '36px', padding: '8px 14px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', opacity: clientWishText.trim() ? 1 : 0.5 }}>{t('advisorButton')}</button>
             </form>
             {aiRecommendation !== null && <div role="status" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {!aiRecommendation.some(id => catalog.some(category => category.subservices.some(service => service.id === id && service.active !== false))) && <p style={{ color: '#2C2521', lineHeight: 1.7 }}>{t('advisorNone')}</p>}
