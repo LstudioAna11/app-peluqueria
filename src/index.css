@@ -9,6 +9,13 @@
   body {
     @apply bg-brand-black text-brand-ivory font-sans antialiased;
   }
+  ::placeholder {
+    color: rgba(168, 159, 145, 0.6);
+  }
+  ::selection {
+    background: rgba(212, 175, 55, 0.35);
+    color: #FDFBF7;
+  }
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;
   }

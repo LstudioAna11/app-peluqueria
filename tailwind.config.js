@@ -5,17 +5,17 @@ export default {
     extend: {
       colors: {
         brand: {
-          black: '#F7F5F0',
-          card: '#FFFFFF',
-          'card-light': '#EFECE6',
+          black: '#2B2825',
+          card: '#3D3833',
+          'card-light': '#4A443D',
           gold: '#D4AF37',
           'gold-light': '#E8C766',
           'gold-dark': '#A8862B',
-          ivory: '#1A1A1A',
-          cream: '#1A1A1A',
-          charcoal: '#1A1A1A',
-          'charcoal-light': '#3A3A3A',
-          'charcoal-muted': '#6A6A6A',
+          ivory: '#FDFBF7',
+          cream: '#FDFBF7',
+          charcoal: '#2B2825',
+          'charcoal-light': '#3D3833',
+          'charcoal-muted': '#A89F91',
         },
       },
       fontFamily: {
