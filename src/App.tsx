@@ -1709,9 +1709,10 @@ function readStoredValue(key: string, raw: string): any {
 
 const AGENDA_SWATCHES = [
   { id: 'champagne', label: 'Champán', panel: '#EADCC7', soft: '#F3E8D7', border: '#E6D5B8' },
-  { id: 'sage', label: 'Salvia', panel: '#DCE3D8', soft: '#E9EFE5', border: '#C3CFBF' },
-  { id: 'terracotta', label: 'Terracota', panel: '#EBCFB9', soft: '#F4E1D2', border: '#D9B697' },
-  { id: 'blush', label: 'Rosa polvo', panel: '#EFD9D2', soft: '#F7E8E2', border: '#E2C4B8' },
+  { id: 'sage', label: 'Salvia', panel: '#C2CDBD', soft: '#D6DECE', border: '#9DAD93' },
+  { id: 'terracotta', label: 'Terracota', panel: '#D9A98A', soft: '#E8C4A8', border: '#C08B65' },
+  { id: 'blush', label: 'Rosa tostado', panel: '#DCB4A4', soft: '#EBCFC3', border: '#C69785' },
+  { id: 'stone', label: 'Piedra', panel: '#CFC8BC', soft: '#E0DAD0', border: '#B0A899' },
 ] as const;
 
 class PortalErrorBoundary extends React.Component<
@@ -1799,7 +1800,7 @@ function StudioApp() {
   
   // NUEVO ESTADO: VISTA DE AGENDA MAESTRA ('week' | 'day')
   const [agendaViewMode, setAgendaViewMode] = useState<'week' | 'day'>(() => window.matchMedia('(max-width: 700px)').matches ? 'day' : 'week');
-  const [agendaSwatch, setAgendaSwatch] = useState<'champagne' | 'sage' | 'terracotta' | 'blush'>('champagne');
+  const [agendaSwatch, setAgendaSwatch] = useState<'champagne' | 'sage' | 'terracotta' | 'blush' | 'stone'>('champagne');
   const agendaLayoutRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
     const root = agendaLayoutRef.current;
