@@ -1800,6 +1800,31 @@ function StudioApp() {
   // NUEVO ESTADO: VISTA DE AGENDA MAESTRA ('week' | 'day')
   const [agendaViewMode, setAgendaViewMode] = useState<'week' | 'day'>(() => window.matchMedia('(max-width: 700px)').matches ? 'day' : 'week');
   const [agendaSwatch, setAgendaSwatch] = useState<'champagne' | 'sage' | 'terracotta' | 'blush'>('champagne');
+  const agendaLayoutRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const root = agendaLayoutRef.current;
+    if (!root) return;
+    const target = AGENDA_SWATCHES.find(s => s.id === agendaSwatch) ?? AGENDA_SWATCHES[0];
+    const toRgb = (hex: string) => { const n = parseInt(hex.slice(1), 16); return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`; };
+    const map = new Map<string, string>();
+    for (const p of AGENDA_SWATCHES) {
+      map.set(toRgb(p.panel), toRgb(target.panel));
+      map.set(toRgb(p.soft), toRgb(target.soft));
+      map.set(toRgb(p.border), toRgb(target.border));
+    }
+    const tint = () => {
+      for (const el of Array.from(root.querySelectorAll<HTMLElement>('*'))) {
+        const bg = el.style.backgroundColor;
+        if (bg && map.has(bg)) el.style.backgroundColor = map.get(bg)!;
+        const bc = el.style.borderColor;
+        if (bc && map.has(bc)) el.style.borderColor = map.get(bc)!;
+      }
+    };
+    tint();
+    const observer = new MutationObserver(tint);
+    observer.observe(root, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [agendaSwatch]);
   const [appointmentSearch, setAppointmentSearch] = useState('');
   const [agendaSidePanel, setAgendaSidePanel] = useState<'day' | 'pending' | null>(null);
   const [pendingPanelFilter, setPendingPanelFilter] = useState<'all' | 'approval' | 'payment'>('all');
@@ -4539,7 +4564,7 @@ function StudioApp() {
           <main className="studio-admin-content">
           {/* TAB 1: AGENDA MAESTRA */}
           {adminTab === 'agenda' && (
-            <div className="studio-agenda-layout" style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            <div ref={agendaLayoutRef} className="studio-agenda-layout" style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
               <div className="studio-calendar-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px', minWidth: 0, overflowX: 'auto' }}>
 
 <div className="studio-agenda-toolbar">
@@ -4556,18 +4581,6 @@ function StudioApp() {
                     </button>
                   ))}
                 </div>
-                {agendaSwatch !== 'champagne' && (() => {
-                  const swatch = AGENDA_SWATCHES.find(s => s.id === agendaSwatch)!;
-                  return <style>{`
-                    .studio-agenda-layout { --sw-panel: ${swatch.panel}; --sw-soft: ${swatch.soft}; --sw-border: ${swatch.border}; }
-                    .studio-agenda-layout [style*="EADCC7"] { background-color: var(--sw-panel) !important; }
-                    .studio-agenda-layout [style*="F3E8D7"] { background-color: var(--sw-soft) !important; }
-                    .studio-agenda-layout [style*="234,220,199"] { background-color: var(--sw-panel) !important; }
-                    .studio-agenda-layout [style*="E6D5B8"] { border-color: var(--sw-border) !important; }
-                    .studio-agenda-layout [style*="rgba(212, 175, 55"] { border-color: var(--sw-border) !important; }
-                    .studio-agenda-layout [style*="rgba(228, 198, 135"] { border-color: var(--sw-border) !important; }
-                  `}</style>;
-                })()}
 
 <button type="button" aria-pressed={agendaExpanded} onClick={() => setAgendaExpanded(previous => !previous)}
 style={{ padding: '9px 14px', background: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '7px', cursor: 'pointer' }}>
