@@ -41,6 +41,8 @@ interface BusinessConfig {
   depositAmount: string;
   saturdayNoticeMessage: string;
   whatsappTemplate: string;
+  homeHeroImage: string;
+  homeHeroImagePosition: { x: number; y: number };
 }
 
 const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
@@ -73,7 +75,9 @@ const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
   bizumNumber: "672163485",
   depositAmount: "60 €",
   saturdayNoticeMessage: "SÁBADOS: El Studio abrirá los sábados únicamente para atender servicios de larga duración y eventos agendados con antelación bajo demanda de Ana.",
-  whatsappTemplate: "Hola {nombre}. Te recordamos tu cita en L’Studio Ana el {fecha} a las {hora}. ¡Te esperamos en el Studio!"
+  whatsappTemplate: "Hola {nombre}. Te recordamos tu cita en L’Studio Ana el {fecha} a las {hora}. ¡Te esperamos en el Studio!",
+  homeHeroImage: '/Salon_elegante_con_luz_calida.png',
+  homeHeroImagePosition: { x: 50, y: 62 }
 };
 
 // ======
@@ -3685,6 +3689,15 @@ function StudioApp() {
               <LogOut size={20} strokeWidth={1.7} aria-hidden="true" />
             </button>
           </div>
+          {bizConfig.homeHeroImage && (
+            <figure style={{ margin: 0, borderRadius: '18px', overflow: 'hidden', boxShadow: '0 12px 32px rgba(0, 0, 0, 0.3)', lineHeight: 0 }}>
+              <img
+                src={bizConfig.homeHeroImage}
+                alt="Interior de L’Studio Ana"
+                style={{ width: '100%', height: 'min(58vw, 340px)', objectFit: 'cover', objectPosition: `${bizConfig.homeHeroImagePosition?.x ?? 50}% ${bizConfig.homeHeroImagePosition?.y ?? 62}%`, display: 'block' }}
+              />
+            </figure>
+          )}
           <div style={{ padding: '6px 0 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <p style={{ color: '#FFF8EE', fontSize: '30px', lineHeight: 1.2, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em', margin: 0 }}>Tu cabello, tu esencia</p>
             <p style={{ color: '#D6CBB8', fontSize: '15px', lineHeight: 1.6, margin: 0 }}>{t('hello')}, {currentClientRecord?.nombre || t('welcome')}. {t('careIntro')}</p>
@@ -3693,23 +3706,25 @@ function StudioApp() {
               <p style={{ overflowWrap: 'anywhere' }}>{currentClientRecord?.email} · ID #{currentClientRecord?.idNum} · {currentClientRecord?.registroId}</p>
             </details>
           </div>
-          <section aria-label="Tu próxima cita" style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1.5px' }}>{t('nextVisit')}</div>
+          <section aria-label="Tu próxima cita" style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '14px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px' }}>
+              <span style={{ color: '#8F6D24', fontSize: '11px', letterSpacing: '1px' }}>{t('nextVisit')}</span>
+              <span style={{ backgroundColor: 'rgba(44, 37, 33, 0.07)', color: '#4E443B', fontSize: '10px', padding: '3px 9px', borderRadius: '20px' }}>{clientAppointmentStatus}</span>
+            </div>
             {clientNextAppointment ? <>
-              <div style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '23px', lineHeight: 1.4 }}>
+              <div style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '17px', lineHeight: 1.35 }}>
                 {new Date(`${clientNextAppointment.dateKey}T12:00:00`).toLocaleDateString(portalLocale, { weekday: 'long', day: 'numeric', month: 'long' })}
-                <span style={{ display: 'block', color: '#D8C29A', fontSize: '26px' }}>{clientNextAppointment.time}</span>
+                <span style={{ color: '#8F6D24' }}> · {clientNextAppointment.time}</span>
               </div>
-              <span style={{ alignSelf: 'flex-start', padding: '6px 10px', borderRadius: '20px', backgroundColor: '#EADCC7', color: '#2C2521', fontSize: '12px' }}>{clientAppointmentStatus}</span>
-              <p style={{ color: '#4E443B', margin: 0, lineHeight: 1.6, fontSize: '14px', overflowWrap: 'anywhere' }}>{clientNextAppointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
-              <p style={{ color: '#4E443B', margin: 0, fontSize: '12px' }}>Con Ana · {bizConfig.location}</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', paddingTop: '4px' }}>
-                <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(clientNextAppointment); setNewRescheduleTime(clientNextAppointment.time); setNewRescheduleDate(clientNextAppointment.dateKey); }} style={{ background: 'transparent', border: '1px solid rgba(44, 37, 33, 0.2)', color: '#8F6D24', minHeight: '44px', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>{t('changeDate')}</button>
-                <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola Ana, quiero consultar mi cita del ${clientNextAppointment.dateKey.split('-').reverse().join('/')} a las ${clientNextAppointment.time}.`)}`} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', color: '#D8C29A', padding: '10px 0', minHeight: '24px', fontSize: '13px' }}>{t('askAppointment')}</a>
+              <p style={{ color: '#4E443B', margin: 0, lineHeight: 1.5, fontSize: '12px', overflowWrap: 'anywhere' }}>{clientNextAppointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
+              <p style={{ color: '#4E443B', margin: 0, fontSize: '11px' }}>Estilista: Ana · L’Studio Ana — Hair Experience</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', paddingTop: '2px' }}>
+                <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(clientNextAppointment); setNewRescheduleTime(clientNextAppointment.time); setNewRescheduleDate(clientNextAppointment.dateKey); }} style={{ background: 'transparent', border: '1px solid rgba(44, 37, 33, 0.2)', color: '#8F6D24', minHeight: '40px', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>{t('changeDate')}</button>
+                <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola Ana, quiero consultar mi cita del ${clientNextAppointment.dateKey.split('-').reverse().join('/')} a las ${clientNextAppointment.time}.`)}`} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', color: '#8F6D24', padding: '8px 0', minHeight: '24px', fontSize: '12px' }}>{t('askAppointment')}</a>
               </div>
             </> : <>
-              <p style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '23px', margin: 0 }}>{t('experienceStart')}</p>
-              <p style={{ color: '#2C2521', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('noUpcoming')}</p>
+              <p style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '17px', margin: 0 }}>{t('experienceStart')}</p>
+              <p style={{ color: '#4E443B', fontSize: '12px', lineHeight: 1.5, margin: 0 }}>{t('noUpcoming')}</p>
             </>}
           </section>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
@@ -4559,12 +4574,62 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                     </div>
                   </div>
 
+                  <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6D5B8', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <span style={{ color: '#C99E52', fontSize: '13px', fontWeight: 'bold' }}>Fotos del inicio</span>
+                    <p style={{ color: '#7A7067', fontSize: '12px', margin: 0, lineHeight: 1.6 }}>Imagen protagonista del portal de clientas, bajo el logotipo. Sube una foto vertical u horizontal del salón; ajusta el encuadre con los deslizadores (el valor Y bajo centra la vista en las butacas recortando techo y suelo).</p>
+                    <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                      <div style={{ width: '150px', height: '200px', borderRadius: '10px', overflow: 'hidden', background: '#EFE9DF', flexShrink: 0, border: '1px solid #E6D5B8' }}>
+                        {tempConfig.homeHeroImage
+                          ? <img src={tempConfig.homeHeroImage} alt="Vista previa del inicio" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${tempConfig.homeHeroImagePosition?.x ?? 50}% ${tempConfig.homeHeroImagePosition?.y ?? 62}%` }} />
+                          : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#C99E52', fontSize: '12px' }}>Sin foto</span>}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, minWidth: '200px' }}>
+                        <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', minHeight: '44px', padding: '10px 14px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#2C2521', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
+                          {tempConfig.homeHeroImage ? 'Sustituir fotografía' : 'Subir fotografía'}
+                          <input type="file" accept="image/*" onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            e.target.value = '';
+                            if (!file || !file.type.startsWith('image/')) { if (file) alert('Elige un archivo de imagen.'); return; }
+                            if (file.size > 8 * 1024 * 1024) { alert('La imagen supera 8 MB. Elige una más ligera.'); return; }
+                            const reader = new FileReader();
+                            reader.onload = async () => {
+                              const dataUrl = String(reader.result);
+                              try {
+                                if (!studioApi.serverConfigured || studioApi.storedRole() !== 'admin' || !studioApi.currentToken()) {
+                                  alert('Entra en 360studio con el PIN maestro para subir la fotografía.'); return;
+                                }
+                                const uploaded = await studioApi.uploadServiceImage(studioApi.currentToken()!, dataUrl);
+                                setTempConfig(previous => ({ ...previous, homeHeroImage: uploaded.url }));
+                                alert('Foto subida. Pulsa «Guardar cambios» para publicarla en el portal.');
+                              } catch { alert('No se pudo subir la foto. Inténtalo de nuevo.'); }
+                            };
+                            reader.readAsDataURL(file);
+                          }} style={{ display: 'none' }} />
+                        </label>
+                        <label style={{ color: '#7A7067', fontSize: '12px' }}>Encuadre horizontal
+                          <input type="range" min={0} max={100} value={tempConfig.homeHeroImagePosition?.x ?? 50} onChange={(e) => setTempConfig({ ...tempConfig, homeHeroImagePosition: { x: Number(e.target.value), y: tempConfig.homeHeroImagePosition?.y ?? 62 } })} style={{ width: '100%', accentColor: '#C49A58' }} />
+                        </label>
+                        <label style={{ color: '#7A7067', fontSize: '12px' }}>Encuadre vertical (menos = más butacas, recorta techo)
+                          <input type="range" min={0} max={100} value={tempConfig.homeHeroImagePosition?.y ?? 62} onChange={(e) => setTempConfig({ ...tempConfig, homeHeroImagePosition: { x: tempConfig.homeHeroImagePosition?.x ?? 50, y: Number(e.target.value) } })} style={{ width: '100%', accentColor: '#C49A58' }} />
+                        </label>
+                        {tempConfig.homeHeroImage && tempConfig.homeHeroImage !== `/Salon_elegante_con_luz_calida.png` && !tempConfig.homeHeroImage.startsWith('/') && (
+                          <button type="button" onClick={async () => {
+                            if (!window.confirm('¿Restablecer la fotografía original del salón?')) return;
+                            const match = /^https:\/\/.+\/storage\/v1\/object\/public\/service-images\/(.+)$/.exec(tempConfig.homeHeroImage || '');
+                            try {
+                              if (match && studioApi.serverConfigured && studioApi.currentToken()) await studioApi.deleteServiceImage(studioApi.currentToken()!, match[1]);
+                            } catch { /* si falla el borrado, se restablece igualmente la vista previa */ }
+                            setTempConfig(previous => ({ ...previous, homeHeroImage: '/Salon_elegante_con_luz_calida.png', homeHeroImagePosition: { x: 50, y: 62 } }));
+                          }} style={{ background: '#FFFFFF', color: '#C0392B', border: '1px solid #dfaaa3', borderRadius: '6px', padding: '10px 14px', minHeight: '44px', fontSize: '12px', cursor: 'pointer' }}>Restablecer foto original</button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               )}
               {configSubTab === 'marca' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-
-
                   <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #E6D5B8', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <h4 style={{ color: '#C99E52', fontSize: '13px', margin: 0, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em' }}>Redes Sociales del Salón</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
