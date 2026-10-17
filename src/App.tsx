@@ -1714,7 +1714,7 @@ export default function App() {
 }
 
 function StudioApp() {
-  const [currentScreen, setCurrentScreen] = useState<'clientPin' | 'clientRegistration' | 'clientPortal' | 'catalogBooking' | 'serviceDetail' | 'visualAgenda' | 'clientHistoryPage' | 'adminLogin' | 'adminPanel'>('clientPin');
+  const [currentScreen, setCurrentScreen] = useState<'clientPin' | 'clientRegistration' | 'clientPortal' | 'catalogBooking' | 'categoryScreen' | 'serviceDetail' | 'visualAgenda' | 'clientHistoryPage' | 'adminLogin' | 'adminPanel'>('clientPin');
   
   const [currentLang, setCurrentLang] = useState<string>(() => { const saved = localStorage.getItem('lst_portal_language'); return saved && TRANSLATIONS[saved] ? saved : 'es'; });
   useEffect(() => { localStorage.setItem('lst_portal_language', currentLang); }, [currentLang]);
@@ -3367,10 +3367,15 @@ function StudioApp() {
         .lst-cta-full:hover { filter: brightness(1.06); }
         .lst-btn-back { background: none; border: none; color: #2C2521; width: 40px; height: 40px; min-width: 40px; min-height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
         .lst-btn-back:hover { background: rgba(44, 37, 33, 0.06); border-radius: 50%; }
-        .lst-cat-tabs { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; padding: 2px; -webkit-overflow-scrolling: touch; }
-        .lst-cat-tabs::-webkit-scrollbar { display: none; }
-        .lst-cat-tab { flex-shrink: 0; background: #F6F1E7; border: 1px solid #E4DCCF; color: #6E645A; border-radius: 999px; padding: 10px 18px; min-height: 42px; font-size: 13px; cursor: pointer; white-space: nowrap; }
-        .lst-cat-tab-active { background: linear-gradient(135deg, #C99E52 0%, #B3823B 100%); border-color: transparent; color: #FFFFFF; font-weight: 600; }
+        .lst-cat-card { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; background: #F6F1E7; border: 1px solid #E4DCCF; border-radius: 14px; padding: 12px; min-height: 76px; cursor: pointer; box-shadow: 0 4px 14px rgba(60, 50, 40, 0.05); }
+        .lst-cat-card:hover { border-color: #C99E52; }
+        .lst-cat-thumb { width: 56px; height: 56px; min-width: 56px; border-radius: 10px; overflow: hidden; background: #EFE9DF; display: flex; align-items: center; justify-content: center; }
+        .lst-cat-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .lst-cat-thumb strong { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; letter-spacing: 3px; color: #C99E52; }
+        .lst-cat-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+        .lst-cat-info strong { color: #2C2521; font-size: 16px; line-height: 1.3; font-weight: 600; }
+        .lst-cat-info small { color: #6E645A; font-size: 12px; }
+        .lst-cat-card svg { color: #8F6D24; flex-shrink: 0; }
         .lst-carousel-shell { position: relative; display: flex; align-items: center; gap: 6px; min-width: 0; }
         .lst-carousel { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 2px 8px; scrollbar-width: none; min-width: 0; -webkit-overflow-scrolling: touch; }
         .lst-carousel::-webkit-scrollbar { display: none; }
@@ -3433,7 +3438,7 @@ function StudioApp() {
           <button type="button" className={currentScreen === 'clientPortal' ? 'lst-bottom-active' : ''} onClick={() => { setViewServiceDetail(null); setCurrentScreen('clientPortal'); }}>
             <Home size={20} strokeWidth={1.7} aria-hidden="true" /><span>Inicio</span>
           </button>
-          <button type="button" className={currentScreen === 'catalogBooking' || currentScreen === 'serviceDetail' ? 'lst-bottom-active' : ''} onClick={() => { setViewServiceDetail(null); setCurrentScreen('catalogBooking'); }}>
+          <button type="button" className={currentScreen === 'catalogBooking' || currentScreen === 'categoryScreen' || currentScreen === 'serviceDetail' ? 'lst-bottom-active' : ''} onClick={() => { setViewServiceDetail(null); setCurrentScreen('catalogBooking'); }}>
             <Scissors size={20} strokeWidth={1.7} aria-hidden="true" /><span>Servicios</span>
           </button>
           <button type="button" className={currentScreen === 'visualAgenda' ? 'lst-bottom-active' : ''} onClick={() => { if (currentScreen !== 'visualAgenda') setCurrentScreen('catalogBooking'); }}>
@@ -3640,139 +3645,96 @@ function StudioApp() {
 
       {/* 2.2. CATÁLOGO & RESERVA SINCRONIZADO CON LA INTRANET */}
       {currentScreen === 'catalogBooking' && (
-        <div style={{ maxWidth: '700px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '20px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          <style>{`
-            .studio-client-category-heading { padding: 9px 13px !important; min-height: 56px !important; text-align: start !important; }
-            .studio-client-category-title { font-size: 15px !important; line-height: 1.3 !important; }
-            .studio-client-service { padding: 12px !important; border-radius: 9px !important; gap: 10px !important; }
-            .studio-client-service-title { font-size: 16px !important; line-height: 1.35 !important; }
-            @media (max-width: 600px) {
-              .studio-client-category-heading { padding: 8px 11px !important; min-height: 52px !important; gap: 10px !important; }
-              .studio-client-category-title { font-size: 14px !important; }
-              .studio-client-category-action { font-size: 12px !important; }
-              .studio-client-service { padding: 11px !important; }
-              .studio-client-service-title { font-size: 17px !important; }
-            }
-          `}</style>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212, 175, 55, 0.2)', paddingBottom: '15px' }}>
-            <div>
-              <h2 style={{ color: '#C99E52', fontSize: '18px', letterSpacing: '0.05em', margin: '0 0 3px 0', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif" }}>{bizConfig.name}</h2>
-              <p style={{ color: '#2C2521', fontSize: '9px', textTransform: 'uppercase', letterSpacing: '2px', margin: 0 }}>{t('servicesSelectionTitle')}</p>
-            </div>
-            <button onClick={() => setCurrentScreen('clientPortal')} style={{ background: 'none', border: '1px solid #C5A059', color: '#C99E52', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
-              {t('backToPortal')}
-            </button>
-          </div>
+        <div className="lst-page" style={{ maxWidth: '520px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {bookingSuccessMsg && (
             <div style={{ padding: '15px', backgroundColor: '#EAF4EA', border: '1px solid #44bb44', color: '#2E7D32', borderRadius: '8px', fontSize: '12px', textAlign: 'center', lineHeight: '1.5', fontWeight: 'bold' }}>
               {bookingSuccessMsg}
             </div>
           )}
-          <div>
-            <h1 style={{ fontSize: '28px', lineHeight: 1.25, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', color: '#2C2521', margin: '0 0 10px', fontWeight: 'normal' }}>{t('experienceTitle')}</h1>
-            <p style={{ color: '#2C2521', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('experienceIntro')}</p>
-          </div>
-          <section aria-label={t('searchServices')} style={{ background: '#FFFFFF', border: '1px solid #E6D5B8', borderRadius: '12px', padding: '16px' }}>
-            <label htmlFor="portal-service-search" style={{ color: '#C99E52', fontSize: '13px', display: 'block', marginBottom: '10px' }}>{t('searchServices')}</label>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <input id="portal-service-search" type="search" value={portalSearch} onChange={event => { setPortalSearch(event.target.value); setPortalSearchExpanded({}); }} placeholder={t('searchPlaceholder')} style={{ flex: 1, minWidth: 0, width: '100%', boxSizing: 'border-box', minHeight: '48px', padding: '12px', background: '#FFFFFF', color: '#2C2521', border: '1px solid #C5A059', borderRadius: '8px', fontSize: '16px' }} />
-              {!!portalSearch && <button type="button" aria-label={t('clearSearch')} onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); }} style={{ minHeight: '48px', minWidth: '48px', background: '#FFFFFF', color: '#2C2521', border: '1px solid #C5A059', borderRadius: '8px', cursor: 'pointer', fontSize: '22px' }}>×</button>}
+          <div className="lst-app-header">
+            <span style={{ width: 40, display: 'block' }} aria-hidden="true" />
+            <div style={{ textAlign: 'center' }}>
+              <h2 className="lst-app-header-title">{bizConfig.name}</h2>
+              <p className="lst-app-header-sub">{t('subtitle')}</p>
             </div>
-            {!!portalSearchQuery && <p role="status" aria-live="polite" style={{ color: '#7A7067', fontSize: '13px', margin: '12px 0 0' }}>{portalSearchCount ? `${t('searchResults')}: ${portalSearchCount}` : t('noSearchResults')}</p>}
+            <button className="lst-app-header-btn" onClick={() => setCurrentScreen('clientPortal')} aria-label={t('backToPortal')}>
+              <LogOut size={20} strokeWidth={1.7} aria-hidden="true" />
+            </button>
+          </div>
+          <div>
+            <h1 style={{ fontSize: '26px', lineHeight: 1.25, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em', color: '#2C2521', margin: '0 0 8px', fontWeight: 500 }}>{t('experienceTitle')}</h1>
+            <p style={{ color: '#6E645A', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('experienceIntro')}</p>
+          </div>
+          <section aria-label={t('searchServices')} style={{ background: '#F6F1E7', border: '1px solid #E4DCCF', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <label htmlFor="portal-service-search" style={{ color: '#8F6D24', fontSize: '13px', display: 'block' }}>{t('searchServices')}</label>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <input id="portal-service-search" type="search" value={portalSearch} onChange={event => { setPortalSearch(event.target.value); setPortalSearchExpanded({}); }} placeholder={t('searchPlaceholder')} style={{ flex: 1, minWidth: 0, width: '100%', boxSizing: 'border-box', minHeight: '48px', padding: '12px', background: '#FFFFFF', color: '#2C2521', border: '1px solid #E4DCCF', borderRadius: 8, fontSize: '16px' }} />
+              {!!portalSearch && <button type="button" aria-label={t('clearSearch')} onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); }} style={{ minHeight: '48px', minWidth: '48px', background: '#FFFFFF', color: '#2C2521', border: '1px solid #E4DCCF', borderRadius: 8, cursor: 'pointer', fontSize: '22px' }}>×</button>}
+            </div>
+            {!!portalSearchQuery && <p role="status" aria-live="polite" style={{ color: '#6E645A', fontSize: '13px', margin: 0 }}>{portalSearchCount ? t('searchResults') + ': ' + portalSearchCount : t('noSearchResults')}</p>}
           </section>
-          <button type="button" onClick={() => { setCurrentScreen('clientHistoryPage'); window.setTimeout(() => document.getElementById('service-advisor')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} style={{ textAlign: 'start', background: 'linear-gradient(135deg, #F2ECE4, #EAE2D6)', border: '1px solid #C5A059', borderRadius: '12px', color: '#C99E52', minHeight: '54px', padding: '16px', fontSize: '14px', cursor: 'pointer' }}>{t('advisorAccess')} →</button>
+          <button type="button" onClick={() => { setCurrentScreen('clientHistoryPage'); window.setTimeout(() => document.getElementById('service-advisor')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} style={{ textAlign: 'start', background: '#F6F1E7', border: '1px solid #E4DCCF', borderRadius: 12, color: '#8F6D24', minHeight: '54px', padding: '16px', fontSize: '14px', cursor: 'pointer' }}>{t('advisorAccess')} →</button>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
-            {portalSearchQuery ? (
-              catalog.filter(cat => cat.subservices.some(sub => portalServiceMatches(cat, sub))).map(cat => (
+          {portalSearchQuery ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', minWidth: 0 }}>
+              {catalog.filter(cat => cat.subservices.some(sub => portalServiceMatches(cat, sub))).map(cat => (
                 <div key={cat.id} style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: 0 }}>
-                  <h3 style={{ color: '#7A7067', fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', margin: '8px 0 0', fontWeight: 600 }}>{categoryText(cat)}</h3>
+                  <h3 style={{ color: '#8F6D24', fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', margin: 0, fontWeight: 600 }}>{categoryText(cat)}</h3>
                   {cat.subservices.filter(sub => portalServiceMatches(cat, sub)).map(sub => renderCatalogCard(cat, sub))}
                 </div>
-              ))
-            ) : (() => {
-              const activeCategory = catalog.find(cat => cat.id === activeCatalogTab) || catalog[0];
-              const activeServices = activeCategory ? activeCategory.subservices.filter(sub => sub.active !== false) : [];
-              const openDetail = (cat: CatalogCategory, sub: SubService) => { setViewServiceDetail({ cat, sub }); setCurrentScreen('serviceDetail'); window.scrollTo({ top: 0, behavior: 'smooth' }); };
-              return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 }}>
-                  <nav aria-label="Categorías de servicios" className="lst-cat-tabs">
-                    {catalog.map(cat => {
-                      const tabActive = activeCategory?.id === cat.id;
-                      return (
-                        <button key={cat.id} type="button" role="tab" aria-selected={tabActive} onClick={() => setActiveCatalogTab(cat.id)}
-                          className={tabActive ? 'lst-cat-tab lst-cat-tab-active' : 'lst-cat-tab'}>
-                          {categoryText(cat)}
-                        </button>
-                      );
-                    })}
-                  </nav>
-                  {activeCategory && activeServices.length > 0 && (
-                    <div className="lst-carousel-shell">
-                      <button type="button" className="lst-carousel-arrow" aria-label={t('previousWeek')} onClick={() => scrollCarousel(-1)}><ChevronLeft size={18} strokeWidth={2} aria-hidden="true" /></button>
-                      <div className="lst-carousel" tabIndex={0} role="region" aria-label={activeCategory ? categoryText(activeCategory) : 'Servicios'}
-                        ref={node => { carouselScrollerRef.current = node; if (node && activeCategory) node.scrollLeft = carouselPosRef.current[activeCategory.id] || 0; }}
-                        onScroll={event => { if (activeCategory) carouselPosRef.current[activeCategory.id] = event.currentTarget.scrollLeft; }}
-                        onKeyDown={event => {
-                          if (event.key === 'ArrowRight') { event.preventDefault(); scrollCarousel(1); }
-                          if (event.key === 'ArrowLeft') { event.preventDefault(); scrollCarousel(-1); }
-                        }}>
-                        {activeServices.map(sub => {
-                          const name = serviceText(sub, 'name') || sub.name;
-                          return (
-                            <article key={sub.id} id={"portal-service-" + sub.id} className="lst-c-card">
-                              <button type="button" className="lst-c-media" onClick={() => openDetail(activeCategory!, sub)} aria-label={name + ' · ' + t('viewService')}>
-                                {sub.imageUrl
-                                  ? <img src={sub.imageUrl} alt={name} loading="lazy" />
-                                  : <span className="lst-c-media-fallback"><strong>LS</strong><small>{bizConfig.name}</small></span>}
-                              </button>
-                              <div className="lst-c-body">
-                                <button type="button" className="lst-c-name" onClick={() => openDetail(activeCategory!, sub)}>{name}</button>
-                                {!!serviceText(sub, 'description') && <p className="lst-c-desc">{serviceText(sub, 'description')}</p>}
-                                <p className="lst-c-meta">{sub.price}{sub.duration ? ' · ' + sub.duration : ''}</p>
-                                <button type="button" className="lst-btn-ver lst-c-cta" onClick={() => openDetail(activeCategory!, sub)}>{t('viewService')} <ArrowRight size={15} strokeWidth={2} aria-hidden="true" /></button>
-                              </div>
-                            </article>
-                          );
-                        })}
-                      </div>
-                      <button type="button" className="lst-carousel-arrow" aria-label={t('nextWeek')} onClick={() => scrollCarousel(1)}><ChevronRight size={18} strokeWidth={2} aria-hidden="true" /></button>
-                    </div>
-                  )}
-                  {activeCategory && activeServices.length === 0 && (
-                    <p style={{ color: '#7A7067', fontSize: '13px', margin: 0 }}>Actualmente no hay servicios activos en esta categoría.</p>
-                  )}
-                </div>
-              );
-            })()}
-          </div>
-          {selectedServicesToBook.length > 0 && <section aria-label="Resumen de tu selección" style={{ backgroundColor: '#FFFFFF', border: '1px solid #C5A059', padding: '20px', borderRadius: '12px' }}>
-            <h2 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '20px', margin: '0 0 14px', fontWeight: 'normal' }}>Tu selección</h2>
-            {selectedServicesToBook.map(item => <div key={item.sub.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid #E6D5B8' }}>
-              <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#C99E52' }}>{serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#C99E52' }}>{item.sub.hasVariants && !item.variant ? t('chooseOption') : (item.variant?.price || item.sub.price) + ' · ' + (item.variant?.duration || item.sub.duration)}</span></div>
-              <button type="button" aria-label={`Quitar ${serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}`} onClick={() => setSelectedServicesToBook(previous => previous.filter(selected => selected.sub.id !== item.sub.id))} style={{ background: 'none', border: 'none', color: '#7A7067', cursor: 'pointer', padding: '10px', minHeight: '44px', fontSize: '12px' }}>{t('remove')}</button>
+              ))}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <h2 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em', fontSize: '20px', fontWeight: 500, margin: '4px 0 2px' }}>Elige una categoría</h2>
+              {catalog.map(cat => {
+                const count = cat.subservices.filter(sub => sub.active !== false).length;
+                const firstService = cat.subservices.find(sub => sub.active !== false);
+                return (
+                  <button key={cat.id} type="button" className="lst-cat-card" onClick={() => { setActiveCatalogTab(cat.id); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
+                    <span className="lst-cat-thumb" aria-hidden="true">
+                      {firstService?.imageUrl
+                        ? <img src={firstService.imageUrl} alt="" loading="lazy" decoding="async" />
+                        : <strong>LS</strong>}
+                    </span>
+                    <span className="lst-cat-info">
+                      <strong>{categoryText(cat)}</strong>
+                      <small>{count === 1 ? '1 servicio' : count + ' servicios'}</small>
+                    </span>
+                    <ChevronRight size={20} strokeWidth={1.7} aria-hidden="true" />
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {selectedServicesToBook.length > 0 && <section aria-label="Resumen de tu selección" style={{ backgroundColor: '#F6F1E7', border: '1px solid #E4DCCF', padding: '20px', borderRadius: 12 }}>
+            <h2 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em', fontSize: '20px', margin: '0 0 14px', fontWeight: 500 }}>Tu selección</h2>
+            {selectedServicesToBook.map(item => <div key={item.sub.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid #E4DCCF' }}>
+              <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#8F6D24' }}>{serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#8F6D24' }}>{item.sub.hasVariants && !item.variant ? t('chooseOption') : (item.variant?.price || item.sub.price) + ' · ' + (item.variant?.duration || item.sub.duration)}</span></div>
+              <button type="button" aria-label={'Quitar ' + serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')} onClick={() => setSelectedServicesToBook(previous => previous.filter(selected => selected.sub.id !== item.sub.id))} style={{ background: 'none', border: 'none', color: '#6E645A', cursor: 'pointer', padding: '10px', minHeight: '44px', minWidth: '44px', fontSize: '12px' }}>{t('remove')}</button>
             </div>)}
-            <p style={{ color: '#7A7067', fontSize: '13px', margin: '14px 0 0' }}>Duración de los servicios: {getModalDuration(selectedServicesToBook)} min</p>
+            <p style={{ color: '#6E645A', fontSize: '13px', margin: '14px 0 0' }}>Duración de los servicios: {getModalDuration(selectedServicesToBook)} min</p>
           </section>}
-          <div style={{ backgroundColor: '#FFFFFF', border: '1px solid #C5A059', borderRadius: '12px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', overflow: 'hidden' }}>
-            <h2 style={{ fontSize: '14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', color: '#C99E52', margin: 0 }}>{t('selectDate')}</h2>
+          <div style={{ backgroundColor: '#F6F1E7', border: '1px solid #E4DCCF', borderRadius: 12, padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', overflow: 'hidden' }}>
+            <h2 style={{ fontSize: '14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em', color: '#8F6D24', margin: 0 }}>{t('selectDate')}</h2>
             {selectedServicesToBook.length === 0 ? (
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(244, 241, 234, 0.94)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, padding: '20px', textAlign: 'center' }}>
-                <span style={{ color: '#C99E52', fontSize: '13px', fontWeight: 'bold', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(246, 241, 231, 0.94)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, padding: '20px', textAlign: 'center' }}>
+                <span style={{ color: '#8F6D24', fontSize: '13px', fontWeight: 'bold', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em' }}>
                   SELECCIONA UN SERVICIO PARA ACTIVAR ESTE PASO
                 </span>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {selectedServicesToBook.some(item => (catalog.flatMap(c => c.subservices).find(sub => sub.id === item.sub.id) || item.sub).requiresAssessment) && <p style={{ color: '#C99E52', fontSize: '12px' }}>Tu selección requiere valoración previa. Elegir fecha y hora registra una solicitud; Ana debe aprobarla antes de confirmar la cita.</p>}
-                {getTonerError(selectedServicesToBook) && <p role="alert" style={{ color: '#C99E52', fontSize: '12px' }}>{getTonerError(selectedServicesToBook)}</p>}
-                {getStylingError(selectedServicesToBook) && <p role="alert" style={{ color: '#C99E52', fontSize: '12px' }}>{getStylingError(selectedServicesToBook)}</p>}
-                <p style={{ color: '#7A7067', fontSize: '11px', margin: 0 }}>{t('reviewSelection')}</p>
+                {selectedServicesToBook.some(item => (catalog.flatMap(c => c.subservices).find(sub => sub.id === item.sub.id) || item.sub).requiresAssessment) && <p style={{ color: '#8F6D24', fontSize: '12px' }}>Tu selección requiere valoración previa. Elegir fecha y hora registra una solicitud; Ana debe aprobarla antes de confirmar la cita.</p>}
+                {getTonerError(selectedServicesToBook) && <p role="alert" style={{ color: '#8F6D24', fontSize: '12px' }}>{getTonerError(selectedServicesToBook)}</p>}
+                {getStylingError(selectedServicesToBook) && <p role="alert" style={{ color: '#8F6D24', fontSize: '12px' }}>{getStylingError(selectedServicesToBook)}</p>}
+                <p style={{ color: '#6E645A', fontSize: '11px', margin: 0 }}>{t('reviewSelection')}</p>
                 <button onClick={() => {
                   const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant);
                   if (missing) { alert(tf('requiredVariant', { service: missing.sub.name })); return; }
                   setCurrentScreen('visualAgenda');
-                }} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#2C2521', border: 'none', padding: '14px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', textAlign: 'center' }}>
+                }} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#FFFFFF', border: 'none', padding: '14px', borderRadius: 8, fontSize: '13px', fontWeight: '600', cursor: 'pointer', textAlign: 'center' }}>
                   {t('chooseDateTime')}
                 </button>
               </div>
@@ -3780,6 +3742,87 @@ function StudioApp() {
           </div>
         </div>
       )}
+
+      {/* CATEGORIA · CARRUSEL DE SERVICIOS */}
+      {currentScreen === 'categoryScreen' && (() => {
+        const activeCategory = catalog.find(cat => cat.id === activeCatalogTab) || catalog[0];
+        const activeServices = activeCategory ? activeCategory.subservices.filter(sub => sub.active !== false) : [];
+        const openDetail = (sub: SubService) => { setViewServiceDetail({ cat: activeCategory!, sub }); setCurrentScreen('serviceDetail'); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+        return (
+        <div className="lst-page" style={{ maxWidth: '520px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+          <div className="lst-app-header">
+            <button type="button" className="lst-btn-back" onClick={() => setCurrentScreen('catalogBooking')} aria-label={t('backToCatalog')}><ChevronLeft size={20} strokeWidth={1.7} aria-hidden="true" /></button>
+            <div style={{ textAlign: 'center' }}>
+              <h2 className="lst-app-header-title">{bizConfig.name}</h2>
+              <p className="lst-app-header-sub">{t('subtitle')}</p>
+            </div>
+            <span style={{ width: 40, display: 'block' }} aria-hidden="true" />
+          </div>
+          {activeCategory && <>
+            <header style={{ padding: '2px 0 0' }}>
+              <p style={{ color: '#B8863B', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', margin: '0 0 4px' }}>{t('experienceTitle')}</p>
+              <h1 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em', color: '#2C2521', fontSize: '27px', fontWeight: 500, lineHeight: 1.2, margin: 0 }}>{categoryText(activeCategory)}</h1>
+            </header>
+            {activeServices.length === 0 ? <p style={{ color: '#6E645A', fontSize: '13px', margin: 0 }}>Actualmente no hay servicios activos en esta categoría.</p> : <>
+            <p style={{ color: '#6E645A', fontSize: '13px', margin: 0, textAlign: 'center' }}><span id="lst-carousel-count" role="status">1 de {activeServices.length}</span></p>
+            <div className="lst-carousel-shell">
+              <button type="button" className="lst-carousel-arrow" aria-label={t('previousWeek')} onClick={() => scrollCarousel(-1)}><ChevronLeft size={18} strokeWidth={2} aria-hidden="true" /></button>
+              <div className="lst-carousel" tabIndex={0} role="region" aria-label={categoryText(activeCategory)}
+                ref={node => { carouselScrollerRef.current = node; if (node && activeCategory) node.scrollLeft = carouselPosRef.current[activeCategory.id] || 0; }}
+                onScroll={event => {
+                  const el = event.currentTarget;
+                  if (activeCategory) carouselPosRef.current[activeCategory.id] = el.scrollLeft;
+                  const card = el.querySelector('.lst-c-card') as HTMLElement | null;
+                  if (!card) return;
+                  const step = card.offsetWidth + 14 || 1;
+                  const index = Math.min(activeServices.length - 1, Math.max(0, Math.round(el.scrollLeft / step)));
+                  const counter = document.getElementById('lst-carousel-count');
+                  if (counter) counter.textContent = (index + 1) + ' de ' + activeServices.length;
+                  const dots = document.querySelectorAll('#lst-carousel-dots button');
+                  dots.forEach((dot, dotIndex) => { (dot as HTMLElement).style.opacity = dotIndex === index ? '1' : '0.35'; });
+                }}
+                onKeyDown={event => {
+                  if (event.key === 'ArrowRight') { event.preventDefault(); scrollCarousel(1); }
+                  if (event.key === 'ArrowLeft') { event.preventDefault(); scrollCarousel(-1); }
+                }}>
+                {activeServices.map(sub => {
+                  const name = serviceText(sub, 'name') || sub.name;
+                  return (
+                    <article key={sub.id} id={"portal-service-" + sub.id} className="lst-c-card">
+                      <button type="button" className="lst-c-media" onClick={() => openDetail(sub)} aria-label={name + ' · ' + t('viewService')}>
+                        {sub.imageUrl
+                          ? <img src={sub.imageUrl} alt={name} loading="lazy" decoding="async" />
+                          : <span className="lst-c-media-fallback"><strong>LS</strong><small>{bizConfig.name}</small></span>}
+                      </button>
+                      <div className="lst-c-body">
+                        <button type="button" className="lst-c-name" onClick={() => openDetail(sub)}>{name}</button>
+                        {!!serviceText(sub, 'description') && <p className="lst-c-desc">{serviceText(sub, 'description')}</p>}
+                        <p className="lst-c-meta">{sub.price}{sub.duration ? ' · ' + sub.duration : ''}</p>
+                        <button type="button" className="lst-btn-ver lst-c-cta" onClick={() => openDetail(sub)}>{t('viewService')} <ArrowRight size={15} strokeWidth={2} aria-hidden="true" /></button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+              <button type="button" className="lst-carousel-arrow" aria-label={t('nextWeek')} onClick={() => scrollCarousel(1)}><ChevronRight size={18} strokeWidth={2} aria-hidden="true" /></button>
+            </div>
+            <div id="lst-carousel-dots" style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
+              {activeServices.map((sub, index) => (
+                <button key={sub.id} type="button" aria-label={t('viewService') + ' · ' + (serviceText(sub, 'name') || sub.name)}
+                  onClick={() => { const el = carouselScrollerRef.current; if (!el) return; const card = el.querySelector('.lst-c-card') as HTMLElement | null; if (card) el.scrollTo({ left: index * (card.offsetWidth + 14), behavior: 'smooth' }); }}
+                  style={{ width: 10, height: 10, minWidth: 10, padding: 0, borderRadius: '50%', border: 'none', background: '#B8863B', opacity: index === 0 ? 1 : 0.35, cursor: 'pointer' }} />
+              ))}
+            </div>
+            </>}
+            {selectedServicesToBook.length > 0 && (
+              <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ background: '#F6F1E7', border: '1px solid #E4DCCF', borderRadius: 12, minHeight: '54px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#8F6D24', cursor: 'pointer' }}>
+                {t('reviewSelection')} ({selectedServicesToBook.length}) → {t('chooseDateTime')}
+              </button>
+            )}
+          </>}
+        </div>
+        );
+      })()}
 
       {/* FICHA DE SERVICIO */}
       {currentScreen === 'serviceDetail' && viewServiceDetail && (() => {
