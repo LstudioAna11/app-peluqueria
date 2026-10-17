@@ -4084,11 +4084,11 @@ function StudioApp() {
             <h1 style={{ fontSize: '26px', lineHeight: 1.25, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', color: '#FFF8EE', margin: '0 0 8px', fontWeight: 400 }}>{t('experienceTitle')}</h1>
             <p style={{ color: '#F0E6D2', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('experienceIntro')}</p>
           </div>
-          <section aria-label={t('searchServices')} style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <label htmlFor="portal-service-search" style={{ color: '#8F6D24', fontSize: '13px', display: 'block' }}>{t('searchServices')}</label>
+          <section aria-label={t('searchServices')} style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <label htmlFor="portal-service-search" style={{ color: '#8F6D24', fontSize: '12px', display: 'block' }}>{t('searchServices')}</label>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <input id="portal-service-search" type="search" value={portalSearch} onChange={event => { setPortalSearch(event.target.value); setPortalSearchExpanded({}); }} placeholder={t('searchPlaceholder')} style={{ flex: 1, minWidth: 0, width: '100%', boxSizing: 'border-box', minHeight: '48px', padding: '12px', background: '#F3E8D7', color: '#2C2521', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 8, fontSize: '16px' }} />
-              {!!portalSearch && <button type="button" aria-label={t('clearSearch')} onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); }} style={{ minHeight: '48px', minWidth: '48px', background: '#EADCC7', color: '#2C2521', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 8, cursor: 'pointer', fontSize: '22px' }}>×</button>}
+              <input id="portal-service-search" type="search" value={portalSearch} onChange={event => { setPortalSearch(event.target.value); setPortalSearchExpanded({}); }} placeholder={t('searchPlaceholder')} style={{ flex: 1, minWidth: 0, width: '100%', boxSizing: 'border-box', minHeight: '40px', padding: '8px 10px', background: '#F3E8D7', color: '#2C2521', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 8, fontSize: '16px' }} />
+              {!!portalSearch && <button type="button" aria-label={t('clearSearch')} onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); }} style={{ minHeight: '40px', minWidth: '40px', background: '#EADCC7', color: '#2C2521', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 8, cursor: 'pointer', fontSize: '20px' }}>×</button>}
             </div>
             {!!portalSearchQuery && <p role="status" aria-live="polite" style={{ color: '#D6CBB8', fontSize: '13px', margin: 0 }}>{portalSearchCount ? t('searchResults') + ': ' + portalSearchCount : t('noSearchResults')}</p>}
           </section>
