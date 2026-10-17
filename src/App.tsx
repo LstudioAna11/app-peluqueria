@@ -4134,31 +4134,17 @@ function StudioApp() {
               <button type="button" aria-label={'Quitar ' + serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')} onClick={() => setSelectedServicesToBook(previous => previous.filter(selected => selected.sub.id !== item.sub.id))} style={{ background: 'none', border: 'none', color: '#4E443B', cursor: 'pointer', padding: '10px', minHeight: '44px', minWidth: '44px', fontSize: '12px' }}>{t('remove')}</button>
             </div>)}
             <p style={{ color: '#4E443B', fontSize: '13px', margin: '14px 0 0' }}>Duración de los servicios: {getModalDuration(selectedServicesToBook)} min</p>
+            {selectedServicesToBook.some(item => (catalog.flatMap(c => c.subservices).find(sub => sub.id === item.sub.id) || item.sub).requiresAssessment) && <p style={{ color: '#8F6D24', fontSize: '12px', margin: 0 }}>Tu selección requiere valoración previa. Elegir fecha y hora registra una solicitud; Ana debe aprobarla antes de confirmar la cita.</p>}
+            {getTonerError(selectedServicesToBook) && <p role="alert" style={{ color: '#8F6D24', fontSize: '12px', margin: 0 }}>{getTonerError(selectedServicesToBook)}</p>}
+            {getStylingError(selectedServicesToBook) && <p role="alert" style={{ color: '#8F6D24', fontSize: '12px', margin: 0 }}>{getStylingError(selectedServicesToBook)}</p>}
+            <button type="button" onClick={() => {
+              const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant);
+              if (missing) { alert(tf('requiredVariant', { service: missing.sub.name })); return; }
+              setCurrentScreen('visualAgenda');
+            }} style={{ background: '#C49A58', color: '#29231F', border: 'none', padding: '14px', borderRadius: 8, fontSize: '13px', fontWeight: '600', cursor: 'pointer', textAlign: 'center', minHeight: '48px' }}>
+              {t('chooseDateTime')}
+            </button>
           </section>}
-          <div style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', overflow: 'hidden' }}>
-            <h2 style={{ fontSize: '14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em', color: '#8F6D24', margin: 0 }}>{t('selectDate')}</h2>
-            {selectedServicesToBook.length === 0 ? (
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(246, 241, 231, 0.94)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, padding: '20px', textAlign: 'center' }}>
-                <span style={{ color: '#8F6D24', fontSize: '13px', fontWeight: 'bold', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em' }}>
-                  SELECCIONA UN SERVICIO PARA ACTIVAR ESTE PASO
-                </span>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {selectedServicesToBook.some(item => (catalog.flatMap(c => c.subservices).find(sub => sub.id === item.sub.id) || item.sub).requiresAssessment) && <p style={{ color: '#8F6D24', fontSize: '12px' }}>Tu selección requiere valoración previa. Elegir fecha y hora registra una solicitud; Ana debe aprobarla antes de confirmar la cita.</p>}
-                {getTonerError(selectedServicesToBook) && <p role="alert" style={{ color: '#8F6D24', fontSize: '12px' }}>{getTonerError(selectedServicesToBook)}</p>}
-                {getStylingError(selectedServicesToBook) && <p role="alert" style={{ color: '#8F6D24', fontSize: '12px' }}>{getStylingError(selectedServicesToBook)}</p>}
-                <p style={{ color: '#4E443B', fontSize: '11px', margin: 0 }}>{t('reviewSelection')}</p>
-                <button onClick={() => {
-                  const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant);
-                  if (missing) { alert(tf('requiredVariant', { service: missing.sub.name })); return; }
-                  setCurrentScreen('visualAgenda');
-                }} style={{ background: '#C49A58', color: '#29231F', border: 'none', padding: '14px', borderRadius: 8, fontSize: '13px', fontWeight: '600', cursor: 'pointer', textAlign: 'center' }}>
-                  {t('chooseDateTime')}
-                </button>
-              </div>
-            )}
-          </div>
         </div>
       )}
 
@@ -4237,7 +4223,11 @@ function StudioApp() {
             </div>
             </>}
             {selectedServicesToBook.length > 0 && (
-              <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, minHeight: '54px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#8F6D24', cursor: 'pointer' }}>
+              <button type="button" onClick={() => {
+                const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant);
+                if (missing) { alert(tf('requiredVariant', { service: missing.sub.name })); return; }
+                setCurrentScreen('visualAgenda');
+              }} style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, minHeight: '54px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#8F6D24', cursor: 'pointer' }}>
                 {t('reviewSelection')} ({selectedServicesToBook.length}) → {t('chooseDateTime')}
               </button>
             )}
@@ -4301,7 +4291,7 @@ function StudioApp() {
               </div>
             </section>
           )}
-          <button type="button" onClick={() => { setSelectedServicesToBook(previous => previous.some(item => item.sub.id === detailSub.id) ? previous : [...previous, { sub: detailSub, variant: null }]); setCurrentScreen('catalogBooking'); }} className="lst-cta-full">{t('chooseAndBook')} <ArrowRight size={18} strokeWidth={2} aria-hidden="true" /></button>
+          <button type="button" onClick={() => { if (detailSub.hasVariants && !!detailSub.variants?.length && !detailSelection?.variant) { alert(tf('requiredVariant', { service: detailSub.name })); return; } setSelectedServicesToBook(previous => previous.some(item => item.sub.id === detailSub.id) ? previous : [...previous, { sub: detailSub, variant: null }]); setCurrentScreen('visualAgenda'); }} className="lst-cta-full">{t('chooseAndBook')} <ArrowRight size={18} strokeWidth={2} aria-hidden="true" /></button>
         </div>
         );
       })()}
