@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ImagePlus, Trash2, Globe } from 'lucide-react';
+import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Instagram, Facebook, Music2 } from 'lucide-react';
 import './catalog.css';
 import * as studioApi from './studioApi';
 
@@ -3924,10 +3924,6 @@ function StudioApp() {
             <h3 style={{ color: '#2C2521', fontSize: '19px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>Nos vemos en el Studio</h3>
             <p style={{ color: '#D8C29A', fontSize: '13px', margin: 0, lineHeight: 1.6 }}>Un espacio para ti y para el cuidado de tu cabello.</p>
             <p style={{ color: '#2C2521', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{bizConfig.location}</p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '18px' }}>
-              <a href={bizConfig.googleMapsUrl} target="_blank" rel="noreferrer" style={{ color: '#D8C29A', fontSize: '14px', padding: '10px 0' }}>{t('directions')}</a>
-              <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#D8C29A', fontSize: '14px', padding: '10px 0' }}>WhatsApp del Studio</a>
-            </div>
           </section>
           <details style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '12px', padding: '18px', boxShadow: '0 10px 26px rgba(0, 0, 0, 0.22)' }}>
             <summary style={{ color: '#8F6D24', fontSize: '14px', cursor: 'pointer', lineHeight: 1.6 }}>¿Cómo fue tu experiencia? Comparte tu opinión</summary>
@@ -3969,10 +3965,22 @@ function StudioApp() {
             )}
           </div>
           </details>
-          <footer style={{ borderTop: '1px solid #302f29', paddingTop: '18px', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '20px' }}>
-            <a href={bizConfig.instagramUrl} target="_blank" rel="noreferrer" style={{ color: '#FFF8EE', fontSize: '12px', padding: '8px 0', textDecoration: 'none' }}>Instagram</a>
-            <a href={bizConfig.facebookUrl} target="_blank" rel="noreferrer" style={{ color: '#FFF8EE', fontSize: '12px', padding: '8px 0', textDecoration: 'none' }}>Facebook</a>
-            <a href={bizConfig.tiktokUrl} target="_blank" rel="noreferrer" style={{ color: '#FFF8EE', fontSize: '12px', padding: '8px 0', textDecoration: 'none' }}>TikTok</a>
+          <footer aria-label="Contacto y redes sociales" style={{ borderTop: '1px solid #302f29', paddingTop: '22px', paddingBottom: '96px' }}>
+            <p style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1.5px', textAlign: 'center', margin: '0 0 14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif" }}>CONTACTO Y REDES</p>
+            <nav style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px' }}>
+              {[
+                { key: 'maps', href: bizConfig.googleMapsUrl, label: 'Cómo llegar', Icon: MapPin },
+                { key: 'wa', href: `https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`, label: 'WhatsApp', Icon: MessageCircle },
+                { key: 'ig', href: bizConfig.instagramUrl, label: 'Instagram', Icon: Instagram },
+                { key: 'fb', href: bizConfig.facebookUrl, label: 'Facebook', Icon: Facebook },
+                { key: 'tt', href: bizConfig.tiktokUrl, label: 'TikTok', Icon: Music2 }
+              ].filter(link => !!link.href).map(({ key, href, label, Icon }) => (
+                <a key={key} href={href} target="_blank" rel="noreferrer" aria-label={label} style={{ minWidth: '86px', minHeight: '44px', padding: '8px 12px', borderRadius: '10px', background: 'rgba(234, 220, 199, 0.06)', border: '1px solid rgba(212, 175, 55, 0.28)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px', textDecoration: 'none' }}>
+                  <Icon size={20} strokeWidth={1.5} style={{ color: '#E4C687' }} aria-hidden="true" />
+                  <span style={{ color: '#FFF8EE', fontSize: '11px', lineHeight: 1.2 }}>{label}</span>
+                </a>
+              ))}
+            </nav>
           </footer>
         </div>
       )}
