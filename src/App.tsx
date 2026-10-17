@@ -4092,7 +4092,23 @@ function StudioApp() {
             </div>
             {!!portalSearchQuery && <p role="status" aria-live="polite" style={{ color: '#D6CBB8', fontSize: '13px', margin: 0 }}>{portalSearchCount ? t('searchResults') + ': ' + portalSearchCount : t('noSearchResults')}</p>}
           </section>
-          <button type="button" onClick={() => { setCurrentScreen('clientHistoryPage'); window.setTimeout(() => document.getElementById('service-advisor')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} style={{ textAlign: 'start', background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, color: '#8F6D24', minHeight: '54px', padding: '16px', fontSize: '14px', cursor: 'pointer' }}>{t('advisorAccess')} →</button>
+          <section style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h3 style={{ color: '#2C2521', fontSize: '21px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{t('advisorTitle')}</h3>
+            <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.7, margin: 0 }}>{t('advisorIntro')}</p>
+            <form onSubmit={handleRunAiRecommendation} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <textarea aria-label={t('advisorTitle')} value={clientWishText} onChange={event => { setClientWishText(event.target.value); setAiRecommendation(null); }} placeholder={t('advisorPlaceholder')} rows={3} style={{ width: '100%', boxSizing: 'border-box', background: '#F3E8D7', border: '1px solid rgba(44, 37, 33, 0.18)', color: '#2C2521', borderRadius: '10px', padding: '14px', fontSize: '16px', lineHeight: 1.6, resize: 'vertical' }} />
+              <button type="submit" disabled={!clientWishText.trim()} style={{ minHeight: '50px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '9px', padding: '14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', opacity: clientWishText.trim() ? 1 : 0.5 }}>{t('advisorButton')}</button>
+            </form>
+            {aiRecommendation !== null && <div role="status" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {!aiRecommendation.some(id => catalog.some(category => category.subservices.some(service => service.id === id && service.active !== false))) && <p style={{ color: '#2C2521', lineHeight: 1.7 }}>{t('advisorNone')}</p>}
+              {aiRecommendation.map(id => { const category = catalog.find(item => item.subservices.some(service => service.id === id)); const service = category?.subservices.find(item => item.id === id && item.active !== false); if (!category || !service) return null; return <article key={id} style={{ background: '#F3E8D7', border: '1px solid rgba(44, 37, 33, 0.2)', padding: '12px', borderRadius: '12px' }}>
+                <h4 style={{ color: '#2C2521', fontSize: '18px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: '0 0 10px' }}>{serviceText(service, 'name')}</h4>
+                <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.7 }}>{t('advisorReason')}</p>
+                <button type="button" onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); setActiveCatalogTab(category.id); setViewServiceDetail(null); setCurrentScreen('categoryScreen'); window.setTimeout(() => document.getElementById(`portal-service-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }} style={{ minHeight: '44px', padding: '12px 16px', background: '#EADCC7', color: '#2C2521', border: '1px solid rgba(44, 37, 33, 0.2)', borderRadius: '8px', cursor: 'pointer' }}>{t('advisorView')}</button>
+              </article>; })}
+              <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#8F6D24', padding: '12px 0' }}>WhatsApp · Ana</a>
+            </div>}
+          </section>
 
           {portalSearchQuery ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', minWidth: 0 }}>
@@ -4372,23 +4388,6 @@ function StudioApp() {
             <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.6, margin: '0 0 18px' }}>{t('maintenanceNote')}</p>
             <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ width: '100%', minHeight: '52px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '9px', padding: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}>{t('bookNext')}</button>
             {currentClientRecord?.ultimaVisita && <p style={{ color: '#5C5248', fontSize: '12px', marginBottom: 0 }}>Última visita registrada: {currentClientRecord.ultimaVisita}</p>}
-          </section>
-          <section id="service-advisor" style={{ scrollMarginTop: '24px', background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <h3 style={{ color: '#2C2521', fontSize: '21px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{t('advisorTitle')}</h3>
-            <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.7, margin: 0 }}>{t('advisorIntro')}</p>
-            <form onSubmit={handleRunAiRecommendation} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <textarea aria-label={t('advisorTitle')} value={clientWishText} onChange={event => { setClientWishText(event.target.value); setAiRecommendation(null); }} placeholder={t('advisorPlaceholder')} rows={3} style={{ width: '100%', boxSizing: 'border-box', background: '#F3E8D7', border: '1px solid rgba(44, 37, 33, 0.18)', color: '#2C2521', borderRadius: '10px', padding: '14px', fontSize: '16px', lineHeight: 1.6, resize: 'vertical' }} />
-              <button type="submit" disabled={!clientWishText.trim()} style={{ minHeight: '50px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '9px', padding: '14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', opacity: clientWishText.trim() ? 1 : 0.5 }}>{t('advisorButton')}</button>
-            </form>
-            {aiRecommendation !== null && <div role="status" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {!aiRecommendation.some(id => catalog.some(category => category.subservices.some(service => service.id === id && service.active !== false))) && <p style={{ color: '#2C2521', lineHeight: 1.7 }}>{t('advisorNone')}</p>}
-              {aiRecommendation.map(id => { const category = catalog.find(item => item.subservices.some(service => service.id === id)); const service = category?.subservices.find(item => item.id === id && item.active !== false); if (!category || !service) return null; return <article key={id} style={{ background: '#EADCC7', border: '1px solid rgba(44, 37, 33, 0.2)', padding: '12px', borderRadius: '12px' }}>
-                <h4 style={{ color: '#2C2521', fontSize: '18px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: '0 0 10px' }}>{serviceText(service, 'name')}</h4>
-                <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.7 }}>{t('advisorReason')}</p>
-                <button type="button" onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); setActiveCatalogTab(category.id); setViewServiceDetail(null); setCurrentScreen('categoryScreen'); window.setTimeout(() => document.getElementById(`portal-service-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }} style={{ minHeight: '44px', padding: '12px 16px', background: '#EADCC7', color: '#2C2521', border: '1px solid rgba(44, 37, 33, 0.2)', borderRadius: '8px', cursor: 'pointer' }}>{t('advisorView')}</button>
-              </article>; })}
-              <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#D8C29A', padding: '12px 0' }}>WhatsApp · Ana</a>
-            </div>}
           </section>
           <button onClick={() => setCurrentScreen('clientPortal')} style={{ width: '100%', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#5C5248', padding: '12px', borderRadius: '10px', fontSize: '13px', cursor: 'pointer' }}>
             {t('backToPortal')}
