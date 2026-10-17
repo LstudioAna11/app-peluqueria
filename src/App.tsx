@@ -3479,66 +3479,66 @@ function StudioApp() {
   };
 
   return (
-    <div lang={currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang} dir={currentLang === 'ar' && currentScreen !== 'adminPanel' && currentScreen !== 'adminLogin' ? 'rtl' : 'ltr'} style={{ backgroundColor: currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? '#E9E3D8' : '#685C53', color: currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? '#2C2521' : '#FFF8EE', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', fontFamily: "'Garet', 'Poppins', sans-serif", margin: 0, padding: '20px 20px 96px', position: 'relative' }}>
+    <div lang={currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang} dir={currentLang === 'ar' && currentScreen !== 'adminPanel' && currentScreen !== 'adminLogin' ? 'rtl' : 'ltr'} style={{ backgroundColor: currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? '#E9E3D8' : '#29231F', color: currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? '#2C2521' : '#FFF8EE', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', fontFamily: "'Garet', 'Poppins', sans-serif", margin: 0, padding: '20px 20px 96px', position: 'relative' }}>
       
       <style>{`
         .lst-app-header { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 520px; padding: 4px 0 12px; }
-        .lst-app-header-title { color: #FFF8EE; font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.05em; font-size: 24px; margin: 0; text-align: center; }
-        .lst-app-header-sub { color: #E4C687; font-size: 8px; letter-spacing: 3px; text-transform: uppercase; margin: 2px 0 0; text-align: center; }
+        .lst-app-header-title { color: #FFF8EE; font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.03em; font-size: 24px; font-weight: 400; margin: 0; text-align: center; }
+        .lst-app-header-sub { color: #C9BCA9; font-size: 9px; letter-spacing: 2px; margin: 2px 0 0; text-align: center; }
         .lst-app-header-btn { background: none; border: none; color: #FFF8EE; width: 40px; height: 40px; min-width: 40px; min-height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 50%; padding: 0; }
         .lst-app-header-btn:hover { background: rgba(255, 248, 238, 0.14); }
-        .lst-card { background: #EADCC7; border: 1px solid #DAC9AC; border-radius: 14px; overflow: hidden; }
+        .lst-card { background: #EADCC7; border: 1px solid rgba(255, 248, 238, 0.08); border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); }
         .lst-card-media { width: 100%; height: 200px; object-fit: cover; display: block; }
-        .lst-ai-tag { position: absolute; top: 10px; right: 10px; background: rgba(28, 22, 18, 0.62); color: #FBF6EC; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; }
-        .lst-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-top: 1px solid #DAC9AC; }
-        .lst-card-footer strong { display: block; font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.04em; font-size: 19px; font-weight: 500; color: #2C2521; }
-        .lst-card-footer span { display: block; color: #5C5248; font-size: 13px; margin-top: 3px; }
-        .lst-btn-ver { display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, #C99E52 0%, #B3823B 100%); color: #FFFFFF; border: none; padding: 9px 16px; min-height: 38px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-        .lst-btn-ver:hover { filter: brightness(1.06); }
-        .lst-bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; background: #EADCC7; border-top: 1px solid #DAC9AC; display: flex; justify-content: space-around; padding: 6px 8px calc(10px + env(safe-area-inset-bottom)); max-width: 640px; margin: 0 auto; }
-        .lst-bottom-nav button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; color: #5C5248; font-size: 11px; cursor: pointer; padding: 6px 0; }
-        .lst-bottom-nav button.lst-bottom-active { color: #B8863B; }
-        .lst-bottom-nav button:hover { color: #B8863B; }
-        .lst-detail-eyebrow { color: #E4C687; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; }
-        .lst-detail-title { font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.04em; font-size: 30px; font-weight: 500; color: #FFF8EE; margin: 6px 0 0; }
-        .lst-detail-desc { color: #F0E6D2; font-size: 14px; line-height: 1.6; margin: 8px 0 0; }
-        .lst-include-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid #DAC9AC; }
+        .lst-ai-tag { position: absolute; top: 10px; right: 10px; background: rgba(20, 15, 12, 0.66); color: #FBF6EC; font-size: 10px; letter-spacing: 0.5px; padding: 4px 10px; border-radius: 999px; }
+        .lst-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-top: 1px solid rgba(44, 37, 33, 0.12); }
+        .lst-card-footer strong { display: block; font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.02em; font-size: 19px; font-weight: 400; color: #2C2521; }
+        .lst-card-footer span { display: block; color: #4E443B; font-size: 13px; margin-top: 3px; }
+        .lst-btn-ver { display: inline-flex; align-items: center; gap: 6px; background: #C49A58; color: #29231F; border: none; padding: 9px 16px; min-height: 38px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .lst-btn-ver:hover { background: #CFA765; }
+        .lst-bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; background: #221D19; border-top: 1px solid rgba(255, 248, 238, 0.08); display: flex; justify-content: space-around; padding: 6px 8px calc(10px + env(safe-area-inset-bottom)); max-width: 640px; margin: 0 auto; }
+        .lst-bottom-nav button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; color: #C9BCA9; font-size: 11px; cursor: pointer; padding: 6px 0; }
+        .lst-bottom-nav button.lst-bottom-active { color: #C49A58; }
+        .lst-bottom-nav button:hover { color: #E4C687; }
+        .lst-detail-eyebrow { color: #D8C29A; font-size: 11px; letter-spacing: 1.5px; }
+        .lst-detail-title { font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.02em; font-size: 30px; font-weight: 400; color: #FFF8EE; margin: 6px 0 0; }
+        .lst-detail-desc { color: #EFE5D4; font-size: 14px; line-height: 1.7; margin: 8px 0 0; }
+        .lst-include-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid rgba(44, 37, 33, 0.12); }
         .lst-include-row:last-child { border-bottom: none; }
-        .lst-include-icon { width: 38px; height: 38px; min-width: 38px; border-radius: 50%; background: #F3E8D7; border: 1px solid #DAC9AC; display: flex; align-items: center; justify-content: center; color: #8F6D24; }
+        .lst-include-icon { width: 38px; height: 38px; min-width: 38px; border-radius: 50%; background: rgba(44, 37, 33, 0.06); border: 1px solid rgba(44, 37, 33, 0.12); display: flex; align-items: center; justify-content: center; color: #8F6D24; }
         .lst-include-label { color: #2C2521; font-size: 14px; }
-        .lst-price-box { display: flex; align-items: center; gap: 10px; border: 1px solid #DAC9AC; background: #F3E8D7; border-radius: 10px; padding: 12px 14px; color: #2C2521; font-size: 13px; }
-        .lst-cta-full { width: 100%; min-height: 54px; background: linear-gradient(135deg, #C99E52 0%, #B3823B 100%); color: #FFFFFF; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .lst-cta-full:hover { filter: brightness(1.06); }
+        .lst-price-box { display: flex; align-items: center; gap: 10px; border: 1px solid rgba(44, 37, 33, 0.12); background: rgba(44, 37, 33, 0.05); border-radius: 10px; padding: 12px 14px; color: #2C2521; font-size: 13px; }
+        .lst-cta-full { width: 100%; min-height: 54px; background: #C49A58; color: #29231F; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .lst-cta-full:hover { background: #CFA765; }
         .lst-btn-back { background: none; border: none; color: #FFF8EE; width: 40px; height: 40px; min-width: 40px; min-height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
-        .lst-btn-back:hover { background: rgba(255, 248, 238, 0.14); border-radius: 50%; }
-        .lst-cat-card { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; background: #EADCC7; border: 1px solid #DAC9AC; border-radius: 14px; padding: 12px; min-height: 76px; cursor: pointer; box-shadow: 0 4px 14px rgba(30, 24, 20, 0.18); touch-action: manipulation; }
-        .lst-cat-card:hover { border-color: #C99E52; }
+        .lst-btn-back:hover { background: rgba(255, 248, 238, 0.1); border-radius: 50%; }
+        .lst-cat-card { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; background: #EADCC7; border: 1px solid rgba(255, 248, 238, 0.08); border-radius: 16px; padding: 12px; min-height: 76px; cursor: pointer; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25); touch-action: manipulation; }
+        .lst-cat-card:hover { background: #F0E4D1; }
         .lst-cat-card:active { transform: scale(0.99); }
-        .lst-cat-thumb { width: 56px; height: 56px; min-width: 56px; border-radius: 10px; overflow: hidden; background: #F3E8D7; display: flex; align-items: center; justify-content: center; }
+        .lst-cat-thumb { width: 56px; height: 56px; min-width: 56px; border-radius: 12px; overflow: hidden; background: #F3E8D7; display: flex; align-items: center; justify-content: center; }
         .lst-cat-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .lst-cat-thumb strong { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; letter-spacing: 3px; color: #C99E52; }
+        .lst-cat-thumb strong { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; letter-spacing: 3px; color: #8F6D24; }
         .lst-cat-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-        .lst-cat-info strong { color: #2C2521; font-size: 16px; line-height: 1.3; font-weight: 600; }
-        .lst-cat-info small { color: #5C5248; font-size: 12px; }
+        .lst-cat-info strong { color: #2C2521; font-size: 16px; line-height: 1.3; font-weight: 500; }
+        .lst-cat-info small { color: #4E443B; font-size: 12px; }
         .lst-cat-card svg { color: #8F6D24; flex-shrink: 0; pointer-events: none; }
         .lst-carousel-shell { position: relative; display: flex; align-items: center; gap: 6px; min-width: 0; }
         .lst-carousel { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 2px 8px; scrollbar-width: none; min-width: 0; -webkit-overflow-scrolling: touch; }
         .lst-carousel::-webkit-scrollbar { display: none; }
-        .lst-c-card { flex: 0 0 240px; scroll-snap-align: start; background: #EADCC7; border: 1px solid #DAC9AC; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+        .lst-c-card { flex: 0 0 240px; scroll-snap-align: start; background: #EADCC7; border: 1px solid rgba(255, 248, 238, 0.08); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25); }
         .lst-c-media { display: block; width: 100%; height: 190px; padding: 0; border: none; background: #F3E8D7; cursor: pointer; overflow: hidden; position: relative; }
         .lst-c-media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease; }
-        .lst-c-media .lst-ai-tag { position: absolute; top: 10px; right: 10px; background: rgba(28, 22, 18, 0.62); color: #FBF6EC; font-size: 10px; letter-spacing: 1px; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; }
+        .lst-c-media .lst-ai-tag { position: absolute; top: 10px; right: 10px; background: rgba(20, 15, 12, 0.66); color: #FBF6EC; font-size: 10px; letter-spacing: 0.5px; padding: 4px 10px; border-radius: 999px; }
         .lst-c-media:hover img { transform: scale(1.04); }
         .lst-c-media-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 100%; }
-        .lst-c-media-fallback strong { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 38px; letter-spacing: 4px; color: #C99E52; line-height: 1; }
-        .lst-c-media-fallback small { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: #8F6D24; }
-        .lst-c-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
-        .lst-c-name { background: none; border: none; padding: 0; text-align: left; font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.04em; font-size: 17px; font-weight: 500; color: #2C2521; cursor: pointer; }
-        .lst-c-desc { color: #5C5248; font-size: 12px; line-height: 1.55; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .lst-c-media-fallback strong { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 38px; letter-spacing: 4px; color: #8F6D24; line-height: 1; }
+        .lst-c-media-fallback small { font-size: 10px; letter-spacing: 2px; color: #8F6D24; }
+        .lst-c-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+        .lst-c-name { background: none; border: none; padding: 0; text-align: left; font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.02em; font-size: 18px; font-weight: 400; color: #2C2521; cursor: pointer; }
+        .lst-c-desc { color: #4E443B; font-size: 12px; line-height: 1.55; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
         .lst-c-meta { color: #8F6D24; font-size: 13px; font-weight: 600; margin: 0; }
         .lst-c-cta { margin-top: auto; justify-content: center; }
-        .lst-carousel-arrow { display: none; width: 36px; height: 36px; min-width: 36px; border-radius: 50%; border: 1px solid #DAC9AC; background: #EADCC7; color: #8F6D24; cursor: pointer; align-items: center; justify-content: center; padding: 0; }
-        .lst-carousel-arrow:hover { background: #F3E8D7; }
+        .lst-carousel-arrow { display: none; width: 36px; height: 36px; min-width: 36px; border-radius: 50%; border: 1px solid rgba(255, 248, 238, 0.14); background: #221D19; color: #E4C687; cursor: pointer; align-items: center; justify-content: center; padding: 0; }
+        .lst-carousel-arrow:hover { background: #322A25; }
         @media (max-width: 640px) {
           .lst-bottom-nav { max-width: 100%; }
           .lst-c-card { flex-basis: 76%; }
@@ -3687,25 +3687,25 @@ function StudioApp() {
           </div>
           <div style={{ padding: '6px 0 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <p style={{ color: '#FFF8EE', fontSize: '30px', lineHeight: 1.2, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em', margin: 0 }}>Tu cabello, tu esencia</p>
-            <p style={{ color: '#5C5248', fontSize: '15px', lineHeight: 1.6, margin: 0 }}>{t('hello')}, {currentClientRecord?.nombre || t('welcome')}. {t('careIntro')}</p>
+            <p style={{ color: '#D6CBB8', fontSize: '15px', lineHeight: 1.6, margin: 0 }}>{t('hello')}, {currentClientRecord?.nombre || t('welcome')}. {t('careIntro')}</p>
             <details style={{ color: '#FFF8EE', fontSize: '12px', marginTop: '6px' }}>
               <summary style={{ cursor: 'pointer', padding: '6px 0' }}>{t('myDetails')}</summary>
               <p style={{ overflowWrap: 'anywhere' }}>{currentClientRecord?.email} · ID #{currentClientRecord?.idNum} · {currentClientRecord?.registroId}</p>
             </details>
           </div>
-          <section aria-label="Tu próxima cita" style={{ background: 'linear-gradient(135deg, #F2ECE4, #EAE2D6)', border: '1px solid #E6D5B8', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ color: '#E4C687', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase' }}>{t('nextVisit')}</div>
+          <section aria-label="Tu próxima cita" style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '16px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            <div style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1.5px' }}>{t('nextVisit')}</div>
             {clientNextAppointment ? <>
               <div style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '23px', lineHeight: 1.4 }}>
                 {new Date(`${clientNextAppointment.dateKey}T12:00:00`).toLocaleDateString(portalLocale, { weekday: 'long', day: 'numeric', month: 'long' })}
-                <span style={{ display: 'block', color: '#E4C687', fontSize: '26px' }}>{clientNextAppointment.time}</span>
+                <span style={{ display: 'block', color: '#D8C29A', fontSize: '26px' }}>{clientNextAppointment.time}</span>
               </div>
               <span style={{ alignSelf: 'flex-start', padding: '6px 10px', borderRadius: '20px', backgroundColor: '#EADCC7', color: '#2C2521', fontSize: '12px' }}>{clientAppointmentStatus}</span>
-              <p style={{ color: '#5C5248', margin: 0, lineHeight: 1.6, fontSize: '14px', overflowWrap: 'anywhere' }}>{clientNextAppointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
-              <p style={{ color: '#5C5248', margin: 0, fontSize: '12px' }}>Con Ana · {bizConfig.location}</p>
+              <p style={{ color: '#4E443B', margin: 0, lineHeight: 1.6, fontSize: '14px', overflowWrap: 'anywhere' }}>{clientNextAppointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
+              <p style={{ color: '#4E443B', margin: 0, fontSize: '12px' }}>Con Ana · {bizConfig.location}</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', paddingTop: '4px' }}>
-                <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(clientNextAppointment); setNewRescheduleTime(clientNextAppointment.time); setNewRescheduleDate(clientNextAppointment.dateKey); }} style={{ background: 'transparent', border: '1px solid #C5A059', color: '#E4C687', minHeight: '44px', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>{t('changeDate')}</button>
-                <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola Ana, quiero consultar mi cita del ${clientNextAppointment.dateKey.split('-').reverse().join('/')} a las ${clientNextAppointment.time}.`)}`} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', color: '#E4C687', padding: '10px 0', minHeight: '24px', fontSize: '13px' }}>{t('askAppointment')}</a>
+                <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(clientNextAppointment); setNewRescheduleTime(clientNextAppointment.time); setNewRescheduleDate(clientNextAppointment.dateKey); }} style={{ background: 'transparent', border: '1px solid rgba(44, 37, 33, 0.2)', color: '#8F6D24', minHeight: '44px', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer', fontSize: '13px' }}>{t('changeDate')}</button>
+                <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola Ana, quiero consultar mi cita del ${clientNextAppointment.dateKey.split('-').reverse().join('/')} a las ${clientNextAppointment.time}.`)}`} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', color: '#D8C29A', padding: '10px 0', minHeight: '24px', fontSize: '13px' }}>{t('askAppointment')}</a>
               </div>
             </> : <>
               <p style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '23px', margin: 0 }}>{t('experienceStart')}</p>
@@ -3713,20 +3713,20 @@ function StudioApp() {
             </>}
           </section>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ background: '#EADCC7', border: '1px solid #E4DCCF', borderRadius: '12px', minHeight: '64px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#2C2521', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}><Scissors size={18} strokeWidth={1.7} aria-hidden="true" />{t('catalog')}</button>
-            <button type="button" onClick={() => setCurrentScreen('clientHistoryPage')} style={{ background: '#EADCC7', border: '1px solid #E4DCCF', borderRadius: '12px', minHeight: '64px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#2C2521', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}><BookOpen size={18} strokeWidth={1.7} aria-hidden="true" />{t('history')}</button>
+            <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '12px', minHeight: '64px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#2C2521', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}><Scissors size={18} strokeWidth={1.7} aria-hidden="true" />{t('catalog')}</button>
+            <button type="button" onClick={() => setCurrentScreen('clientHistoryPage')} style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '12px', minHeight: '64px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#2C2521', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}><BookOpen size={18} strokeWidth={1.7} aria-hidden="true" />{t('history')}</button>
             <div style={{ textAlign: 'center', padding: '10px 0', color: '#FFF8EE', fontSize: '13px', lineHeight: 1.7 }}>
               ¿No sabes qué servicio elegir? <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#FFF8EE' }}>{t('guidance')}</a>
-              <a href={`tel:${bizConfig.phone}`} style={{ display: 'block', color: '#5C5248', marginTop: '4px' }}>{t('callStudio')}</a>
+              <a href={`tel:${bizConfig.phone}`} style={{ display: 'block', color: '#D6CBB8', marginTop: '4px' }}>{t('callStudio')}</a>
             </div>
           </div>
-          <details style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px', padding: '18px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)' }}>
-            <summary style={{ color: '#E4C687', fontSize: '14px', cursor: 'pointer', minHeight: '24px' }}>{t('studioHours')}</summary>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '18px', color: '#5C5248', fontSize: '13px', lineHeight: 1.6 }}>
+          <details style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '12px', padding: '18px', boxShadow: '0 10px 26px rgba(0, 0, 0, 0.22)' }}>
+            <summary style={{ color: '#8F6D24', fontSize: '14px', cursor: 'pointer', minHeight: '24px' }}>{t('studioHours')}</summary>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '18px', color: '#4E443B', fontSize: '13px', lineHeight: 1.6 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}><span>Lunes</span><span style={{ color: '#2C2521' }}>{bizConfig.scheduleMonday}</span></div>
               <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}><span>Martes y miércoles</span><span style={{ color: '#2C2521' }}>{bizConfig.scheduleTueWed}</span></div>
               <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}><span>Jueves y viernes</span><span style={{ color: '#2C2521' }}>{bizConfig.scheduleThuFri}</span></div>
-              <div><span style={{ color: '#E4C687' }}>Sábados</span><p style={{ margin: '4px 0 0', overflowWrap: 'anywhere' }}>{bizConfig.scheduleSaturday}</p></div>
+              <div><span style={{ color: '#D8C29A' }}>Sábados</span><p style={{ margin: '4px 0 0', overflowWrap: 'anywhere' }}>{bizConfig.scheduleSaturday}</p></div>
             </div>
           </details>
           <section aria-label="Visítanos" style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -3734,25 +3734,25 @@ function StudioApp() {
               <img src={STUDIO_PORTAL_PHOTO} alt="Interior de L’Studio Ana, con madera natural y butacas claras" loading="lazy" decoding="async" style={{ display: 'block', width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 45%' }} />
             </div>
             <h3 style={{ color: '#2C2521', fontSize: '19px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>Nos vemos en el Studio</h3>
-            <p style={{ color: '#E4C687', fontSize: '13px', margin: 0, lineHeight: 1.6 }}>Un espacio para ti y para el cuidado de tu cabello.</p>
+            <p style={{ color: '#D8C29A', fontSize: '13px', margin: 0, lineHeight: 1.6 }}>Un espacio para ti y para el cuidado de tu cabello.</p>
             <p style={{ color: '#2C2521', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{bizConfig.location}</p>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '18px' }}>
-              <a href={bizConfig.googleMapsUrl} target="_blank" rel="noreferrer" style={{ color: '#E4C687', fontSize: '14px', padding: '10px 0' }}>{t('directions')}</a>
-              <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#E4C687', fontSize: '14px', padding: '10px 0' }}>WhatsApp del Studio</a>
+              <a href={bizConfig.googleMapsUrl} target="_blank" rel="noreferrer" style={{ color: '#D8C29A', fontSize: '14px', padding: '10px 0' }}>{t('directions')}</a>
+              <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#D8C29A', fontSize: '14px', padding: '10px 0' }}>WhatsApp del Studio</a>
             </div>
           </section>
-          <details style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px', padding: '18px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)' }}>
-            <summary style={{ color: '#E4C687', fontSize: '14px', cursor: 'pointer', lineHeight: 1.6 }}>¿Cómo fue tu experiencia? Comparte tu opinión</summary>
+          <details style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '12px', padding: '18px', boxShadow: '0 10px 26px rgba(0, 0, 0, 0.22)' }}>
+            <summary style={{ color: '#8F6D24', fontSize: '14px', cursor: 'pointer', lineHeight: 1.6 }}>¿Cómo fue tu experiencia? Comparte tu opinión</summary>
           <div style={{ backgroundColor: '#EADCC7', border: 'none', borderRadius: '12px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: '#E4C687', fontSize: '13px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'bold' }}>{t('leaveReview')}</span>
+              <span style={{ color: '#D8C29A', fontSize: '13px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'bold' }}>{t('leaveReview')}</span>
             </div>
-            <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ color: '#E4C687', fontSize: '13px' }}>Compartir mi experiencia en Google ↗</a>
+            <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ color: '#D8C29A', fontSize: '13px' }}>Compartir mi experiencia en Google ↗</a>
             {feedbackSubmitted ? (
               <div style={{ textAlign: 'center', padding: '12px', backgroundColor: '#EAF4EA', border: '1px solid #2E7D32', borderRadius: '8px' }}>
                 <p style={{ color: '#2E7D32', fontSize: '12px', fontWeight: 'bold', margin: '0 0 4px 0' }}>¡Gracias por compartir tu opinión!</p>
                 {true && (
-                  <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: '6px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#2C2521', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', textDecoration: 'none' }}>
+                  <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: '6px', background: '#C49A58', color: '#29231F', padding: '6px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: '600', textDecoration: 'none' }}>
                     Dejar Reseña en Google
                   </a>
                 )}
@@ -3768,13 +3768,13 @@ function StudioApp() {
                     { val: 5, label: 'Excelente' }
                   ].map((item) => (
                     <div key={item.val} onClick={() => handleRatingSelect(item.val)} style={{ textAlign: 'center', cursor: 'pointer', opacity: selectedRating === item.val ? 1 : 0.4, transform: selectedRating === item.val ? 'scale(1.1)' : 'scale(1)', transition: 'all 0.3s ease' }}>
-                      <div style={{ fontSize: '24px', color: '#E4C687' }}>★</div>
+                      <div style={{ fontSize: '24px', color: '#D8C29A' }}>★</div>
                       <div style={{ fontSize: '10px', color: selectedRating === item.val ? '#B3823B' : '#7A7067', marginTop: '2px' }}>{item.label}</div>
                     </div>
                   ))}
                 </div>
-                <input type="text" value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} onFocus={(e) => e.target.select()} style={{ backgroundColor: '#F3E8D7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', padding: '10px', fontSize: '13px' }} />
-                <button type="submit" style={{ backgroundColor: '#EADCC7', color: '#2C2521', border: '1px solid #C5A059', padding: '12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
+                <input type="text" value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} onFocus={(e) => e.target.select()} style={{ backgroundColor: '#F3E8D7', border: '1px solid rgba(44, 37, 33, 0.18)', color: '#2C2521', borderRadius: '6px', padding: '10px', fontSize: '13px' }} />
+                <button type="submit" style={{ backgroundColor: '#EADCC7', color: '#2C2521', border: '1px solid rgba(44, 37, 33, 0.2)', padding: '12px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}>
                   {t('sendReview')}
                 </button>
               </form>
@@ -3808,31 +3808,31 @@ function StudioApp() {
             </button>
           </div>
           <div>
-            <h1 style={{ fontSize: '26px', lineHeight: 1.25, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em', color: '#FFF8EE', margin: '0 0 8px', fontWeight: 500 }}>{t('experienceTitle')}</h1>
+            <h1 style={{ fontSize: '26px', lineHeight: 1.25, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', color: '#FFF8EE', margin: '0 0 8px', fontWeight: 400 }}>{t('experienceTitle')}</h1>
             <p style={{ color: '#F0E6D2', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('experienceIntro')}</p>
           </div>
-          <section aria-label={t('searchServices')} style={{ background: '#EADCC7', border: '1px solid #E4DCCF', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <section aria-label={t('searchServices')} style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
             <label htmlFor="portal-service-search" style={{ color: '#8F6D24', fontSize: '13px', display: 'block' }}>{t('searchServices')}</label>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <input id="portal-service-search" type="search" value={portalSearch} onChange={event => { setPortalSearch(event.target.value); setPortalSearchExpanded({}); }} placeholder={t('searchPlaceholder')} style={{ flex: 1, minWidth: 0, width: '100%', boxSizing: 'border-box', minHeight: '48px', padding: '12px', background: '#F3E8D7', color: '#2C2521', border: '1px solid #E4DCCF', borderRadius: 8, fontSize: '16px' }} />
-              {!!portalSearch && <button type="button" aria-label={t('clearSearch')} onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); }} style={{ minHeight: '48px', minWidth: '48px', background: '#EADCC7', color: '#2C2521', border: '1px solid #E4DCCF', borderRadius: 8, cursor: 'pointer', fontSize: '22px' }}>×</button>}
+              <input id="portal-service-search" type="search" value={portalSearch} onChange={event => { setPortalSearch(event.target.value); setPortalSearchExpanded({}); }} placeholder={t('searchPlaceholder')} style={{ flex: 1, minWidth: 0, width: '100%', boxSizing: 'border-box', minHeight: '48px', padding: '12px', background: '#F3E8D7', color: '#2C2521', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 8, fontSize: '16px' }} />
+              {!!portalSearch && <button type="button" aria-label={t('clearSearch')} onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); }} style={{ minHeight: '48px', minWidth: '48px', background: '#EADCC7', color: '#2C2521', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 8, cursor: 'pointer', fontSize: '22px' }}>×</button>}
             </div>
-            {!!portalSearchQuery && <p role="status" aria-live="polite" style={{ color: '#5C5248', fontSize: '13px', margin: 0 }}>{portalSearchCount ? t('searchResults') + ': ' + portalSearchCount : t('noSearchResults')}</p>}
+            {!!portalSearchQuery && <p role="status" aria-live="polite" style={{ color: '#D6CBB8', fontSize: '13px', margin: 0 }}>{portalSearchCount ? t('searchResults') + ': ' + portalSearchCount : t('noSearchResults')}</p>}
           </section>
-          <button type="button" onClick={() => { setCurrentScreen('clientHistoryPage'); window.setTimeout(() => document.getElementById('service-advisor')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} style={{ textAlign: 'start', background: '#EADCC7', border: '1px solid #E4DCCF', borderRadius: 12, color: '#8F6D24', minHeight: '54px', padding: '16px', fontSize: '14px', cursor: 'pointer' }}>{t('advisorAccess')} →</button>
+          <button type="button" onClick={() => { setCurrentScreen('clientHistoryPage'); window.setTimeout(() => document.getElementById('service-advisor')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} style={{ textAlign: 'start', background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, color: '#8F6D24', minHeight: '54px', padding: '16px', fontSize: '14px', cursor: 'pointer' }}>{t('advisorAccess')} →</button>
 
           {portalSearchQuery ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', minWidth: 0 }}>
               {catalog.filter(cat => cat.subservices.some(sub => portalServiceMatches(cat, sub))).map(cat => (
                 <div key={cat.id} style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: 0 }}>
-                  <h3 style={{ color: '#8F6D24', fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', margin: 0, fontWeight: 600 }}>{categoryText(cat)}</h3>
+                  <h3 style={{ color: '#D8C29A', fontSize: '13px', letterSpacing: '0.5px', margin: 0, fontWeight: 400, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif" }}>{categoryText(cat)}</h3>
                   {cat.subservices.filter(sub => portalServiceMatches(cat, sub)).map(sub => renderCatalogCard(cat, sub))}
                 </div>
               ))}
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em', fontSize: '20px', fontWeight: 500, margin: '4px 0 2px' }}>Elige una categoría</h2>
+              <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '20px', fontWeight: 400, margin: '4px 0 2px' }}>Elige una categoría</h2>
               {catalog.map(cat => {
                 const count = cat.subservices.filter(sub => sub.active !== false).length;
                 const firstService = cat.subservices.find(sub => sub.active !== false);
@@ -3854,15 +3854,15 @@ function StudioApp() {
             </div>
           )}
 
-          {selectedServicesToBook.length > 0 && <section aria-label="Resumen de tu selección" style={{ backgroundColor: '#EADCC7', border: '1px solid #E4DCCF', padding: '20px', borderRadius: 12 }}>
-            <h2 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em', fontSize: '20px', margin: '0 0 14px', fontWeight: 500 }}>Tu selección</h2>
+          {selectedServicesToBook.length > 0 && <section aria-label="Resumen de tu selección" style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', padding: '20px', borderRadius: 12 }}>
+            <h2 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '20px', margin: '0 0 14px', fontWeight: 400 }}>Tu selección</h2>
             {selectedServicesToBook.map(item => <div key={item.sub.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid #E4DCCF' }}>
               <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#8F6D24' }}>{serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#8F6D24' }}>{item.sub.hasVariants && !item.variant ? t('chooseOption') : (item.variant?.price || item.sub.price) + ' · ' + (item.variant?.duration || item.sub.duration)}</span></div>
-              <button type="button" aria-label={'Quitar ' + serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')} onClick={() => setSelectedServicesToBook(previous => previous.filter(selected => selected.sub.id !== item.sub.id))} style={{ background: 'none', border: 'none', color: '#5C5248', cursor: 'pointer', padding: '10px', minHeight: '44px', minWidth: '44px', fontSize: '12px' }}>{t('remove')}</button>
+              <button type="button" aria-label={'Quitar ' + serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')} onClick={() => setSelectedServicesToBook(previous => previous.filter(selected => selected.sub.id !== item.sub.id))} style={{ background: 'none', border: 'none', color: '#4E443B', cursor: 'pointer', padding: '10px', minHeight: '44px', minWidth: '44px', fontSize: '12px' }}>{t('remove')}</button>
             </div>)}
-            <p style={{ color: '#5C5248', fontSize: '13px', margin: '14px 0 0' }}>Duración de los servicios: {getModalDuration(selectedServicesToBook)} min</p>
+            <p style={{ color: '#4E443B', fontSize: '13px', margin: '14px 0 0' }}>Duración de los servicios: {getModalDuration(selectedServicesToBook)} min</p>
           </section>}
-          <div style={{ backgroundColor: '#EADCC7', border: '1px solid #E4DCCF', borderRadius: 12, padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', overflow: 'hidden' }}>
+          <div style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px', position: 'relative', overflow: 'hidden' }}>
             <h2 style={{ fontSize: '14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em', color: '#8F6D24', margin: 0 }}>{t('selectDate')}</h2>
             {selectedServicesToBook.length === 0 ? (
               <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(246, 241, 231, 0.94)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10, padding: '20px', textAlign: 'center' }}>
@@ -3875,12 +3875,12 @@ function StudioApp() {
                 {selectedServicesToBook.some(item => (catalog.flatMap(c => c.subservices).find(sub => sub.id === item.sub.id) || item.sub).requiresAssessment) && <p style={{ color: '#8F6D24', fontSize: '12px' }}>Tu selección requiere valoración previa. Elegir fecha y hora registra una solicitud; Ana debe aprobarla antes de confirmar la cita.</p>}
                 {getTonerError(selectedServicesToBook) && <p role="alert" style={{ color: '#8F6D24', fontSize: '12px' }}>{getTonerError(selectedServicesToBook)}</p>}
                 {getStylingError(selectedServicesToBook) && <p role="alert" style={{ color: '#8F6D24', fontSize: '12px' }}>{getStylingError(selectedServicesToBook)}</p>}
-                <p style={{ color: '#5C5248', fontSize: '11px', margin: 0 }}>{t('reviewSelection')}</p>
+                <p style={{ color: '#4E443B', fontSize: '11px', margin: 0 }}>{t('reviewSelection')}</p>
                 <button onClick={() => {
                   const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant);
                   if (missing) { alert(tf('requiredVariant', { service: missing.sub.name })); return; }
                   setCurrentScreen('visualAgenda');
-                }} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#FFFFFF', border: 'none', padding: '14px', borderRadius: 8, fontSize: '13px', fontWeight: '600', cursor: 'pointer', textAlign: 'center' }}>
+                }} style={{ background: '#C49A58', color: '#29231F', border: 'none', padding: '14px', borderRadius: 8, fontSize: '13px', fontWeight: '600', cursor: 'pointer', textAlign: 'center' }}>
                   {t('chooseDateTime')}
                 </button>
               </div>
@@ -3906,11 +3906,11 @@ function StudioApp() {
           </div>
           {activeCategory && <>
             <header style={{ padding: '2px 0 0' }}>
-              <p style={{ color: '#E4C687', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', margin: '0 0 4px' }}>{t('experienceTitle')}</p>
-              <h1 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em', color: '#2C2521', fontSize: '27px', fontWeight: 500, lineHeight: 1.2, margin: 0 }}>{categoryText(activeCategory)}</h1>
+              <p style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1.5px', margin: '0 0 4px' }}>{t('experienceTitle')}</p>
+              <h1 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', color: '#FFF8EE', fontSize: '27px', fontWeight: 400, lineHeight: 1.2, margin: 0 }}>{categoryText(activeCategory)}</h1>
             </header>
             {activeServices.length === 0 ? <p style={{ color: '#F0E6D2', fontSize: '13px', margin: 0 }}>Actualmente no hay servicios activos en esta categoría.</p> : <>
-            <p style={{ color: '#5C5248', fontSize: '13px', margin: 0, textAlign: 'center' }}><span id="lst-carousel-count" role="status">1 de {activeServices.length}</span></p>
+            <p style={{ color: '#D6CBB8', fontSize: '13px', margin: 0, textAlign: 'center' }}><span id="lst-carousel-count" role="status">1 de {activeServices.length}</span></p>
             <div className="lst-carousel-shell">
               <button type="button" className="lst-carousel-arrow" aria-label={t('previousWeek')} onClick={() => scrollCarousel(-1)}><ChevronLeft size={18} strokeWidth={2} aria-hidden="true" /></button>
               <div className="lst-carousel" tabIndex={0} role="region" aria-label={categoryText(activeCategory)}
@@ -3964,7 +3964,7 @@ function StudioApp() {
             </div>
             </>}
             {selectedServicesToBook.length > 0 && (
-              <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ background: '#EADCC7', border: '1px solid #E4DCCF', borderRadius: 12, minHeight: '54px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#8F6D24', cursor: 'pointer' }}>
+              <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, minHeight: '54px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#8F6D24', cursor: 'pointer' }}>
                 {t('reviewSelection')} ({selectedServicesToBook.length}) → {t('chooseDateTime')}
               </button>
             )}
@@ -3996,8 +3996,8 @@ function StudioApp() {
             <h1 className="lst-detail-title">{serviceText(detailSub, 'name') || detailSub.name}</h1>
             {!!serviceText(detailSub, 'description') && <p className="lst-detail-desc">{serviceText(detailSub, 'description')}</p>}
           </header>
-          <section style={{ background: '#EADCC7', border: '1px solid #E4DCCF', borderRadius: 14, padding: '6px 16px' }}>
-            <h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", fontWeight: 500, fontSize: 19, color: '#2C2521', margin: '12px 0 4px', letterSpacing: '0.04em' }}>{t('serviceIncludesTitle')}</h2>
+          <section style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 14, padding: '6px 16px' }}>
+            <h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", fontWeight: 400, fontSize: 19, color: '#2C2521', margin: '12px 0 4px', letterSpacing: '0.02em' }}>{t('serviceIncludesTitle')}</h2>
             <div className="lst-include-row"><span className="lst-include-icon"><UserRoundSearch size={17} strokeWidth={1.7} aria-hidden="true" /></span><span className="lst-include-label">{serviceText(detailSub, 'description') || detailSub.name}</span></div>
             {!!serviceText(detailSub, 'includesText') && <div className="lst-include-row"><span className="lst-include-icon"><Scissors size={17} strokeWidth={1.7} aria-hidden="true" /></span><span className="lst-include-label">{serviceText(detailSub, 'includesText')}</span></div>}
             {!!serviceText(detailSub, 'achievedText') && <div className="lst-include-row"><span className="lst-include-icon"><Sparkles size={17} strokeWidth={1.7} aria-hidden="true" /></span><span className="lst-include-label">{serviceText(detailSub, 'achievedText')}</span></div>}
@@ -4042,31 +4042,31 @@ function StudioApp() {
       {/* AGENDA CLIENTAS · SEMANA Y HORAS DISPONIBLES */}
       {currentScreen === 'visualAgenda' && (
         <div style={{ maxWidth: '520px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#E4C687', padding: '10px 0', cursor: 'pointer' }}>{t('backServices')}</button>
-          <div><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', color: '#2C2521', fontSize: '28px', fontWeight: 'normal', margin: '0 0 8px' }}>{t('chooseMoment')}</h2><p style={{ color: '#2C2521', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('fullSlots')} · {getModalDuration(selectedServicesToBook)} min.</p></div>
+          <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#D8C29A', padding: '10px 0', cursor: 'pointer' }}>{t('backServices')}</button>
+          <div><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', color: '#FFF8EE', fontSize: '28px', fontWeight: 'normal', margin: '0 0 8px' }}>{t('chooseMoment')}</h2><p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('fullSlots')} · {getModalDuration(selectedServicesToBook)} min.</p></div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-            <button type="button" aria-label={t('previousWeek')} onClick={() => { const day = new Date(bookingDate); day.setDate(day.getDate() - 7); choosePortalDate(day); }} style={{ padding: '12px', background: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '8px', cursor: 'pointer' }}>←</button>
+            <button type="button" aria-label={t('previousWeek')} onClick={() => { const day = new Date(bookingDate); day.setDate(day.getDate() - 7); choosePortalDate(day); }} style={{ padding: '12px', background: '#EADCC7', color: '#2C2521', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', cursor: 'pointer' }}>←</button>
             <span style={{ color: '#FFF8EE', fontSize: '14px', textAlign: 'center' }}>{portalWeekStart.toLocaleDateString(portalLocale, { month: 'long', year: 'numeric' })}</span>
-            <button type="button" aria-label={t('nextWeek')} onClick={() => { const day = new Date(bookingDate); day.setDate(day.getDate() + 7); choosePortalDate(day); }} style={{ padding: '12px', background: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '8px', cursor: 'pointer' }}>→</button>
+            <button type="button" aria-label={t('nextWeek')} onClick={() => { const day = new Date(bookingDate); day.setDate(day.getDate() + 7); choosePortalDate(day); }} style={{ padding: '12px', background: '#EADCC7', color: '#2C2521', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', cursor: 'pointer' }}>→</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '5px' }}>
             {portalWeekDays.map(day => {
               const selected = formatDateKey(day) === formatDateKey(bookingDate);
               const available = portalAvailableTimes(day).length > 0;
-              return <button type="button" key={formatDateKey(day)} aria-pressed={selected} disabled={!portalDateAllowed(day)} onClick={() => choosePortalDate(day)} style={{ minHeight: '70px', padding: '8px 1px', backgroundColor: selected ? '#C99E52' : '#EFE9DF', color: selected ? '#2C2521' : '#2C2521', opacity: portalDateAllowed(day) ? 1 : 0.35, border: '1px solid #E6D5B8', borderRadius: '9px', cursor: 'pointer' }}><span style={{ fontSize: '10px', display: 'block' }}>{day.toLocaleDateString(portalLocale, { weekday: 'short' })}</span><strong style={{ fontSize: '18px', display: 'block', margin: '5px 0' }}>{day.getDate()}</strong><span aria-label={available ? t('slotsAvailable') : t('noSlots')} style={{ fontSize: '10px' }}>{available ? '●' : '—'}</span></button>;
+              return <button type="button" key={formatDateKey(day)} aria-pressed={selected} disabled={!portalDateAllowed(day)} onClick={() => choosePortalDate(day)} style={{ minHeight: '70px', padding: '8px 1px', backgroundColor: selected ? '#C49A58' : '#322A25', color: selected ? '#29231F' : '#FFF8EE', opacity: portalDateAllowed(day) ? 1 : 0.35, border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '9px', cursor: 'pointer' }}><span style={{ fontSize: '10px', display: 'block' }}>{day.toLocaleDateString(portalLocale, { weekday: 'short' })}</span><strong style={{ fontSize: '18px', display: 'block', margin: '5px 0' }}>{day.getDate()}</strong><span aria-label={available ? t('slotsAvailable') : t('noSlots')} style={{ fontSize: '10px' }}>{available ? '●' : '—'}</span></button>;
             })}
           </div>
-          <label style={{ color: '#5C5248', fontSize: '13px' }}>{t('otherDate')}<input type="date" value={formatDateKey(bookingDate)} onChange={e => { if (e.target.value) choosePortalDate(new Date(`${e.target.value}T12:00:00`)); }} style={{ display: 'block', marginTop: '8px', padding: '12px', backgroundColor: '#F3E8D7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '8px', boxSizing: 'border-box', width: '100%' }} /></label>
+          <label style={{ color: '#C9BCA9', fontSize: '13px' }}>{t('otherDate')}<input type="date" value={formatDateKey(bookingDate)} onChange={e => { if (e.target.value) choosePortalDate(new Date(`${e.target.value}T12:00:00`)); }} style={{ display: 'block', marginTop: '8px', padding: '12px', backgroundColor: '#F3E8D7', color: '#2C2521', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', boxSizing: 'border-box', width: '100%' }} /></label>
           <section><h3 style={{ color: '#2C2521', fontSize: '16px', margin: '0 0 16px' }}>{bookingDate.toLocaleDateString(portalLocale, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
-            {!portalTimes.length ? <p style={{ color: '#5C5248', fontSize: '14px', lineHeight: 1.6 }}>{t('noSlotsDay')}</p> : ['morning', 'afternoon'].map(period => {
+            {!portalTimes.length ? <p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6 }}>{t('noSlotsDay')}</p> : ['morning', 'afternoon'].map(period => {
               const times = portalTimes.filter(time => period === 'morning' ? Number(time.slice(0, 2)) < 14 : Number(time.slice(0, 2)) >= 14);
-              return times.length ? <div key={period} style={{ marginBottom: '18px' }}><p style={{ color: '#5C5248', fontSize: '12px' }}>{t(period)}</p><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(76px, 1fr))', gap: '9px' }}>{times.map(time => <button type="button" key={time} aria-pressed={time === selectedVisualTime} onClick={() => setSelectedVisualTime(time)} style={{ minHeight: '48px', backgroundColor: time === selectedVisualTime ? '#C99E52' : '#EFE9DF', color: time === selectedVisualTime ? '#2C2521' : '#2C2521', border: '1px solid #C5A059', borderRadius: '8px', fontSize: '15px', cursor: 'pointer' }}>{time}</button>)}</div></div> : null;
+              return times.length ? <div key={period} style={{ marginBottom: '18px' }}><p style={{ color: '#C9BCA9', fontSize: '12px' }}>{t(period)}</p><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(76px, 1fr))', gap: '9px' }}>{times.map(time => <button type="button" key={time} aria-pressed={time === selectedVisualTime} onClick={() => setSelectedVisualTime(time)} style={{ minHeight: '48px', backgroundColor: time === selectedVisualTime ? '#C49A58' : '#322A25', color: time === selectedVisualTime ? '#29231F' : '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.12)', borderRadius: '8px', fontSize: '15px', cursor: 'pointer' }}>{time}</button>)}</div></div> : null;
             })}
           </section>
           <div style={{ borderTop: '1px solid #E6D5B8', paddingTop: '18px' }}>
-            <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.6 }}>{selectedServicesToBook.map(item => serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name') + (item.variant ? ` · ${variantText(item.variant, item.sub)}` : '')).join(' + ')}</p>
+            <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6 }}>{selectedServicesToBook.map(item => serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name') + (item.variant ? ` · ${variantText(item.variant, item.sub)}` : '')).join(' + ')}</p>
             {selectedVisualTime && <p style={{ color: '#2C2521', fontSize: '15px' }}>{bookingDate.toLocaleDateString(portalLocale, { day: 'numeric', month: 'long' })} · {selectedVisualTime}</p>}
-            <button type="button" onClick={handleConfirmarCitaVisual} disabled={!portalTimes.includes(selectedVisualTime)} style={{ width: '100%', minHeight: '54px', padding: '14px', backgroundColor: portalTimes.includes(selectedVisualTime) ? '#C99E52' : '#EFE9DF', color: portalTimes.includes(selectedVisualTime) ? '#2C2521' : '#7A7067', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>{!selectedVisualTime ? t('chooseHour') : getApprovalReason(selectedServicesToBook, formatDateKey(bookingDate)) ? t('requestAppointment') : t('continueBooking')}</button>
+            <button type="button" onClick={handleConfirmarCitaVisual} disabled={!portalTimes.includes(selectedVisualTime)} style={{ width: '100%', minHeight: '54px', padding: '14px', backgroundColor: portalTimes.includes(selectedVisualTime) ? '#C49A58' : '#322A25', color: portalTimes.includes(selectedVisualTime) ? '#29231F' : '#C9BCA9', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>{!selectedVisualTime ? t('chooseHour') : getApprovalReason(selectedServicesToBook, formatDateKey(bookingDate)) ? t('requestAppointment') : t('continueBooking')}</button>
           </div>
         </div>
       )}
@@ -4074,25 +4074,25 @@ function StudioApp() {
       {/* 2.3. PASAPORTE DE EXPERIENCIAS DE AUTOR */}
       {currentScreen === 'clientHistoryPage' && (
         <div style={{ maxWidth: '520px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          <button type="button" onClick={() => setCurrentScreen('clientPortal')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#E4C687', padding: '10px 0', minHeight: '44px', fontSize: '13px', cursor: 'pointer' }}>{t('backToPortal')}</button>
+          <button type="button" onClick={() => setCurrentScreen('clientPortal')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#D8C29A', padding: '10px 0', minHeight: '44px', fontSize: '13px', cursor: 'pointer' }}>{t('backToPortal')}</button>
           <header>
-            <p style={{ color: '#E4C687', fontSize: '11px', letterSpacing: '2px', textTransform: 'uppercase', margin: '0 0 12px' }}>L’Studio Ana · Cuidado personalizado</p>
-            <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '24px', fontWeight: 'normal', lineHeight: 1.25, margin: '0 0 12px' }}>{t('passportTitle')}</h2>
+            <p style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1.5px', margin: '0 0 12px' }}>L’Studio Ana · Cuidado personalizado</p>
+            <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '24px', fontWeight: 'normal', lineHeight: 1.25, margin: '0 0 12px' }}>{t('passportTitle')}</h2>
             <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.6, margin: 0 }}>{currentClientRecord?.nombre && <span>{currentClientRecord.nombre} · </span>}{t('passportIntro')}</p>
           </header>
-          <section style={{ background: 'linear-gradient(135deg, #F2ECE4, #EAE2D6)', border: '1px solid #C5A059', borderRadius: '10px', padding: '15px' }}>
-            <span style={{ color: '#E4C687', fontSize: '11px', letterSpacing: '1px' }}>01 · CONOCEMOS TU CABELLO</span>
-            <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '19px', margin: '8px 0' }}>{t('hairDna')}</h3>
+          <section style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '10px', padding: '15px' }}>
+            <span style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1px' }}>01 · CONOCEMOS TU CABELLO</span>
+            <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontWeight: 'normal', fontSize: '19px', margin: '8px 0' }}>{t('hairDna')}</h3>
             <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: 0 }}>{currentClientRecord?.dniCapilar || t('emptyDna')}</p>
           </section>
-          <section style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)' }}>
+          <section style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 26px rgba(0, 0, 0, 0.22)' }}>
             <span style={{ color: '#8F6D24', fontSize: '11px', letterSpacing: '1px' }}>02 · ENTRE VISITAS</span>
-            <h3 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '19px', margin: '8px 0' }}>{t('homeRitual')}</h3>
+            <h3 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontWeight: 'normal', fontSize: '19px', margin: '8px 0' }}>{t('homeRitual')}</h3>
             <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: 0 }}>{currentClientRecord?.prescripcionCasa || t('emptyCare')}</p>
           </section>
           <section style={{ padding: '4px 0' }}>
-            <span style={{ color: '#E4C687', fontSize: '11px', letterSpacing: '1px' }}>03 · TU RECORRIDO</span>
-            <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '19px', margin: '8px 0 12px' }}>{t('visitHistory')}</h3>
+            <span style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1px' }}>03 · TU RECORRIDO</span>
+            <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontWeight: 'normal', fontSize: '19px', margin: '8px 0 12px' }}>{t('visitHistory')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {(currentClientRecord?.pastVisits || []).length ? currentClientRecord!.pastVisits!.map((visit, index) => <article key={index} style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', borderLeft: '2px solid #B98A3E', borderRadius: '10px', padding: '12px' }}>
                 <p style={{ color: '#8F6D24', fontSize: '12px', margin: '0 0 8px' }}>{visit.date}</p>
@@ -4102,29 +4102,29 @@ function StudioApp() {
               </article>) : <div style={{ backgroundColor: '#EADCC7', padding: '14px', borderRadius: '10px', color: '#5C5248', fontSize: '13px', lineHeight: 1.7 }}>{t('emptyVisits')}</div>}
             </div>
           </section>
-          <section style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)' }}>
+          <section style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 26px rgba(0, 0, 0, 0.22)' }}>
             <h3 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '19px', margin: '0 0 14px' }}>Seguimos cuidando de ti</h3>
             <p style={{ color: '#5C5248', fontSize: '13px', margin: '0 0 8px' }}>{t('recommendedVisit')}</p>
             <p style={{ color: '#8F6D24', fontSize: '17px', margin: '0 0 14px' }}>{currentClientRecord?.proximaVisitaSugerida || t('pendingRecommendation')}</p>
             <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.6, margin: '0 0 18px' }}>{t('maintenanceNote')}</p>
-            <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ width: '100%', minHeight: '52px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#2C2521', border: 'none', borderRadius: '9px', padding: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}>{t('bookNext')}</button>
+            <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ width: '100%', minHeight: '52px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '9px', padding: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}>{t('bookNext')}</button>
             {currentClientRecord?.ultimaVisita && <p style={{ color: '#5C5248', fontSize: '12px', marginBottom: 0 }}>Última visita registrada: {currentClientRecord.ultimaVisita}</p>}
           </section>
-          <section id="service-advisor" style={{ scrollMarginTop: '24px', background: 'linear-gradient(135deg, #F2ECE4, #EAE2D6)', border: '1px solid #C5A059', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <section id="service-advisor" style={{ scrollMarginTop: '24px', background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <h3 style={{ color: '#2C2521', fontSize: '21px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{t('advisorTitle')}</h3>
             <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.7, margin: 0 }}>{t('advisorIntro')}</p>
             <form onSubmit={handleRunAiRecommendation} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <textarea aria-label={t('advisorTitle')} value={clientWishText} onChange={event => { setClientWishText(event.target.value); setAiRecommendation(null); }} placeholder={t('advisorPlaceholder')} rows={3} style={{ width: '100%', boxSizing: 'border-box', background: '#F3E8D7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '10px', padding: '14px', fontSize: '16px', lineHeight: 1.6, resize: 'vertical' }} />
-              <button type="submit" disabled={!clientWishText.trim()} style={{ minHeight: '50px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#2C2521', border: 'none', borderRadius: '9px', padding: '14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', opacity: clientWishText.trim() ? 1 : 0.5 }}>{t('advisorButton')}</button>
+              <textarea aria-label={t('advisorTitle')} value={clientWishText} onChange={event => { setClientWishText(event.target.value); setAiRecommendation(null); }} placeholder={t('advisorPlaceholder')} rows={3} style={{ width: '100%', boxSizing: 'border-box', background: '#F3E8D7', border: '1px solid rgba(44, 37, 33, 0.18)', color: '#2C2521', borderRadius: '10px', padding: '14px', fontSize: '16px', lineHeight: 1.6, resize: 'vertical' }} />
+              <button type="submit" disabled={!clientWishText.trim()} style={{ minHeight: '50px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '9px', padding: '14px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', opacity: clientWishText.trim() ? 1 : 0.5 }}>{t('advisorButton')}</button>
             </form>
             {aiRecommendation !== null && <div role="status" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {!aiRecommendation.some(id => catalog.some(category => category.subservices.some(service => service.id === id && service.active !== false))) && <p style={{ color: '#2C2521', lineHeight: 1.7 }}>{t('advisorNone')}</p>}
-              {aiRecommendation.map(id => { const category = catalog.find(item => item.subservices.some(service => service.id === id)); const service = category?.subservices.find(item => item.id === id && item.active !== false); if (!category || !service) return null; return <article key={id} style={{ background: '#EADCC7', border: '1px solid #C5A059', padding: '12px', borderRadius: '12px' }}>
+              {aiRecommendation.map(id => { const category = catalog.find(item => item.subservices.some(service => service.id === id)); const service = category?.subservices.find(item => item.id === id && item.active !== false); if (!category || !service) return null; return <article key={id} style={{ background: '#EADCC7', border: '1px solid rgba(44, 37, 33, 0.2)', padding: '12px', borderRadius: '12px' }}>
                 <h4 style={{ color: '#2C2521', fontSize: '18px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: '0 0 10px' }}>{serviceText(service, 'name')}</h4>
                 <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.7 }}>{t('advisorReason')}</p>
-                <button type="button" onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); setActiveCatalogTab(category.id); setViewServiceDetail(null); setCurrentScreen('categoryScreen'); window.setTimeout(() => document.getElementById(`portal-service-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }} style={{ minHeight: '44px', padding: '12px 16px', background: '#EADCC7', color: '#2C2521', border: '1px solid #C5A059', borderRadius: '8px', cursor: 'pointer' }}>{t('advisorView')}</button>
+                <button type="button" onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); setActiveCatalogTab(category.id); setViewServiceDetail(null); setCurrentScreen('categoryScreen'); window.setTimeout(() => document.getElementById(`portal-service-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }} style={{ minHeight: '44px', padding: '12px 16px', background: '#EADCC7', color: '#2C2521', border: '1px solid rgba(44, 37, 33, 0.2)', borderRadius: '8px', cursor: 'pointer' }}>{t('advisorView')}</button>
               </article>; })}
-              <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#E4C687', padding: '12px 0' }}>WhatsApp · Ana</a>
+              <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#D8C29A', padding: '12px 0' }}>WhatsApp · Ana</a>
             </div>}
           </section>
           <button onClick={() => setCurrentScreen('clientPortal')} style={{ width: '100%', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#5C5248', padding: '12px', borderRadius: '10px', fontSize: '13px', cursor: 'pointer' }}>
