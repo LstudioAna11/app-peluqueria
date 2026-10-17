@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info } from 'lucide-react';
+import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight } from 'lucide-react';
 import './catalog.css';
 import * as studioApi from './studioApi';
 
@@ -1735,6 +1735,15 @@ function StudioApp() {
   const [selectedServicesToBook, setSelectedServicesToBook] = useState<{ sub: SubService; variant: ServiceVariant | null }[]>([]);
   const [viewServiceDetail, setViewServiceDetail] = useState<{ cat: CatalogCategory; sub: SubService } | null>(null);
   const [activeCatalogTab, setActiveCatalogTab] = useState<string>('');
+  const carouselScrollerRef = useRef<HTMLDivElement | null>(null);
+  const carouselPosRef = useRef<Record<string, number>>({});
+  const scrollCarousel = (dir: number) => {
+    const el = carouselScrollerRef.current;
+    if (!el) return;
+    const card = el.querySelector('.lst-c-card') as HTMLElement | null;
+    const step = card ? card.offsetWidth + 14 : 260;
+    el.scrollBy({ left: dir * step, behavior: 'smooth' });
+  };
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [expandedSubDetails, setExpandedSubDetails] = useState<{ [key: string]: boolean }>({});
   const [expandedCategories, setExpandedCategories] = useState<{ [key: string]: boolean }>({});
@@ -3358,7 +3367,33 @@ function StudioApp() {
         .lst-cta-full:hover { filter: brightness(1.06); }
         .lst-btn-back { background: none; border: none; color: #2C2521; width: 40px; height: 40px; min-width: 40px; min-height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
         .lst-btn-back:hover { background: rgba(44, 37, 33, 0.06); border-radius: 50%; }
-        @media (max-width: 640px) { .lst-bottom-nav { max-width: 100%; } }
+        .lst-cat-tabs { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; padding: 2px; -webkit-overflow-scrolling: touch; }
+        .lst-cat-tabs::-webkit-scrollbar { display: none; }
+        .lst-cat-tab { flex-shrink: 0; background: #F6F1E7; border: 1px solid #E4DCCF; color: #6E645A; border-radius: 999px; padding: 10px 18px; min-height: 42px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+        .lst-cat-tab-active { background: linear-gradient(135deg, #C99E52 0%, #B3823B 100%); border-color: transparent; color: #FFFFFF; font-weight: 600; }
+        .lst-carousel-shell { position: relative; display: flex; align-items: center; gap: 6px; min-width: 0; }
+        .lst-carousel { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 2px 8px; scrollbar-width: none; min-width: 0; -webkit-overflow-scrolling: touch; }
+        .lst-carousel::-webkit-scrollbar { display: none; }
+        .lst-c-card { flex: 0 0 240px; scroll-snap-align: start; background: #F6F1E7; border: 1px solid #E4DCCF; border-radius: 14px; overflow: hidden; display: flex; flex-direction: column; }
+        .lst-c-media { display: block; width: 100%; height: 190px; padding: 0; border: none; background: #EFE9DF; cursor: pointer; overflow: hidden; }
+        .lst-c-media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease; }
+        .lst-c-media:hover img { transform: scale(1.04); }
+        .lst-c-media-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 100%; }
+        .lst-c-media-fallback strong { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 38px; letter-spacing: 4px; color: #C99E52; line-height: 1; }
+        .lst-c-media-fallback small { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: #7A7067; }
+        .lst-c-body { padding: 12px 14px 14px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+        .lst-c-name { background: none; border: none; padding: 0; text-align: left; font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.04em; font-size: 17px; font-weight: 500; color: #2C2521; cursor: pointer; }
+        .lst-c-desc { color: #6E645A; font-size: 12px; line-height: 1.55; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .lst-c-meta { color: #8F6D24; font-size: 13px; font-weight: 600; margin: 0; }
+        .lst-c-cta { margin-top: auto; justify-content: center; }
+        .lst-carousel-arrow { display: none; width: 36px; height: 36px; min-width: 36px; border-radius: 50%; border: 1px solid #E4DCCF; background: #F6F1E7; color: #8F6D24; cursor: pointer; align-items: center; justify-content: center; padding: 0; }
+        .lst-carousel-arrow:hover { background: #FBF6EC; }
+        @media (max-width: 640px) {
+          .lst-bottom-nav { max-width: 100%; }
+          .lst-c-card { flex-basis: 76%; }
+          .lst-carousel { scroll-padding-left: 2px; }
+        }
+        @media (min-width: 900px) { .lst-carousel-arrow { display: flex; } }
       `}</style>
       {/* PESTAÑA DESPLEGABLE MULTIIDIOMA */}
       <div hidden={currentScreen === 'adminPanel' || currentScreen === 'adminLogin'} style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 1000 }}>
@@ -3647,31 +3682,64 @@ function StudioApp() {
           </section>
           <button type="button" onClick={() => { setCurrentScreen('clientHistoryPage'); window.setTimeout(() => document.getElementById('service-advisor')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100); }} style={{ textAlign: 'start', background: 'linear-gradient(135deg, #F2ECE4, #EAE2D6)', border: '1px solid #C5A059', borderRadius: '12px', color: '#C99E52', minHeight: '54px', padding: '16px', fontSize: '14px', cursor: 'pointer' }}>{t('advisorAccess')} →</button>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', minWidth: 0 }}>
             {portalSearchQuery ? (
               catalog.filter(cat => cat.subservices.some(sub => portalServiceMatches(cat, sub))).map(cat => (
-                <div key={cat.id} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div key={cat.id} style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: 0 }}>
                   <h3 style={{ color: '#7A7067', fontSize: '12px', letterSpacing: '2px', textTransform: 'uppercase', margin: '8px 0 0', fontWeight: 600 }}>{categoryText(cat)}</h3>
                   {cat.subservices.filter(sub => portalServiceMatches(cat, sub)).map(sub => renderCatalogCard(cat, sub))}
                 </div>
               ))
             ) : (() => {
               const activeCategory = catalog.find(cat => cat.id === activeCatalogTab) || catalog[0];
+              const activeServices = activeCategory ? activeCategory.subservices.filter(sub => sub.active !== false) : [];
+              const openDetail = (cat: CatalogCategory, sub: SubService) => { setViewServiceDetail({ cat, sub }); setCurrentScreen('serviceDetail'); window.scrollTo({ top: 0, behavior: 'smooth' }); };
               return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                  <nav aria-label="Categorías de servicios" className="lst-app-tabs" style={{ maxWidth: 'none' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', minWidth: 0 }}>
+                  <nav aria-label="Categorías de servicios" className="lst-cat-tabs">
                     {catalog.map(cat => {
                       const tabActive = activeCategory?.id === cat.id;
                       return (
-                        <button key={cat.id} type="button" aria-pressed={tabActive} onClick={() => setActiveCatalogTab(cat.id)}
-                          className={tabActive ? 'lst-app-tab lst-app-tab-active' : 'lst-app-tab'}>
+                        <button key={cat.id} type="button" role="tab" aria-selected={tabActive} onClick={() => setActiveCatalogTab(cat.id)}
+                          className={tabActive ? 'lst-cat-tab lst-cat-tab-active' : 'lst-cat-tab'}>
                           {categoryText(cat)}
                         </button>
                       );
                     })}
                   </nav>
-                  {activeCategory && activeCategory.subservices.filter(sub => sub.active !== false).map(sub => renderCatalogCard(activeCategory, sub))}
-                  {activeCategory && activeCategory.subservices.filter(sub => sub.active !== false).length === 0 && (
+                  {activeCategory && activeServices.length > 0 && (
+                    <div className="lst-carousel-shell">
+                      <button type="button" className="lst-carousel-arrow" aria-label={t('previousWeek')} onClick={() => scrollCarousel(-1)}><ChevronLeft size={18} strokeWidth={2} aria-hidden="true" /></button>
+                      <div className="lst-carousel" tabIndex={0} role="region" aria-label={activeCategory ? categoryText(activeCategory) : 'Servicios'}
+                        ref={node => { carouselScrollerRef.current = node; if (node && activeCategory) node.scrollLeft = carouselPosRef.current[activeCategory.id] || 0; }}
+                        onScroll={event => { if (activeCategory) carouselPosRef.current[activeCategory.id] = event.currentTarget.scrollLeft; }}
+                        onKeyDown={event => {
+                          if (event.key === 'ArrowRight') { event.preventDefault(); scrollCarousel(1); }
+                          if (event.key === 'ArrowLeft') { event.preventDefault(); scrollCarousel(-1); }
+                        }}>
+                        {activeServices.map(sub => {
+                          const name = serviceText(sub, 'name') || sub.name;
+                          return (
+                            <article key={sub.id} id={"portal-service-" + sub.id} className="lst-c-card">
+                              <button type="button" className="lst-c-media" onClick={() => openDetail(activeCategory!, sub)} aria-label={name + ' · ' + t('viewService')}>
+                                {sub.imageUrl
+                                  ? <img src={sub.imageUrl} alt={name} loading="lazy" />
+                                  : <span className="lst-c-media-fallback"><strong>LS</strong><small>{bizConfig.name}</small></span>}
+                              </button>
+                              <div className="lst-c-body">
+                                <button type="button" className="lst-c-name" onClick={() => openDetail(activeCategory!, sub)}>{name}</button>
+                                {!!serviceText(sub, 'description') && <p className="lst-c-desc">{serviceText(sub, 'description')}</p>}
+                                <p className="lst-c-meta">{sub.price}{sub.duration ? ' · ' + sub.duration : ''}</p>
+                                <button type="button" className="lst-btn-ver lst-c-cta" onClick={() => openDetail(activeCategory!, sub)}>{t('viewService')} <ArrowRight size={15} strokeWidth={2} aria-hidden="true" /></button>
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
+                      <button type="button" className="lst-carousel-arrow" aria-label={t('nextWeek')} onClick={() => scrollCarousel(1)}><ChevronRight size={18} strokeWidth={2} aria-hidden="true" /></button>
+                    </div>
+                  )}
+                  {activeCategory && activeServices.length === 0 && (
                     <p style={{ color: '#7A7067', fontSize: '13px', margin: 0 }}>Actualmente no hay servicios activos en esta categoría.</p>
                   )}
                 </div>
