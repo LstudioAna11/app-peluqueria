@@ -3908,30 +3908,9 @@ function StudioApp() {
             </div>
             <button type="button" onClick={() => { setViewServiceDetail(null); setPortalSearch(''); setPortalSearchExpanded({}); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ width: '100%', minHeight: '52px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>{t('bookNext')} <ArrowRight size={17} strokeWidth={2} aria-hidden="true" /></button>
           </section>
-          <section id="mis-citas-section" aria-label="Mis citas" style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '14px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px' }}>
-              <span style={{ color: '#8F6D24', fontSize: '11px', letterSpacing: '1px' }}>MIS CITAS</span>
-              <span style={{ backgroundColor: 'rgba(44, 37, 33, 0.07)', color: '#4E443B', fontSize: '10px', padding: '3px 9px', borderRadius: '20px' }}>{clientAppointmentStatus}</span>
-            </div>
-            {clientNextAppointment ? <>
-              <div style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '17px', lineHeight: 1.35 }}>
-                {new Date(`${clientNextAppointment.dateKey}T12:00:00`).toLocaleDateString(portalLocale, { weekday: 'long', day: 'numeric', month: 'long' })}
-                <span style={{ color: '#8F6D24' }}> · {clientNextAppointment.time}</span>
-              </div>
-              <p style={{ color: '#4E443B', margin: 0, lineHeight: 1.5, fontSize: '12px', overflowWrap: 'anywhere' }}>{clientNextAppointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
-            </> : <>
-              <p style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '17px', margin: 0 }}>{t('experienceStart')}</p>
-              <p style={{ color: '#4E443B', fontSize: '12px', lineHeight: 1.5, margin: 0 }}>{t('noUpcoming')}</p>
-            </>}
-            <button type="button" onClick={() => { setCurrentScreen('myAppointmentsPage'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ background: 'transparent', border: '1px solid rgba(44, 37, 33, 0.2)', color: '#8F6D24', minHeight: '44px', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>Ver detalle <ArrowRight size={15} strokeWidth={2} aria-hidden="true" /></button>
-          </section>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '12px', minHeight: '64px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#2C2521', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}><Scissors size={18} strokeWidth={1.7} aria-hidden="true" />{t('catalog')}</button>
-            <button type="button" onClick={() => setCurrentScreen('clientHistoryPage')} style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '12px', minHeight: '64px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#2C2521', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}><BookOpen size={18} strokeWidth={1.7} aria-hidden="true" />{t('history')}</button>
-            <div style={{ textAlign: 'center', padding: '10px 0', color: '#FFF8EE', fontSize: '13px', lineHeight: 1.7 }}>
-              ¿No sabes qué servicio elegir? <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#FFF8EE' }}>{t('guidance')}</a>
-              <a href={`tel:${bizConfig.phone}`} style={{ display: 'block', color: '#D6CBB8', marginTop: '4px' }}>{t('callStudio')}</a>
-            </div>
+          <div style={{ textAlign: 'center', padding: '10px 0', color: '#FFF8EE', fontSize: '13px', lineHeight: 1.7 }}>
+            ¿No sabes qué servicio elegir? <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#FFF8EE' }}>{t('guidance')}</a>
+            <a href={`tel:${bizConfig.phone}`} style={{ display: 'block', color: '#D6CBB8', marginTop: '4px' }}>{t('callStudio')}</a>
           </div>
           <details style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '12px', padding: '18px', boxShadow: '0 10px 26px rgba(0, 0, 0, 0.22)' }}>
             <summary style={{ color: '#8F6D24', fontSize: '14px', cursor: 'pointer', minHeight: '24px' }}>{t('studioHours')}</summary>
