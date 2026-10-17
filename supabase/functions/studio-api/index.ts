@@ -70,9 +70,6 @@ Deno.serve(async (req: Request) => {
       const { data: visits } = await admin.from("studio_visits").select("id, client_id, visit_date, service, stylist, shared_notes");
       const { data: appts } = await admin.from("studio_appointments").select("*").order("starts_at");
       const { data: feedback } = await admin.from("studio_feedback").select("id, rating, comment, resolved_at, created_at, client_id");
-      const { data: notes } = isAdmin
-        ? await admin.from("studio_private" as any ? "client_notes" : "client_notes").select("client_id, formulas, internal_diagnosis")
-        : [];
 
       if (isAdmin) {
         return json({
@@ -85,7 +82,7 @@ Deno.serve(async (req: Request) => {
             ...c,
             passport: passports?.find(p => p.client_id === c.id) ?? null,
             visits: (visits ?? []).filter(v => v.client_id === c.id),
-            notes: notes?.find(n => n.client_id === c.id) ?? null,
+            notes: null,
           })),
           appointments: appts ?? [],
           feedback: feedback ?? [],

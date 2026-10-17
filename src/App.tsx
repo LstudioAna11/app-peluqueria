@@ -2500,9 +2500,24 @@ function StudioApp() {
     if (!/^\d{4}$/.test(pin)) return;
           const clientMatch = listaClientes.find(c => String(c.pinAcceso ?? '').trim() === pin);
           if (studioApi.serverConfigured && !clientMatch && pin !== bizConfig.masterPin) {
+            const enteredPin = pin;
             (async () => {
-              try { await studioApi.authenticate(pin); }
-              catch { setPinError(true); setPin(""); setTimeout(() => setPinError(false), 2000); }
+              try {
+                await studioApi.authenticate(enteredPin);
+                await syncFromServer();
+                setPinError(false);
+                setPin("");
+                setAppVisitsCount(prev => prev + 1);
+                setFeedbackSubmitted(false);
+                if (studioApi.storedRole() === 'admin') {
+                  setCurrentScreen('adminPanel');
+                } else {
+                  const record = listaClientes.find(client => String(client.pinAcceso).trim() === enteredPin)
+                    || currentClientRecord;
+                  if (record) { setCurrentClientRecord(record); trackTraffic('login'); }
+                  setCurrentScreen('clientPortal');
+                }
+              } catch { setPinError(true); setPin(""); setTimeout(() => setPinError(false), 2000); }
             })();
             return;
           }
@@ -2551,6 +2566,7 @@ function StudioApp() {
       }
       try {
         await studioApi.authenticate(adminPin);
+        await syncFromServer();
         setCurrentScreen('adminPanel');
         setAdminError(false);
         setAdminPin("");
@@ -2560,6 +2576,164 @@ function StudioApp() {
       }
     })();
   };
+
+  const mapServerAppointment = (row: Record<string, any>): Appointment => {
+    const iso = String(row.starts_at || '');
+    const snap = (row.client_snapshot || {}) as Record<string, any>;
+    const appointment: Appointment = {
+      id: row.source_legacy_id || row.id,
+      dateKey: iso.slice(0, 10),
+      dayName: snap.dayName || '',
+      time: iso.slice(11, 16),
+      durationMinutes: row.duration_minutes ?? 45,
+      clientName: snap.clientName || '',
+      phone: snap.phone || '',
+      email: snap.email || '',
+      serviceCategory: snap.serviceCategory || '',
+      serviceSubcategory: row.legacy_service_text || snap.serviceSubcategory || '',
+      selectedVariant: snap.selectedVariant ?? null,
+      services: Array.isArray(row.services) ? row.services : undefined,
+      remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false, ...(snap.remindersStatus || {}) },
+    };
+    if (row.lifecycle_status) appointment.lifecycleStatus = row.lifecycle_status as Appointment['lifecycleStatus'];
+    if (row.approval_status) appointment.saturdayApproval = { status: row.approval_status, reason: row.approval_reason, reference: row.approval_reference || '' } as Appointment['saturdayApproval'];
+    if (row.deposit_status) appointment.advancePayment = { status: row.deposit_status, amount: Number(row.deposit_amount) || 0, reference: row.deposit_reference || '' } as Appointment['advancePayment'];
+    if (row.completed_at) appointment.completedAt = row.completed_at;
+    return appointment;
+  };
+
+  const syncFromServer = async (): Promise<Record<string, any> | null> => {
+    if (!studioApi.serverConfigured || !studioApi.currentToken()) return null;
+    const data = await studioApi.syncAll<Record<string, any>>(studioApi.currentToken()!);
+    if (!data || typeof data !== 'object') return data;
+
+    if (Array.isArray(data.catalog) && data.catalog.length) {
+      const serverCatalog = (data.catalog
+        .map((row: { category?: CatalogCategory }) => row?.category)
+        .filter(Boolean) as CatalogCategory[])
+        .map(category => ({
+          ...category,
+          subservices: (category.subservices || []).map(sub => {
+            const seed = SERVICE_AI_IMAGES[sub.id];
+            return seed ? { ...seed, ...sub } : sub;
+          }),
+        }));
+      if (serverCatalog.length) {
+        setCatalog(serverCatalog);
+        localStorage.setItem('lst_master_catalog', JSON.stringify(serverCatalog));
+        setSavedCatalogSnapshot(JSON.stringify(serverCatalog));
+      }
+    }
+    if (data.settings && typeof data.settings === 'object') {
+      const merged = { ...INITIAL_BUSINESS_CONFIG, ...data.settings } as BusinessConfig;
+      setBizConfig(merged);
+      setTempConfig(merged);
+      localStorage.setItem('lst_business_config', JSON.stringify(merged));
+    }
+    if (Array.isArray(data.closures)) {
+      setHolidaysList(data.closures.map((c: Record<string, any>) => ({
+        id: String(c.id), startDate: c.start_date || '', endDate: c.end_date || '',
+        type: c.type === 'festivo' ? 'festivo' : 'vacaciones', reason: c.reason || '',
+      })));
+    }
+    if (Array.isArray(data.timeBlocks)) {
+      setTimeBlocks(data.timeBlocks.map((b: Record<string, any>) => {
+        const iso = String(b.starts_at || '');
+        return { id: String(b.id), dateKey: iso.slice(0, 10), time: iso.slice(11, 16) || '00:00', durationMinutes: 30, reason: b.reason || '' };
+      }));
+    }
+    if (Array.isArray(data.appointments) && data.appointments.length) {
+      const serverAppointments = data.appointments.map(mapServerAppointment);
+      serverAppointments.forEach(item => knownAppointmentIds.current.add(item.id));
+      setAppointments(previous => {
+        const byId = new Map(previous.map(item => [item.id, item]));
+        serverAppointments.forEach(item => byId.set(item.id, item));
+        return Array.from(byId.values());
+      });
+    }
+    if (Array.isArray(data.clients) && data.clients.length) {
+      const serverClients = data.clients.map((c: Record<string, any>): ClientRecord => ({
+        createdAt: c.created_at,
+        idNum: Number(c.legacy_id) || 0,
+        registroId: c.registration_id || '',
+        nombre: c.first_name || '',
+        apellidos: c.last_name || '',
+        fechaNacimiento: c.birth_date || '',
+        telefono: c.phone || '',
+        email: c.email || '',
+        pinAcceso: String(c.legacy_id ?? ''),
+        diagnostico: c.passport?.hair_diagnosis || 'Diagnóstico inicial pendiente',
+        ultimaVisita: c.passport?.last_visit_text || 'Nuevo registro',
+        proximaVisitaSugerida: c.passport?.next_visit_text || 'Pendiente de agendar',
+        formulasAplicadas: c.notes?.formulas || 'Sin fórmulas registradas',
+        dniCapilar: c.passport?.hair_diagnosis || '',
+        prescripcionCasa: c.passport?.home_care || '',
+        pastVisits: (c.visits || []).map((v: Record<string, any>) => ({
+          date: v.visit_date || '', service: v.service || '', stylist: v.stylist || '', notes: v.shared_notes || '',
+        })),
+      }));
+      setListaClientes(previous => {
+        const byId = new Map(previous.map(client => [client.idNum, client]));
+        serverClients.forEach(client => { if (client.idNum) byId.set(client.idNum, client); });
+        return Array.from(byId.values()).sort((left, right) => left.idNum - right.idNum);
+      });
+      if (Array.isArray(data.feedback)) {
+        const nameByClientId = new Map(data.clients.map((c: Record<string, any>) => [c.id, `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Clienta']));
+        const serverFeedback: FeedbackRecord[] = data.feedback.map((f: Record<string, any>) => ({
+          id: String(f.id),
+          date: String(f.created_at || '').slice(0, 10).split('-').reverse().join('/'),
+          clientName: f.client_id ? (nameByClientId.get(f.client_id) || 'Clienta') : 'Clienta Verificada',
+          rating: f.rating ?? 5,
+          comment: f.comment || '',
+          type: (f.rating ?? 5) <= 2 ? 'detractor' : (f.rating ?? 5) === 3 ? 'neutral' : 'promoter',
+          resolvedAt: f.resolved_at || undefined,
+        }));
+        if (serverFeedback.length) {
+          setFeedbackList(previous => {
+            const byId = new Map(previous.map(item => [item.id, item]));
+            serverFeedback.forEach(item => byId.set(item.id, item));
+            return Array.from(byId.values());
+          });
+        }
+      }
+    }
+    if (data.role === 'client' && data.me) {
+      const c = data.me;
+      const record: ClientRecord = {
+        createdAt: c.created_at,
+        idNum: Number(c.legacy_id) || 0,
+        registroId: c.registration_id || '',
+        nombre: c.first_name || '',
+        apellidos: c.last_name || '',
+        fechaNacimiento: c.birth_date || '',
+        telefono: c.phone || '',
+        email: c.email || '',
+        pinAcceso: String(c.legacy_id ?? ''),
+        diagnostico: data.passport?.hair_diagnosis || 'Diagnóstico inicial pendiente',
+        ultimaVisita: data.passport?.last_visit_text || 'Nuevo registro',
+        proximaVisitaSugerida: data.passport?.next_visit_text || 'Pendiente de agendar',
+        formulasAplicadas: 'Sin fórmulas registradas',
+        dniCapilar: data.passport?.hair_diagnosis || '',
+        prescripcionCasa: data.passport?.home_care || '',
+        pastVisits: (data.visits || []).map((v: Record<string, any>) => ({
+          date: v.visit_date || '', service: v.service || '', stylist: v.stylist || '', notes: v.shared_notes || '',
+        })),
+      };
+      setListaClientes(previous => {
+        const without = previous.filter(client => client.idNum !== record.idNum);
+        return [...without, record].sort((left, right) => left.idNum - right.idNum);
+      });
+      setCurrentClientRecord(record);
+    }
+    return data;
+  };
+
+  useEffect(() => {
+    if (studioApi.serverConfigured && studioApi.currentToken() && studioApi.storedRole()) {
+      syncFromServer().catch(() => undefined);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSaveSection = (sectionName: string) => {
     if (!/^\d{4}$/.test(tempConfig.masterPin)) { alert('El PIN maestro debe tener exactamente 4 números.'); return; }
