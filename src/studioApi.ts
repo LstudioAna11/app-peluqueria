@@ -211,3 +211,6 @@ export const fetchWhatsAppConfigStatus = (token: string) =>
 
 export const saveWhatsAppConsent = (token: string, consent: boolean) =>
   call<{ ok: true; whatsappConsent: boolean }>('whatsapp-consent', { method: 'PUT', token, body: { consent } });
+
+export const retryWhatsAppConfirmation = (token: string, appointmentId: string) =>
+  call<{ ok: true; retried: number }>('whatsapp-retry', { token, body: { appointmentId } });

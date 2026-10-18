@@ -326,7 +326,8 @@ Deno.serve(async (req: Request) => {
     const waWorkerSecret = String(waCfg.worker_secret ?? "");
     const waBodySecret = String((body as { workerSecret?: string }).workerSecret ?? "");
     const waUrlSecret = url.searchParams.get("workerSecret") ?? "";
-    const secretOk = !waWorkerSecret || waBodySecret === waWorkerSecret || waUrlSecret === waWorkerSecret;
+    const secretOk = !waWorkerSecret || waBodySecret === waWorkerSecret || waUrlSecret === waWorkerSecret
+      || (!!configSecret && (waBodySecret === configSecret || waUrlSecret === configSecret));
 
     let waSent = 0;
     let waFailed = 0;

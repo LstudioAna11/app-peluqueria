@@ -6754,6 +6754,17 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                   </div>
                 )}
                 {appointmentWhatsApp.length === 0 && !appointmentWhatsAppLoading && !appointmentWhatsAppError && validRecipientPhone(viewApptModal.phone) && <p style={{ color: '#D6CBB8', fontSize: '12px', margin: '10px 0 0' }}>Pulsa «Consultar estado» para ver los WhatsApp programados y enviados de esta cita.</p>}
+                {appointmentWhatsApp.some(row => row.kind === 'confirmation' && (row.status === 'failed' || row.status === 'skipped') && (row.attempts ?? 0) < 5) && (
+                  <button type="button" onClick={async () => {
+                    const appointmentId = viewApptModal.serverId;
+                    if (!appointmentId) { alert('Guarda la reserva primero para poder reintentar su confirmación.'); return; }
+                    try {
+                      const result = await studioApi.retryWhatsAppConfirmation(studioApi.currentToken()!, appointmentId);
+                      alert(result.retried > 0 ? 'Confirmación reencolada y enviada de nuevo. Consulta el estado en unos segundos.' : 'No hay ninguna confirmación con error que se pueda reintentar.');
+                      loadAppointmentWhatsApp();
+                    } catch { alert('No se pudo reintentar la confirmación. Inténtalo de nuevo en unos segundos.'); }
+                  }} style={{ marginTop: '10px', padding: '8px 12px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 0, borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Reintentar confirmación</button>
+                )}
               </section>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px', borderTop: '1px solid rgba(212, 175, 55, 0.2)', paddingTop: '12px' }}>

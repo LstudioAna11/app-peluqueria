@@ -298,6 +298,21 @@ const cancelAppointmentEmails = async (admin: ReturnType<typeof createClient>, a
   }
 };
 
+const sendViaWhatsAppCloud = async (accessToken: string, phoneNumberId: string, to: string, templateName: string): Promise<{ ok: true; id: string } | { ok: false; error: string }> => {
+  try {
+    const response = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ messaging_product: "whatsapp", to: to.replace(/^\+/, ""), type: "template", template: { name: templateName, language: { code: "es" } } }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) return { ok: false, error: (payload as { error?: { message?: string } }).error?.message || `Error ${response.status}` };
+    return { ok: true, id: (payload as { messages?: { id?: string }[] }).messages?.[0]?.id || "" };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Error de red" };
+  }
+};
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
 
@@ -434,6 +449,39 @@ Deno.serve(async (req: Request) => {
       const { error } = await admin.from("studio_clients").update({ whatsapp_consent: consent }).eq("id", targetClientId);
       if (error) return json({ error: error.message }, 500);
       return json({ ok: true, whatsappConsent: consent });
+    }
+
+    if (action === "whatsapp-retry" && req.method === "POST") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const appointmentId = String(body.appointmentId ?? "");
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(appointmentId)) {
+        return json({ error: "Cita no válida" }, 400);
+      }
+      const { data: retried, error } = await admin.rpc("studio_reenqueue_whatsapp_confirmation" as never, { p_appointment_id: appointmentId } as never);
+      if (error) return json({ error: error.message }, 500);
+      // Send immediately so the retry is visible without waiting for the cron.
+      const { data: cfgSend } = await admin.from("studio_whatsapp_config").select("access_token, phone_number_id, template_name").eq("id", true).maybeSingle();
+      const cfgS = (cfgSend ?? {}) as Record<string, unknown>;
+      if (cfgS.access_token && cfgS.phone_number_id && cfgS.template_name) {
+        const { data: pendingRows } = await admin.from("studio_whatsapp_outbox")
+          .select("id, to_phone, template_name")
+          .eq("appointment_id", appointmentId)
+          .eq("kind", "confirmation")
+          .eq("status", "scheduled")
+          .lte("scheduled_at", new Date().toISOString());
+        for (const row of (pendingRows ?? []) as { id: string; to_phone: string; template_name: string }[]) {
+          const { data: cur } = await admin.from("studio_whatsapp_outbox").select("attempts").eq("id", row.id).maybeSingle();
+          await admin.from("studio_whatsapp_outbox").update({ status: "sending" }).eq("id", row.id);
+          const result = await sendViaWhatsAppCloud(cfgS.access_token as string, cfgS.phone_number_id as string, row.to_phone, row.template_name);
+          await admin.from("studio_whatsapp_outbox").update(result.ok ? {
+            status: "sent", sent_at: new Date().toISOString(), provider: "meta_cloud_api",
+            provider_message_id: result.id, last_error: null, attempts: ((cur as { attempts?: number } | null)?.attempts ?? 0) + 1,
+          } : {
+            status: "failed", provider: "meta_cloud_api", last_error: result.error, attempts: ((cur as { attempts?: number } | null)?.attempts ?? 0) + 1,
+          }).eq("id", row.id);
+        }
+      }
+      return json({ ok: true, retried: Number(retried) || 0 });
     }
 
     if (action === "whatsapp-status") {
