@@ -2814,35 +2814,35 @@ function StudioApp() {
   const handleClientPinSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!/^\d{4}$/.test(pin)) return;
-    const clientMatch = listaClientes.find(c => String(c.pinAcceso ?? '').trim() === pin);
-    if (studioApi.serverConfigured) {
-      const enteredPin = pin;
-      (async () => {
-        try {
-          await studioApi.authenticate(enteredPin);
-          await syncFromServer();
-          setPinError(false);
-          setPin("");
-          setAppVisitsCount(prev => prev + 1);
-          setFeedbackSubmitted(false);
-          if (studioApi.storedRole() === 'admin') {
-            setCurrentScreen('adminPanel');
-          } else {
-            const record = listaClientes.find(client => String(client.pinAcceso).trim() === enteredPin)
-              || currentClientRecord;
-            if (record) { setCurrentClientRecord(record); trackTraffic('login'); }
-            setCurrentScreen('clientPortal');
+          const clientMatch = listaClientes.find(c => String(c.pinAcceso ?? '').trim() === pin);
+          if (studioApi.serverConfigured && !clientMatch && pin !== bizConfig.masterPin) {
+            const enteredPin = pin;
+            (async () => {
+              try {
+                await studioApi.authenticate(enteredPin);
+                await syncFromServer();
+                setPinError(false);
+                setPin("");
+                setAppVisitsCount(prev => prev + 1);
+                setFeedbackSubmitted(false);
+                if (studioApi.storedRole() === 'admin') {
+                  setCurrentScreen('adminPanel');
+                } else {
+                  const record = listaClientes.find(client => String(client.pinAcceso).trim() === enteredPin)
+                    || currentClientRecord;
+                  if (record) { setCurrentClientRecord(record); trackTraffic('login'); }
+                  setCurrentScreen('clientPortal');
+                }
+              } catch { setPinError(true); setPin(""); setTimeout(() => setPinError(false), 2000); }
+            })();
+            return;
           }
-        } catch { setPinError(true); setPin(""); setTimeout(() => setPinError(false), 2000); }
-      })();
-      return;
-    }
-    if (clientMatch || pin === bizConfig.masterPin) {
+          if (clientMatch || pin === bizConfig.masterPin) {
             setPinError(false);
             setPin("");
             setAppVisitsCount(prev => prev + 1);
             setFeedbackSubmitted(false);
-              if (clientMatch) {
+            if (clientMatch) {
               setCurrentClientRecord(clientMatch);
               trackTraffic('login');
               setCurrentScreen('clientPortal');
@@ -2851,7 +2851,7 @@ function StudioApp() {
               setAdminError(false);
               setCurrentScreen('adminPanel');
             }
-            } else {
+          } else {
             setPinError(true);
             setPin("");
             setTimeout(() => setPinError(false), 2000);
@@ -4150,7 +4150,7 @@ function StudioApp() {
           <form onSubmit={handleClientPinSubmit} style={{ maxWidth: '280px', margin: '0 auto' }}>
             <label htmlFor="client-access-pin" style={{ display: 'block', color: '#D6CBB8', fontSize: '13px', marginBottom: '10px' }}>{t('enterPin')}</label>
             <input id="client-access-pin" className="studio-editorial-pin" dir="ltr" type="password" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} autoComplete="off" value={pin} onChange={event => { setPin(event.target.value.replace(/[^0-9]/g, '').slice(0, 4)); setPinError(false); }} aria-invalid={pinError} aria-describedby={pinError ? 'client-pin-error' : undefined} required />
-            {pinError && <p id="client-pin-error" role="alert" style={{ color: '#F2B8AC', fontSize: '13px' }}>PIN incorrecto</p>}
+            {pinError && <p id="client-pin-error" role="alert" style={{ color: '#F2B8AC', fontSize: '13px' }}>PIN incorrecto. Comprueba que es el correcto o usa «Primera vez» para registrarte.</p>}
             <button className="studio-editorial-enter" type="submit" disabled={pin.length !== 4} style={{ width: '100%', minHeight: '48px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', borderRadius: '3px', padding: '14px', marginTop: '24px', fontSize: '13px', letterSpacing: '1px', cursor: 'pointer', opacity: pin.length === 4 ? 1 : 0.45 }}>{t('enterPortal')}</button>
           </form>
           <div style={{ width: '34px', height: '1px', background: 'rgba(212, 175, 55, 0.5)', margin: '30px auto 20px' }} />
