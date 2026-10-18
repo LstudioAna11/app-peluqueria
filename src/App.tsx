@@ -2493,6 +2493,19 @@ function StudioApp() {
   const getModalDuration = (items: { sub: SubService; variant: ServiceVariant | null }[]) =>
     items.reduce((total, item) => total + (parseInt((item.variant?.duration || item.sub.duration).match(/\d+/)?.[0] || '45', 10)), 0);
 
+  const getSelectionTotal = (items: { sub: SubService; variant: ServiceVariant | null }[]) => {
+    let total = 0;
+    let orientative = false;
+    for (const item of items) {
+      const price = String(item.variant?.price || item.sub.price || '');
+      const value = parseFloat(price.replace(/\./g, '').replace(',', '.').match(/\d+(\.\d+)?/)?.[0] || '');
+      if (!Number.isFinite(value)) { orientative = true; continue; }
+      if (/consultar|desde|aprox/i.test(price) || (item.sub.priceType && item.sub.priceType !== 'fijo')) orientative = true;
+      total += value;
+    }
+    return { total, orientative };
+  };
+
   const [viewApptModal, setViewApptModal] = useState<Appointment | null>(null);
   const [appointmentNoteDraft, setAppointmentNoteDraft] = useState('');
   useEffect(() => { setAppointmentNoteDraft(viewApptModal?.internalNotes || ''); }, [viewApptModal?.id]);
@@ -4343,7 +4356,13 @@ function StudioApp() {
               <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#E4C687' }}>{serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#E4C687' }}>{item.sub.hasVariants && !item.variant ? t('chooseOption') : (item.variant?.price || item.sub.price) + ' · ' + (item.variant?.duration || item.sub.duration)}</span></div>
               <button type="button" aria-label={'Quitar ' + serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')} onClick={() => setSelectedServicesToBook(previous => previous.filter(selected => selected.sub.id !== item.sub.id))} style={{ background: 'none', border: 'none', color: '#D6CBB8', cursor: 'pointer', padding: '10px', minHeight: '44px', minWidth: '44px', fontSize: '12px' }}>{t('remove')}</button>
             </div>)}
-            <p style={{ color: '#D6CBB8', fontSize: '13px', margin: '14px 0 0' }}>Duración de los servicios: {getModalDuration(selectedServicesToBook)} min</p>
+            <p style={{ color: '#D6CBB8', fontSize: '13px', margin: '14px 0 0' }}>Duración total: {getModalDuration(selectedServicesToBook)} min</p>
+            {(() => {
+              const totalSel = getSelectionTotal(selectedServicesToBook);
+              if (totalSel.total > 0 && !totalSel.orientative) return <p style={{ color: '#FFF8EE', fontSize: '14px', margin: '6px 0 0' }}>Importe total: {totalSel.total.toFixed(2).replace('.', ',')} €</p>;
+              if (totalSel.total > 0) return <p style={{ color: '#E4C687', fontSize: '12px', margin: '6px 0 0' }}>Importe orientativo: {totalSel.total.toFixed(2).replace('.', ',')} € · algún servicio tiene precio orientativo o requiere diagnóstico; el importe final se confirma en el estudio.</p>;
+              return <p style={{ color: '#E4C687', fontSize: '12px', margin: '6px 0 0' }}>El importe se confirma en el estudio: algún servicio requiere diagnóstico.</p>;
+            })()}
             {selectedServicesToBook.some(item => (catalog.flatMap(c => c.subservices).find(sub => sub.id === item.sub.id) || item.sub).requiresAssessment) && <p style={{ color: '#E4C687', fontSize: '12px', margin: 0 }}>Tu selección requiere valoración previa. Elegir fecha y hora registra una solicitud; Ana debe aprobarla antes de confirmar la cita.</p>}
             {getTonerError(selectedServicesToBook) && <p role="alert" style={{ color: '#E4C687', fontSize: '12px', margin: 0 }}>{getTonerError(selectedServicesToBook)}</p>}
             {getStylingError(selectedServicesToBook) && <p role="alert" style={{ color: '#E4C687', fontSize: '12px', margin: 0 }}>{getStylingError(selectedServicesToBook)}</p>}
@@ -4402,6 +4421,7 @@ function StudioApp() {
                 }}>
                 {activeServices.map(sub => {
                   const name = serviceText(sub, 'name') || sub.name;
+                  const carouselSelected = selectedServicesToBook.some(item => item.sub.id === sub.id);
                   return (
                     <article key={sub.id} id={"portal-service-" + sub.id} className="lst-c-card">
                       <button type="button" className="lst-c-media" onClick={() => openDetail(sub)} aria-label={name + ' · ' + t('viewService')}>
@@ -4416,7 +4436,10 @@ function StudioApp() {
                         <button type="button" className="lst-c-name" onClick={() => openDetail(sub)}>{name}</button>
                         {!!serviceText(sub, 'description') && <p className="lst-c-desc">{serviceText(sub, 'description')}</p>}
                         <p className="lst-c-meta">{sub.price}{sub.duration ? ' · ' + sub.duration : ''}</p>
-                        <button type="button" className="lst-btn-ver lst-c-cta" onClick={() => openDetail(sub)}>{t('viewService')} <ArrowRight size={15} strokeWidth={2} aria-hidden="true" /></button>
+                        <div className="lst-c-cta" style={{ display: 'flex', gap: 8 }}>
+                          <button type="button" className="lst-btn-ver" onClick={() => openDetail(sub)}>{t('viewService')} <ArrowRight size={15} strokeWidth={2} aria-hidden="true" /></button>
+                          <button type="button" className="lst-btn-ver" aria-pressed={carouselSelected} aria-label={carouselSelected ? t('selectedRemove') : t('addAppointment') + ' · ' + name} onClick={() => setSelectedServicesToBook(previous => previous.some(item => item.sub.id === sub.id) ? previous.filter(item => item.sub.id !== sub.id) : [...previous, { sub, variant: null }])} style={carouselSelected ? { background: '#C99E52', borderColor: '#C99E52', color: '#29231F' } : undefined}>{carouselSelected ? '✓ ' + t('addAppointment') : t('addAppointment')}</button>
+                        </div>
                       </div>
                     </article>
                   );
@@ -4501,7 +4524,20 @@ function StudioApp() {
               </div>
             </section>
           )}
-          <button type="button" onClick={() => { if (detailSub.hasVariants && !!detailSub.variants?.length && !detailSelection?.variant) { alert(tf('requiredVariant', { service: detailSub.name })); return; } setSelectedServicesToBook(previous => previous.some(item => item.sub.id === detailSub.id) ? previous : [...previous, { sub: detailSub, variant: null }]); setCurrentScreen('visualAgenda'); }} className="lst-cta-full">{t('chooseAndBook')} <ArrowRight size={18} strokeWidth={2} aria-hidden="true" /></button>
+          {detailSelection ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 10, padding: '12px 14px' }}>
+                <span style={{ color: '#E4C687', fontSize: 13 }}>{selectedServicesToBook.length} {selectedServicesToBook.length === 1 ? 'servicio' : 'servicios'} en tu cita</span>
+                <button type="button" onClick={() => setSelectedServicesToBook(previous => previous.filter(item => item.sub.id !== detailSub.id))} style={{ background: 'none', border: 'none', color: '#D6CBB8', fontSize: 12, cursor: 'pointer', padding: '10px', minHeight: 44 }}>{t('remove')}</button>
+              </div>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button type="button" onClick={() => { setViewServiceDetail(null); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="lst-cta-full" style={{ flex: 1, background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.16)' }}>Añadir otro servicio</button>
+                <button type="button" onClick={() => { const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant); if (missing) { alert(tf('requiredVariant', { service: missing.sub.name })); return; } setCurrentScreen('visualAgenda'); }} className="lst-cta-full" style={{ flex: 1 }}>{t('chooseDateTime')} <ArrowRight size={18} strokeWidth={2} aria-hidden="true" /></button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" onClick={() => { if (detailSub.hasVariants && !!detailSub.variants?.length && !detailSelection?.variant) { alert(tf('requiredVariant', { service: detailSub.name })); return; } setSelectedServicesToBook(previous => previous.some(item => item.sub.id === detailSub.id) ? previous : [...previous, { sub: detailSub, variant: null }]); }} className="lst-cta-full">{t('chooseAndBook')} <ArrowRight size={18} strokeWidth={2} aria-hidden="true" /></button>
+          )}
         </div>
         );
       })()}
@@ -4538,6 +4574,7 @@ function StudioApp() {
           </section>
           <div style={{ borderTop: '1px solid #3A312A', paddingTop: '18px' }}>
             <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6 }}>{selectedServicesToBook.map(item => serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name') + (item.variant ? ` · ${variantText(item.variant, item.sub)}` : '')).join(' + ')}</p>
+            {(() => { const totalSel = getSelectionTotal(selectedServicesToBook); if (totalSel.total <= 0) return null; return <p style={{ color: totalSel.orientative ? '#E4C687' : '#FFF8EE', fontSize: '13px', margin: '6px 0 0' }}>{totalSel.orientative ? 'Importe orientativo' : 'Importe total'}: {totalSel.total.toFixed(2).replace('.', ',')} €{totalSel.orientative ? ' · se confirma en el estudio' : ''}</p>; })()}
             {selectedVisualTime && <p style={{ color: '#FFF8EE', fontSize: '15px' }}>{bookingDate.toLocaleDateString(portalLocale, { day: 'numeric', month: 'long' })} · {selectedVisualTime}</p>}
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px', background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', cursor: 'pointer' }}>
               <input type="checkbox" checked={whatsappConsent} onChange={e => setWhatsappConsent(e.target.checked)} style={{ width: 18, height: 18, marginTop: 2, accentColor: '#C49A58', flexShrink: 0 }} />
