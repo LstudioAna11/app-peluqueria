@@ -1862,6 +1862,8 @@ function StudioApp() {
   const [bookingDate, setBookingDate] = useState<Date>(() => { const date = new Date(); date.setHours(12, 0, 0, 0); date.setDate(date.getDate() + bizConfig.minAdvanceDays); return date; });
   const [tempConfig, setTempConfig] = useState<BusinessConfig>(bizConfig);
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
+  const [saveErrorMsg, setSaveErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     setTempConfig(bizConfig);
@@ -3005,10 +3007,11 @@ function StudioApp() {
       }
     }
     if (data.settings && typeof data.settings === 'object') {
-      const merged = { ...INITIAL_BUSINESS_CONFIG, ...data.settings } as BusinessConfig;
-      setBizConfig(merged);
-      setTempConfig(merged);
-      localStorage.setItem('lst_business_config', JSON.stringify(merged));
+      setTempConfig(previous => {
+        if (JSON.stringify(previous) !== JSON.stringify(bizConfig)) return previous;
+        return { ...INITIAL_BUSINESS_CONFIG, ...data.settings } as BusinessConfig;
+      });
+      setBizConfig(previous => ({ ...previous, ...data.settings } as BusinessConfig));
     }
     if (Array.isArray(data.closures)) {
       setHolidaysList(data.closures.map((c: Record<string, any>) => ({
@@ -3135,22 +3138,30 @@ function StudioApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSaveSection = (sectionName: string) => {
+  const configHasPendingChanges = JSON.stringify(tempConfig) !== JSON.stringify(bizConfig);
+
+  const handleSaveSection = async (sectionName: string) => {
     if (!/^\d{4}$/.test(tempConfig.masterPin)) { alert('El PIN maestro debe tener exactamente 4 números.'); return; }
     if (listaClientes.some(client => String(client.pinAcceso).trim() === tempConfig.masterPin)) {
       alert('Este PIN maestro ya pertenece a una clienta. Elige otro.'); return;
     }
     if (!Number.isFinite(tempConfig.advancePaymentThresholdMinutes) || tempConfig.advancePaymentThresholdMinutes < 0 || !Number.isFinite(parseFloat(tempConfig.depositAmount.replace(',', '.'))) || parseFloat(tempConfig.depositAmount.replace(',', '.')) <= 0) { alert('Revisa el importe y la duración de la reserva anticipada.'); return; }
     const normalizedConfig = normalizeOpeningHours(tempConfig);
-    localStorage.setItem('lst_business_config', JSON.stringify(normalizedConfig));
-    setBizConfig(normalizedConfig);
-    setTempConfig(normalizedConfig);
-    setSavedMsg(`¡${sectionName} guardados correctamente!`);
-    setTimeout(() => setSavedMsg(null), 3000);
-    if (studioApi.serverConfigured && studioApi.storedRole() === 'admin') {
-      studioApi.pushSettings(studioApi.currentToken()!, normalizedConfig).catch(() => {
-        setSavedMsg('Guardado en este dispositivo. No se pudo sincronizar con el servidor.');
-      });
+    const shouldSync = studioApi.serverConfigured && studioApi.storedRole() === 'admin' && studioApi.currentToken();
+    setSavedMsg(null);
+    setSaveErrorMsg(null);
+    setSaveState('saving');
+    try {
+      if (shouldSync) await studioApi.pushSettings(studioApi.currentToken()!, normalizedConfig);
+      setBizConfig(normalizedConfig);
+      setTempConfig(normalizedConfig);
+      localStorage.setItem('lst_business_config', JSON.stringify(normalizedConfig));
+      setSaveState('saved');
+      setSavedMsg(`¡${sectionName} guardados correctamente!`);
+      setTimeout(() => setSavedMsg(null), 3000);
+    } catch (error) {
+      setSaveState('error');
+      setSaveErrorMsg(error instanceof Error && error.message ? error.message : 'No se pudo guardar en el servidor. Tus cambios se conservan aquí para reintentar.');
     }
   };
 
@@ -5242,9 +5253,14 @@ style={{ padding: '8px', background: '#322A25', color: '#FFF8EE', border: '1px s
               </nav>
               <div className="studio-settings-content">
                 <div className="studio-settings-savebar">
-                  <span role="status">{JSON.stringify(tempConfig) !== JSON.stringify(bizConfig) ? 'Cambios pendientes' : 'Todo guardado'}</span>
-                  <button type="button" disabled={JSON.stringify(tempConfig) === JSON.stringify(bizConfig)} onClick={() => handleSaveSection('Ajustes del Studio')}>Guardar cambios</button>
+                  <span role="status">{saveState === 'saving' ? 'Guardando…' : saveState === 'saved' && !configHasPendingChanges ? 'Cambios guardados' : saveState === 'error' && !configHasPendingChanges ? 'No se pudo guardar. Reintenta.' : configHasPendingChanges ? 'Cambios pendientes' : 'Todo guardado'}</span>
+                  <button type="button" disabled={!configHasPendingChanges || saveState === 'saving'} onClick={() => handleSaveSection('Ajustes del Studio')}>Guardar cambios</button>
                 </div>
+                {saveState === 'error' && saveErrorMsg && (
+                  <div style={{ padding: '10px', backgroundColor: '#F2DCD8', border: '1px solid #C0392B', color: '#8A2F23', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }}>
+                    Error al guardar: {saveErrorMsg}
+                  </div>
+                )}
               {savedMsg && (
                 <div style={{ padding: '10px', backgroundColor: '#8FC98F', border: '1px solid #44bb44', color: '#2E7D32', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }}>
                   {savedMsg}
