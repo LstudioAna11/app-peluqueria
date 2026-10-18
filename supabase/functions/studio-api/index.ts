@@ -11,6 +11,7 @@ const json = (body: unknown, status = 200) =>
 
 const STUDIO_LOCATION = "Calle Mayor / Centro de Elche, Alicante";
 const DEFAULT_PORTAL_URL = "https://lstudioana.es";
+const STUDIO_NOTIFY_EMAIL = "lstudioana@gmail.com";
 const MADRID_TZ = "Europe/Madrid";
 
 const escHtml = (value: string) =>
@@ -210,12 +211,13 @@ const scheduleAppointmentEmails = async (admin: ReturnType<typeof createClient>,
   const now = Date.now();
   const startMs = new Date(ctx.startsAt).getTime();
 
-  const upsert = async (kind: string, idempotencyKey: string, subject: string, bodyHtml: string, scheduledAt: string) => {
+  const upsert = async (kind: string, idempotencyKey: string, subject: string, bodyHtml: string, scheduledAt: string, to: string) => {
+    if (!validEmail(to)) return;
     await admin.from("studio_email_outbox").upsert({
       idempotency_key: idempotencyKey,
       appointment_id: ctx.apptId,
       kind,
-      to_email: ctx.clientEmail ?? "",
+      to_email: to,
       subject,
       body_html: bodyHtml,
       scheduled_at: scheduledAt,
@@ -223,14 +225,20 @@ const scheduleAppointmentEmails = async (admin: ReturnType<typeof createClient>,
     }, { onConflict: "idempotency_key", ignoreDuplicates: true });
   };
 
-  if (!ctx.clientEmail) return;
+  // Every booking notice also lands in the Studio inbox as a copy. Both
+  // recipients get their own idempotency key, so a retry never duplicates.
+  const deliver = (kind: string, keyPrefix: string, subject: string, bodyHtml: string, scheduledAt: string) =>
+    Promise.all([
+      upsert(kind, `${keyPrefix}:client:${ctx.apptId}${keySuffix}`, subject, bodyHtml, scheduledAt, ctx.clientEmail ?? ""),
+      upsert(kind, `${keyPrefix}:studio:${ctx.apptId}${keySuffix}`, `[Studio] ${subject}`, bodyHtml, scheduledAt, STUDIO_NOTIFY_EMAIL),
+    ]);
 
   // Keys include the start time: a rescheduled appointment gets fresh messages
   // instead of colliding with the superseded ones.
   const keySuffix = `:${ctx.startsAt}`;
 
   if (!ctx.confirmed) {
-    await upsert("request_received", `req:${ctx.apptId}${keySuffix}`, "Hemos recibido tu solicitud en L'Studio Ana",
+    await deliver("request_received", "req", "Hemos recibido tu solicitud en L'Studio Ana",
       emailLayout("Solicitud recibida",
         `<p style="margin:0 0 12px;color:#FFF8EE;">Hola <strong>${escHtml(ctx.clientName)}</strong>,</p>
          <p style="margin:0 0 12px;color:#FFF8EE;">Tu solicitud está en revisión. Te enviaremos la confirmación definitiva cuando se completen los pasos pendientes (aprobación de Ana o el anticipo de la reserva).</p>
@@ -245,7 +253,7 @@ const scheduleAppointmentEmails = async (admin: ReturnType<typeof createClient>,
   const confirmationSubject = ctx.isUpdate
     ? "Tu cita en L'Studio Ana ha sido modificada"
     : "Tu cita en L'Studio Ana está confirmada";
-  await upsert(confirmationKind, `${confirmationKind}:${ctx.apptId}${keySuffix}`, confirmationSubject,
+  await deliver(confirmationKind, confirmationKind, confirmationSubject,
     emailLayout(confirmationTitle,
       `<p style="margin:0 0 12px;color:#FFF8EE;">Hola <strong>${escHtml(ctx.clientName)}</strong>,</p>
        ${detailsTable(ctx.startsAt, ctx.servicesText, ctx.professional)}
@@ -258,7 +266,7 @@ const scheduleAppointmentEmails = async (admin: ReturnType<typeof createClient>,
   ] as const) {
     const sendAt = startMs - hours * 3600_000;
     if (sendAt <= now) continue;
-    await upsert(kind, `${kind}:${ctx.apptId}${keySuffix}`, subject,
+    await deliver(kind, kind, subject,
       emailLayout(hours === 48 ? "Tu cita es dentro de 48 horas" : "Mañana te esperamos",
         `<p style="margin:0 0 12px;color:#FFF8EE;">Hola <strong>${escHtml(ctx.clientName)}</strong>,</p>
          ${detailsTable(ctx.startsAt, ctx.servicesText, ctx.professional)}
