@@ -1865,8 +1865,9 @@ function StudioApp() {
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveErrorMsg, setSaveErrorMsg] = useState<string | null>(null);
 
+  const bizConfigRef = useRef(bizConfig);
   useEffect(() => {
-    setTempConfig(bizConfig);
+    bizConfigRef.current = bizConfig;
   }, [bizConfig]);
 
   // CATÁLOGO UNIFICADO Y SINCRONIZADO EN TIEMPO REAL
@@ -3007,11 +3008,14 @@ function StudioApp() {
       }
     }
     if (data.settings && typeof data.settings === 'object') {
-      setTempConfig(previous => {
-        if (JSON.stringify(previous) !== JSON.stringify(bizConfig)) return previous;
-        return { ...INITIAL_BUSINESS_CONFIG, ...data.settings } as BusinessConfig;
+      setBizConfig(previous => {
+        const merged = { ...previous, ...data.settings } as BusinessConfig;
+        return JSON.stringify(merged) === JSON.stringify(previous) ? previous : merged;
       });
-      setBizConfig(previous => ({ ...previous, ...data.settings } as BusinessConfig));
+      setTempConfig(previous => {
+        if (JSON.stringify(previous) !== JSON.stringify(bizConfigRef.current)) return previous;
+        return { ...previous, ...data.settings } as BusinessConfig;
+      });
     }
     if (Array.isArray(data.closures)) {
       setHolidaysList(data.closures.map((c: Record<string, any>) => ({
