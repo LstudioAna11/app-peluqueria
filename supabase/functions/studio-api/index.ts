@@ -245,7 +245,8 @@ Deno.serve(async (req: Request) => {
       const duration = Number(body.durationMinutes) || 45;
 
       // Server-side conflict validation (source of truth)
-      const { data: conflicts } = await admin.rpc("studio_appointment_conflict" as never, {} as never).catch(() => ({ data: null, error: null }));
+      const rpc = admin.rpc("studio_appointment_conflict" as never, {} as never);
+      const conflicts = typeof rpc?.catch === "function" ? await rpc.catch(() => ({ data: null })) : { data: null };
       void conflicts;
 
       const check = await admin
@@ -276,15 +277,15 @@ Deno.serve(async (req: Request) => {
         starts_at: startsAt,
         duration_minutes: duration,
         booking_channel: body.bookingChannel === "admin" ? "admin" : "portal",
-        lifecycle_status: body.lifecycleStatus ?? null,
-        approval_status: body.approval?.status ?? null,
+        lifecycle_status: body.lifecycleStatus ?? "active",
+        approval_status: body.approval?.status ?? "not_required",
         approval_reason: body.approval?.reason ?? null,
         approval_reference: body.approval?.reference ?? null,
-        deposit_status: body.advancePayment?.status ?? null,
+        deposit_status: body.advancePayment?.status ?? "not_required",
         deposit_amount: body.advancePayment?.amount ?? null,
         deposit_reference: body.advancePayment?.reference ?? null,
-        services: body.services ?? null,
-        client_snapshot: {
+        services: body.services ?? [],
+        client_snapshot: body.clientSnapshot ?? {
           clientName: body.clientName ?? "",
           phone: body.phone ?? "",
           email: body.email ?? "",
