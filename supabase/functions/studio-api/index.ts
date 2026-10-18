@@ -78,6 +78,118 @@ const validEmail = (value: unknown): string | null => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
 };
 
+// E.164 normalisation for Spanish/international numbers: digits only, Spain
+// assumed when the client saved a 9-digit local number.
+const validPhoneE164 = (value: unknown): string | null => {
+  const raw = String(value ?? "").replace(/[^+\d]/g, "");
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length < 9 || digits.length > 15) return null;
+  if (raw.startsWith("+")) return `+${digits}`;
+  if (digits.length === 9) return `+34${digits}`;
+  if (digits.startsWith("34") && digits.length === 11) return `+${digits}`;
+  return null;
+};
+
+const whatsAppMessageText = (opts: {
+  kind: "confirmation" | "request_received" | "update" | "cancellation";
+  clientName: string;
+  startsAt: string;
+  servicesText: string;
+  portalUrl: string;
+  pending?: string | null;
+  apptIdToken?: string;
+}) => {
+  const date = fmtDateMadrid(opts.startsAt);
+  const time = fmtTimeMadrid(opts.startsAt);
+  const header = opts.kind === "request_received"
+    ? `Hola, ${opts.clientName}. Hemos recibido tu solicitud en L'Studio Ana.`
+    : opts.kind === "update"
+      ? `Hola, ${opts.clientName}. Tu cita en L'Studio Ana ha sido modificada.`
+      : opts.kind === "cancellation"
+        ? `Hola, ${opts.clientName}. Tu cita en L'Studio Ana ha sido cancelada.`
+        : `Hola, ${opts.clientName}. Tu cita en L'Studio Ana está confirmada.`;
+  const pendingLine = opts.pending ? `\nPendiente: ${opts.pending}. Te enviaremos la confirmación definitiva cuando se complete.` : "";
+  return `${header}\nFecha: ${date}\nHora: ${time}\nServicios: ${opts.servicesText}\nDirección: ${STUDIO_LOCATION}${pendingLine}\nPuedes consultar y gestionar tu cita aquí: ${opts.portalUrl}?cita=${opts.apptIdToken ?? ""}\n¡Te esperamos!`;
+};
+
+interface WhatsAppSchedulingContext {
+  apptId: string;
+  startsAt: string;
+  clientName: string;
+  clientPhone: string | null;
+  servicesText: string;
+  confirmed: boolean;
+  isUpdate?: boolean;
+  kindOverride?: "confirmation" | "request_received" | "update" | "cancellation";
+}
+
+// Schedule the WhatsApp booking confirmation. Idempotent via unique
+// idempotency_key, mirroring the email outbox. Emails and push are unaffected.
+const scheduleAppointmentWhatsApp = async (admin: ReturnType<typeof createClient>, ctx: WhatsAppSchedulingContext) => {
+  const { data: cfg } = await admin.from("studio_whatsapp_config").select("portal_url").eq("id", true).maybeSingle();
+  const portalUrl = ((cfg as { portal_url?: string | null } | null)?.portal_url || DEFAULT_PORTAL_URL).replace(/\/+$/, "");
+  if (!ctx.clientPhone) return;
+  const kind = ctx.kindOverride ?? (!ctx.confirmed ? "request_received" : ctx.isUpdate ? "update" : "confirmation");
+  const { data: apptRow } = await admin.from("studio_appointments").select("id").eq("id", ctx.apptId).maybeSingle();
+  void apptRow;
+  const text = whatsAppMessageText({
+    kind,
+    clientName: ctx.clientName,
+    startsAt: ctx.startsAt,
+    servicesText: ctx.servicesText,
+    portalUrl,
+    pending: kind === "request_received" ? "aprobación o anticipo" : null,
+    apptIdToken: ctx.apptId,
+  });
+  await admin.from("studio_whatsapp_outbox").upsert({
+    idempotency_key: `${kind}:${ctx.apptId}:${ctx.startsAt}`,
+    appointment_id: ctx.apptId,
+    kind,
+    to_phone: ctx.clientPhone,
+    template_name: "appointment_confirmation_v1",
+    body_text: text,
+    scheduled_at: new Date().toISOString(),
+    status: "scheduled",
+  }, { onConflict: "idempotency_key", ignoreDuplicates: true });
+};
+
+const cancelAppointmentWhatsApp = async (admin: ReturnType<typeof createClient>, apptId: string, opts: { cancelled?: boolean } = {}) => {
+  await admin.from("studio_whatsapp_outbox")
+    .update({ status: "skipped", last_error: "Cita cancelada o modificada" })
+    .eq("appointment_id", apptId)
+    .in("status", ["scheduled", "failed"]);
+  if (opts.cancelled) {
+    const { data: appt } = await admin.from("studio_appointments")
+      .select("id, starts_at, client_snapshot")
+      .eq("id", apptId).maybeSingle();
+    const snap = ((appt?.client_snapshot || {}) as Record<string, unknown>);
+    const phone = validPhoneE164(snap.phone);
+    if (appt && phone) {
+      const { data: cfg } = await admin.from("studio_whatsapp_config").select("portal_url").eq("id", true).maybeSingle();
+      const portalUrl = ((cfg as { portal_url?: string | null } | null)?.portal_url || DEFAULT_PORTAL_URL).replace(/\/+$/, "");
+      const text = whatsAppMessageText({
+        kind: "cancellation",
+        clientName: String(snap.clientName ?? ""),
+        startsAt: appt.starts_at,
+        servicesText: String(snap.serviceSubcategory ?? "Servicios del Studio"),
+        portalUrl,
+        apptIdToken: apptId,
+      });
+      await admin.from("studio_whatsapp_outbox").upsert({
+        idempotency_key: `cancellation:${apptId}`,
+        appointment_id: apptId,
+        kind: "cancellation",
+        to_phone: phone,
+        template_name: "appointment_confirmation_v1",
+        body_text: text,
+        scheduled_at: new Date().toISOString(),
+        status: "scheduled",
+      }, { onConflict: "idempotency_key", ignoreDuplicates: true });
+    }
+  }
+};
+
 interface SchedulingContext {
   apptId: string;
   startsAt: string;
@@ -216,11 +328,11 @@ Deno.serve(async (req: Request) => {
         return json({ role: "admin", token: data.token, expiresAt: data.expires_at });
       }
 
-      const { data: client } = await admin.from("studio_clients").select("id").eq("legacy_id", Number(pin)).maybeSingle();
+      const { data: client } = await admin.from("studio_clients").select("id, whatsapp_consent").eq("legacy_id", Number(pin)).maybeSingle();
       if (client) {
         const { data, error } = await admin.from("api_tokens").insert({ role: "client", client_id: client.id }).select("token, expires_at").single();
         if (error) return json({ error: "No se pudo iniciar sesión" }, 500);
-        return json({ role: "client", token: data.token, clientId: client.id, expiresAt: data.expires_at });
+        return json({ role: "client", token: data.token, clientId: client.id, expiresAt: data.expires_at, whatsappConsent: Boolean((client as { whatsapp_consent?: boolean }).whatsapp_consent) });
       }
       return json({ error: "PIN incorrecto" }, 401);
     }
@@ -309,6 +421,49 @@ Deno.serve(async (req: Request) => {
         providerConfigured: Boolean(row.service_key && row.from_email),
         provider: (row.provider as string) ?? null,
         fromEmail: (row.from_email as string) ?? null,
+        portalUrl: (row.portal_url as string) ?? null,
+      });
+    }
+
+    if (action === "whatsapp-consent" && req.method === "PUT") {
+      // Client scope: a clienta saves her own consent. Admin can set it for any client.
+      const consent = Boolean(body.consent);
+      let targetClientId = tokenRow.client_id as string | null;
+      if (isAdmin && body.clientId) targetClientId = String(body.clientId);
+      if (!targetClientId) return json({ error: "Falta la clienta" }, 400);
+      const { error } = await admin.from("studio_clients").update({ whatsapp_consent: consent }).eq("id", targetClientId);
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true, whatsappConsent: consent });
+    }
+
+    if (action === "whatsapp-status") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const appointmentId = String(body.appointmentId ?? "");
+      if (!appointmentId) return json({ error: "Falta la cita" }, 400);
+      const { data: messages, error } = await admin
+        .from("studio_whatsapp_outbox")
+        .select("id, kind, to_phone, status, scheduled_at, sent_at, delivered_at, read_at, provider, provider_message_id, body_text, last_error, attempts, created_at")
+        .eq("appointment_id", appointmentId)
+        .order("created_at");
+      if (error) return json({ error: error.message }, 500);
+      return json({ messages: messages ?? [] });
+    }
+
+    if (action === "whatsapp-config") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const { data: cfg, error } = await admin.from("studio_whatsapp_config").select("provider, phone_number_id, template_name, studio_phone, portal_url").eq("id", true).maybeSingle();
+      if (error) return json({ error: error.message }, 500);
+      const row = (cfg ?? {}) as Record<string, unknown>;
+      const missing: string[] = [];
+      if (!row.provider || !row.phone_number_id || !row.access_token) missing.push("Credenciales de WhatsApp Business Platform (proveedor, phone_number_id y token de sistema)");
+      if (!row.template_name) missing.push("Plantilla aprobada por Meta para las confirmaciones");
+      if (!row.studio_phone) missing.push("Número de WhatsApp del Studio verificado");
+      return json({
+        providerConfigured: missing.length === 0,
+        missing,
+        provider: (row.provider as string) ?? null,
+        templateName: (row.template_name as string) ?? null,
+        studioPhone: (row.studio_phone as string) ?? null,
         portalUrl: (row.portal_url as string) ?? null,
       });
     }
@@ -519,6 +674,14 @@ Deno.serve(async (req: Request) => {
         servicesText,
         confirmed: !approvalPending && !depositPending,
       }).catch(() => undefined);
+      await scheduleAppointmentWhatsApp(admin, {
+        apptId: created.id,
+        startsAt: new Date(`${body.dateKey}T${body.time}:00Z`).toISOString(),
+        clientName: String(body.clientName ?? ""),
+        clientPhone: validPhoneE164(body.phone),
+        servicesText,
+        confirmed: !approvalPending && !depositPending,
+      }).catch(() => undefined);
       return json({ ok: true, id: created.id });
     }
 
@@ -571,6 +734,7 @@ Deno.serve(async (req: Request) => {
       if (updatedAppt) {
         if (updatedAppt.lifecycle_status === "cancelled" || updatedAppt.lifecycle_status === "no_show") {
           await cancelAppointmentEmails(admin, updatedAppt.id, { cancelled: updatedAppt.lifecycle_status === "cancelled" }).catch(() => undefined);
+          await cancelAppointmentWhatsApp(admin, updatedAppt.id, { cancelled: updatedAppt.lifecycle_status === "cancelled" }).catch(() => undefined);
         } else {
           const snap = (updatedAppt.client_snapshot || {}) as Record<string, unknown>;
           const approvalPending = updatedAppt.approval_status === "pending";
@@ -579,10 +743,19 @@ Deno.serve(async (req: Request) => {
           const servicesText = (Array.isArray(updatedAppt.services) && updatedAppt.services.length
             ? updatedAppt.services.map((s: any) => [s?.sub?.name || "", s?.variant?.name].filter(Boolean).join(" (") + (s?.variant ? ")" : "")).join(" + ")
             : String(snap.serviceSubcategory ?? "")) || "Servicios del Studio";
+          const waCtx = {
+            apptId: updatedAppt.id,
+            startsAt: updatedAppt.starts_at,
+            clientName: String(snap.clientName ?? ""),
+            clientPhone: validPhoneE164(snap.phone),
+            servicesText,
+            confirmed,
+          };
           if (patch.starts_at) {
             // Rescheduled: annul the previous reminders, send the update and
             // schedule the new ones.
             await cancelAppointmentEmails(admin, updatedAppt.id).catch(() => undefined);
+            await cancelAppointmentWhatsApp(admin, updatedAppt.id).catch(() => undefined);
             await scheduleAppointmentEmails(admin, {
               apptId: updatedAppt.id,
               startsAt: updatedAppt.starts_at,
@@ -592,6 +765,7 @@ Deno.serve(async (req: Request) => {
               confirmed,
               isUpdate: true,
             }).catch(() => undefined);
+            await scheduleAppointmentWhatsApp(admin, { ...waCtx, isUpdate: true }).catch(() => undefined);
           } else {
             await scheduleAppointmentEmails(admin, {
               apptId: updatedAppt.id,
@@ -601,6 +775,7 @@ Deno.serve(async (req: Request) => {
               servicesText,
               confirmed,
             }).catch(() => undefined);
+            await scheduleAppointmentWhatsApp(admin, waCtx).catch(() => undefined);
           }
         }
       }
@@ -618,6 +793,7 @@ Deno.serve(async (req: Request) => {
       const { error } = await query;
       if (error) return json({ error: error.message }, 500);
       await cancelAppointmentEmails(admin, body.id).catch(() => undefined);
+      await cancelAppointmentWhatsApp(admin, body.id).catch(() => undefined);
       return json({ ok: true });
     }
 

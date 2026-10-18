@@ -2499,8 +2499,60 @@ function StudioApp() {
   const [appointmentEmails, setAppointmentEmails] = useState<studioApi.AppointmentEmailRow[]>([]);
   const [appointmentEmailsLoading, setAppointmentEmailsLoading] = useState(false);
   const [appointmentEmailsError, setAppointmentEmailsError] = useState<string | null>(null);
+  const [appointmentWhatsApp, setAppointmentWhatsApp] = useState<studioApi.AppointmentWhatsAppRow[]>([]);
+  const [appointmentWhatsAppLoading, setAppointmentWhatsAppLoading] = useState(false);
+  const [appointmentWhatsAppError, setAppointmentWhatsAppError] = useState<string | null>(null);
   useEffect(() => { setAppointmentEmails([]); setAppointmentEmailsError(null); }, [viewApptModal?.id]);
+  useEffect(() => { setAppointmentWhatsApp([]); setAppointmentWhatsAppError(null); }, [viewApptModal?.id]);
   const validRecipientEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').toLowerCase().trim());
+  const validRecipientPhone = (value: string) => {
+    const digits = String(value || '').replace(/\D/g, '');
+    return digits.length >= 9 && digits.length <= 15;
+  };
+  const whatsappStatusLabel = (status: string) => ({
+    scheduled: 'Pendiente', sending: 'Enviando', sent: 'Enviado', delivered: 'Entregado', read: 'Leído', failed: 'Error', skipped: 'Anulado',
+  } as Record<string, string>)[status] || status;
+  const whatsappStatusColor = (status: string) => ({
+    sent: '#8FC98F', delivered: '#8FC98F', read: '#8FC98F', scheduled: '#E4C687', sending: '#E4C687', failed: '#C0392B', skipped: '#8A7E6E',
+  } as Record<string, string>)[status] || '#D6CBB8';
+  const loadAppointmentWhatsApp = async () => {
+    if (!viewApptModal || !studioApi.serverConfigured || studioApi.storedRole() !== 'admin') return;
+    setAppointmentWhatsAppLoading(true); setAppointmentWhatsAppError(null);
+    try {
+      let appointmentId = viewApptModal.serverId;
+      if (!appointmentId && viewApptModal.dateKey && viewApptModal.time) {
+        const created = await studioApi.createAppointmentOnServer(studioApi.currentToken()!, {
+          id: viewApptModal.id,
+          dateKey: viewApptModal.dateKey,
+          time: viewApptModal.time,
+          dayName: viewApptModal.dayName,
+          durationMinutes: viewApptModal.durationMinutes,
+          bookingChannel: viewApptModal.bookingChannel || 'admin',
+          services: viewApptModal.services ?? [],
+          clientName: viewApptModal.clientName,
+          phone: viewApptModal.phone,
+          email: viewApptModal.email,
+          serviceCategory: viewApptModal.serviceCategory,
+          serviceSubcategory: viewApptModal.serviceSubcategory,
+          selectedVariant: viewApptModal.selectedVariant ?? null,
+          remindersStatus: viewApptModal.remindersStatus,
+        });
+        appointmentId = created.id;
+        const synced: Appointment = { ...viewApptModal, serverId: created.id };
+        setViewApptModal(synced);
+        setAppointments(previous => previous.map(item => item.id === synced.id ? synced : item));
+      }
+      if (!appointmentId) { setAppointmentWhatsApp([]); return; }
+      const result = await studioApi.fetchAppointmentWhatsApp(studioApi.currentToken()!, appointmentId);
+      setAppointmentWhatsApp(Array.isArray(result.messages) ? result.messages : []);
+    } catch (error) {
+      setAppointmentWhatsApp([]);
+      setAppointmentWhatsAppError('No se pudo consultar el estado de los WhatsApp. Inténtalo de nuevo en unos segundos.');
+      console.error('whatsapp-status failed:', error);
+    } finally {
+      setAppointmentWhatsAppLoading(false);
+    }
+  };
   const emailKindLabel = (kind: string) => ({
     confirmation: 'Confirmación de reserva',
     request_received: 'Solicitud recibida',
@@ -2560,11 +2612,15 @@ function StudioApp() {
     }
   };
   const [emailConfigStatus, setEmailConfigStatus] = useState<studioApi.EmailConfigStatus | null>(null);
+  const [whatsappConfigStatus, setWhatsappConfigStatus] = useState<studioApi.WhatsAppConfigStatus | null>(null);
   useEffect(() => {
     if (currentScreen !== 'adminPanel' || !studioApi.serverConfigured || studioApi.storedRole() !== 'admin') return;
     studioApi.fetchEmailConfigStatus(studioApi.currentToken()!)
       .then(status => setEmailConfigStatus(status))
       .catch(() => setEmailConfigStatus(null));
+    studioApi.fetchWhatsAppConfigStatus(studioApi.currentToken()!)
+      .then(status => setWhatsappConfigStatus(status))
+      .catch(() => setWhatsappConfigStatus(null));
   }, [currentScreen]);
   useEffect(() => { setAppointmentNoteDraft(viewApptModal?.internalNotes || ''); }, [viewApptModal?.id]);
   const changeAppointmentStatus = (appointment: Appointment, status: 'cancelled' | 'no_show') => {
@@ -2608,6 +2664,15 @@ function StudioApp() {
   };
 
   const [showInstallBanner, setShowInstallBanner] = useState<boolean>(false);
+  const [whatsappConsent, setWhatsappConsent] = useState<boolean>(() => {
+    try { return localStorage.getItem('lst_whatsapp_consent') === '1'; } catch { return false; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem('lst_whatsapp_consent', whatsappConsent ? '1' : '0'); } catch { /* sin espacio se recoge de nuevo */ }
+    if (studioApi.serverConfigured && studioApi.currentToken() && studioApi.storedRole() === 'client') {
+      studioApi.saveWhatsAppConsent(studioApi.currentToken()!, whatsappConsent).catch(() => undefined);
+    }
+  }, [whatsappConsent]);
 
   useEffect(() => {
     const checkPWA = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
@@ -4474,6 +4539,10 @@ function StudioApp() {
           <div style={{ borderTop: '1px solid #3A312A', paddingTop: '18px' }}>
             <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6 }}>{selectedServicesToBook.map(item => serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name') + (item.variant ? ` · ${variantText(item.variant, item.sub)}` : '')).join(' + ')}</p>
             {selectedVisualTime && <p style={{ color: '#FFF8EE', fontSize: '15px' }}>{bookingDate.toLocaleDateString(portalLocale, { day: 'numeric', month: 'long' })} · {selectedVisualTime}</p>}
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px', background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={whatsappConsent} onChange={e => setWhatsappConsent(e.target.checked)} style={{ width: 18, height: 18, marginTop: 2, accentColor: '#C49A58', flexShrink: 0 }} />
+              <span style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6 }}>Autorizo a L'Studio Ana a enviarme avisos de mi cita por WhatsApp al teléfono de mi ficha (confirmaciones y cambios). Puedo retirar el consentimiento cuando quiera en el portal.</span>
+            </label>
             <button type="button" onClick={handleConfirmarCitaVisual} disabled={!portalTimes.includes(selectedVisualTime)} style={{ width: '100%', minHeight: '54px', padding: '14px', backgroundColor: portalTimes.includes(selectedVisualTime) ? '#C49A58' : '#322A25', color: portalTimes.includes(selectedVisualTime) ? '#29231F' : '#C9BCA9', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>{!selectedVisualTime ? t('chooseHour') : getApprovalReason(selectedServicesToBook, formatDateKey(bookingDate)) ? t('requestAppointment') : t('continueBooking')}</button>
           </div>
         </div>
@@ -4908,13 +4977,28 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
   {emailConfigStatus && !emailConfigStatus.providerConfigured && <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0' }}>Estado: pendiente de configurar. Los emails se programan y quedan registrados, pero no se envían hasta completar: una cuenta en Resend (proveedor de email), su API key guardada como secreto del proyecto y un remitente verificado en Resend (dominio propio o dirección verificada). No se muestra ningún envío como realizado sin confirmación del proveedor.</p>}
   {emailConfigStatus && emailConfigStatus.providerConfigured && <p style={{ color: '#8FC98F', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0' }}>Estado: configurado. Remitente: {emailConfigStatus.fromEmail} · Proveedor: {emailConfigStatus.provider || 'resend'}.</p>}
   {emailConfigStatus && <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: '8px 0 0' }}>El estado de los emails de cada cita se consulta en el detalle de la cita, en «Emails automáticos de la cita».</p>}
+</div>
+<div style={{ marginTop: '14px', padding: '14px', background: '#29231F', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px' }}>
+  <strong style={{ color: '#E4C687', fontSize: '13px' }}>WhatsApp automático de citas</strong>
+  {whatsappConfigStatus === null && <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: '8px 0 0' }}>No se pudo consultar el estado de la configuración de WhatsApp en este momento.</p>}
+  {whatsappConfigStatus && !whatsappConfigStatus.providerConfigured && (
+    <div style={{ margin: '8px 0 0' }}>
+      <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.7, margin: 0 }}>Estado: pendiente de configurar. Los mensajes se programan y quedan registrados, pero no se envían hasta completar:</p>
+      <ul style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.7, margin: '6px 0 0', paddingLeft: '18px' }}>
+        {whatsappConfigStatus.missing.map(item => <li key={item}>{item}</li>)}
+      </ul>
+      <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: '6px 0 0' }}>Paso a paso: crear una cuenta de WhatsApp Business Platform en Meta Business, verificar el número del Studio, crear y enviar a aprobación la plantilla de confirmación, y guardar el identificador del número, el token permanente y el nombre de la plantilla aprobada como secretos del proyecto. Las reservas no se bloquean mientras falte algo y no se muestra ningún envío como realizado sin confirmación del proveedor.</p>
+    </div>
+  )}
+  {whatsappConfigStatus && whatsappConfigStatus.providerConfigured && <p style={{ color: '#8FC98F', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0' }}>Estado: configurado. Número del Studio: {whatsappConfigStatus.studioPhone} · Plantilla: {whatsappConfigStatus.templateName}.</p>}
+  {whatsappConfigStatus && <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: '8px 0 0' }}>El estado de los WhatsApp de cada cita se consulta en el detalle de la cita, en «WhatsApp automático de la cita». Los emails siguen funcionando de forma independiente.</p>}
 </div></div>}
               {configSubTab === 'marca' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <h3 style={{ color: '#E4C687', fontSize: '16px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>Gestor de Marca, Dirección y Plantilla WhatsApp</h3>
                   <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     <span style={{ color: '#E4C687', fontSize: '13px', fontWeight: 'bold' }}>💬 Plantilla Personalizada de WhatsApp</span>
-                    <p style={{ color: '#D6CBB8', fontSize: '14px', margin: 0 }}>Puedes editar la plantilla para mensajes de WhatsApp. Envío automático pendiente de configurar. Usa las etiquetas <code style={{ color: '#E4C687' }}>{'{nombre}'}</code>, <code style={{ color: '#E4C687' }}>{'{fecha}'}</code> y <code style={{ color: '#E4C687' }}>{'{hora}'}</code>.</p>
+                    <p style={{ color: '#D6CBB8', fontSize: '14px', margin: 0 }}>Puedes editar la plantilla para los mensajes manuales de WhatsApp. El envío automático al agendar usa la plantilla aprobada en WhatsApp Business Platform y se configura en «Acceso y seguridad».</p>
                     <textarea 
                       value={tempConfig.whatsappTemplate} 
                       onChange={(e) => setTempConfig({ ...tempConfig, whatsappTemplate: e.target.value })} 
@@ -6647,6 +6731,29 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                   </div>
                 )}
                 {appointmentEmails.length === 0 && !appointmentEmailsLoading && !appointmentEmailsError && validRecipientEmail(viewApptModal.email) && <p style={{ color: '#D6CBB8', fontSize: '12px', margin: '10px 0 0' }}>Pulsa «Consultar estado» para ver los emails programados y enviados de esta cita.</p>}
+              </section>
+            )}
+            {!viewApptModal.completedAt && currentScreen === 'adminPanel' && (
+              <section style={{ padding: '14px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <h4 style={{ color: '#E4C687', fontSize: '14px', margin: 0 }}>WhatsApp automático de la cita</h4>
+                  <button type="button" onClick={loadAppointmentWhatsApp} style={{ padding: '8px 12px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 0, borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>{appointmentWhatsAppLoading ? 'Cargando…' : 'Consultar estado'}</button>
+                </div>
+                {!validRecipientPhone(viewApptModal.phone) && <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>Esta reserva no tiene un teléfono válido: no se enviará ningún WhatsApp. Revisa el teléfono de la clienta.</p>}
+                {appointmentWhatsAppError && <p style={{ color: '#C0392B', fontSize: '12px', margin: '10px 0 0' }}>{appointmentWhatsAppError}</p>}
+                {appointmentWhatsApp.length > 0 && (
+                  <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {appointmentWhatsApp.map(row => (
+                      <div key={row.id} style={{ fontSize: '12px', lineHeight: 1.6, color: '#FFF8EE', background: '#29231F', border: '1px solid #3A312A', borderRadius: '6px', padding: '10px' }}>
+                        <strong>{emailKindLabel(row.kind)}</strong> · <span style={{ color: whatsappStatusColor(row.status) }}>{whatsappStatusLabel(row.status)}</span>
+                        <span style={{ display: 'block', color: '#D6CBB8', marginTop: '4px', whiteSpace: 'pre-line' }}>{row.body_text}</span>
+                        <span style={{ display: 'block', color: '#D6CBB8', marginTop: '4px' }}>Para: {row.to_phone} · Programado: {new Date(row.scheduled_at).toLocaleString('es-ES')}{row.sent_at ? ` · Enviado: ${new Date(row.sent_at).toLocaleString('es-ES')}` : ''}{row.delivered_at ? ` · Entregado: ${new Date(row.delivered_at).toLocaleString('es-ES')}` : ''}{row.attempts ? ` · Intentos: ${row.attempts}` : ''}</span>
+                        {row.last_error && <span style={{ display: 'block', color: '#C0392B', marginTop: '4px' }}>{row.last_error}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {appointmentWhatsApp.length === 0 && !appointmentWhatsAppLoading && !appointmentWhatsAppError && validRecipientPhone(viewApptModal.phone) && <p style={{ color: '#D6CBB8', fontSize: '12px', margin: '10px 0 0' }}>Pulsa «Consultar estado» para ver los WhatsApp programados y enviados de esta cita.</p>}
               </section>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px', borderTop: '1px solid rgba(212, 175, 55, 0.2)', paddingTop: '12px' }}>

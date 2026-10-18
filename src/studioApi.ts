@@ -176,3 +176,38 @@ export interface EmailConfigStatus {
 
 export const fetchEmailConfigStatus = (token: string) =>
   call<EmailConfigStatus>('email-config', { token, body: {} });
+
+export interface AppointmentWhatsAppRow {
+  id: string;
+  kind: string;
+  to_phone: string;
+  status: 'scheduled' | 'sending' | 'sent' | 'delivered' | 'read' | 'failed' | 'skipped';
+  scheduled_at: string;
+  sent_at: string | null;
+  delivered_at: string | null;
+  read_at: string | null;
+  provider: string | null;
+  provider_message_id: string | null;
+  body_text: string;
+  last_error: string | null;
+  attempts: number;
+  created_at: string;
+}
+
+export const fetchAppointmentWhatsApp = (token: string, appointmentId: string) =>
+  call<{ messages: AppointmentWhatsAppRow[] }>('whatsapp-status', { token, body: { appointmentId } });
+
+export interface WhatsAppConfigStatus {
+  providerConfigured: boolean;
+  missing: string[];
+  provider: string | null;
+  templateName: string | null;
+  studioPhone: string | null;
+  portalUrl: string | null;
+}
+
+export const fetchWhatsAppConfigStatus = (token: string) =>
+  call<WhatsAppConfigStatus>('whatsapp-config', { token, body: {} });
+
+export const saveWhatsAppConsent = (token: string, consent: boolean) =>
+  call<{ ok: true; whatsappConsent: boolean }>('whatsapp-consent', { method: 'PUT', token, body: { consent } });

@@ -135,6 +135,35 @@ async function sendViaResend(
   }
 }
 
+async function sendViaWhatsAppCloud(
+  accessToken: string,
+  phoneNumberId: string,
+  to: string,
+  templateName: string,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  try {
+    const response = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        to: to.replace(/^\+/, ""),
+        type: "template",
+        template: { name: templateName, language: { code: "es" } },
+      }),
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const err = (payload as { error?: { message?: string } }).error?.message || `Error ${response.status}`;
+      return { ok: false, error: err };
+    }
+    const id = (payload as { messages?: { id?: string }[] }).messages?.[0]?.id || "";
+    return { ok: true, id };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Error de red" };
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
 
@@ -255,7 +284,147 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    return json({ ok: true, due: (due ?? []).length, sent, failed, skipped, providerConfigured, errors: errors.slice(0, 10) });
+    // ---------- WhatsApp status webhook (Meta) + worker ----------
+    const { data: waCfgRow } = await admin.from("studio_whatsapp_config").select("*").eq("id", true).maybeSingle();
+    const waCfg = (waCfgRow ?? {}) as Record<string, unknown>;
+
+    if (url.searchParams.has("hub.mode") || (req.method === "GET" && url.pathname.endsWith("/whatsapp"))) {
+      const mode = url.searchParams.get("hub.mode");
+      const token = url.searchParams.get("hub.verify_token");
+      const challenge = url.searchParams.get("hub.challenge");
+      if (mode === "subscribe" && token && String(token) === String(waCfg.verify_token ?? "")) {
+        return new Response(challenge ?? "", { status: 200, headers: corsHeaders });
+      }
+      return json({ error: "Verificación de webhook no válida" }, 403);
+    }
+
+    if (req.method === "POST" && url.pathname.endsWith("/whatsapp")) {
+      // Meta status updates: delivered / read. Failed sends are already
+      // handled in the dispatch loop below.
+      try {
+        const payload = await req.json();
+        const entries = (payload as { entry?: { changes?: { value?: { statuses?: { id: string; status: string; timestamp?: string }[] }[] }[] }[] }).entry ?? [];
+        for (const entry of entries) {
+          for (const change of entry.changes ?? []) {
+            for (const st of change.value?.statuses ?? []) {
+              if (!st?.id) continue;
+              const patch: Record<string, unknown> = {};
+              if (st.status === "delivered") patch.delivered_at = st.timestamp ? new Date(Number(st.timestamp) * 1000).toISOString() : new Date().toISOString();
+              if (st.status === "read") patch.read_at = st.timestamp ? new Date(Number(st.timestamp) * 1000).toISOString() : new Date().toISOString();
+              if (st.status === "failed") patch.last_error = "Meta informó de un fallo de entrega";
+              if (Object.keys(patch).length) {
+                await admin.from("studio_whatsapp_outbox").update(patch).eq("provider_message_id", st.id);
+              }
+            }
+          }
+        }
+      } catch { /* malformed webhook payloads are ignored */ }
+      return json({ ok: true });
+    }
+
+    // ---------- WhatsApp dispatch (same cron trigger) ----------
+    const waWorkerSecret = String(waCfg.worker_secret ?? "");
+    const waBodySecret = String((body as { workerSecret?: string }).workerSecret ?? "");
+    const waUrlSecret = url.searchParams.get("workerSecret") ?? "";
+    const secretOk = !waWorkerSecret || waBodySecret === waWorkerSecret || waUrlSecret === waWorkerSecret;
+
+    let waSent = 0;
+    let waFailed = 0;
+    let waSkipped = 0;
+    const waErrors: string[] = [];
+    if (secretOk) {
+      const waConfigured = Boolean(waCfg.access_token && waCfg.phone_number_id && waCfg.template_name);
+      const { data: waDue, error: waErr } = await admin
+        .from("studio_whatsapp_outbox")
+        .select("id, appointment_id, kind, to_phone, template_name, status, attempts")
+        .in("status", ["scheduled", "failed"])
+        .lte("scheduled_at", nowIso)
+        .order("scheduled_at")
+        .limit(50);
+      if (waErr) return json({ error: waErr.message }, 500);
+
+      for (const row of (waDue ?? []) as { id: string; appointment_id: string | null; kind: string; to_phone: string; template_name: string; attempts: number }[]) {
+        if (row.status === "failed" && (row.attempts ?? 0) >= MAX_ATTEMPTS) continue;
+
+        // Confirmations only go out while the appointment is still confirmed.
+        if (row.appointment_id) {
+          const { data: appt } = await admin
+            .from("studio_appointments")
+            .select("id, starts_at, lifecycle_status, approval_status, deposit_status, client_id, booking_channel, client_snapshot")
+            .eq("id", row.appointment_id)
+            .maybeSingle();
+          if (!appt) {
+            await admin.from("studio_whatsapp_outbox").update({ status: "skipped", last_error: "Cita eliminada" }).eq("id", row.id);
+            waSkipped++;
+            continue;
+          }
+          if (!appointmentIsConfirmed(appt as unknown as AppointmentRow)) {
+            await admin.from("studio_whatsapp_outbox").update({ status: "skipped", last_error: "La cita ya no está confirmada" }).eq("id", row.id);
+            waSkipped++;
+            continue;
+          }
+          // Consent gate: appointment notices only go to clients who authorised
+          // WhatsApp. Cancellations inform regardless, since they annul the booking.
+          if (row.kind !== "cancellation") {
+            const { data: consentRow } = appt.client_id
+              ? await admin.from("studio_clients").select("whatsapp_consent").eq("id", appt.client_id).maybeSingle()
+              : { data: null };
+            const consented = Boolean((consentRow as { whatsapp_consent?: boolean } | null)?.whatsapp_consent);
+            const snapshot = (appt.client_snapshot || {}) as Record<string, unknown>;
+            const reminders = (snapshot.remindersStatus || {}) as Record<string, unknown>;
+            const allowed = consented || (appt.booking_channel === "portal" && reminders.whatsapp48h === true);
+            if (!allowed) {
+              await admin.from("studio_whatsapp_outbox").update({ status: "skipped", last_error: "Sin autorización de WhatsApp de la clienta" }).eq("id", row.id);
+              waSkipped++;
+              continue;
+            }
+          }
+        }
+
+        if (!waConfigured) {
+          await admin.from("studio_whatsapp_outbox").update({
+            status: "failed",
+            attempts: (row.attempts ?? 0) + 1,
+            last_error: "WhatsApp no configurado: faltan credenciales, número habilitado o plantilla aprobada",
+            provider: null,
+          }).eq("id", row.id);
+          waFailed++;
+          waErrors.push(`${row.kind}: WhatsApp no configurado`);
+          continue;
+        }
+
+        await admin.from("studio_whatsapp_outbox").update({ status: "sending" }).eq("id", row.id);
+        const result = await sendViaWhatsAppCloud(waCfg.access_token as string, waCfg.phone_number_id as string, row.to_phone, row.template_name || (waCfg.template_name as string));
+        if (result.ok) {
+          await admin.from("studio_whatsapp_outbox").update({
+            status: "sent",
+            sent_at: new Date().toISOString(),
+            provider: "meta_cloud_api",
+            provider_message_id: result.id,
+            last_error: null,
+            attempts: (row.attempts ?? 0) + 1,
+          }).eq("id", row.id);
+          waSent++;
+        } else {
+          const nextAttempts = (row.attempts ?? 0) + 1;
+          const retryAt = nextAttempts >= MAX_ATTEMPTS ? row.scheduled_at : new Date(Date.now() + RETRY_DELAY_MINUTES * 60_000).toISOString();
+          await admin.from("studio_whatsapp_outbox").update({
+            status: "failed",
+            attempts: nextAttempts,
+            last_error: result.error,
+            provider: "meta_cloud_api",
+            scheduled_at: retryAt,
+          }).eq("id", row.id);
+          waFailed++;
+          waErrors.push(`${row.kind}: ${result.error}`);
+        }
+      }
+    }
+
+    return json({
+      ok: true, due: (due ?? []).length, sent, failed, skipped, providerConfigured, errors: errors.slice(0, 10),
+      whatsapp: { sent: waSent, failed: waFailed, skipped: waSkipped, providerConfigured: Boolean(waCfg.access_token && waCfg.phone_number_id && waCfg.template_name), errors: waErrors.slice(0, 10) },
+    });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "Error interno" }, 500);
   }
