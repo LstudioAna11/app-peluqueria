@@ -2738,6 +2738,8 @@ function StudioApp() {
   };
   const [pushStatus, setPushStatus] = useState<'unsupported' | 'config-pending' | 'denied' | 'subscribed' | 'default'>('default');
   const [pushBusy, setPushBusy] = useState(false);
+  const [pushNeedsLogin, setPushNeedsLogin] = useState(false);
+  const [pushLoginPin, setPushLoginPin] = useState('');
   const [pushError, setPushError] = useState<string | null>(null);
   const [pushTestResult, setPushTestResult] = useState<string | null>(null);
   const refreshPushStatus = async () => {
@@ -2746,11 +2748,15 @@ function StudioApp() {
     try {
       const registration = await navigator.serviceWorker.ready;
       const existing = await registration.pushManager.getSubscription();
-      if (existing && Notification.permission === 'granted') { setPushStatus('subscribed'); return; }
+      if (existing && Notification.permission === 'granted' && studioApi.currentToken()) {
+        await persistPushSubscription(existing);
+        setPushNeedsLogin(false);
+        setPushStatus('subscribed'); return;
+      }
     } catch { /* el service worker aún no está listo */ }
     setPushStatus(Notification.permission === 'granted' ? 'default' : 'default');
   };
-  useEffect(() => { refreshPushStatus(); }, []);
+  useEffect(() => { refreshPushStatus(); }, [currentScreen, currentClientRecord?.serverId]);
   const persistPushSubscription = async (subscription: PushSubscription) => {
     if (!studioApi.serverConfigured || !studioApi.currentToken()) throw new Error('Inicia sesión en el portal para activar las notificaciones.');
     const json = subscription.toJSON();
@@ -2761,12 +2767,13 @@ function StudioApp() {
     });
   };
   const handleEnablePush = async () => {
-    setPushBusy(true); setPushError(null);
+    setPushBusy(true); setPushError(null); setPushTestResult(null);
     try {
       if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
         setPushStatus('unsupported'); setPushError('Este navegador no admite notificaciones push. Prueba en Chrome, Edge o Safari actualizado.'); return;
       }
-      const permission = await Notification.requestPermission();
+      if (!studioApi.currentToken()) { setPushNeedsLogin(true); throw new Error('Inicia sesión en el portal para activar las notificaciones.'); }
+      const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
       if (permission !== 'granted') { setPushStatus(permission === 'denied' ? 'denied' : 'default'); setPushError('Para recibir avisos debes conceder permiso en tu dispositivo.'); return; }
       const registration = await navigator.serviceWorker.register('/sw.js');
       await navigator.serviceWorker.ready;
@@ -2780,10 +2787,11 @@ function StudioApp() {
       // 3) envío de prueba aceptado. Solo se marca "subscribed" tras el paso 2.
       await persistPushSubscription(subscription);
       setPushStatus('subscribed');
+      setPushNeedsLogin(false);
       try {
         const test = await studioApi.sendTestPush(studioApi.currentToken()!);
         setPushTestResult(test.sent > 0
-          ? 'Avisos activados. Acabas de recibir una notificación de prueba en este dispositivo.'
+          ? 'Avisos activados. El servidor ha aceptado el envío de prueba; comprueba si llega a tu dispositivo.'
           : (test.errors?.[0] || 'Avisos activados en este dispositivo.'));
       } catch (testError) {
         const testMessage = testError instanceof Error ? testError.message : '';
@@ -2795,10 +2803,30 @@ function StudioApp() {
       const message = error instanceof Error ? error.message : 'No se pudieron activar las notificaciones.';
       if (message.includes('Falta autenticación') || message.includes('Sesión caducada') || message.includes('Inicia sesión')) {
         setPushStatus('default');
+        setPushNeedsLogin(true);
         setPushError('Tu sesión ha caducado. Inicia sesión de nuevo con tu PIN y vuelve a pulsar «Activar notificaciones de mi cita»; no perderás los servicios seleccionados.');
       } else {
         setPushError(message);
       }
+    } finally { setPushBusy(false); }
+  };
+  const handlePushLogin = async () => {
+    if (!/^\d{4}$/.test(pushLoginPin)) return;
+    setPushBusy(true); setPushError(null);
+    try {
+      const previousClientId = studioApi.storedClientId() || currentClientRecord?.serverId;
+      const result = await studioApi.authenticate(pushLoginPin);
+      setPushLoginPin('');
+      if (result.role !== 'client' || (previousClientId && result.clientId !== previousClientId)) {
+        studioApi.clearStoredToken();
+        throw new Error('Usa el PIN de la clienta de esta reserva.');
+      }
+      setPushNeedsLogin(false);
+      setPushStatus('default');
+      setPushError('Sesión recuperada. Pulsa «Activar notificaciones de mi cita» para continuar.');
+    } catch (error) {
+      setPushLoginPin('');
+      setPushError(error instanceof Error ? error.message : 'No se pudo iniciar sesión.');
     } finally { setPushBusy(false); }
   };
   const pushStatusLabel = () => ({
@@ -2874,8 +2902,12 @@ function StudioApp() {
               (async () => {
                 try {
                   await studioApi.authenticate(enteredPin);
-                  await syncFromServer();
-                } catch { /* el portal sigue funcionando con los datos locales */ }
+                } catch {
+                  studioApi.clearStoredToken();
+                  setPinError(true);
+                  return;
+                }
+                await syncFromServer().catch(() => undefined);
                 finishLocalLogin();
               })();
             } else {
@@ -4747,7 +4779,12 @@ function StudioApp() {
             </label>
             <section style={{ padding: '12px', background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px' }}>
               <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: '0 0 10px' }}>Notificaciones push: <strong style={{ color: pushStatus === 'subscribed' ? '#8FC98F' : '#E4C687' }}>{pushStatusLabel()}</strong></p>
-              {pushStatus === 'default' && <button type="button" onClick={handleEnablePush} disabled={pushBusy} style={{ width: '100%', minHeight: '46px', padding: '12px', background: 'transparent', color: '#E4C687', border: '1px solid #C49A58', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: pushBusy ? 'wait' : 'pointer' }}>{pushBusy ? 'Activando…' : 'Activar notificaciones de mi cita'}</button>}
+              {pushNeedsLogin && <div style={{ marginBottom: '12px', color: '#FFF8EE' }}>
+                <label htmlFor="push-login-pin">Confirma tu PIN para activar los avisos</label>
+                <input id="push-login-pin" type="password" inputMode="numeric" maxLength={4} autoComplete="off" value={pushLoginPin} onChange={event => setPushLoginPin(event.target.value.replace(/[^0-9]/g, '').slice(0, 4))} style={{ display: 'block', margin: '8px 0', padding: '10px', color: '#2C2521', background: '#EADCC7' }} />
+                <button type="button" onClick={handlePushLogin} disabled={pushBusy || pushLoginPin.length !== 4}>Recuperar sesión sin perder mi reserva</button>
+              </div>}
+              {pushStatus === 'default' && !pushNeedsLogin && <button type="button" onClick={handleEnablePush} disabled={pushBusy} style={{ width: '100%', minHeight: '46px', padding: '12px', background: 'transparent', color: '#E4C687', border: '1px solid #C49A58', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: pushBusy ? 'wait' : 'pointer' }}>{pushBusy ? 'Activando…' : 'Activar notificaciones de mi cita'}</button>}
               {pushStatus === 'config-pending' && <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>El Studio todavía no tiene activas las notificaciones. Prueba de nuevo más tarde.</p>}
               {pushStatus === 'denied' && <p style={{ color: '#F2B8AC', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>Tienes las notificaciones bloqueadas para este sitio. Para recibirlas, toca el icono de información junto a la dirección en tu navegador y permite las notificaciones{showInstallBanner ? ', o instala primero la app del Studio desde el aviso de instalación' : ''}.</p>}
               {(() => {
