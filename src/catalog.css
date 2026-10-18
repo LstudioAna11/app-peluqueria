@@ -1,8 +1,8 @@
-/* L'Studio Ana — light boutique catalog styling */
+/* L'Studio Ana — catálogo con el tema de 360Studio (intranet) */
 
 .studio-service-card {
-  background: #FFFFFF;
-  border: 1px solid #E6D5B8;
+  background: var(--card-cream, #EADCC7);
+  border: 1px solid rgba(255, 248, 238, 0.08);
   border-radius: 16px;
   overflow: hidden;
   display: flex;
@@ -11,9 +11,9 @@
 }
 
 .studio-service-card:hover {
-  box-shadow: 0 14px 34px rgba(60, 50, 40, 0.08);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.3);
   transform: translateY(-2px);
-  border-color: #C99E52;
+  border-color: var(--gold, #C49A58);
 }
 
 .studio-service-media {
@@ -26,7 +26,7 @@
 .studio-service-media-photo {
   width: 100%;
   height: 210px;
-  background: #EFE9DF;
+  background: var(--card-cream-soft, #F3E8D7);
 }
 
 .studio-service-media-photo img {
@@ -50,16 +50,16 @@
   justify-content: center;
   gap: 6px;
   background:
-    radial-gradient(circle at 20% 15%, rgba(201, 158, 82, 0.12), transparent 55%),
-    radial-gradient(circle at 85% 85%, rgba(201, 158, 82, 0.09), transparent 50%),
-    linear-gradient(140deg, #F4F1EA 0%, #EFE9DF 55%, #E9E1D3 100%);
+    radial-gradient(circle at 20% 15%, rgba(196, 154, 88, 0.18), transparent 55%),
+    radial-gradient(circle at 85% 85%, rgba(196, 154, 88, 0.12), transparent 50%),
+    linear-gradient(140deg, #EADCC7 0%, #E0CFB2 55%, #D6C29E 100%);
 }
 
 .studio-service-media-empty span {
   font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
   font-size: 40px;
   letter-spacing: 4px;
-  color: #C99E52;
+  color: var(--gold-text-dark, #8F6D24);
   line-height: 1;
 }
 
@@ -67,7 +67,7 @@
   font-size: 10px;
   letter-spacing: 3px;
   text-transform: uppercase;
-  color: #7A7067;
+  color: var(--text-dark-secondary, #5C5248);
 }
 
 .studio-service-media-detail {
@@ -93,7 +93,7 @@
 
 .studio-service-card-title {
   margin: 0;
-  color: #2C2521;
+  color: var(--text-dark, #2C2521);
   font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
   font-size: 21px;
   font-weight: 600;
@@ -109,12 +109,12 @@
 }
 
 .studio-service-card-meta span {
-  color: #7A7067;
+  color: var(--text-dark-secondary, #5C5248);
   font-size: 12px;
 }
 
 .studio-service-card-meta strong {
-  color: #C99E52;
+  color: var(--gold-text-dark, #8F6D24);
   font-size: 17px;
   font-weight: 600;
   white-space: nowrap;
@@ -122,7 +122,7 @@
 
 .studio-service-card-desc {
   margin: 0;
-  color: #7A7067;
+  color: var(--text-dark-secondary, #5C5248);
   font-size: 13px;
   line-height: 1.65;
 }
@@ -134,9 +134,9 @@
 }
 
 .studio-service-chip {
-  color: #8F6D24;
-  background: #FBF6EC;
-  border: 1px solid #E6D5B8;
+  color: var(--gold-text-dark, #8F6D24);
+  background: var(--card-cream-soft, #F3E8D7);
+  border: 1px solid rgba(44, 37, 33, 0.12);
   border-radius: 999px;
   padding: 4px 11px;
   font-size: 11px;
@@ -145,9 +145,9 @@
 
 .studio-service-note {
   margin: 0;
-  color: #2C2521;
-  background: #F4F1EA;
-  border: 1px solid #E6D5B8;
+  color: var(--text-dark, #2C2521);
+  background: var(--card-cream-soft, #F3E8D7);
+  border: 1px solid rgba(44, 37, 33, 0.12);
   border-radius: 9px;
   padding: 10px 12px;
   font-size: 12px;
@@ -162,7 +162,7 @@
 
 .studio-service-variants-label,
 .studio-service-variants-hint {
-  color: #8F6D24;
+  color: var(--gold-text-dark, #8F6D24);
   font-size: 12px;
 }
 
@@ -176,9 +176,9 @@
   text-align: left;
   padding: 12px;
   border-radius: 10px;
-  background: #FFFFFF;
-  border: 1px solid #E6D5B8;
-  color: #2C2521;
+  background: var(--card-cream, #EADCC7);
+  border: 1px solid rgba(44, 37, 33, 0.12);
+  color: var(--text-dark, #2C2521);
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -187,29 +187,29 @@
 }
 
 .studio-variant-chip:hover {
-  border-color: #C99E52;
+  border-color: var(--gold, #C49A58);
 }
 
 .studio-variant-chip strong {
-  color: #2C2521;
+  color: var(--text-dark, #2C2521);
   font-size: 15px;
 }
 
 .studio-variant-chip span {
-  color: #7A7067;
+  color: var(--text-dark-secondary, #5C5248);
   font-size: 12px;
   line-height: 1.5;
 }
 
 .studio-variant-chip-active {
-  background: #FBF6EC;
-  border-color: #C99E52;
+  background: var(--card-cream-soft, #F3E8D7);
+  border-color: var(--gold, #C49A58);
   border-width: 2px;
   padding: 11px;
 }
 
 .studio-variant-chip-active strong {
-  color: #8F6D24;
+  color: var(--gold-text-dark, #8F6D24);
 }
 
 .studio-service-card-actions {
@@ -221,7 +221,7 @@
 
 .studio-btn-gold {
   background: linear-gradient(135deg, #C99E52 0%, #B3823B 100%);
-  color: #FFFFFF;
+  color: #29231F;
   border: none;
   padding: 12px 18px;
   min-height: 44px;
@@ -234,19 +234,19 @@
 
 .studio-btn-gold:hover {
   filter: brightness(1.05);
-  box-shadow: 0 8px 20px rgba(201, 158, 82, 0.3);
+  box-shadow: 0 8px 20px rgba(196, 154, 88, 0.35);
 }
 
 .studio-btn-gold-active {
-  background: #F4F1EA;
-  color: #8F6D24;
-  border: 1px solid #C99E52;
+  background: var(--card-cream-soft, #F3E8D7);
+  color: var(--gold-text-dark, #8F6D24);
+  border: 1px solid var(--gold, #C49A58);
 }
 
 .studio-btn-ghost {
   background: transparent;
-  color: #8F6D24;
-  border: 1px solid #C99E52;
+  color: var(--gold-text-dark, #8F6D24);
+  border: 1px solid var(--gold-border, #C5A059);
   padding: 12px 18px;
   min-height: 44px;
   border-radius: 9px;
@@ -256,7 +256,7 @@
 }
 
 .studio-btn-ghost:hover {
-  background: #FBF6EC;
+  background: rgba(201, 158, 82, 0.08);
 }
 
 .studio-service-card-compact {
@@ -276,8 +276,8 @@
 /* Ficha de servicio */
 
 .studio-ficha-section {
-  background: #FFFFFF;
-  border: 1px solid #E6D5B8;
+  background: var(--card-cream, #EADCC7);
+  border: 1px solid rgba(255, 248, 238, 0.08);
   border-radius: 14px;
   padding: 18px;
   display: flex;
@@ -287,7 +287,7 @@
 
 .studio-ficha-section h2 {
   margin: 0 0 4px;
-  color: #2C2521;
+  color: var(--text-dark, #2C2521);
   font-family: 'Cormorant Garamond', 'Playfair Display', Georgia, serif;
   font-size: 19px;
   font-weight: 600;
@@ -299,7 +299,7 @@
   flex-direction: column;
   gap: 2px;
   padding: 8px 0;
-  border-bottom: 1px solid #EFE9DF;
+  border-bottom: 1px solid rgba(44, 37, 33, 0.12);
 }
 
 .studio-ficha-row:last-child {
@@ -307,14 +307,14 @@
 }
 
 .studio-ficha-row strong {
-  color: #8F6D24;
+  color: var(--gold-text-dark, #8F6D24);
   font-size: 12px;
   letter-spacing: 1px;
   text-transform: uppercase;
 }
 
 .studio-ficha-row span {
-  color: #2C2521;
+  color: var(--text-dark, #2C2521);
   font-size: 13px;
   line-height: 1.65;
 }
@@ -324,18 +324,18 @@
   flex-direction: column;
   gap: 2px;
   padding: 10px 12px;
-  background: #F4F1EA;
-  border: 1px solid #E6D5B8;
+  background: var(--card-cream-soft, #F3E8D7);
+  border: 1px solid rgba(44, 37, 33, 0.12);
   border-radius: 9px;
 }
 
 .studio-ficha-condition strong {
-  color: #8F6D24;
+  color: var(--gold-text-dark, #8F6D24);
   font-size: 12px;
 }
 
 .studio-ficha-condition span {
-  color: #7A7067;
+  color: var(--text-dark-secondary, #5C5248);
   font-size: 12px;
   line-height: 1.55;
 }

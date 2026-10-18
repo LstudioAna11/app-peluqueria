@@ -7,46 +7,52 @@
     -webkit-tap-highlight-color: transparent;
   }
   :root {
-    --bg-taupe: #F4F1EA;
-    --bg-sand: #F4F1EA;
-    --card-silk: #FFFFFF;
-    --card-white: #FFFFFF;
-    --linen: #EFE9DF;
-    --border-sand: #E6D5B8;
-    --border-input: #C5A059;
-    --text-topo: #2C2521;
-    --text-on-taupe: #2C2521;
-    --text-topo-secondary: #7A7067;
-    --ink: #2C2521;
-    --gold: #C99E52;
+    /* Tema 360Studio — paleta de la intranet */
+    --bg-studio: #29231F;
+    --bg-studio-deep: #221D19;
+    --surface-panel: #322A25;
+    --card-cream: #EADCC7;
+    --card-cream-hover: #F0E4D1;
+    --card-cream-soft: #F3E8D7;
+    --border-cream: rgba(255, 248, 238, 0.08);
+    --border-input: rgba(212, 175, 55, 0.25);
+    --text-cream: #FFF8EE;
+    --text-cream-secondary: #D6CBB8;
+    --text-cream-muted: #C9BCA9;
+    --ink: #29231F;
+    --text-dark: #2C2521;
+    --text-dark-secondary: #5C5248;
+    --text-dark-muted: #4E443B;
+    --gold: #C49A58;
+    --gold-light: #E4C687;
     --gold-deep: #B3823B;
     --gold-text-dark: #8F6D24;
     --gold-gradient: linear-gradient(135deg, #C99E52 0%, #B3823B 100%);
-    --gold-border: #C99E52;
-    --card-shadow: 0 10px 30px rgba(60, 50, 40, 0.06);
+    --gold-border: #C5A059;
+    --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
     --success: #2E7D32;
-    --success-bg: #EAF4EA;
+    --success-bg: #DFE9DF;
     --error: #C0392B;
-    --error-bg: #FCEDEB;
-    --info: #4A6FA5;
+    --error-bg: #F2DCD8;
+    --info: #33517E;
   }
   body {
-    background-color: var(--bg-taupe);
-    color: var(--text-on-taupe);
+    background-color: var(--bg-studio);
+    color: var(--text-cream);
     font-family: 'Garet', 'Poppins', 'Inter', 'Helvetica Neue', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
   ::placeholder {
-    color: rgba(122, 112, 103, 0.6);
+    color: rgba(201, 188, 169, 0.6);
   }
   ::selection {
-    background: rgba(201, 158, 82, 0.3);
-    color: #2C2521;
+    background: rgba(196, 154, 88, 0.4);
+    color: #FFF8EE;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-serif;
     letter-spacing: 0.05em;
-    color: var(--text-topo);
+    color: var(--text-cream);
   }
   button, input, select, textarea {
     font-family: inherit;
@@ -55,7 +61,7 @@
   input:focus-visible, select:focus-visible, textarea:focus-visible {
     outline: none;
     border-color: var(--gold) !important;
-    box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.18);
+    box-shadow: 0 0 0 3px rgba(196, 154, 88, 0.22);
   }
   button:disabled {
     opacity: 0.45;
@@ -65,7 +71,7 @@
 
 @layer utilities {
   .gold-text {
-    background: linear-gradient(135deg, #C99E52 0%, #B3823B 100%);
+    background: linear-gradient(135deg, #E4C687 0%, #C99E52 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -74,9 +80,9 @@
     border-image: linear-gradient(135deg, #C99E52, #B3823B) 1;
   }
   .card-lux {
-    background: var(--card-white);
+    background: var(--card-cream);
     box-shadow: var(--card-shadow);
-    border: 1px solid var(--border-sand);
+    border: 1px solid var(--border-cream);
     border-radius: 0.75rem;
   }
   .btn-gold {
@@ -86,27 +92,27 @@
     transition: all 0.3s ease;
   }
   .btn-gold:hover:not(:disabled) {
-    background: linear-gradient(135deg, #D4AF6E, #C9924A);
-    box-shadow: 0 6px 18px rgba(201, 158, 82, 0.3);
+    background: linear-gradient(135deg, #CFA765, #C9924A);
+    box-shadow: 0 6px 18px rgba(196, 154, 88, 0.35);
     transform: translateY(-1px);
   }
   .btn-outline-gold {
     background: transparent;
-    color: var(--text-topo);
+    color: var(--text-cream);
     border: 1px solid var(--gold-border);
     transition: all 0.3s ease;
   }
   .btn-outline-gold:hover:not(:disabled) {
-    background: var(--linen);
+    background: rgba(201, 158, 82, 0.08);
     border-color: var(--gold);
   }
   .border-gold-soft {
     border: 1px solid var(--gold-border);
   }
   .input-lux {
-    background: var(--card-white);
+    background: var(--card-cream-soft);
     border: 1px solid var(--border-input);
-    color: var(--text-topo);
+    color: var(--text-dark);
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
