@@ -1351,6 +1351,7 @@ interface CatalogCategory {
 
 interface ClientRecord {
   createdAt?: string;
+  serverId?: string;
   idNum: number;
   registroId: string;
   nombre: string;
@@ -2965,6 +2966,7 @@ function StudioApp() {
     if (Array.isArray(data.clients) && data.clients.length) {
       const serverClients = data.clients.map((c: Record<string, any>): ClientRecord => ({
         createdAt: c.created_at,
+        serverId: c.id,
         idNum: Number(c.legacy_id) || 0,
         registroId: c.registration_id || '',
         nombre: c.first_name || '',
@@ -3012,6 +3014,7 @@ function StudioApp() {
       const c = data.me;
       const record: ClientRecord = {
         createdAt: c.created_at,
+        serverId: c.id,
         idNum: Number(c.legacy_id) || 0,
         registroId: c.registration_id || '',
         nombre: c.first_name || '',
@@ -3498,7 +3501,7 @@ function StudioApp() {
       const clientPinRow = listaClientes.find(c => String(c.pinAcceso).trim() === pin);
       studioApi.createAppointmentOnServer(studioApi.currentToken()!, {
         id: newApp.id,
-        clientId: null,
+        clientId: currentClientRecord?.serverId || studioApi.storedClientId() || null,
         dateKey: newApp.dateKey,
         time: newApp.time,
         dayName: newApp.dayName,
@@ -4645,7 +4648,7 @@ function StudioApp() {
               </div>
             </div>
           ) : (
-            <button type="button" onClick={() => { if (detailSub.hasVariants && !!detailSub.variants?.length && !detailSelection?.variant) { alert(tf('requiredVariant', { service: detailSub.name })); return; } setSelectedServicesToBook(previous => previous.some(item => item.sub.id === detailSub.id) ? previous : [...previous, { sub: detailSub, variant: null }]); }} className="lst-cta-full">{t('chooseAndBook')} <ArrowRight size={18} strokeWidth={2} aria-hidden="true" /></button>
+            <button type="button" onClick={() => { if (detailSub.hasVariants && !!detailSub.variants?.length) { alert(tf('requiredVariant', { service: detailSub.name })); return; } setSelectedServicesToBook(previous => previous.some(item => item.sub.id === detailSub.id) ? previous : [...previous, { sub: detailSub, variant: null }]); }} className="lst-cta-full">{t('chooseAndBook')} <ArrowRight size={18} strokeWidth={2} aria-hidden="true" /></button>
           )}
         </div>
         );
@@ -6918,6 +6921,28 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                     } catch { alert('No se pudo reintentar la confirmación. Inténtalo de nuevo en unos segundos.'); }
                   }} style={{ marginTop: '10px', padding: '8px 12px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 0, borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Reintentar confirmación</button>
                 )}
+              </section>
+            )}
+            {!viewApptModal.completedAt && currentScreen === 'adminPanel' && (
+              <section style={{ padding: '14px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <h4 style={{ color: '#E4C687', fontSize: '14px', margin: 0 }}>Notificaciones push de la cita</h4>
+                  <button type="button" onClick={loadAppointmentPushes} style={{ padding: '8px 12px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 0, borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>{appointmentPushesLoading ? 'Cargando…' : 'Consultar estado'}</button>
+                </div>
+                {appointmentPushesError && <p style={{ color: '#C0392B', fontSize: '12px', margin: '10px 0 0' }}>{appointmentPushesError}</p>}
+                {appointmentPushes.length > 0 && (
+                  <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {appointmentPushes.map(row => (
+                      <div key={row.id} style={{ fontSize: '12px', lineHeight: 1.6, color: '#FFF8EE', background: '#29231F', border: '1px solid #3A312A', borderRadius: '6px', padding: '10px' }}>
+                        <strong>{pushKindLabel(row.kind)}</strong> · <span style={{ color: pushStatusColorAdmin(row.status) }}>{pushStatusLabelAdmin(row.status)}</span>
+                        <span style={{ display: 'block', color: '#D6CBB8', marginTop: '4px' }}>Dispositivo: {row.studio_push_subscriptions?.user_agent || '(sin datos)'} · Intentos: {row.attempts}</span>
+                        <span style={{ display: 'block', color: '#D6CBB8', marginTop: '4px' }}>Programado: {new Date(row.created_at).toLocaleString('es-ES')}{row.delivered_at ? ` · Entregado: ${new Date(row.delivered_at).toLocaleString('es-ES')}` : ''}</span>
+                        {row.last_error && <span style={{ display: 'block', color: '#C0392B', marginTop: '4px' }}>{row.last_error}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {appointmentPushes.length === 0 && !appointmentPushesLoading && !appointmentPushesError && <p style={{ color: '#D6CBB8', fontSize: '12px', margin: '10px 0 0' }}>Pulsa «Consultar estado» para ver los envíos push de esta cita.</p>}
               </section>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px', borderTop: '1px solid rgba(212, 175, 55, 0.2)', paddingTop: '12px' }}>

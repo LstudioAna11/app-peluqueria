@@ -8,6 +8,7 @@ const endpoint = (action: string) => `${supabaseUrl}/functions/v1/studio-api/${a
 
 const TOKEN_KEY = 'lst_api_token';
 const TOKEN_ROLE_KEY = 'lst_api_role';
+const CLIENT_ID_KEY = 'lst_client_id';
 
 export type ServerRole = 'admin' | 'client';
 
@@ -26,6 +27,7 @@ export const clearStoredToken = () => {
   try {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(TOKEN_ROLE_KEY);
+    localStorage.removeItem(CLIENT_ID_KEY);
   } catch { /* noop */ }
 };
 
@@ -34,6 +36,10 @@ export const storedRole = (): ServerRole | null => {
     const role = localStorage.getItem(TOKEN_ROLE_KEY);
     return role === 'admin' || role === 'client' ? role : null;
   } catch { return null; }
+};
+
+export const storedClientId = (): string | null => {
+  try { return localStorage.getItem(CLIENT_ID_KEY); } catch { return null; }
 };
 
 const call = async <T>(action: string, options: { method?: string; body?: unknown; token?: string | null } = {}): Promise<T> => {
@@ -61,6 +67,10 @@ export interface AuthResult {
 export const authenticate = async (pin: string): Promise<AuthResult> => {
   const result = await call<AuthResult>('auth', { body: { pin } });
   storeToken(result.token, result.role);
+  try {
+    if (result.clientId) localStorage.setItem(CLIENT_ID_KEY, result.clientId);
+    else localStorage.removeItem(CLIENT_ID_KEY);
+  } catch { /* sin espacio no debe romper la sesión */ }
   return result;
 };
 
