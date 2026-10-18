@@ -9,6 +9,183 @@ const corsHeaders = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
+const STUDIO_LOCATION = "Calle Mayor / Centro de Elche, Alicante";
+const DEFAULT_PORTAL_URL = "https://lstudioana.es";
+const MADRID_TZ = "Europe/Madrid";
+
+const escHtml = (value: string) =>
+  String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+const fmtDateMadrid = (iso: string) =>
+  new Date(iso).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", timeZone: MADRID_TZ });
+
+const fmtTimeMadrid = (iso: string) =>
+  new Date(iso).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", timeZone: MADRID_TZ });
+
+const emailLayout = (title: string, bodyHtml: string) => `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#29231F;font-family:'Garet','Poppins',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#29231F;padding:24px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#322A25;border:1px solid rgba(212,175,55,.35);border-radius:14px;">
+        <tr><td style="padding:22px 22px 6px;text-align:center;">
+          <p style="margin:0;color:#C99E52;font-size:13px;letter-spacing:2px;">L'STUDIO ANA</p>
+          <h1 style="margin:10px 0 0;color:#FFF8EE;font-size:20px;font-weight:600;line-height:1.3;">${escHtml(title)}</h1>
+        </td></tr>
+        <tr><td style="padding:12px 22px 4px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#29231F;border:1px solid rgba(212,175,55,.25);border-radius:10px;">
+            <tr><td style="padding:16px;color:#FFF8EE;font-size:15px;line-height:1.7;">${bodyHtml}</td></tr>
+          </table>
+        </td></tr>
+        <tr><td style="padding:8px 22px 20px;" align="center">
+          <p style="margin:0;color:#D6CBB8;font-size:12px;line-height:1.7;">${escHtml(STUDIO_LOCATION)}</p>
+        </td></tr>
+      </table>
+      <p style="max-width:480px;margin:14px auto 0;color:#8A7E6E;font-size:11px;line-height:1.6;text-align:center;">
+        Recibes este correo porque tienes una reserva activa en L'Studio Ana.
+      </p>
+    </td></tr>
+  </table>
+</body>
+</html>`;
+
+const howToGetThereLink = () =>
+  `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(STUDIO_LOCATION)}" target="_blank" style="color:#E4C687;">Cómo llegar</a>`;
+
+const viewButton = (portalUrl: string, appointmentId: string) => {
+  const url = `${portalUrl}?cita=${encodeURIComponent(appointmentId)}`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
+  <tr><td align="center" style="padding:4px 0 12px;">
+    <a href="${escHtml(url)}" style="display:inline-block;background:linear-gradient(135deg,#C99E52 0%,#B3823B 100%);color:#29231F;text-decoration:none;font-weight:600;font-size:14px;padding:13px 26px;border-radius:9px;">Ver mi cita</a>
+  </td></tr>
+  <tr><td align="center">${howToGetThereLink()}</td></tr>
+</table>`;
+};
+
+const detailsTable = (startsAt: string, servicesText: string, professional?: string | null) => {
+  const rows = [
+    `<tr><td style="padding:4px 0;color:#D6CBB8;width:92px;">Fecha</td><td style="padding:4px 0;color:#FFF8EE;">${escHtml(fmtDateMadrid(startsAt))}</td></tr>`,
+    `<tr><td style="padding:4px 0;color:#D6CBB8;">Hora</td><td style="padding:4px 0;color:#FFF8EE;">${escHtml(fmtTimeMadrid(startsAt))}h</td></tr>`,
+    `<tr><td style="padding:4px 0;color:#D6CBB8;">Servicios</td><td style="padding:4px 0;color:#FFF8EE;">${escHtml(servicesText)}</td></tr>`,
+  ];
+  if (professional) rows.push(`<tr><td style="padding:4px 0;color:#D6CBB8;">Profesional</td><td style="padding:4px 0;color:#FFF8EE;">${escHtml(professional)}</td></tr>`);
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows.join("")}</table>`;
+};
+
+const validEmail = (value: unknown): string | null => {
+  const email = String(value ?? "").toLowerCase().trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
+};
+
+interface SchedulingContext {
+  apptId: string;
+  startsAt: string;
+  clientName: string;
+  clientEmail: string | null;
+  servicesText: string;
+  professional?: string | null;
+  confirmed: boolean;
+  isUpdate?: boolean;
+}
+
+// Schedule or update every email that depends on the current state of an
+// appointment. Idempotent: unique idempotency keys prevent duplicates when an
+// operation is retried.
+const scheduleAppointmentEmails = async (admin: ReturnType<typeof createClient>, ctx: SchedulingContext) => {
+  const { data: cfg } = await admin.from("studio_email_config").select("portal_url").eq("id", true).maybeSingle();
+  const portalUrl = ((cfg as { portal_url?: string | null } | null)?.portal_url || DEFAULT_PORTAL_URL).replace(/\/+$/, "");
+  const now = Date.now();
+  const startMs = new Date(ctx.startsAt).getTime();
+
+  const upsert = async (kind: string, idempotencyKey: string, subject: string, bodyHtml: string, scheduledAt: string) => {
+    await admin.from("studio_email_outbox").upsert({
+      idempotency_key: idempotencyKey,
+      appointment_id: ctx.apptId,
+      kind,
+      to_email: ctx.clientEmail ?? "",
+      subject,
+      body_html: bodyHtml,
+      scheduled_at: scheduledAt,
+      status: "scheduled",
+    }, { onConflict: "idempotency_key", ignoreDuplicates: true });
+  };
+
+  if (!ctx.clientEmail) return;
+
+  // Keys include the start time: a rescheduled appointment gets fresh messages
+  // instead of colliding with the superseded ones.
+  const keySuffix = `:${ctx.startsAt}`;
+
+  if (!ctx.confirmed) {
+    await upsert("request_received", `req:${ctx.apptId}${keySuffix}`, "Hemos recibido tu solicitud en L'Studio Ana",
+      emailLayout("Solicitud recibida",
+        `<p style="margin:0 0 12px;color:#FFF8EE;">Hola <strong>${escHtml(ctx.clientName)}</strong>,</p>
+         <p style="margin:0 0 12px;color:#FFF8EE;">Tu solicitud está en revisión. Te enviaremos la confirmación definitiva cuando se completen los pasos pendientes (aprobación de Ana o el anticipo de la reserva).</p>
+         ${detailsTable(ctx.startsAt, ctx.servicesText, ctx.professional)}
+         ${viewButton(portalUrl, ctx.apptId)}`),
+      new Date().toISOString());
+    return;
+  }
+
+  const confirmationKind = ctx.isUpdate ? "update" : "confirmation";
+  const confirmationTitle = ctx.isUpdate ? "Tu cita ha sido modificada" : "Tu cita está confirmada";
+  const confirmationSubject = ctx.isUpdate
+    ? "Tu cita en L'Studio Ana ha sido modificada"
+    : "Tu cita en L'Studio Ana está confirmada";
+  await upsert(confirmationKind, `${confirmationKind}:${ctx.apptId}${keySuffix}`, confirmationSubject,
+    emailLayout(confirmationTitle,
+      `<p style="margin:0 0 12px;color:#FFF8EE;">Hola <strong>${escHtml(ctx.clientName)}</strong>,</p>
+       ${detailsTable(ctx.startsAt, ctx.servicesText, ctx.professional)}
+       ${viewButton(portalUrl, ctx.apptId)}`),
+    new Date().toISOString());
+
+  for (const [kind, hours, subject] of [
+    ["reminder_48h", 48, "Tu cita en L'Studio Ana es dentro de 48 horas"],
+    ["reminder_24h", 24, "Mañana te esperamos en L'Studio Ana"],
+  ] as const) {
+    const sendAt = startMs - hours * 3600_000;
+    if (sendAt <= now) continue;
+    await upsert(kind, `${kind}:${ctx.apptId}${keySuffix}`, subject,
+      emailLayout(hours === 48 ? "Tu cita es dentro de 48 horas" : "Mañana te esperamos",
+        `<p style="margin:0 0 12px;color:#FFF8EE;">Hola <strong>${escHtml(ctx.clientName)}</strong>,</p>
+         ${detailsTable(ctx.startsAt, ctx.servicesText, ctx.professional)}
+         <p style="margin:12px 0 0;color:#D6CBB8;">Puedes consultar, modificar o cancelar tu cita desde el portal, según las condiciones de reserva.</p>
+         ${viewButton(portalUrl, ctx.apptId)}`),
+      new Date(sendAt).toISOString());
+  }
+};
+
+const cancelAppointmentEmails = async (admin: ReturnType<typeof createClient>, apptId: string, opts: { cancelled?: boolean } = {}) => {
+  await admin.from("studio_email_outbox")
+    .update({ status: "skipped", last_error: "Cita cancelada o modificada" })
+    .eq("appointment_id", apptId)
+    .in("status", ["scheduled", "failed"]);
+  if (opts.cancelled) {
+    const { data: appt } = await admin.from("studio_appointments")
+      .select("id, starts_at, client_snapshot")
+      .eq("id", apptId).maybeSingle();
+    const snap = ((appt?.client_snapshot || {}) as Record<string, unknown>);
+    const email = validEmail(snap.email);
+    if (appt && email) {
+      await admin.from("studio_email_outbox").upsert({
+        idempotency_key: `cancellation:${apptId}`,
+        appointment_id: apptId,
+        kind: "cancellation",
+        to_email: email,
+        subject: "Tu cita en L'Studio Ana ha sido cancelada",
+        body_html: emailLayout("Tu cita ha sido cancelada",
+          `<p style="margin:0 0 12px;color:#FFF8EE;">Hola <strong>${escHtml(String(snap.clientName ?? ""))}</strong>,</p>
+           <p style="margin:0 0 12px;color:#FFF8EE;">Tu cita ha quedado cancelada y el hueco liberado en la agenda del Studio. Los recordatorios pendientes han sido anulados.</p>
+           ${detailsTable(appt.starts_at, String(snap.serviceSubcategory ?? "Servicios del Studio"))}
+           <p style="margin:12px 0 0;color:#D6CBB8;">Si quieres reservar otro día, puedes hacerlo desde el portal.</p>`),
+        scheduled_at: new Date().toISOString(),
+        status: "scheduled",
+      }, { onConflict: "idempotency_key", ignoreDuplicates: true });
+    }
+  }
+};
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
 
@@ -108,6 +285,34 @@ Deno.serve(async (req: Request) => {
     }
 
     // ---------- admin-only mutations ----------
+    if (action === "email-status") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const appointmentId = String(body.appointmentId ?? "");
+      if (!appointmentId) return json({ error: "Falta la cita" }, 400);
+      const { data: cfg, error: cfgErr } = await admin.from("studio_email_config").select("worker_secret").eq("id", true).maybeSingle();
+      if (cfgErr) return json({ error: cfgErr.message }, 500);
+      const { data: emails, error } = await admin
+        .from("studio_email_outbox")
+        .select("id, kind, to_email, subject, status, scheduled_at, sent_at, provider, provider_message_id, last_error, attempts, created_at")
+        .eq("appointment_id", appointmentId)
+        .order("created_at");
+      if (error) return json({ error: error.message }, 500);
+      return json({ emails: emails ?? [] });
+    }
+
+    if (action === "email-config") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const { data: cfg, error } = await admin.from("studio_email_config").select("provider, from_email, portal_url, service_key").eq("id", true).maybeSingle();
+      if (error) return json({ error: error.message }, 500);
+      const row = (cfg ?? {}) as Record<string, unknown>;
+      return json({
+        providerConfigured: Boolean(row.service_key && row.from_email),
+        provider: (row.provider as string) ?? null,
+        fromEmail: (row.from_email as string) ?? null,
+        portalUrl: (row.portal_url as string) ?? null,
+      });
+    }
+
     if (action === "service-image" && req.method === "POST") {
       if (!isAdmin) return json({ error: "Solo administración" }, 403);
       const dataUrl = String(body.dataUrl ?? "");
@@ -301,6 +506,19 @@ Deno.serve(async (req: Request) => {
         if ((error as any).code === "23505") return json({ error: "Reserva duplicada" }, 409);
         return json({ error: error.message }, 500);
       }
+      const servicesText = (Array.isArray(body.services) && body.services.length
+        ? body.services.map((s: any) => [s?.sub?.name || "", s?.variant?.name].filter(Boolean).join(" (") + (s?.variant ? ")" : "")).join(" + ")
+        : String(body.serviceSubcategory ?? "")) || "Servicios del Studio";
+      const approvalPending = (body.approval?.status ?? "not_required") === "pending";
+      const depositPending = (body.advancePayment?.status ?? "not_required") === "pending";
+      await scheduleAppointmentEmails(admin, {
+        apptId: created.id,
+        startsAt: new Date(`${body.dateKey}T${body.time}:00Z`).toISOString(),
+        clientName: String(body.clientName ?? ""),
+        clientEmail: validEmail(body.email),
+        servicesText,
+        confirmed: !approvalPending && !depositPending,
+      }).catch(() => undefined);
       return json({ ok: true, id: created.id });
     }
 
@@ -345,6 +563,47 @@ Deno.serve(async (req: Request) => {
       }
       const { error } = await query;
       if (error) return json({ error: error.message }, 500);
+      const scheduleKey = crypto.randomUUID();
+      void scheduleKey;
+      const { data: updatedAppt } = await admin.from("studio_appointments")
+        .select("id, starts_at, lifecycle_status, approval_status, deposit_status, services, client_snapshot")
+        .or(`id.eq.${body.id},source_legacy_id.eq.${body.id}`).maybeSingle();
+      if (updatedAppt) {
+        if (updatedAppt.lifecycle_status === "cancelled" || updatedAppt.lifecycle_status === "no_show") {
+          await cancelAppointmentEmails(admin, updatedAppt.id, { cancelled: updatedAppt.lifecycle_status === "cancelled" }).catch(() => undefined);
+        } else {
+          const snap = (updatedAppt.client_snapshot || {}) as Record<string, unknown>;
+          const approvalPending = updatedAppt.approval_status === "pending";
+          const depositPending = updatedAppt.deposit_status === "pending";
+          const confirmed = !approvalPending && !depositPending;
+          const servicesText = (Array.isArray(updatedAppt.services) && updatedAppt.services.length
+            ? updatedAppt.services.map((s: any) => [s?.sub?.name || "", s?.variant?.name].filter(Boolean).join(" (") + (s?.variant ? ")" : "")).join(" + ")
+            : String(snap.serviceSubcategory ?? "")) || "Servicios del Studio";
+          if (patch.starts_at) {
+            // Rescheduled: annul the previous reminders, send the update and
+            // schedule the new ones.
+            await cancelAppointmentEmails(admin, updatedAppt.id).catch(() => undefined);
+            await scheduleAppointmentEmails(admin, {
+              apptId: updatedAppt.id,
+              startsAt: updatedAppt.starts_at,
+              clientName: String(snap.clientName ?? ""),
+              clientEmail: validEmail(snap.email),
+              servicesText,
+              confirmed,
+              isUpdate: true,
+            }).catch(() => undefined);
+          } else {
+            await scheduleAppointmentEmails(admin, {
+              apptId: updatedAppt.id,
+              startsAt: updatedAppt.starts_at,
+              clientName: String(snap.clientName ?? ""),
+              clientEmail: validEmail(snap.email),
+              servicesText,
+              confirmed,
+            }).catch(() => undefined);
+          }
+        }
+      }
       return json({ ok: true });
     }
 
@@ -358,6 +617,7 @@ Deno.serve(async (req: Request) => {
       }
       const { error } = await query;
       if (error) return json({ error: error.message }, 500);
+      await cancelAppointmentEmails(admin, body.id).catch(() => undefined);
       return json({ ok: true });
     }
 

@@ -148,3 +148,31 @@ export const uploadServiceImage = (token: string, dataUrl: string) =>
 
 export const deleteServiceImage = (token: string, path: string) =>
   call<{ ok: true }>('service-image', { method: 'DELETE', token, body: { path } });
+
+export interface AppointmentEmailRow {
+  id: string;
+  kind: string;
+  to_email: string;
+  subject: string;
+  status: 'scheduled' | 'sending' | 'sent' | 'failed' | 'skipped';
+  scheduled_at: string;
+  sent_at: string | null;
+  provider: string | null;
+  provider_message_id: string | null;
+  last_error: string | null;
+  attempts: number;
+  created_at: string;
+}
+
+export const fetchAppointmentEmails = (token: string, appointmentId: string) =>
+  call<{ emails: AppointmentEmailRow[] }>('email-status', { token, body: { appointmentId } });
+
+export interface EmailConfigStatus {
+  providerConfigured: boolean;
+  portalUrl: string | null;
+  fromEmail: string | null;
+  provider: string | null;
+}
+
+export const fetchEmailConfigStatus = (token: string) =>
+  call<EmailConfigStatus>('email-config', { token, body: {} });

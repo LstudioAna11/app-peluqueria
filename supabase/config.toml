@@ -4,3 +4,6 @@ project_id = "lstudio"
 
 [functions.studio-api]
 verify_jwt = false
+
+[functions.email-dispatch]
+verify_jwt = false

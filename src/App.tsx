@@ -2495,6 +2495,50 @@ function StudioApp() {
   const [viewApptModal, setViewApptModal] = useState<Appointment | null>(null);
   const [appointmentNoteDraft, setAppointmentNoteDraft] = useState('');
   useEffect(() => { setAppointmentNoteDraft(viewApptModal?.internalNotes || ''); }, [viewApptModal?.id]);
+  const [appointmentEmails, setAppointmentEmails] = useState<studioApi.AppointmentEmailRow[]>([]);
+  const [appointmentEmailsLoading, setAppointmentEmailsLoading] = useState(false);
+  const [appointmentEmailsError, setAppointmentEmailsError] = useState<string | null>(null);
+  useEffect(() => { setAppointmentEmails([]); setAppointmentEmailsError(null); }, [viewApptModal?.id]);
+  const validRecipientEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').toLowerCase().trim());
+  const emailKindLabel = (kind: string) => ({
+    confirmation: 'Confirmación de reserva',
+    request_received: 'Solicitud recibida',
+    update: 'Actualización de cita',
+    cancellation: 'Cancelación',
+    reminder_48h: 'Recordatorio 48 h',
+    reminder_24h: 'Recordatorio 24 h',
+  } as Record<string, string>)[kind] || kind;
+  const emailStatusLabel = (status: string) => ({
+    scheduled: 'Programado',
+    sending: 'Enviando',
+    sent: 'Enviado',
+    failed: 'Error',
+    skipped: 'Anulado',
+  } as Record<string, string>)[status] || status;
+  const emailStatusColor = (status: string) => ({
+    sent: '#8FC98F', scheduled: '#E4C687', sending: '#E4C687', failed: '#C0392B', skipped: '#8A7E6E',
+  } as Record<string, string>)[status] || '#D6CBB8';
+  const loadAppointmentEmails = async () => {
+    if (!viewApptModal || !studioApi.serverConfigured || studioApi.storedRole() !== 'admin') return;
+    setAppointmentEmailsLoading(true); setAppointmentEmailsError(null);
+    try {
+      const result = await studioApi.fetchAppointmentEmails(studioApi.currentToken()!, viewApptModal.id);
+      setAppointmentEmails(Array.isArray(result.emails) ? result.emails : []);
+    } catch (error) {
+      setAppointmentEmails([]);
+      setAppointmentEmailsError(error instanceof Error ? error.message : 'No se pudo consultar el estado de los emails.');
+    } finally {
+      setAppointmentEmailsLoading(false);
+    }
+  };
+  const [emailConfigStatus, setEmailConfigStatus] = useState<studioApi.EmailConfigStatus | null>(null);
+  useEffect(() => {
+    if (currentScreen !== 'adminPanel' || !studioApi.serverConfigured || studioApi.storedRole() !== 'admin') return;
+    studioApi.fetchEmailConfigStatus(studioApi.currentToken()!)
+      .then(status => setEmailConfigStatus(status))
+      .catch(() => setEmailConfigStatus(null));
+  }, [currentScreen]);
+  useEffect(() => { setAppointmentNoteDraft(viewApptModal?.internalNotes || ''); }, [viewApptModal?.id]);
   const changeAppointmentStatus = (appointment: Appointment, status: 'cancelled' | 'no_show') => {
     if (appointment.completedAt) { alert('Una visita realizada ya consta en el pasaporte.'); return; }
     if (status === 'no_show' && new Date(appointment.dateKey + 'T' + appointment.time + ':00').getTime() > Date.now()) {
@@ -4791,7 +4835,14 @@ style={{ padding: '8px', background: '#322A25', color: '#FFF8EE', border: '1px s
 const data: Record<string, string | null> = {}; for (let index = 0; index < localStorage.length; index++) { const key = localStorage.key(index); if (key?.startsWith('lst_')) data[key] = localStorage.getItem(key); }
 data.lst_master_catalog = JSON.stringify(catalog); data.lst_business_config = JSON.stringify(bizConfig);
 const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, createdAt: new Date().toISOString(), data }, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `LStudio_copia_${new Date().toISOString().slice(0,10)}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-}} style={{ padding: '12px', cursor: 'pointer' }}>Descargar copia de seguridad</button><p>La restauración no está incluida: la descarga no cambia ni elimina tus datos.</p></div>}
+}} style={{ padding: '12px', cursor: 'pointer' }}>Descargar copia de seguridad</button><p>La restauración no está incluida: la descarga no cambia ni elimina tus datos.</p>
+<div style={{ marginTop: '14px', padding: '14px', background: '#29231F', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px' }}>
+  <strong style={{ color: '#E4C687', fontSize: '13px' }}>Emails automáticos de citas</strong>
+  {emailConfigStatus === null && <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: '8px 0 0' }}>No se pudo consultar el estado de la configuración de email en este momento.</p>}
+  {emailConfigStatus && !emailConfigStatus.providerConfigured && <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0' }}>Estado: pendiente de configurar. Los emails se programan y quedan registrados, pero no se envían hasta completar: una cuenta en Resend (proveedor de email), su API key guardada como secreto del proyecto y un remitente verificado en Resend (dominio propio o dirección verificada). No se muestra ningún envío como realizado sin confirmación del proveedor.</p>}
+  {emailConfigStatus && emailConfigStatus.providerConfigured && <p style={{ color: '#8FC98F', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0' }}>Estado: configurado. Remitente: {emailConfigStatus.fromEmail} · Proveedor: {emailConfigStatus.provider || 'resend'}.</p>}
+  {emailConfigStatus && <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: '8px 0 0' }}>El estado de los emails de cada cita se consulta en el detalle de la cita, en «Emails automáticos de la cita».</p>}
+</div></div>}
               {configSubTab === 'marca' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <h3 style={{ color: '#E4C687', fontSize: '16px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>Gestor de Marca, Dirección y Plantilla WhatsApp</h3>
@@ -6509,9 +6560,31 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               <button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'no_show')} style={{ padding: '10px', border: '1px solid #C5A059', color: '#D6CBB8', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>No presentada</button>
             </div>}
             {!isActiveAppointment(viewApptModal) && <p style={{ color: '#D6CBB8', fontSize: '12px' }}>El registro se conserva en «Citas del día» y en el buscador. No ocupa un hueco ni se añade como visita realizada al pasaporte.</p>}
+            {!viewApptModal.completedAt && currentScreen === 'adminPanel' && (
+              <section style={{ padding: '14px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <h4 style={{ color: '#E4C687', fontSize: '14px', margin: 0 }}>Emails automáticos de la cita</h4>
+                  <button type="button" onClick={loadAppointmentEmails} style={{ padding: '8px 12px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 0, borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>{appointmentEmailsLoading ? 'Cargando…' : 'Consultar estado'}</button>
+                </div>
+                {!validRecipientEmail(viewApptModal.email) && <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>Esta reserva no tiene una dirección de email válida: no se enviará ningún correo. Revisa el email de la clienta.</p>}
+                {appointmentEmailsError && <p style={{ color: '#C0392B', fontSize: '12px', margin: '10px 0 0' }}>{appointmentEmailsError}</p>}
+                {appointmentEmails.length > 0 && (
+                  <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {appointmentEmails.map(row => (
+                      <div key={row.id} style={{ fontSize: '12px', lineHeight: 1.6, color: '#FFF8EE', background: '#29231F', border: '1px solid #3A312A', borderRadius: '6px', padding: '10px' }}>
+                        <strong>{emailKindLabel(row.kind)}</strong> · <span style={{ color: emailStatusColor(row.status) }}>{emailStatusLabel(row.status)}</span>
+                        <span style={{ display: 'block', color: '#D6CBB8', marginTop: '4px' }}>{row.subject}</span>
+                        <span style={{ display: 'block', color: '#D6CBB8', marginTop: '4px' }}>Para: {row.to_email || '(sin email)'} · Programado: {new Date(row.scheduled_at).toLocaleString('es-ES')}{row.sent_at ? ` · Enviado: ${new Date(row.sent_at).toLocaleString('es-ES')} (${row.provider})` : ''}{row.attempts ? ` · Intentos: ${row.attempts}` : ''}</span>
+                        {row.last_error && <span style={{ display: 'block', color: '#C0392B', marginTop: '4px' }}>{row.last_error}</span>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {appointmentEmails.length === 0 && !appointmentEmailsLoading && !appointmentEmailsError && validRecipientEmail(viewApptModal.email) && <p style={{ color: '#D6CBB8', fontSize: '12px', margin: '10px 0 0' }}>Pulsa «Consultar estado» para ver los emails programados y enviados de esta cita.</p>}
+              </section>
+            )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px', borderTop: '1px solid rgba(212, 175, 55, 0.2)', paddingTop: '12px' }}>
-              <span style={{ color: '#E4C687', fontSize: '13px', fontWeight: 'bold' }}>Abrir mensaje de WhatsApp o copiar texto:</span>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <span style={{ color: '#E4C687', fontSize: '13px', fontWeight: 'bold' }}>Abrir mensaje de WhatsApp o copiar texto:</span>              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
                 <a href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, "")}?text=${encodeURIComponent(generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time))}`} target="_blank" rel="noreferrer" style={{ backgroundColor: '#8FC98F', color: '#2C5538', padding: '10px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                   WhatsApp
                 </a>
