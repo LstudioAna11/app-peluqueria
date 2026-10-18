@@ -1708,7 +1708,7 @@ function readStoredValue(key: string, raw: string): any {
 }
 
 const AGENDA_SWATCHES = [
-  { id: 'champagne', label: 'Champán', panel: '#EADCC7', soft: '#F3E8D7', border: '#E6D5B8' },
+  { id: 'champagne', label: 'Champán', panel: '#322A25', soft: '#3E342C', border: '#3A312A' },
   { id: 'sage', label: 'Salvia', panel: '#C2CDBD', soft: '#D6DECE', border: '#9DAD93' },
   { id: 'terracotta', label: 'Terracota', panel: '#D9A98A', soft: '#E8C4A8', border: '#C08B65' },
   { id: 'blush', label: 'Rosa tostado', panel: '#DCB4A4', soft: '#EBCFC3', border: '#C69785' },
@@ -2955,7 +2955,7 @@ function StudioApp() {
     return text.includes(portalSearchQuery);
   };
   const portalSearchCount = catalog.reduce((total, category) => total + category.subservices.filter(service => portalServiceMatches(category, service)).length, 0);
-  const translationLanguagePicker = () => <label style={{ display: 'block', color: '#5C5248', fontSize: '13px', margin: '12px 0' }}>Idioma<select value={catalogTranslationLang} onChange={event => setCatalogTranslationLang(event.target.value)} style={{ display: 'block', width: '100%', padding: '12px', marginTop: '6px', background: '#F3E8D7', color: '#2C2521', border: '1px solid #C5A059', borderRadius: '7px' }}>{Object.keys(TRANSLATIONS).filter(language => language !== 'es').map(language => <option key={language} value={language}>{({en: 'English', fr: 'Français', it: 'Italiano', pt: 'Português', de: 'Deutsch', nl: 'Nederlands', pl: 'Polski', cs: 'Čeština', nb: 'Norsk', sv: 'Svenska', ar: 'العربية'} as Record<string, string>)[language]}</option>)}</select></label>;
+  const translationLanguagePicker = () => <label style={{ display: 'block', color: '#D6CBB8', fontSize: '13px', margin: '12px 0' }}>Idioma<select value={catalogTranslationLang} onChange={event => setCatalogTranslationLang(event.target.value)} style={{ display: 'block', width: '100%', padding: '12px', marginTop: '6px', background: '#3E342C', color: '#FFF8EE', border: '1px solid #C5A059', borderRadius: '7px' }}>{Object.keys(TRANSLATIONS).filter(language => language !== 'es').map(language => <option key={language} value={language}>{({en: 'English', fr: 'Français', it: 'Italiano', pt: 'Português', de: 'Deutsch', nl: 'Nederlands', pl: 'Polski', cs: 'Čeština', nb: 'Norsk', sv: 'Svenska', ar: 'العربية'} as Record<string, string>)[language]}</option>)}</select></label>;
   const updateServiceTranslation = (categoryId: string, serviceId: string, field: keyof ServiceTranslation, value: string) => {
     setCatalog(previous => previous.map(category => category.id !== categoryId ? category : {
       ...category, subservices: category.subservices.map(service => service.id !== serviceId ? service : {
@@ -2965,7 +2965,7 @@ function StudioApp() {
   };
 
   const renderServiceInfo = (sub: SubService) => (
-                              <div style={{ backgroundColor: '#F3E8D7', padding: '14px', borderRadius: '6px', fontSize: '13px', lineHeight: 1.6, color: '#5C5248', display: 'flex', flexDirection: 'column', gap: '10px', borderLeft: '2px solid #B98A3E', marginTop: '4px' }}>
+                              <div style={{ backgroundColor: '#3E342C', padding: '14px', borderRadius: '6px', fontSize: '13px', lineHeight: 1.6, color: '#D6CBB8', display: 'flex', flexDirection: 'column', gap: '10px', borderLeft: '2px solid #B98A3E', marginTop: '4px' }}>
                                 <div><strong style={{ color: '#C99E52' }}>{t('descriptionLabel')}:</strong> {serviceText(sub, 'description')}</div>
                                 {sub.requiresAssessment && <div style={{ color: '#C99E52', fontWeight: 'bold' }}>Requiere valoración previa · Reserva bajo confirmación de Ana</div>}
                                 {tonerLabel(sub) && <div style={{ color: '#C99E52', fontWeight: 'bold' }}>{tonerLabel(sub)}</div>}
@@ -3604,10 +3604,10 @@ function StudioApp() {
     setAppointments(previous => previous.map(item => item.id === appointment.id ? updated : item));
     setViewApptModal(updated);
   };
-  const adminAppointmentColor = (appointment: Appointment) => appointment.completedAt ? { background: '#EADCC7', border: '#B8972E' } : appointment.saturdayApproval?.status === 'pending'
-    ? { background: '#F3E8D7', border: '#C99E52' }
+  const adminAppointmentColor = (appointment: Appointment) => appointment.completedAt ? { background: '#322A25', border: '#B8972E' } : appointment.saturdayApproval?.status === 'pending'
+    ? { background: '#3E342C', border: '#C99E52' }
     : appointment.advancePayment?.status === 'pending' ? { background: '#DCE3EE', border: '#4A6FA5' }
-    : { background: '#DFE9DF', border: '#2E7D32' };
+    : { background: '#8FC98F', border: '#2E7D32' };
 
   const clientNextAppointment = currentClientRecord ? appointments
     .filter(appointment => isActiveAppointment(appointment) && !!normalizeEmail(currentClientRecord.email) && normalizeEmail(appointment.email) === normalizeEmail(currentClientRecord.email)
@@ -3625,7 +3625,7 @@ function StudioApp() {
 
   const renderAgendaLinks = () => <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '4px 5px 10px 12px' }}>
     {(['day', 'pending'] as const).map(panel => <button key={panel} type="button" onClick={() => { setAdminTab('agenda'); setPendingPanelFilter('all'); setAgendaSidePanel(panel); }}
-      style={{ textAlign: 'left', background: 'transparent', color: '#C99E52', border: '1px solid #E6D5B8',
+      style={{ textAlign: 'left', background: 'transparent', color: '#C99E52', border: '1px solid #3A312A',
         borderRadius: '6px', padding: '9px 7px', fontSize: '11px', cursor: 'pointer' }}>
       {panel === 'day' ? 'Citas del día' : 'Pendientes'} · {panel === 'day' ? appointments.filter(item => item.dateKey === formatDateKey(fechaSeleccionada)).length :
         appointments.filter(item => isActiveAppointment(item) && (item.saturdayApproval?.status === 'pending' || item.advancePayment?.status === 'pending')).length}
@@ -3639,7 +3639,7 @@ function StudioApp() {
       minWidth: days.length > 1 ? '700px' : '280px' }}>
       <div style={{ gridRow: 1, gridColumn: 1, color: '#D8C29A', padding: '8px', fontSize: '12px' }}>Hora</div>
       {days.map((day, column) => <div key={'header-' + column} className={`studio-agenda-day-heading ${formatDateKey(day.dateObj) === formatDateKey(agendaNow) ? 'studio-agenda-today' : ''}`} style={{ gridRow: 1, gridColumn: column + 2,
-        background: '#EADCC7', color: '#2C2521', textAlign: 'center', padding: '8px', fontSize: '12px',
+        background: '#322A25', color: '#FFF8EE', textAlign: 'center', padding: '8px', fontSize: '12px',
         borderBottom: '1px solid #C5A059' }}><strong>{day.name}</strong><div>{day.dateFormatted}</div>
       </div>)}
       {hoursList.map((time, row) => <React.Fragment key={time}>
@@ -3655,7 +3655,7 @@ function StudioApp() {
             onClick={() => chooseSlotAction(day.dateObj, day.name, time)} onDragOver={handleDragOver}
             onDrop={event => handleDrop(event, day.dateObj, day.name, time)}
             style={{ gridRow: row + 2, gridColumn: column + 2, border: '1px solid rgba(234, 220, 199, 0.35)', borderRadius: '1px',
-              background: holiday && day.dateObj.getDay() !== 6 ? '#F2DCD8' : working ? '#EADCC7' : 'rgba(41, 35, 31, 0.55)', color: '#2C2521', cursor: working ? 'pointer' : 'default',
+              background: holiday && day.dateObj.getDay() !== 6 ? '#F2DCD8' : working ? '#322A25' : 'rgba(41, 35, 31, 0.55)', color: '#FFF8EE', cursor: working ? 'pointer' : 'default',
               padding: '2px', fontSize: '10px' }}>{holiday ? 'Cerrado' : ''}</button>;
         })}
       </React.Fragment>)}
@@ -3677,7 +3677,7 @@ function StudioApp() {
         const span = Math.max(1, hoursList.filter(time => minutes(time) >= start && minutes(time) < start + block.durationMinutes).length);
         return <button type="button" key={block.id} onClick={() => { if (window.confirm('¿Desbloquear este periodo: ' + block.reason + '?')) setTimeBlocks(previous => previous.filter(item => item.id !== block.id)); }}
           title="Pulsa para desbloquear" style={{ gridRow: (row + 2) + ' / span ' + span, gridColumn: column + 2,
-            zIndex: 3, background: '#F3E8D7', border: '1px dashed rgba(44, 37, 33, 0.4)', color: '#5C5248', padding: '6px', borderRadius: '5px',
+            zIndex: 3, background: '#3E342C', border: '1px dashed rgba(255, 248, 238, 0.35)', color: '#D6CBB8', padding: '6px', borderRadius: '5px',
             textAlign: 'left', cursor: 'pointer', fontSize: '11px', overflow: 'hidden' }}>
           <strong>{block.time}–{minuteTime(start + block.durationMinutes)}</strong><div>Bloqueado · {block.reason}</div>
         </button>;
@@ -3705,13 +3705,13 @@ function StudioApp() {
             style={{ gridRow: (row + 2) + ' / span ' + span, gridColumn: column + 2, zIndex: 2,
               marginLeft: (lane * 100 / lanes) + '%', width: (100 / lanes) + '%', boxSizing: 'border-box',
               alignSelf: 'stretch', minWidth: 0, textAlign: 'left', padding: '6px',
-              background: adminAppointmentColor(item).background, border: '1px solid #E6D5B8', borderLeft: '3px solid ' + adminAppointmentColor(item).border,
-              color: '#2C2521', borderRadius: '5px', cursor: 'pointer', overflow: 'hidden',
+              background: adminAppointmentColor(item).background, border: '1px solid #3A312A', borderLeft: '3px solid ' + adminAppointmentColor(item).border,
+              color: '#FFF8EE', borderRadius: '5px', cursor: 'pointer', overflow: 'hidden',
               display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: '4px' }}>
             <strong style={{ fontSize: '11px' }}>{item.time}–{minuteTime(end)}</strong>
-            <strong style={{ color: '#2C2521', fontSize: '13px', overflowWrap: 'anywhere' }}>{item.clientName}</strong>
+            <strong style={{ color: '#FFF8EE', fontSize: '13px', overflowWrap: 'anywhere' }}>{item.clientName}</strong>
             <span style={{ fontSize: '11px', lineHeight: 1.35, overflowWrap: 'anywhere' }}>{item.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</span>
-            <span style={{ fontSize: '10px', color: '#5C5248' }}>{item.durationMinutes || 45} min · {item.lifecycleStatus === 'cancelled' ? 'Cancelada' : item.lifecycleStatus === 'no_show' ? 'No presentada' : item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Por aprobar' : item.advancePayment?.status === 'pending' ? 'Bizum pendiente' : 'Confirmada'}</span>
+            <span style={{ fontSize: '10px', color: '#D6CBB8' }}>{item.durationMinutes || 45} min · {item.lifecycleStatus === 'cancelled' ? 'Cancelada' : item.lifecycleStatus === 'no_show' ? 'No presentada' : item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Por aprobar' : item.advancePayment?.status === 'pending' ? 'Bizum pendiente' : 'Confirmada'}</span>
           </button>;
         });
       })}
@@ -3727,11 +3727,11 @@ function StudioApp() {
         .lst-app-header-sub { color: #C9BCA9; font-size: 9px; letter-spacing: 2px; margin: 2px 0 0; text-align: center; }
         .lst-app-header-btn { background: none; border: none; color: #FFF8EE; width: 40px; height: 40px; min-width: 40px; min-height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 50%; padding: 0; }
         .lst-app-header-btn:hover { background: rgba(255, 248, 238, 0.14); }
-        .lst-card { background: #EADCC7; border: 1px solid rgba(255, 248, 238, 0.08); border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); }
+        .lst-card { background: #322A25; border: 1px solid rgba(255, 248, 238, 0.08); border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25); }
         .lst-card-media { width: 100%; height: 200px; object-fit: cover; display: block; }
         .lst-ai-tag { position: absolute; top: 10px; right: 10px; background: rgba(20, 15, 12, 0.66); color: #FBF6EC; font-size: 10px; letter-spacing: 0.5px; padding: 4px 10px; border-radius: 999px; }
-        .lst-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-top: 1px solid rgba(44, 37, 33, 0.12); }
-        .lst-card-footer strong { display: block; font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.02em; font-size: 19px; font-weight: 400; color: #2C2521; }
+        .lst-card-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; border-top: 1px solid rgba(255, 248, 238, 0.14); }
+        .lst-card-footer strong { display: block; font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.02em; font-size: 19px; font-weight: 400; color: #FFF8EE; }
         .lst-card-footer span { display: block; color: #4E443B; font-size: 13px; margin-top: 3px; }
         .lst-btn-ver { display: inline-flex; align-items: center; gap: 6px; background: #C49A58; color: #29231F; border: none; padding: 9px 16px; min-height: 38px; border-radius: 10px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
         .lst-btn-ver:hover { background: #CFA765; }
@@ -3742,40 +3742,40 @@ function StudioApp() {
         .lst-detail-eyebrow { color: #D8C29A; font-size: 11px; letter-spacing: 1.5px; }
         .lst-detail-title { font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.02em; font-size: 30px; font-weight: 400; color: #FFF8EE; margin: 6px 0 0; }
         .lst-detail-desc { color: #EFE5D4; font-size: 14px; line-height: 1.7; margin: 8px 0 0; }
-        .lst-include-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid rgba(44, 37, 33, 0.12); }
+        .lst-include-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid rgba(255, 248, 238, 0.14); }
         .lst-include-row:last-child { border-bottom: none; }
-        .lst-include-icon { width: 38px; height: 38px; min-width: 38px; border-radius: 50%; background: rgba(44, 37, 33, 0.06); border: 1px solid rgba(44, 37, 33, 0.12); display: flex; align-items: center; justify-content: center; color: #8F6D24; }
-        .lst-include-label { color: #2C2521; font-size: 14px; }
-        .lst-price-box { display: flex; align-items: center; gap: 10px; border: 1px solid rgba(44, 37, 33, 0.12); background: rgba(44, 37, 33, 0.05); border-radius: 10px; padding: 12px 14px; color: #2C2521; font-size: 13px; }
+        .lst-include-icon { width: 38px; height: 38px; min-width: 38px; border-radius: 50%; background: rgba(255, 248, 238, 0.07); border: 1px solid rgba(255, 248, 238, 0.14); display: flex; align-items: center; justify-content: center; color: #E4C687; }
+        .lst-include-label { color: #FFF8EE; font-size: 14px; }
+        .lst-price-box { display: flex; align-items: center; gap: 10px; border: 1px solid rgba(255, 248, 238, 0.14); background: rgba(255, 248, 238, 0.06); border-radius: 10px; padding: 12px 14px; color: #FFF8EE; font-size: 13px; }
         .lst-cta-full { width: 100%; min-height: 54px; background: #C49A58; color: #29231F; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
         .lst-cta-full:hover { background: #CFA765; }
         .lst-btn-back { background: none; border: none; color: #FFF8EE; width: 40px; height: 40px; min-width: 40px; min-height: 40px; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
         .lst-btn-back:hover { background: rgba(255, 248, 238, 0.1); border-radius: 50%; }
-        .lst-cat-card { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; background: #EADCC7; border: 1px solid rgba(255, 248, 238, 0.08); border-radius: 16px; padding: 12px; min-height: 76px; cursor: pointer; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25); touch-action: manipulation; }
-        .lst-cat-card:hover { background: #F0E4D1; }
+        .lst-cat-card { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left; background: #322A25; border: 1px solid rgba(255, 248, 238, 0.08); border-radius: 16px; padding: 12px; min-height: 76px; cursor: pointer; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25); touch-action: manipulation; }
+        .lst-cat-card:hover { background: #3A312A; }
         .lst-cat-card:active { transform: scale(0.99); }
-        .lst-cat-thumb { width: 56px; height: 56px; min-width: 56px; border-radius: 12px; overflow: hidden; background: #F3E8D7; display: flex; align-items: center; justify-content: center; }
+        .lst-cat-thumb { width: 56px; height: 56px; min-width: 56px; border-radius: 12px; overflow: hidden; background: #3E342C; display: flex; align-items: center; justify-content: center; }
         .lst-cat-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-        .lst-cat-thumb strong { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; letter-spacing: 3px; color: #8F6D24; }
+        .lst-cat-thumb strong { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; letter-spacing: 3px; color: #E4C687; }
         .lst-cat-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-        .lst-cat-info strong { color: #2C2521; font-size: 16px; line-height: 1.3; font-weight: 500; }
+        .lst-cat-info strong { color: #FFF8EE; font-size: 16px; line-height: 1.3; font-weight: 500; }
         .lst-cat-info small { color: #4E443B; font-size: 12px; }
-        .lst-cat-card svg { color: #8F6D24; flex-shrink: 0; pointer-events: none; }
+        .lst-cat-card svg { color: #E4C687; flex-shrink: 0; pointer-events: none; }
         .lst-carousel-shell { position: relative; display: flex; align-items: center; gap: 6px; min-width: 0; }
         .lst-carousel { display: flex; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 4px 2px 8px; scrollbar-width: none; min-width: 0; -webkit-overflow-scrolling: touch; }
         .lst-carousel::-webkit-scrollbar { display: none; }
-        .lst-c-card { flex: 0 0 240px; scroll-snap-align: start; background: #EADCC7; border: 1px solid rgba(255, 248, 238, 0.08); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25); }
-        .lst-c-media { display: block; width: 100%; height: 190px; padding: 0; border: none; background: #F3E8D7; cursor: pointer; overflow: hidden; position: relative; }
+        .lst-c-card { flex: 0 0 240px; scroll-snap-align: start; background: #322A25; border: 1px solid rgba(255, 248, 238, 0.08); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25); }
+        .lst-c-media { display: block; width: 100%; height: 190px; padding: 0; border: none; background: #3E342C; cursor: pointer; overflow: hidden; position: relative; }
         .lst-c-media img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.4s ease; }
         .lst-c-media .lst-ai-tag { position: absolute; top: 10px; right: 10px; background: rgba(20, 15, 12, 0.66); color: #FBF6EC; font-size: 10px; letter-spacing: 0.5px; padding: 4px 10px; border-radius: 999px; }
         .lst-c-media:hover img { transform: scale(1.04); }
         .lst-c-media-fallback { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; height: 100%; }
-        .lst-c-media-fallback strong { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 38px; letter-spacing: 4px; color: #8F6D24; line-height: 1; }
-        .lst-c-media-fallback small { font-size: 10px; letter-spacing: 2px; color: #8F6D24; }
+        .lst-c-media-fallback strong { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 38px; letter-spacing: 4px; color: #E4C687; line-height: 1; }
+        .lst-c-media-fallback small { font-size: 10px; letter-spacing: 2px; color: #E4C687; }
         .lst-c-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
-        .lst-c-name { background: none; border: none; padding: 0; text-align: left; font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.02em; font-size: 18px; font-weight: 400; color: #2C2521; cursor: pointer; }
+        .lst-c-name { background: none; border: none; padding: 0; text-align: left; font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.02em; font-size: 18px; font-weight: 400; color: #FFF8EE; cursor: pointer; }
         .lst-c-desc { color: #4E443B; font-size: 12px; line-height: 1.55; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .lst-c-meta { color: #8F6D24; font-size: 13px; font-weight: 600; margin: 0; }
+        .lst-c-meta { color: #E4C687; font-size: 13px; font-weight: 600; margin: 0; }
         .lst-c-cta { margin-top: auto; justify-content: center; }
         .lst-carousel-arrow { display: none; width: 36px; height: 36px; min-width: 36px; border-radius: 50%; border: 1px solid rgba(255, 248, 238, 0.14); background: #221D19; color: #E4C687; cursor: pointer; align-items: center; justify-content: center; padding: 0; }
         .lst-carousel-arrow:hover { background: #322A25; }
@@ -3830,7 +3830,7 @@ function StudioApp() {
         <main style={{ width: '100%', maxWidth: '460px', boxSizing: 'border-box', padding: '60px 24px 30px', textAlign: 'center' }}>
           <style>{`
             .studio-editorial-pin { background: transparent; border: none; border-bottom: 1px solid #B98A3E; border-radius: 0; color: #FFF8EE; width: 100%; height: 64px; font-family: 'Royal Hefana', 'Cormorant Garamond', Georgia, serif; font-size: 30px; letter-spacing: 18px; text-align: center; box-sizing: border-box; padding: 8px 0 8px 18px; outline: none; }
-            .studio-editorial-pin:focus { border-bottom-color: #8F6D24; }
+            .studio-editorial-pin:focus { border-bottom-color: #E4C687; }
             .studio-editorial-enter:hover { background: #E5C158 !important; }
             .studio-editorial-enter:focus-visible, .studio-editorial-logo:focus-visible { outline: 2px solid #B98A3E; outline-offset: 5px; }
             @media (max-width: 600px) { .studio-editorial-logo img { width: 180px !important; height: auto !important; } }
@@ -3844,7 +3844,7 @@ function StudioApp() {
             <label htmlFor="client-access-pin" style={{ display: 'block', color: '#D6CBB8', fontSize: '13px', marginBottom: '10px' }}>{t('enterPin')}</label>
             <input id="client-access-pin" className="studio-editorial-pin" dir="ltr" type="password" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} autoComplete="off" value={pin} onChange={event => { setPin(event.target.value.replace(/[^0-9]/g, '').slice(0, 4)); setPinError(false); }} aria-invalid={pinError} aria-describedby={pinError ? 'client-pin-error' : undefined} required />
             {pinError && <p id="client-pin-error" role="alert" style={{ color: '#F2B8AC', fontSize: '13px' }}>PIN incorrecto</p>}
-            <button className="studio-editorial-enter" type="submit" disabled={pin.length !== 4} style={{ width: '100%', minHeight: '48px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#2C2521', border: 'none', borderRadius: '3px', padding: '14px', marginTop: '24px', fontSize: '13px', letterSpacing: '1px', cursor: 'pointer', opacity: pin.length === 4 ? 1 : 0.45 }}>{t('enterPortal')}</button>
+            <button className="studio-editorial-enter" type="submit" disabled={pin.length !== 4} style={{ width: '100%', minHeight: '48px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', borderRadius: '3px', padding: '14px', marginTop: '24px', fontSize: '13px', letterSpacing: '1px', cursor: 'pointer', opacity: pin.length === 4 ? 1 : 0.45 }}>{t('enterPortal')}</button>
           </form>
           <div style={{ width: '34px', height: '1px', background: 'rgba(212, 175, 55, 0.5)', margin: '30px auto 20px' }} />
           <button type="button" onClick={() => setCurrentScreen('clientRegistration')} style={{ background: 'none', border: 'none', color: '#D8C29A', padding: '12px 4px', minHeight: '44px', fontSize: '12px', cursor: 'pointer', lineHeight: 1.6 }}>{t('firstTimeRegister')}</button>
@@ -3856,8 +3856,8 @@ function StudioApp() {
       {currentScreen === 'clientRegistration' && (
         <div className="studio-registration" style={{ maxWidth: '440px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '0', padding: '48px 20px 24px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <style>{`
-            .studio-registration input { background: #F3E8D7 !important; border: 1px solid rgba(212, 175, 55, 0.22) !important; border-radius: 5px !important; min-height: 46px; box-sizing: border-box; width: 100%; padding: 12px !important; font-size: 16px !important; color: #2B2521 !important; }
-            .studio-registration input:focus { outline: none; border-color: #8F6D24 !important; }
+            .studio-registration input { background: #3E342C !important; border: 1px solid rgba(212, 175, 55, 0.22) !important; border-radius: 5px !important; min-height: 46px; box-sizing: border-box; width: 100%; padding: 12px !important; font-size: 16px !important; color: #FFF8EE !important; }
+            .studio-registration input:focus { outline: none; border-color: #E4C687 !important; }
             .studio-registration label { font-size: 12px !important; color: #D6CBB8 !important; margin-bottom: 4px; }
             .studio-registration button:focus-visible { outline: 2px solid #B98A3E; outline-offset: 4px; }
           `}</style>
@@ -3867,31 +3867,31 @@ function StudioApp() {
           <form onSubmit={handleRegistroClientaPortalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <label style={{ color: '#D6CBB8', fontSize: '11px', fontWeight: 'bold' }}>{t('nameLabel')}</label>
-              <input type="text" placeholder="Ej. Ana" value={regNombre} onChange={(e) => setRegNombre(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '10px', backgroundColor: '#F3E8D7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '12px' }} />
+              <input type="text" placeholder="Ej. Ana" value={regNombre} onChange={(e) => setRegNombre(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '10px', backgroundColor: '#3E342C', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <label style={{ color: '#D6CBB8', fontSize: '11px' }}>{t('surnamesLabel')}</label>
-              <input type="text" placeholder="Ej. García López" value={regApellidos} onChange={(e) => setRegApellidos(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#F3E8D7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '12px' }} />
+              <input type="text" placeholder="Ej. García López" value={regApellidos} onChange={(e) => setRegApellidos(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#3E342C', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <label style={{ color: '#D6CBB8', fontSize: '11px' }}>{t('birthDateLabel')}</label>
-                <input type="text" placeholder="DD/MM/AAAA" value={regNacimiento} onChange={(e) => setRegNacimiento(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#F3E8D7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '12px' }} />
+                <input type="text" placeholder="DD/MM/AAAA" value={regNacimiento} onChange={(e) => setRegNacimiento(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#3E342C', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <label style={{ color: '#D6CBB8', fontSize: '11px' }}>{t('phoneLabel')}</label>
-                <input type="tel" autoComplete="tel" placeholder="600111222" value={regTelefono} onChange={(e) => setRegTelefono(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#F3E8D7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '12px' }} />
+                <input type="tel" autoComplete="tel" placeholder="600111222" value={regTelefono} onChange={(e) => setRegTelefono(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#3E342C', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <label style={{ color: '#D6CBB8', fontSize: '11px', fontWeight: 'bold' }}>{t('emailLabel')}</label>
-              <input type="email" autoComplete="email" placeholder="tucorreo@gmail.com" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '10px', backgroundColor: '#F3E8D7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '12px' }} />
+              <input type="email" autoComplete="email" placeholder="tucorreo@gmail.com" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '10px', backgroundColor: '#3E342C', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <label style={{ color: '#D6CBB8', fontSize: '11px', fontWeight: 'bold' }}>{t('pinLabel')}</label>
-              <input type="password" inputMode="numeric" pattern="[0-9]{4}" placeholder="••••" maxLength={4} value={regPin} onChange={(e) => setRegPin(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))} onFocus={(e) => e.target.select()} required style={{ padding: '10px', backgroundColor: '#F3E8D7', border: '1px solid #B98A3E', color: '#2C2521', borderRadius: '6px', fontSize: '14px', textAlign: 'center', letterSpacing: '4px' }} />
+              <input type="password" inputMode="numeric" pattern="[0-9]{4}" placeholder="••••" maxLength={4} value={regPin} onChange={(e) => setRegPin(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))} onFocus={(e) => e.target.select()} required style={{ padding: '10px', backgroundColor: '#3E342C', border: '1px solid #B98A3E', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px', textAlign: 'center', letterSpacing: '4px' }} />
             </div>
-            <button type="submit" style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#2C2521', border: 'none', padding: '14px', minHeight: '48px', borderRadius: '3px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginTop: '10px' }}>
+            <button type="submit" style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '14px', minHeight: '48px', borderRadius: '3px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginTop: '10px' }}>
               {t('completeRegisterBtn')}
             </button>
           </form>
@@ -3945,7 +3945,7 @@ function StudioApp() {
             ¿No sabes qué servicio elegir? <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#FFF8EE' }}>{t('guidance')}</a>
             <a href={`tel:${bizConfig.phone}`} style={{ display: 'block', color: '#D6CBB8', marginTop: '4px' }}>{t('callStudio')} · {bizConfig.phone}</a>
           </div>
-          <details style={{ backgroundColor: '#26201B', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '14px', padding: '20px 18px', boxShadow: '0 10px 26px rgba(0, 0, 0, 0.22)' }}>
+          <details style={{ backgroundColor: '#26201B', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '14px', padding: '20px 18px', boxShadow: '0 10px 26px rgba(0, 0, 0, 0.25)' }}>
             <summary style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '19px', fontWeight: 'normal', cursor: 'pointer', minHeight: '24px', display: 'flex', alignItems: 'center', gap: '10px', listStyle: 'none' }}>
               <Clock3 size={19} strokeWidth={1.7} aria-hidden="true" style={{ color: '#E4C687', flexShrink: 0 }} />
               {t('studioHours')}
@@ -3968,28 +3968,28 @@ function StudioApp() {
             </div>
           </details>
           <section aria-label="Visítanos" style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <h3 style={{ color: '#2C2521', fontSize: '19px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>Nos vemos en el Studio</h3>
+            <h3 style={{ color: '#FFF8EE', fontSize: '19px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>Nos vemos en el Studio</h3>
             <p style={{ color: '#D8C29A', fontSize: '13px', margin: 0, lineHeight: 1.6 }}>Un espacio para ti y para el cuidado de tu cabello.</p>
-            <p style={{ color: '#2C2521', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{bizConfig.location}</p>
+            <p style={{ color: '#FFF8EE', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{bizConfig.location}</p>
           </section>
           <details style={{ background: 'linear-gradient(160deg, #221D19 0%, #322A25 100%)', border: '1px solid rgba(212, 175, 55, 0.45)', borderRadius: '14px', padding: '20px 18px', boxShadow: '0 14px 34px rgba(0, 0, 0, 0.35)' }}>
             <summary style={{ color: '#E4C687', fontSize: '15px', cursor: 'pointer', lineHeight: 1.5, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em' }}>¿Cómo fue tu experiencia? Comparte tu opinión</summary>
           <div style={{ borderRadius: '12px', padding: '16px 0 0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
             <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ color: '#D8C29A', fontSize: '13px', minHeight: '44px', display: 'flex', alignItems: 'center' }}>Compartir mi experiencia en Google ↗</a>
             {feedbackSubmitted ? (
-              <div style={{ textAlign: 'center', padding: '14px 12px', borderRadius: '8px', backgroundColor: selectedRating >= 4 ? '#DFE9DF' : '#F3E8D7', border: `1px solid ${selectedRating >= 4 ? '#2E7D32' : 'rgba(212, 175, 55, 0.45)'}` }}>
+              <div style={{ textAlign: 'center', padding: '14px 12px', borderRadius: '8px', backgroundColor: selectedRating >= 4 ? '#8FC98F' : '#3E342C', border: `1px solid ${selectedRating >= 4 ? '#2E7D32' : 'rgba(212, 175, 55, 0.45)'}` }}>
                 <p style={{ color: selectedRating >= 4 ? '#2E7D32' : '#8F6D24', fontSize: '12px', fontWeight: 'bold', margin: '0 0 4px 0' }}>
                   {selectedRating >= 4 ? '¡Gracias por compartir tu opinión!' : 'Gracias por tu sinceridad'}
                 </p>
                 {selectedRating >= 4 ? (
                   <>
-                    <p style={{ color: '#4E443B', fontSize: '12px', margin: '0 0 8px 0', lineHeight: 1.5 }}>¿Nos ayudas contándolo también en Google? Tu opinión ayuda a otras personas a descubrir el Studio.</p>
+                    <p style={{ color: '#D6CBB8', fontSize: '12px', margin: '0 0 8px 0', lineHeight: 1.5 }}>¿Nos ayudas contándolo también en Google? Tu opinión ayuda a otras personas a descubrir el Studio.</p>
                     <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', background: '#C49A58', color: '#29231F', padding: '10px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', textDecoration: 'none', minHeight: '44px', lineHeight: '24px' }}>
                       Compartir mi reseña en Google ↗
                     </a>
                   </>
                 ) : (
-                  <p style={{ color: '#4E443B', fontSize: '12px', margin: 0, lineHeight: 1.5 }}>Tu comentario ha llegado directamente a Ana en la intranet del Studio. Lo revisará personalmente y se pondrá en contacto contigo para cuidar cada detalle.</p>
+                  <p style={{ color: '#D6CBB8', fontSize: '12px', margin: 0, lineHeight: 1.5 }}>Tu comentario ha llegado directamente a Ana en la intranet del Studio. Lo revisará personalmente y se pondrá en contacto contigo para cuidar cada detalle.</p>
                 )}
               </div>
             ) : (
@@ -4051,46 +4051,46 @@ function StudioApp() {
             </div>
             <span style={{ width: 44, display: 'block' }} aria-hidden="true" />
           </div>
-          <section aria-label="Detalle de tus citas" style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '14px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <section aria-label="Detalle de tus citas" style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '14px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: '10px' }}>
-              <span style={{ color: '#8F6D24', fontSize: '11px', letterSpacing: '1px' }}>TU PRÓXIMA CITA</span>
-              <span style={{ backgroundColor: 'rgba(44, 37, 33, 0.07)', color: '#4E443B', fontSize: '10px', padding: '3px 9px', borderRadius: '20px' }}>{clientAppointmentStatus}</span>
+              <span style={{ color: '#E4C687', fontSize: '11px', letterSpacing: '1px' }}>TU PRÓXIMA CITA</span>
+              <span style={{ backgroundColor: 'rgba(255, 248, 238, 0.08)', color: '#D6CBB8', fontSize: '10px', padding: '3px 9px', borderRadius: '20px' }}>{clientAppointmentStatus}</span>
             </div>
             {clientNextAppointment ? <>
-              <div style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '19px', lineHeight: 1.35 }}>
+              <div style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '19px', lineHeight: 1.35 }}>
                 {new Date(`${clientNextAppointment.dateKey}T12:00:00`).toLocaleDateString(portalLocale, { weekday: 'long', day: 'numeric', month: 'long' })}
-                <span style={{ color: '#8F6D24' }}> · {clientNextAppointment.time}</span>
+                <span style={{ color: '#E4C687' }}> · {clientNextAppointment.time}</span>
               </div>
-              <p style={{ color: '#4E443B', margin: 0, lineHeight: 1.5, fontSize: '13px', overflowWrap: 'anywhere' }}>{clientNextAppointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
-              <p style={{ color: '#4E443B', margin: 0, fontSize: '12px' }}>Estilista: Ana · L’Studio Ana — Hair Experience</p>
+              <p style={{ color: '#D6CBB8', margin: 0, lineHeight: 1.5, fontSize: '13px', overflowWrap: 'anywhere' }}>{clientNextAppointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
+              <p style={{ color: '#D6CBB8', margin: 0, fontSize: '12px' }}>Estilista: Ana · L’Studio Ana — Hair Experience</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', paddingTop: '2px' }}>
-                <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(clientNextAppointment); setNewRescheduleTime(clientNextAppointment.time); setNewRescheduleDate(clientNextAppointment.dateKey); }} style={{ background: 'transparent', border: '1px solid rgba(44, 37, 33, 0.2)', color: '#8F6D24', minHeight: '44px', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>{t('changeDate')}</button>
+                <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(clientNextAppointment); setNewRescheduleTime(clientNextAppointment.time); setNewRescheduleDate(clientNextAppointment.dateKey); }} style={{ background: 'transparent', border: '1px solid rgba(255, 248, 238, 0.16)', color: '#E4C687', minHeight: '44px', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>{t('changeDate')}</button>
                 <button type="button" onClick={() => setCancelApptModal(clientNextAppointment)} style={{ background: 'transparent', border: '1px solid rgba(155, 60, 45, 0.45)', color: '#9B3C2D', minHeight: '44px', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>Cancelar cita</button>
-                <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola Ana, quiero consultar mi cita del ${clientNextAppointment.dateKey.split('-').reverse().join('/')} a las ${clientNextAppointment.time}.`)}`} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', color: '#8F6D24', padding: '10px 0', minHeight: '44px', fontSize: '12px' }}>{t('askAppointment')}</a>
+                <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola Ana, quiero consultar mi cita del ${clientNextAppointment.dateKey.split('-').reverse().join('/')} a las ${clientNextAppointment.time}.`)}`} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', color: '#E4C687', padding: '10px 0', minHeight: '44px', fontSize: '12px' }}>{t('askAppointment')}</a>
               </div>
             </> : <>
-              <p style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '17px', margin: 0 }}>{t('experienceStart')}</p>
-              <p style={{ color: '#4E443B', fontSize: '12px', lineHeight: 1.5, margin: 0 }}>{t('noUpcoming')}</p>
+              <p style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '17px', margin: 0 }}>{t('experienceStart')}</p>
+              <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.5, margin: 0 }}>{t('noUpcoming')}</p>
             </>}
           </section>
           {clientUpcomingAppointments.length > 1 && (
-            <section aria-label="Otras citas próximas" style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '14px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <span style={{ color: '#8F6D24', fontSize: '11px', letterSpacing: '1px' }}>OTRAS CITAS PRÓXIMAS ({clientUpcomingAppointments.length - 1})</span>
+            <section aria-label="Otras citas próximas" style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '14px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <span style={{ color: '#E4C687', fontSize: '11px', letterSpacing: '1px' }}>OTRAS CITAS PRÓXIMAS ({clientUpcomingAppointments.length - 1})</span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {clientUpcomingAppointments.slice(1).map(appointment => <article key={appointment.id} style={{ background: 'rgba(255, 255, 255, 0.55)', border: '1px solid rgba(44, 37, 33, 0.12)', borderRadius: '8px', padding: '10px' }}>
+                {clientUpcomingAppointments.slice(1).map(appointment => <article key={appointment.id} style={{ background: 'rgba(255, 255, 255, 0.55)', border: '1px solid rgba(255, 248, 238, 0.14)', borderRadius: '8px', padding: '10px' }}>
                   <strong style={{ fontSize: '12px' }}>{new Date(`${appointment.dateKey}T12:00:00`).toLocaleDateString(portalLocale, { weekday: 'long', day: 'numeric', month: 'long' })} · {appointment.time}</strong>
-                  <p style={{ color: '#4E443B', fontSize: '11px', margin: '4px 0 8px', overflowWrap: 'anywhere' }}>{appointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
+                  <p style={{ color: '#D6CBB8', fontSize: '11px', margin: '4px 0 8px', overflowWrap: 'anywhere' }}>{appointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(appointment); setNewRescheduleTime(appointment.time); setNewRescheduleDate(appointment.dateKey); }} style={{ background: 'transparent', border: '1px solid rgba(44, 37, 33, 0.2)', color: '#8F6D24', minHeight: '40px', padding: '6px 12px', borderRadius: '7px', cursor: 'pointer', fontSize: '11px' }}>{t('changeDate')}</button>
+                    <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(appointment); setNewRescheduleTime(appointment.time); setNewRescheduleDate(appointment.dateKey); }} style={{ background: 'transparent', border: '1px solid rgba(255, 248, 238, 0.16)', color: '#E4C687', minHeight: '40px', padding: '6px 12px', borderRadius: '7px', cursor: 'pointer', fontSize: '11px' }}>{t('changeDate')}</button>
                     <button type="button" onClick={() => setCancelApptModal(appointment)} style={{ background: 'transparent', border: '1px solid rgba(155, 60, 45, 0.45)', color: '#9B3C2D', minHeight: '40px', padding: '6px 12px', borderRadius: '7px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>Cancelar cita</button>
                   </div>
                 </article>)}
               </div>
             </section>
           )}
-          <section aria-label="Reservar otra cita" style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '14px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <h3 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.03em', fontSize: '17px', fontWeight: 'normal', margin: 0 }}>Reserva tu cita</h3>
-            <p style={{ color: '#4E443B', fontSize: '12px', margin: '2px 0 0', lineHeight: 1.5 }}>Elige tus servicios y tu momento en el Studio.</p>
+          <section aria-label="Reservar otra cita" style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '14px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.03em', fontSize: '17px', fontWeight: 'normal', margin: 0 }}>Reserva tu cita</h3>
+            <p style={{ color: '#D6CBB8', fontSize: '12px', margin: '2px 0 0', lineHeight: 1.5 }}>Elige tus servicios y tu momento en el Studio.</p>
             <button type="button" onClick={() => { setViewServiceDetail(null); setPortalSearch(''); setPortalSearchExpanded({}); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ width: '100%', minHeight: '52px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>{t('bookNext')} <ArrowRight size={17} strokeWidth={2} aria-hidden="true" /></button>
           </section>
         </div>
@@ -4100,7 +4100,7 @@ function StudioApp() {
       {currentScreen === 'catalogBooking' && (
         <div className="lst-page" style={{ maxWidth: '520px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {bookingSuccessMsg && (
-            <div style={{ padding: '15px', backgroundColor: '#DFE9DF', border: '1px solid #3E6B47', color: '#2E7D32', borderRadius: '8px', fontSize: '12px', textAlign: 'center', lineHeight: '1.5', fontWeight: 'bold' }}>
+            <div style={{ padding: '15px', backgroundColor: '#8FC98F', border: '1px solid #3E6B47', color: '#2E7D32', borderRadius: '8px', fontSize: '12px', textAlign: 'center', lineHeight: '1.5', fontWeight: 'bold' }}>
               {bookingSuccessMsg}
             </div>
           )}
@@ -4118,24 +4118,24 @@ function StudioApp() {
             <h1 style={{ fontSize: '26px', lineHeight: 1.25, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', color: '#FFF8EE', margin: '0 0 8px', fontWeight: 400 }}>{t('experienceTitle')}</h1>
             <p style={{ color: '#F0E6D2', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('experienceIntro')}</p>
           </div>
-          <details style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, padding: '8px 12px' }}>
-            <summary style={{ cursor: 'pointer', color: '#2C2521', fontSize: '14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', listStyle: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+          <details style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, padding: '8px 12px' }}>
+            <summary style={{ cursor: 'pointer', color: '#FFF8EE', fontSize: '14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', listStyle: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               {t('advisorTitle')}
-              <ChevronDown size={16} strokeWidth={1.7} aria-hidden="true" style={{ flexShrink: 0, color: '#8F6D24' }} />
+              <ChevronDown size={16} strokeWidth={1.7} aria-hidden="true" style={{ flexShrink: 0, color: '#E4C687' }} />
             </summary>
-            <p style={{ color: '#5C5248', fontSize: '11px', lineHeight: 1.4, margin: '8px 0' }}>{t('advisorIntro')}</p>
+            <p style={{ color: '#D6CBB8', fontSize: '11px', lineHeight: 1.4, margin: '8px 0' }}>{t('advisorIntro')}</p>
             <form onSubmit={handleRunAiRecommendation} style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
-              <textarea aria-label={t('advisorTitle')} value={clientWishText} onChange={event => { setClientWishText(event.target.value); setAiRecommendation(null); }} placeholder={t('advisorPlaceholder')} rows={1} style={{ flex: 1, minWidth: 0, width: '100%', boxSizing: 'border-box', background: '#F3E8D7', border: '1px solid rgba(44, 37, 33, 0.18)', color: '#2C2521', borderRadius: '8px', padding: '8px 10px', fontSize: '13px', lineHeight: 1.5, minHeight: '36px', resize: 'none' }} />
+              <textarea aria-label={t('advisorTitle')} value={clientWishText} onChange={event => { setClientWishText(event.target.value); setAiRecommendation(null); }} placeholder={t('advisorPlaceholder')} rows={1} style={{ flex: 1, minWidth: 0, width: '100%', boxSizing: 'border-box', background: '#3E342C', border: '1px solid rgba(255, 248, 238, 0.18)', color: '#FFF8EE', borderRadius: '8px', padding: '8px 10px', fontSize: '13px', lineHeight: 1.5, minHeight: '36px', resize: 'none' }} />
               <button type="submit" disabled={!clientWishText.trim()} style={{ minHeight: '36px', padding: '8px 14px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', opacity: clientWishText.trim() ? 1 : 0.5 }}>{t('advisorButton')}</button>
             </form>
             {aiRecommendation !== null && <div role="status" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {!aiRecommendation.some(id => catalog.some(category => category.subservices.some(service => service.id === id && service.active !== false))) && <p style={{ color: '#2C2521', lineHeight: 1.7 }}>{t('advisorNone')}</p>}
-              {aiRecommendation.map(id => { const category = catalog.find(item => item.subservices.some(service => service.id === id)); const service = category?.subservices.find(item => item.id === id && item.active !== false); if (!category || !service) return null; return <article key={id} style={{ background: '#F3E8D7', border: '1px solid rgba(44, 37, 33, 0.2)', padding: '12px', borderRadius: '12px' }}>
-                <h4 style={{ color: '#2C2521', fontSize: '18px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: '0 0 10px' }}>{serviceText(service, 'name')}</h4>
-                <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.7 }}>{t('advisorReason')}</p>
-                <button type="button" onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); setActiveCatalogTab(category.id); setViewServiceDetail(null); setCurrentScreen('categoryScreen'); window.setTimeout(() => document.getElementById(`portal-service-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }} style={{ minHeight: '44px', padding: '12px 16px', background: '#EADCC7', color: '#2C2521', border: '1px solid rgba(44, 37, 33, 0.2)', borderRadius: '8px', cursor: 'pointer' }}>{t('advisorView')}</button>
+              {!aiRecommendation.some(id => catalog.some(category => category.subservices.some(service => service.id === id && service.active !== false))) && <p style={{ color: '#FFF8EE', lineHeight: 1.7 }}>{t('advisorNone')}</p>}
+              {aiRecommendation.map(id => { const category = catalog.find(item => item.subservices.some(service => service.id === id)); const service = category?.subservices.find(item => item.id === id && item.active !== false); if (!category || !service) return null; return <article key={id} style={{ background: '#3E342C', border: '1px solid rgba(255, 248, 238, 0.16)', padding: '12px', borderRadius: '12px' }}>
+                <h4 style={{ color: '#FFF8EE', fontSize: '18px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: '0 0 10px' }}>{serviceText(service, 'name')}</h4>
+                <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.7 }}>{t('advisorReason')}</p>
+                <button type="button" onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); setActiveCatalogTab(category.id); setViewServiceDetail(null); setCurrentScreen('categoryScreen'); window.setTimeout(() => document.getElementById(`portal-service-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }} style={{ minHeight: '44px', padding: '12px 16px', background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.16)', borderRadius: '8px', cursor: 'pointer' }}>{t('advisorView')}</button>
               </article>; })}
-              <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#8F6D24', padding: '12px 0' }}>WhatsApp · Ana</a>
+              <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#E4C687', padding: '12px 0' }}>WhatsApp · Ana</a>
             </div>}
           </details>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -4160,16 +4160,16 @@ function StudioApp() {
               })}
             </div>
 
-          {selectedServicesToBook.length > 0 && <section aria-label="Resumen de tu selección" style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', padding: '20px', borderRadius: 12 }}>
-            <h2 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '20px', margin: '0 0 14px', fontWeight: 400 }}>Tu selección</h2>
+          {selectedServicesToBook.length > 0 && <section aria-label="Resumen de tu selección" style={{ backgroundColor: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', padding: '20px', borderRadius: 12 }}>
+            <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '20px', margin: '0 0 14px', fontWeight: 400 }}>Tu selección</h2>
             {selectedServicesToBook.map(item => <div key={item.sub.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid #E4DCCF' }}>
-              <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#8F6D24' }}>{serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#8F6D24' }}>{item.sub.hasVariants && !item.variant ? t('chooseOption') : (item.variant?.price || item.sub.price) + ' · ' + (item.variant?.duration || item.sub.duration)}</span></div>
-              <button type="button" aria-label={'Quitar ' + serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')} onClick={() => setSelectedServicesToBook(previous => previous.filter(selected => selected.sub.id !== item.sub.id))} style={{ background: 'none', border: 'none', color: '#4E443B', cursor: 'pointer', padding: '10px', minHeight: '44px', minWidth: '44px', fontSize: '12px' }}>{t('remove')}</button>
+              <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#E4C687' }}>{serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#E4C687' }}>{item.sub.hasVariants && !item.variant ? t('chooseOption') : (item.variant?.price || item.sub.price) + ' · ' + (item.variant?.duration || item.sub.duration)}</span></div>
+              <button type="button" aria-label={'Quitar ' + serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')} onClick={() => setSelectedServicesToBook(previous => previous.filter(selected => selected.sub.id !== item.sub.id))} style={{ background: 'none', border: 'none', color: '#D6CBB8', cursor: 'pointer', padding: '10px', minHeight: '44px', minWidth: '44px', fontSize: '12px' }}>{t('remove')}</button>
             </div>)}
-            <p style={{ color: '#4E443B', fontSize: '13px', margin: '14px 0 0' }}>Duración de los servicios: {getModalDuration(selectedServicesToBook)} min</p>
-            {selectedServicesToBook.some(item => (catalog.flatMap(c => c.subservices).find(sub => sub.id === item.sub.id) || item.sub).requiresAssessment) && <p style={{ color: '#8F6D24', fontSize: '12px', margin: 0 }}>Tu selección requiere valoración previa. Elegir fecha y hora registra una solicitud; Ana debe aprobarla antes de confirmar la cita.</p>}
-            {getTonerError(selectedServicesToBook) && <p role="alert" style={{ color: '#8F6D24', fontSize: '12px', margin: 0 }}>{getTonerError(selectedServicesToBook)}</p>}
-            {getStylingError(selectedServicesToBook) && <p role="alert" style={{ color: '#8F6D24', fontSize: '12px', margin: 0 }}>{getStylingError(selectedServicesToBook)}</p>}
+            <p style={{ color: '#D6CBB8', fontSize: '13px', margin: '14px 0 0' }}>Duración de los servicios: {getModalDuration(selectedServicesToBook)} min</p>
+            {selectedServicesToBook.some(item => (catalog.flatMap(c => c.subservices).find(sub => sub.id === item.sub.id) || item.sub).requiresAssessment) && <p style={{ color: '#E4C687', fontSize: '12px', margin: 0 }}>Tu selección requiere valoración previa. Elegir fecha y hora registra una solicitud; Ana debe aprobarla antes de confirmar la cita.</p>}
+            {getTonerError(selectedServicesToBook) && <p role="alert" style={{ color: '#E4C687', fontSize: '12px', margin: 0 }}>{getTonerError(selectedServicesToBook)}</p>}
+            {getStylingError(selectedServicesToBook) && <p role="alert" style={{ color: '#E4C687', fontSize: '12px', margin: 0 }}>{getStylingError(selectedServicesToBook)}</p>}
             <button type="button" onClick={() => {
               const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant);
               if (missing) { alert(tf('requiredVariant', { service: missing.sub.name })); return; }
@@ -4260,7 +4260,7 @@ function StudioApp() {
                 const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant);
                 if (missing) { alert(tf('requiredVariant', { service: missing.sub.name })); return; }
                 setCurrentScreen('visualAgenda');
-              }} style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, minHeight: '54px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#8F6D24', cursor: 'pointer' }}>
+              }} style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, minHeight: '54px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#E4C687', cursor: 'pointer' }}>
                 {t('reviewSelection')} ({selectedServicesToBook.length}) → {t('chooseDateTime')}
               </button>
             )}
@@ -4292,8 +4292,8 @@ function StudioApp() {
             <h1 className="lst-detail-title">{serviceText(detailSub, 'name') || detailSub.name}</h1>
             {!!serviceText(detailSub, 'description') && <p className="lst-detail-desc">{serviceText(detailSub, 'description')}</p>}
           </header>
-          <section style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 14, padding: '6px 16px' }}>
-            <h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", fontWeight: 400, fontSize: 19, color: '#2C2521', margin: '12px 0 4px', letterSpacing: '0.02em' }}>{t('serviceIncludesTitle')}</h2>
+          <section style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 14, padding: '6px 16px' }}>
+            <h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", fontWeight: 400, fontSize: 19, color: '#FFF8EE', margin: '12px 0 4px', letterSpacing: '0.02em' }}>{t('serviceIncludesTitle')}</h2>
             <div className="lst-include-row"><span className="lst-include-icon"><UserRoundSearch size={17} strokeWidth={1.7} aria-hidden="true" /></span><span className="lst-include-label">{serviceText(detailSub, 'description') || detailSub.name}</span></div>
             {!!serviceText(detailSub, 'includesText') && <div className="lst-include-row"><span className="lst-include-icon"><Scissors size={17} strokeWidth={1.7} aria-hidden="true" /></span><span className="lst-include-label">{serviceText(detailSub, 'includesText')}</span></div>}
             {!!serviceText(detailSub, 'achievedText') && <div className="lst-include-row"><span className="lst-include-icon"><Sparkles size={17} strokeWidth={1.7} aria-hidden="true" /></span><span className="lst-include-label">{serviceText(detailSub, 'achievedText')}</span></div>}
@@ -4341,9 +4341,9 @@ function StudioApp() {
           <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#D8C29A', padding: '10px 0', cursor: 'pointer' }}>{t('backServices')}</button>
           <div><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', color: '#FFF8EE', fontSize: '28px', fontWeight: 'normal', margin: '0 0 8px' }}>{t('chooseMoment')}</h2><p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('fullSlots')} · {getModalDuration(selectedServicesToBook)} min.</p></div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-            <button type="button" aria-label={t('previousWeek')} onClick={() => { const day = new Date(bookingDate); day.setDate(day.getDate() - 7); choosePortalDate(day); }} style={{ padding: '12px', background: '#EADCC7', color: '#2C2521', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', cursor: 'pointer' }}>←</button>
+            <button type="button" aria-label={t('previousWeek')} onClick={() => { const day = new Date(bookingDate); day.setDate(day.getDate() - 7); choosePortalDate(day); }} style={{ padding: '12px', background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', cursor: 'pointer' }}>←</button>
             <span style={{ color: '#FFF8EE', fontSize: '14px', textAlign: 'center' }}>{portalWeekStart.toLocaleDateString(portalLocale, { month: 'long', year: 'numeric' })}</span>
-            <button type="button" aria-label={t('nextWeek')} onClick={() => { const day = new Date(bookingDate); day.setDate(day.getDate() + 7); choosePortalDate(day); }} style={{ padding: '12px', background: '#EADCC7', color: '#2C2521', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', cursor: 'pointer' }}>→</button>
+            <button type="button" aria-label={t('nextWeek')} onClick={() => { const day = new Date(bookingDate); day.setDate(day.getDate() + 7); choosePortalDate(day); }} style={{ padding: '12px', background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', cursor: 'pointer' }}>→</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '5px' }}>
             {portalWeekDays.map(day => {
@@ -4352,16 +4352,16 @@ function StudioApp() {
               return <button type="button" key={formatDateKey(day)} aria-pressed={selected} disabled={!portalDateAllowed(day)} onClick={() => choosePortalDate(day)} style={{ minHeight: '70px', padding: '8px 1px', backgroundColor: selected ? '#C49A58' : '#322A25', color: selected ? '#29231F' : '#FFF8EE', opacity: portalDateAllowed(day) ? 1 : 0.35, border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '9px', cursor: 'pointer' }}><span style={{ fontSize: '10px', display: 'block' }}>{day.toLocaleDateString(portalLocale, { weekday: 'short' })}</span><strong style={{ fontSize: '18px', display: 'block', margin: '5px 0' }}>{day.getDate()}</strong><span aria-label={available ? t('slotsAvailable') : t('noSlots')} style={{ fontSize: '10px' }}>{available ? '●' : '—'}</span></button>;
             })}
           </div>
-          <label style={{ color: '#C9BCA9', fontSize: '13px' }}>{t('otherDate')}<input type="date" value={formatDateKey(bookingDate)} onChange={e => { if (e.target.value) choosePortalDate(new Date(`${e.target.value}T12:00:00`)); }} style={{ display: 'block', marginTop: '8px', padding: '12px', backgroundColor: '#F3E8D7', color: '#2C2521', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', boxSizing: 'border-box', width: '100%' }} /></label>
-          <section><h3 style={{ color: '#2C2521', fontSize: '16px', margin: '0 0 16px' }}>{bookingDate.toLocaleDateString(portalLocale, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
+          <label style={{ color: '#C9BCA9', fontSize: '13px' }}>{t('otherDate')}<input type="date" value={formatDateKey(bookingDate)} onChange={e => { if (e.target.value) choosePortalDate(new Date(`${e.target.value}T12:00:00`)); }} style={{ display: 'block', marginTop: '8px', padding: '12px', backgroundColor: '#3E342C', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', boxSizing: 'border-box', width: '100%' }} /></label>
+          <section><h3 style={{ color: '#FFF8EE', fontSize: '16px', margin: '0 0 16px' }}>{bookingDate.toLocaleDateString(portalLocale, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
             {!portalTimes.length ? <p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6 }}>{t('noSlotsDay')}</p> : ['morning', 'afternoon'].map(period => {
               const times = portalTimes.filter(time => period === 'morning' ? Number(time.slice(0, 2)) < 14 : Number(time.slice(0, 2)) >= 14);
               return times.length ? <div key={period} style={{ marginBottom: '18px' }}><p style={{ color: '#C9BCA9', fontSize: '12px' }}>{t(period)}</p><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(76px, 1fr))', gap: '9px' }}>{times.map(time => <button type="button" key={time} aria-pressed={time === selectedVisualTime} onClick={() => setSelectedVisualTime(time)} style={{ minHeight: '48px', backgroundColor: time === selectedVisualTime ? '#C49A58' : '#322A25', color: time === selectedVisualTime ? '#29231F' : '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.12)', borderRadius: '8px', fontSize: '15px', cursor: 'pointer' }}>{time}</button>)}</div></div> : null;
             })}
           </section>
-          <div style={{ borderTop: '1px solid #E6D5B8', paddingTop: '18px' }}>
+          <div style={{ borderTop: '1px solid #3A312A', paddingTop: '18px' }}>
             <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6 }}>{selectedServicesToBook.map(item => serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name') + (item.variant ? ` · ${variantText(item.variant, item.sub)}` : '')).join(' + ')}</p>
-            {selectedVisualTime && <p style={{ color: '#2C2521', fontSize: '15px' }}>{bookingDate.toLocaleDateString(portalLocale, { day: 'numeric', month: 'long' })} · {selectedVisualTime}</p>}
+            {selectedVisualTime && <p style={{ color: '#FFF8EE', fontSize: '15px' }}>{bookingDate.toLocaleDateString(portalLocale, { day: 'numeric', month: 'long' })} · {selectedVisualTime}</p>}
             <button type="button" onClick={handleConfirmarCitaVisual} disabled={!portalTimes.includes(selectedVisualTime)} style={{ width: '100%', minHeight: '54px', padding: '14px', backgroundColor: portalTimes.includes(selectedVisualTime) ? '#C49A58' : '#322A25', color: portalTimes.includes(selectedVisualTime) ? '#29231F' : '#C9BCA9', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>{!selectedVisualTime ? t('chooseHour') : getApprovalReason(selectedServicesToBook, formatDateKey(bookingDate)) ? t('requestAppointment') : t('continueBooking')}</button>
           </div>
         </div>
@@ -4374,39 +4374,39 @@ function StudioApp() {
           <header>
             <p style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1.5px', margin: '0 0 12px' }}>L’Studio Ana · Cuidado personalizado</p>
             <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '24px', fontWeight: 'normal', lineHeight: 1.25, margin: '0 0 12px' }}>{t('passportTitle')}</h2>
-            <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.6, margin: 0 }}>{currentClientRecord?.nombre && <span>{currentClientRecord.nombre} · </span>}{t('passportIntro')}</p>
+            <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6, margin: 0 }}>{currentClientRecord?.nombre && <span>{currentClientRecord.nombre} · </span>}{t('passportIntro')}</p>
           </header>
-          <section style={{ background: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '10px', padding: '15px' }}>
+          <section style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '10px', padding: '15px' }}>
             <span style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1px' }}>01 · CONOCEMOS TU CABELLO</span>
             <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontWeight: 'normal', fontSize: '19px', margin: '8px 0' }}>{t('hairDna')}</h3>
-            <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: 0 }}>{currentClientRecord?.dniCapilar || t('emptyDna')}</p>
+            <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: 0 }}>{currentClientRecord?.dniCapilar || t('emptyDna')}</p>
           </section>
-          <section style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 26px rgba(0, 0, 0, 0.22)' }}>
-            <span style={{ color: '#8F6D24', fontSize: '11px', letterSpacing: '1px' }}>02 · ENTRE VISITAS</span>
-            <h3 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontWeight: 'normal', fontSize: '19px', margin: '8px 0' }}>{t('homeRitual')}</h3>
-            <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: 0 }}>{currentClientRecord?.prescripcionCasa || t('emptyCare')}</p>
+          <section style={{ backgroundColor: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 26px rgba(0, 0, 0, 0.25)' }}>
+            <span style={{ color: '#E4C687', fontSize: '11px', letterSpacing: '1px' }}>02 · ENTRE VISITAS</span>
+            <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontWeight: 'normal', fontSize: '19px', margin: '8px 0' }}>{t('homeRitual')}</h3>
+            <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: 0 }}>{currentClientRecord?.prescripcionCasa || t('emptyCare')}</p>
           </section>
           <section style={{ padding: '4px 0' }}>
             <span style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1px' }}>03 · TU RECORRIDO</span>
             <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontWeight: 'normal', fontSize: '19px', margin: '8px 0 12px' }}>{t('visitHistory')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {(currentClientRecord?.pastVisits || []).length ? currentClientRecord!.pastVisits!.map((visit, index) => <article key={index} style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', borderLeft: '2px solid #B98A3E', borderRadius: '10px', padding: '12px' }}>
-                <p style={{ color: '#8F6D24', fontSize: '12px', margin: '0 0 8px' }}>{visit.date}</p>
-                <h4 style={{ color: '#2C2521', fontSize: '13px', lineHeight: 1.5, margin: '0 0 8px' }}>{visit.service}</h4>
-                {visit.stylist && <p style={{ color: '#5C5248', fontSize: '12px', margin: 0 }}>Con {visit.stylist}</p>}
-                {visit.notes && <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.7, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: '14px 0 0' }}>{visit.notes}</p>}
-              </article>) : <div style={{ backgroundColor: '#EADCC7', padding: '14px', borderRadius: '10px', color: '#5C5248', fontSize: '13px', lineHeight: 1.7 }}>{t('emptyVisits')}</div>}
+              {(currentClientRecord?.pastVisits || []).length ? currentClientRecord!.pastVisits!.map((visit, index) => <article key={index} style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderLeft: '2px solid #B98A3E', borderRadius: '10px', padding: '12px' }}>
+                <p style={{ color: '#E4C687', fontSize: '12px', margin: '0 0 8px' }}>{visit.date}</p>
+                <h4 style={{ color: '#FFF8EE', fontSize: '13px', lineHeight: 1.5, margin: '0 0 8px' }}>{visit.service}</h4>
+                {visit.stylist && <p style={{ color: '#D6CBB8', fontSize: '12px', margin: 0 }}>Con {visit.stylist}</p>}
+                {visit.notes && <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.7, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: '14px 0 0' }}>{visit.notes}</p>}
+              </article>) : <div style={{ backgroundColor: '#322A25', padding: '14px', borderRadius: '10px', color: '#D6CBB8', fontSize: '13px', lineHeight: 1.7 }}>{t('emptyVisits')}</div>}
             </div>
           </section>
-          <section style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 26px rgba(0, 0, 0, 0.22)' }}>
-            <h3 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '19px', margin: '0 0 14px' }}>Seguimos cuidando de ti</h3>
-            <p style={{ color: '#5C5248', fontSize: '13px', margin: '0 0 8px' }}>{t('recommendedVisit')}</p>
-            <p style={{ color: '#8F6D24', fontSize: '17px', margin: '0 0 14px' }}>{currentClientRecord?.proximaVisitaSugerida || t('pendingRecommendation')}</p>
-            <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.6, margin: '0 0 18px' }}>{t('maintenanceNote')}</p>
+          <section style={{ backgroundColor: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 26px rgba(0, 0, 0, 0.25)' }}>
+            <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '19px', margin: '0 0 14px' }}>Seguimos cuidando de ti</h3>
+            <p style={{ color: '#D6CBB8', fontSize: '13px', margin: '0 0 8px' }}>{t('recommendedVisit')}</p>
+            <p style={{ color: '#E4C687', fontSize: '17px', margin: '0 0 14px' }}>{currentClientRecord?.proximaVisitaSugerida || t('pendingRecommendation')}</p>
+            <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6, margin: '0 0 18px' }}>{t('maintenanceNote')}</p>
             <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ width: '100%', minHeight: '52px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '9px', padding: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}>{t('bookNext')}</button>
-            {currentClientRecord?.ultimaVisita && <p style={{ color: '#5C5248', fontSize: '12px', marginBottom: 0 }}>Última visita registrada: {currentClientRecord.ultimaVisita}</p>}
+            {currentClientRecord?.ultimaVisita && <p style={{ color: '#D6CBB8', fontSize: '12px', marginBottom: 0 }}>Última visita registrada: {currentClientRecord.ultimaVisita}</p>}
           </section>
-          <button onClick={() => setCurrentScreen('clientPortal')} style={{ width: '100%', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#5C5248', padding: '12px', borderRadius: '10px', fontSize: '13px', cursor: 'pointer' }}>
+          <button onClick={() => setCurrentScreen('clientPortal')} style={{ width: '100%', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#D6CBB8', padding: '12px', borderRadius: '10px', fontSize: '13px', cursor: 'pointer' }}>
             {t('backToPortal')}
           </button>
         </div>
@@ -4468,9 +4468,9 @@ function StudioApp() {
               .studio-mini-day { width: 32px !important; height: 32px !important; }
               .studio-agenda-scroll { padding: 6px !important; max-height: 65vh; overflow: auto !important; overscroll-behavior: contain; }
             }
-.studio-admin-shell { background: transparent !important; border-color: #E6D5B8 !important; color: #FFF8EE; font-family: 'Garet', 'Poppins', sans-serif; }
-            .studio-admin-header { border-color: #E6D5B8 !important; }
-            .studio-admin-header h2 { color: #8F6D24 !important; font-weight: normal; }
+.studio-admin-shell { background: transparent !important; border-color: #3A312A !important; color: #FFF8EE; font-family: 'Garet', 'Poppins', sans-serif; }
+            .studio-admin-header { border-color: #3A312A !important; }
+            .studio-admin-header h2 { color: #E4C687 !important; font-weight: normal; }
             .studio-desktop-nav { background: #322A25 !important; border-color: rgba(255, 248, 238, 0.08) !important; border-radius: 10px !important; }
             .studio-desktop-nav button { transition: background .18s, color .18s; }
             .studio-desktop-nav button:hover { background: rgba(201, 158, 82, 0.08) !important; }
@@ -4481,22 +4481,22 @@ function StudioApp() {
             .studio-agenda-toolbar > div:first-child { display: contents !important; }
             .studio-agenda-toolbar h2 { display: none; }
             .studio-agenda-toolbar button { min-height: 38px; border-color: rgba(234, 220, 199, 0.35) !important; font-size: 12px !important; color: #E4C687 !important; background: #322A25 !important; }
-            .studio-agenda-toolbar button[aria-pressed=true] { background: rgba(201, 158, 82, 0.12) !important; color: #7A5C1E !important; border-color: #8F6D24 !important; }
+            .studio-agenda-toolbar button[aria-pressed=true] { background: rgba(201, 158, 82, 0.12) !important; color: #7A5C1E !important; border-color: #E4C687 !important; }
             .studio-agenda-toolbar .studio-new-appointment { background: linear-gradient(135deg, #C99E52 0%, #B3823B 100%) !important; border-color: #B8972E !important; color: #29231F !important; font-weight: 600; }
             .studio-agenda-stat { border: none !important; background: transparent !important; padding: 4px 12px 4px 0 !important; gap: 6px !important; }
-            .studio-agenda-stat span { font-size: 11px !important; color: #5C5248 !important; }
+            .studio-agenda-stat span { font-size: 11px !important; color: #D6CBB8 !important; }
             .studio-agenda-stat strong { font-size: 13px !important; }
             .studio-calendar-tools { background: #322A25 !important; border-color: rgba(255, 248, 238, 0.08) !important; border-radius: 10px !important; }
-            .studio-calendar-tools hr { border-color: #E6D5B8 !important; }
-            .studio-calendar-tools summary { color: #5C5248 !important; }
+            .studio-calendar-tools hr { border-color: #3A312A !important; }
+            .studio-calendar-tools summary { color: #D6CBB8 !important; }
             .studio-calendar-tools > summary { list-style: none; font-size: 12px !important; letter-spacing: .3px; }
-            .studio-calendar-tools .studio-calendar-settings { padding: 12px 0 4px; border-top: 1px solid #E6D5B8; margin-top: 12px; }
+            .studio-calendar-tools .studio-calendar-settings { padding: 12px 0 4px; border-top: 1px solid #3A312A; margin-top: 12px; }
             .studio-calendar-settings summary { cursor: pointer; font-size: 11px; margin-bottom: 10px; }
             .studio-agenda-grid { background: rgba(41, 35, 31, 0.5); gap: 1px !important; }
-            .studio-agenda-day-heading { background: #EADCC7 !important; color: #2B2521 !important; padding: 10px 5px !important; }
+            .studio-agenda-day-heading { background: #322A25 !important; color: #FFF8EE !important; padding: 10px 5px !important; }
             .studio-agenda-slot { transition: background .15s; border: none !important; }
-            .studio-agenda-slot:not(:disabled):hover { background: #EADCC7 !important; }
-            .studio-agenda-slot:not(:disabled):hover::after { content: '+'; color: #8F6D24; font-size: 15px; }
+            .studio-agenda-slot:not(:disabled):hover { background: #322A25 !important; }
+            .studio-agenda-slot:not(:disabled):hover::after { content: '+'; color: #E4C687; font-size: 15px; }
             .studio-agenda-slot:focus-visible, .studio-agenda-appointment:focus-visible { outline: 2px solid #B98A3E; outline-offset: -2px; }
             .studio-agenda-appointment { padding: 7px 8px !important; border-radius: 4px !important; transition: filter .15s; }
             .studio-agenda-appointment:hover { filter: brightness(1.17); }
@@ -4517,12 +4517,12 @@ function StudioApp() {
               .studio-calendar-tools > summary { font-size: 12px !important; line-height: 1.5; }
             }
             .studio-calendar-tools { flex-basis: 100% !important; width: 100% !important; }
-            .studio-calendar-tools > summary { color: #8F6D24; font-size: 13px; cursor: pointer; padding: 4px; }
+            .studio-calendar-tools > summary { color: #E4C687; font-size: 13px; cursor: pointer; padding: 4px; }
             .studio-calendar-tools:not([open]) { display: block !important; padding: 10px 14px !important; }
             .studio-calendar-tools[open] > summary { margin-bottom: 14px; }
             .studio-calendar-main { width: 100% !important; flex-basis: 100% !important; }
 
-            .studio-admin-content { min-width: 0; background: #EADCC7; border: 1px solid rgba(255, 248, 238, 0.08); border-radius: 16px; padding: 18px 14px; color: #2C2521; }
+            .studio-admin-content { min-width: 0; background: #322A25; border: 1px solid rgba(255, 248, 238, 0.08); border-radius: 16px; padding: 18px 14px; color: #FFF8EE; }
             @media (min-width: 1100px) {
               .studio-admin-shell { display: grid !important; grid-template-columns: 155px minmax(0, 1fr); column-gap: 16px !important; align-items: start; }
               .studio-admin-header { grid-column: 1 / -1; }
@@ -4547,13 +4547,13 @@ function StudioApp() {
           </div>
           <nav className="studio-mobile-nav" aria-label="Navegación de 360studio" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '8px' }}>
-              {([['agenda', 'Agenda'], ['clients', 'Clientas'], ['catalog', 'Catálogo']] as const).map(([tab, label]) => <button type="button" key={tab} aria-current={adminTab === tab ? 'page' : undefined} onClick={() => setAdminTab(tab)} style={{ minHeight: '48px', padding: '12px 6px', backgroundColor: adminTab === tab ? '#C49A58' : '#F3E8D7', color: adminTab === tab ? '#29231F' : '#2C2521', border: '1px solid rgba(228, 198, 135, 0.45)', borderRadius: '9px', fontSize: '14px', cursor: 'pointer', fontWeight: 'bold' }}>{label}</button>)}
+              {([['agenda', 'Agenda'], ['clients', 'Clientas'], ['catalog', 'Catálogo']] as const).map(([tab, label]) => <button type="button" key={tab} aria-current={adminTab === tab ? 'page' : undefined} onClick={() => setAdminTab(tab)} style={{ minHeight: '48px', padding: '12px 6px', backgroundColor: adminTab === tab ? '#C49A58' : '#3E342C', color: adminTab === tab ? '#29231F' : '#2C2521', border: '1px solid rgba(228, 198, 135, 0.45)', borderRadius: '9px', fontSize: '14px', cursor: 'pointer', fontWeight: 'bold' }}>{label}</button>)}
             </div>
             {adminTab === 'agenda' && renderAgendaLinks()}
-            <details style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '9px', padding: '14px' }}>
-              <summary style={{ color: '#8F6D24', cursor: 'pointer', fontSize: '14px' }}>Más opciones{!['agenda', 'clients', 'catalog'].includes(adminTab) ? ' · ' + ({ config: 'Configuración', detractors: 'Buzón', crm: 'CRM e informes', demands: 'Demandas · Oportunidades de cita', holidays: 'Vacaciones y festivos' } as Record<string, string>)[adminTab] : ''}</summary>
+            <details style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '9px', padding: '14px' }}>
+              <summary style={{ color: '#E4C687', cursor: 'pointer', fontSize: '14px' }}>Más opciones{!['agenda', 'clients', 'catalog'].includes(adminTab) ? ' · ' + ({ config: 'Configuración', detractors: 'Buzón', crm: 'CRM e informes', demands: 'Demandas · Oportunidades de cita', holidays: 'Vacaciones y festivos' } as Record<string, string>)[adminTab] : ''}</summary>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '8px', marginTop: '14px' }}>
-                {([['config', 'Configuración'], ['detractors', `Buzón (${feedbackList.filter(f => !f.resolvedAt).length})`], ['crm', 'CRM e informes'], ['demands', 'Demandas · Oportunidades de cita'], ['holidays', 'Vacaciones y festivos']] as const).map(([tab, label]) => <button type="button" key={tab} aria-current={adminTab === tab ? 'page' : undefined} onClick={() => setAdminTab(tab)} style={{ minHeight: '44px', padding: '10px 12px', textAlign: 'left', backgroundColor: adminTab === tab ? '#EADCC7' : 'transparent', border: '1px solid #C5A059', color: adminTab === tab ? '#8F6D24' : '#2C2521', borderRadius: '7px', fontSize: '13px', cursor: 'pointer' }}>{label}</button>)}
+                {([['config', 'Configuración'], ['detractors', `Buzón (${feedbackList.filter(f => !f.resolvedAt).length})`], ['crm', 'CRM e informes'], ['demands', 'Demandas · Oportunidades de cita'], ['holidays', 'Vacaciones y festivos']] as const).map(([tab, label]) => <button type="button" key={tab} aria-current={adminTab === tab ? 'page' : undefined} onClick={() => setAdminTab(tab)} style={{ minHeight: '44px', padding: '10px 12px', textAlign: 'left', backgroundColor: adminTab === tab ? '#322A25' : 'transparent', border: '1px solid #C5A059', color: adminTab === tab ? '#8F6D24' : '#2C2521', borderRadius: '7px', fontSize: '13px', cursor: 'pointer' }}>{label}</button>)}
               </div>
             </details>
           </nav>
@@ -4570,13 +4570,13 @@ function StudioApp() {
 
 <div className="studio-agenda-toolbar">
 <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', width: '100%' }}>
-                  <span style={{ color: '#5C5248', fontSize: '12px' }}>Muestra de color (temporal):</span>
+                  <span style={{ color: '#D6CBB8', fontSize: '12px' }}>Muestra de color (temporal):</span>
                   {AGENDA_SWATCHES.map(swatch => (
                     <button key={swatch.id} type="button" aria-pressed={agendaSwatch === swatch.id}
                       onClick={() => setAgendaSwatch(swatch.id)}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '7px 12px', borderRadius: '999px', cursor: 'pointer', fontSize: '12px',
                         background: agendaSwatch === swatch.id ? swatch.panel : 'transparent',
-                        border: agendaSwatch === swatch.id ? '2px solid #8F6D24' : '1px solid #5C5248', color: '#2C2521' }}>
+                        border: agendaSwatch === swatch.id ? '2px solid #8F6D24' : '1px solid #5C5248', color: '#FFF8EE' }}>
                       <span aria-hidden="true" style={{ width: 14, height: 14, borderRadius: '50%', background: swatch.panel, border: '1px solid #5C5248', display: 'inline-block' }} />
                       {swatch.label}
                     </button>
@@ -4584,100 +4584,100 @@ function StudioApp() {
                 </div>
 
 <button type="button" aria-pressed={agendaExpanded} onClick={() => setAgendaExpanded(previous => !previous)}
-style={{ padding: '9px 14px', background: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '7px', cursor: 'pointer' }}>
+style={{ padding: '9px 14px', background: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '7px', cursor: 'pointer' }}>
 {agendaExpanded ? 'Volver a vista normal' : 'Ampliar agenda'}</button>
                 <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '16px', marginBottom: '0' }}>
-                  <div><h2 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '22px', fontWeight: 'normal', margin: 0 }}>Agenda Maestra</h2></div>
-                  <button type="button" onClick={() => setFechaSeleccionada(new Date())} style={{ padding: '9px 14px', background: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '8px', cursor: 'pointer' }}>Ir a hoy</button>
+                  <div><h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '22px', fontWeight: 'normal', margin: 0 }}>Agenda Maestra</h2></div>
+                  <button type="button" onClick={() => setFechaSeleccionada(new Date())} style={{ padding: '9px 14px', background: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '8px', cursor: 'pointer' }}>Ir a hoy</button>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '0' }}>
-                  {(['day', 'week'] as const).map(view => <button type="button" key={view} aria-pressed={agendaViewMode === view} onClick={() => setAgendaViewMode(view)} style={{ backgroundColor: agendaViewMode === view ? '#C49A58' : '#F3E8D7', color: agendaViewMode === view ? '#29231F' : '#2C2521', border: '1px solid rgba(228, 198, 135, 0.45)', padding: '9px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>{view === 'day' ? 'Día' : 'Semana'}</button>)}
+                  {(['day', 'week'] as const).map(view => <button type="button" key={view} aria-pressed={agendaViewMode === view} onClick={() => setAgendaViewMode(view)} style={{ backgroundColor: agendaViewMode === view ? '#C49A58' : '#3E342C', color: agendaViewMode === view ? '#29231F' : '#2C2521', border: '1px solid rgba(228, 198, 135, 0.45)', padding: '9px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>{view === 'day' ? 'Día' : 'Semana'}</button>)}
                   <button className="studio-new-appointment" type="button" onClick={() => {
                     if (isDateBlockedByHoliday(formatDateKey(fechaSeleccionada))) { alert('El día seleccionado está bloqueado. Elige otra fecha.'); return; }
                     const freeTime = hoursList.find(time => !isTimeSlotOccupied(formatDateKey(fechaSeleccionada), time));
                     if (!freeTime) { alert('No hay huecos libres en el día seleccionado.'); return; }
                     handleCellClick(fechaSeleccionada, diaSeleccionadoObj.name, freeTime);
-                  }} style={{ backgroundColor: '#EADCC7', color: '#2C2521', border: '1px solid #C5A059', padding: '9px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>+ Nueva cita</button>
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#5C5248', fontSize: '12px' }}>Ir a fecha
+                  }} style={{ backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059', padding: '9px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>+ Nueva cita</button>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#D6CBB8', fontSize: '12px' }}>Ir a fecha
 <input aria-label="Elegir fecha de la agenda" type="date" value={formatDateKey(fechaSeleccionada)}
 onChange={event => { if (event.target.value) setFechaSeleccionada(new Date(event.target.value + 'T12:00:00')); }}
-style={{ padding: '8px', background: '#EADCC7', color: '#2C2521', border: '1px solid #C5A059', borderRadius: '6px' }} /></label></div>
+style={{ padding: '8px', background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059', borderRadius: '6px' }} /></label></div>
 
 
 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {[
-                    { label: 'Citas del día', value: appointments.filter(item => item.dateKey === formatDateKey(fechaSeleccionada)).length, color: '#2C2521' },
-                    { label: 'Solicitudes por revisar', value: appointments.filter(item => isActiveAppointment(item) && item.saturdayApproval?.status === 'pending').length, color: '#7A5C1E' },
+                    { label: 'Citas del día', value: appointments.filter(item => item.dateKey === formatDateKey(fechaSeleccionada)).length, color: '#FFF8EE' },
+                    { label: 'Solicitudes por revisar', value: appointments.filter(item => isActiveAppointment(item) && item.saturdayApproval?.status === 'pending').length, color: '#E4C687' },
                     { label: 'Bizum por confirmar', value: appointments.filter(item => isActiveAppointment(item) && item.advancePayment?.status === 'pending').length, color: '#33517E' }
                   ].map(item => <button type="button" className="studio-agenda-stat" aria-label={'Abrir ' + item.label}
                     onClick={() => {
                       if (item.label === 'Citas del día') setAgendaSidePanel('day');
                       else { setPendingPanelFilter(item.label === 'Solicitudes por revisar' ? 'approval' : 'payment'); setAgendaSidePanel('pending'); }
-                    }} key={item.label} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 12px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '7px' }}><span style={{ display: 'block', color: '#5C5248', fontSize: '13px' }}>{item.label}</span><strong style={{ color: item.color, fontSize: '15px' }}>{item.value}</strong></button>)}
+                    }} key={item.label} style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '7px' }}><span style={{ display: 'block', color: '#D6CBB8', fontSize: '13px' }}>{item.label}</span><strong style={{ color: item.color, fontSize: '15px' }}>{item.value}</strong></button>)}
                 </div>
-                <section aria-label="Buscar citas" style={{ padding: '10px', border: '1px solid #E6D5B8', borderRadius: '8px', background: '#EADCC7' }}>
+                <section aria-label="Buscar citas" style={{ padding: '10px', border: '1px solid #3A312A', borderRadius: '8px', background: '#322A25' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <label htmlFor="agenda-search" style={{ color: '#8F6D24', fontSize: '12px', flexShrink: 0 }}>Buscar cita</label>
+                    <label htmlFor="agenda-search" style={{ color: '#E4C687', fontSize: '12px', flexShrink: 0 }}>Buscar cita</label>
                     <input id="agenda-search" type="search" value={appointmentSearch} onChange={event => setAppointmentSearch(event.target.value)}
-                      placeholder="Nombre o teléfono de la clienta" style={{ flex: 1, minWidth: 0, padding: '9px', border: '1px solid #E6D5B8',
-                        background: '#EADCC7', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }} />
+                      placeholder="Nombre o teléfono de la clienta" style={{ flex: 1, minWidth: 0, padding: '9px', border: '1px solid #3A312A',
+                        background: '#322A25', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
                     {!!appointmentSearch && <button type="button" aria-label="Limpiar búsqueda" onClick={() => setAppointmentSearch('')}
-                      style={{ padding: '8px', background: 'none', border: 0, color: '#8F6D24', cursor: 'pointer' }}>×</button>}
+                      style={{ padding: '8px', background: 'none', border: 0, color: '#E4C687', cursor: 'pointer' }}>×</button>}
                   </div>
                   {!!appointmentSearchQuery && <div style={{ marginTop: '10px' }}>
-                    <p role="status" aria-live="polite" style={{ color: '#5C5248', fontSize: '12px', margin: '6px 0' }}>{appointmentSearchResults.length} citas encontradas · Todas las fechas</p>
+                    <p role="status" aria-live="polite" style={{ color: '#D6CBB8', fontSize: '12px', margin: '6px 0' }}>{appointmentSearchResults.length} citas encontradas · Todas las fechas</p>
                     <div style={{ maxHeight: '250px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       {appointmentSearchResults.map(appointment => <article key={appointment.id} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px',
-                        padding: '10px', border: '1px solid #E6D5B8', borderRadius: '6px', background: 'rgba(234,220,199,0.55)' }}>
+                        padding: '10px', border: '1px solid #3A312A', borderRadius: '6px', background: 'rgba(234,220,199,0.55)' }}>
                         <div style={{ flex: '1 1 170px', fontSize: '12px', lineHeight: 1.5, overflowWrap: 'anywhere' }}>
-                          <strong style={{ color: '#2C2521' }}>{appointment.clientName}</strong>
-                          {appointment.lifecycleStatus && <span style={{ marginLeft: '8px', color: '#5C5248' }}>{appointment.lifecycleStatus === 'cancelled' ? 'Cancelada' : 'No presentada'}</span>}
-                          <div style={{ color: '#8F6D24' }}>{appointment.dateKey.split('-').reverse().join('/')} · {appointment.time} · {appointment.phone}</div>
-                          <div style={{ color: '#5C5248' }}>{appointment.serviceSubcategory.replace(/^RESERVADO\s*/, '')}</div>
+                          <strong style={{ color: '#FFF8EE' }}>{appointment.clientName}</strong>
+                          {appointment.lifecycleStatus && <span style={{ marginLeft: '8px', color: '#D6CBB8' }}>{appointment.lifecycleStatus === 'cancelled' ? 'Cancelada' : 'No presentada'}</span>}
+                          <div style={{ color: '#E4C687' }}>{appointment.dateKey.split('-').reverse().join('/')} · {appointment.time} · {appointment.phone}</div>
+                          <div style={{ color: '#D6CBB8' }}>{appointment.serviceSubcategory.replace(/^RESERVADO\s*/, '')}</div>
                         </div>
-                        <button type="button" onClick={() => setViewApptModal(appointment)} style={{ padding: '9px', color: '#2C2521', background: '#EADCC7', border: '1px solid #C5A059', borderRadius: '5px', cursor: 'pointer' }}>Ver cita</button>
+                        <button type="button" onClick={() => setViewApptModal(appointment)} style={{ padding: '9px', color: '#FFF8EE', background: '#322A25', border: '1px solid #C5A059', borderRadius: '5px', cursor: 'pointer' }}>Ver cita</button>
                         <button type="button" onClick={() => {
                           const date = new Date(appointment.dateKey + 'T12:00:00');
                           setFechaSeleccionada(date); setMesNavegacion(new Date(date.getFullYear(), date.getMonth(), 1));
                           setAppointmentSearch(''); setAgendaViewMode('day');
-                        }} style={{ padding: '9px', color: '#2C2521', background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', border: 0, borderRadius: '5px', cursor: 'pointer' }}>Ir al día</button>
+                        }} style={{ padding: '9px', color: '#FFF8EE', background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', border: 0, borderRadius: '5px', cursor: 'pointer' }}>Ir al día</button>
                       </article>)}
                     </div>
-                    {!appointmentSearchResults.length && <p style={{ color: '#5C5248', fontSize: '12px' }}>Prueba otro nombre o los últimos dígitos del teléfono.</p>}
+                    {!appointmentSearchResults.length && <p style={{ color: '#D6CBB8', fontSize: '12px' }}>Prueba otro nombre o los últimos dígitos del teléfono.</p>}
                   </div>}
                 </section>
 
-<p style={{ color: '#5C5248', fontSize: '12px', margin: 0 }}>Pulsa un hueco libre para agendar · Pulsa una cita para editarla.</p>
+<p style={{ color: '#D6CBB8', fontSize: '12px', margin: 0 }}>Pulsa un hueco libre para agendar · Pulsa una cita para editarla.</p>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                  <h3 style={{ color: '#7A5C1E', fontSize: '15px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>
+                  <h3 style={{ color: '#E4C687', fontSize: '15px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>
                     {agendaViewMode === 'week' ? 'Tu semana' : 'Tu día'}
                   </h3>
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() - (agendaViewMode === 'week' ? 7 : 1)); setFechaSeleccionada(d); }} style={{ background: '#EADCC7', border: '1px solid #E6D5B8', color: '#2C2521', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>◀ Anterior</button>
-                    <span style={{ color: '#7A5C1E', fontSize: '12px', fontWeight: 'bold' }}>
+                    <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() - (agendaViewMode === 'week' ? 7 : 1)); setFechaSeleccionada(d); }} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>◀ Anterior</button>
+                    <span style={{ color: '#E4C687', fontSize: '12px', fontWeight: 'bold' }}>
                       {agendaViewMode === 'week' ? `Semana del ${semanaActual[0].dateFormatted}` : `${diaSeleccionadoObj.name} ${diaSeleccionadoObj.dateFormatted}`}
                     </span>
-                    <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() + (agendaViewMode === 'week' ? 7 : 1)); setFechaSeleccionada(d); }} style={{ background: '#EADCC7', border: '1px solid #E6D5B8', color: '#2C2521', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>Siguiente ►</button>
+                    <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() + (agendaViewMode === 'week' ? 7 : 1)); setFechaSeleccionada(d); }} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>Siguiente ►</button>
                   </div>
                 </div>
 
                 {/* VISTA DINÁMICA DE LA TABLA (SEMANAL vs DIARIA) */}
-                <div className="studio-agenda-scroll" style={{ overflowX: 'auto', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.2)', borderRadius: '10px', padding: '15px' }}>
+                <div className="studio-agenda-scroll" style={{ overflowX: 'auto', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.2)', borderRadius: '10px', padding: '15px' }}>
                   {renderDurationAgenda(agendaViewMode === 'week' ? semanaActual : [diaSeleccionadoObj])}
                 </div>
               </div>
-              <details open className="studio-calendar-tools" style={{ width: '280px', backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px', padding: '16px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              <details open className="studio-calendar-tools" style={{ width: '280px', backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '16px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
                 <summary>Calendario y ajustes</summary>
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <button onClick={() => cambiarMesMiniCal(-1)} style={{ background: '#EADCC7', border: '1px solid #E6D5B8', color: '#2C2521', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>◀</button>
-                    <span style={{ color: '#8F6D24', fontSize: '12px', fontWeight: 'bold', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em' }}>{nombresMeses[mesMini]} {añoMini}</span>
-                    <button onClick={() => cambiarMesMiniCal(1)} style={{ background: '#EADCC7', border: '1px solid #E6D5B8', color: '#2C2521', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>▶</button>
+                    <button onClick={() => cambiarMesMiniCal(-1)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>◀</button>
+                    <span style={{ color: '#E4C687', fontSize: '12px', fontWeight: 'bold', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em' }}>{nombresMeses[mesMini]} {añoMini}</span>
+                    <button onClick={() => cambiarMesMiniCal(1)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>▶</button>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center', marginBottom: '6px' }}>
                     {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d, i) => (
-                      <div key={i} style={{ color: '#5C5248', fontSize: '12px', fontWeight: 'bold' }}>{d}</div>
+                      <div key={i} style={{ color: '#D6CBB8', fontSize: '12px', fontWeight: 'bold' }}>{d}</div>
                     ))}
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '3px' }}>
@@ -4687,7 +4687,7 @@ style={{ padding: '8px', background: '#EADCC7', color: '#2C2521', border: '1px s
                       const isBlocked = isDateBlockedByHoliday(dKey);
                       const isSelected = dKey === formatDateKey(fechaSeleccionada);
                       return (
-                        <button className="studio-mini-day" key={i} onClick={() => setFechaSeleccionada(dateObj)} style={{ backgroundColor: isBlocked ? '#F2DCD8' : (isSelected ? '#C49A58' : '#F3E8D7'), color: isBlocked ? '#8A2F23' : (isSelected ? '#29231F' : '#5C5248'), border: isBlocked ? '1px solid #C0392B' : '1px solid rgba(44, 37, 33, 0.18)', borderRadius: '4px', padding: '5px 0', fontSize: '13px', cursor: 'pointer', fontWeight: isSelected ? 'bold' : 'normal' }}>
+                        <button className="studio-mini-day" key={i} onClick={() => setFechaSeleccionada(dateObj)} style={{ backgroundColor: isBlocked ? '#F2DCD8' : (isSelected ? '#C49A58' : '#3E342C'), color: isBlocked ? '#8A2F23' : (isSelected ? '#29231F' : '#5C5248'), border: isBlocked ? '1px solid #C0392B' : '1px solid rgba(255, 248, 238, 0.18)', borderRadius: '4px', padding: '5px 0', fontSize: '13px', cursor: 'pointer', fontWeight: isSelected ? 'bold' : 'normal' }}>
                           {dateObj.getDate()}
                         </button>
                       );
@@ -4697,35 +4697,35 @@ style={{ padding: '8px', background: '#EADCC7', color: '#2C2521', border: '1px s
                 <hr style={{ borderColor: 'rgba(212, 175, 55, 0.2)', margin: 0 }} />
 <details className="studio-calendar-settings"><summary>Calendarios</summary>
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#EADCC7', padding: '8px 10px', borderRadius: '6px', border: '1px solid #E6D5B8' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#322A25', padding: '8px 10px', borderRadius: '6px', border: '1px solid #3A312A' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#8F6D24' }} />
-                      <span style={{ color: '#2C2521', fontSize: '13px', fontWeight: 'bold' }}>L'Studio Ana</span>
+                      <span style={{ color: '#FFF8EE', fontSize: '13px', fontWeight: 'bold' }}>L'Studio Ana</span>
                     </div>
-                    <span style={{ color: '#5C5248', fontSize: '13px' }}>Principal</span>
+                    <span style={{ color: '#D6CBB8', fontSize: '13px' }}>Principal</span>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#EADCC7', padding: '8px 10px', borderRadius: '6px', border: '1px solid #B98A3E' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#322A25', padding: '8px 10px', borderRadius: '6px', border: '1px solid #B98A3E' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <input type="checkbox" checked={googleCalendarSyncActive} onChange={() => setGoogleCalendarSyncActive(!googleCalendarSyncActive)} style={{ accentColor: '#8F6D24', cursor: 'pointer' }} />
-                      <span style={{ color: '#2C2521', fontSize: '13px' }}>Agenda Citas L'Studio</span>
+                      <span style={{ color: '#FFF8EE', fontSize: '13px' }}>Agenda Citas L'Studio</span>
                     </div>
                     <span style={{ color: googleCalendarConnected ? '#2E7D32' : '#C0392B', fontSize: '13px', fontWeight: 'bold' }}>{googleCalendarConnected ? 'Google Sync 🔗' : 'Desconectado'}</span>
                   </div>
                   <button onClick={() => {
                     setGoogleCalendarConnected(!googleCalendarConnected);
                     alert(googleCalendarConnected ? 'Google Calendar desconectado.' : '¡Google Calendar conectado y sincronizado con éxito con la Intranet!');
-                  }} style={{ background: 'transparent', border: '1px dashed #C5A059', color: '#8F6D24', padding: '6px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', textAlign: 'center', fontWeight: 'bold' }}>
+                  }} style={{ background: 'transparent', border: '1px dashed #C5A059', color: '#E4C687', padding: '6px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', textAlign: 'center', fontWeight: 'bold' }}>
                     {googleCalendarConnected ? '+ Vincular otro calendario' : 'Conectar con Google Calendar'}
                   </button>
                 </details>
                 <hr style={{ borderColor: 'rgba(212, 175, 55, 0.2)', margin: 0 }} />
 <details className="studio-calendar-settings"><summary>Opciones de reserva</summary>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#5C5248' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#D6CBB8' }}>
                     <span>Habilitar reserva fuera de horario</span>
                     <input type="checkbox" checked={enableOutOfHours} onChange={() => setEnableOutOfHours(!enableOutOfHours)} style={{ accentColor: '#8F6D24', width: '16px', height: '16px', cursor: 'pointer' }} />
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#5C5248' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: '#D6CBB8' }}>
                     <span>Activar doble reserva (solapes)</span>
                     <input type="checkbox" checked={enableDoubleBooking} onChange={() => setEnableDoubleBooking(!enableDoubleBooking)} style={{ accentColor: '#8F6D24', width: '16px', height: '16px', cursor: 'pointer' }} />
                   </div>
@@ -4736,12 +4736,12 @@ style={{ padding: '8px', background: '#EADCC7', color: '#2C2521', border: '1px s
                       setAdminTab('config');
                       setConfigSubTab('schedule');
                     }} 
-                    style={{ background: '#EADCC7', border: '1px solid #B98A3E', color: '#8F6D24', padding: '8px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    style={{ background: '#322A25', border: '1px solid #B98A3E', color: '#E4C687', padding: '8px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '6px' }}
                   >
                     🕒 Cambiar las horas de trabajo
                   </button>
 
-                  <button onClick={() => window.print()} style={{ background: '#EADCC7', border: '1px solid #E6D5B8', color: '#5C5248', padding: '6px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', textAlign: 'left' }}>
+                  <button onClick={() => window.print()} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#D6CBB8', padding: '6px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', textAlign: 'left' }}>
                     🖨️ Imprimir calendario (CTRL + P)
                   </button>
                 </details>
@@ -4757,17 +4757,17 @@ style={{ padding: '8px', background: '#EADCC7', color: '#2C2521', border: '1px s
               <style>{`
                 .studio-settings-layout { display: grid; grid-template-columns: 170px minmax(0,1fr); gap: 20px; align-items: start; }
                 .studio-settings-nav { display: flex; flex-direction: column; gap: 5px; position: sticky; top: 16px; }
-                .studio-settings-nav button { text-align: left; padding: 12px; min-height: 44px; border: 1px solid transparent; border-radius: 8px; color: #5C5248; background: transparent; font-size: 13px; cursor: pointer; }
-                .studio-settings-nav button[aria-current=page] { background: #EADCC7; border-color: #8F6D24; color: #8F6D24; }
+                .studio-settings-nav button { text-align: left; padding: 12px; min-height: 44px; border: 1px solid transparent; border-radius: 8px; color: #D6CBB8; background: transparent; font-size: 13px; cursor: pointer; }
+                .studio-settings-nav button[aria-current=page] { background: #322A25; border-color: #E4C687; color: #E4C687; }
                 .studio-settings-content { min-width: 0; display: flex; flex-direction: column; gap: 16px; }
-                .studio-settings-savebar { position: sticky; top: 0; z-index: 8; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; background: #EADCC7; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 9px; font-size: 12px; color: #5C5248; }
+                .studio-settings-savebar { position: sticky; top: 0; z-index: 8; display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 14px; background: #322A25; border: 1px solid rgba(212, 175, 55, 0.3); border-radius: 9px; font-size: 12px; color: #D6CBB8; }
                 .studio-settings-savebar button { padding: 10px 15px; min-height: 40px; border: 0; border-radius: 7px; background: linear-gradient(135deg, #8F6D24 0%, #B3823B 100%); color: #2B2521; cursor: pointer; }
                 .studio-settings-savebar button:disabled { opacity: .45; cursor: default; }
-                .studio-security-pin { background: #EADCC7; border: 1px solid #C5A059; border-radius: 12px; padding: 20px; color: #2B2521; }
-                .studio-security-pin h3 { font-size: 16px; color: #8F6D24; margin-top: 0; }
+                .studio-security-pin { background: #322A25; border: 1px solid #C5A059; border-radius: 12px; padding: 20px; color: #2B2521; }
+                .studio-security-pin h3 { font-size: 16px; color: #E4C687; margin-top: 0; }
                 @media(max-width: 750px) { .studio-settings-layout { grid-template-columns: minmax(0,1fr); gap: 12px; } .studio-settings-nav { position: static; flex-direction: row; overflow-x: auto; } .studio-settings-nav button { flex-shrink: 0; white-space: nowrap; } }
               `}</style>
-              <header><p style={{ color: '#8F6D24', fontSize: '14px', letterSpacing: '2px', margin: '0 0 8px' }}>360studio · AJUSTES DEL STUDIO</p><h2 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '28px', fontWeight: 'normal', margin: '0 0 10px' }}>Configuración</h2><p style={{ color: '#2C2521', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>Elige un apartado, revisa sus opciones y guarda los cambios.</p></header>
+              <header><p style={{ color: '#E4C687', fontSize: '14px', letterSpacing: '2px', margin: '0 0 8px' }}>360studio · AJUSTES DEL STUDIO</p><h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '28px', fontWeight: 'normal', margin: '0 0 10px' }}>Configuración</h2><p style={{ color: '#FFF8EE', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>Elige un apartado, revisa sus opciones y guarda los cambios.</p></header>
               <div className="studio-settings-layout">
               <nav className="studio-settings-nav" aria-label="Apartados de configuración">
                 {([['marca', 'Datos del Studio'], ['schedule', 'Horarios'], ['reservas', 'Reservas'], ['avisos', 'Avisos'], ['backup', 'Acceso y seguridad']] as const).map(([tab, label]) => <button type="button" key={tab} aria-current={configSubTab === tab ? 'page' : undefined} onClick={() => setConfigSubTab(tab)}>{label}</button>)}
@@ -4778,90 +4778,90 @@ style={{ padding: '8px', background: '#EADCC7', color: '#2C2521', border: '1px s
                   <button type="button" disabled={JSON.stringify(tempConfig) === JSON.stringify(bizConfig)} onClick={() => handleSaveSection('Ajustes del Studio')}>Guardar cambios</button>
                 </div>
               {savedMsg && (
-                <div style={{ padding: '10px', backgroundColor: '#DFE9DF', border: '1px solid #44bb44', color: '#2E7D32', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }}>
+                <div style={{ padding: '10px', backgroundColor: '#8FC98F', border: '1px solid #44bb44', color: '#2E7D32', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }}>
                   {savedMsg}
                 </div>
               )}
-{configSubTab === 'reservas' && <div style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#2C2521' }}><h3 style={{ color: '#8F6D24', margin: 0 }}>Reservas y cancelaciones</h3><label>Antelación mínima (días)<input type="number" min="0" value={tempConfig.minAdvanceDays} onChange={(e) => setTempConfig({ ...tempConfig, minAdvanceDays: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '6px', marginTop: '6px' }} /></label><label>Hasta cuántos meses se puede reservar<input type="number" min="0" value={tempConfig.maxBookingMonths} onChange={(e) => setTempConfig({ ...tempConfig, maxBookingMonths: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '6px', marginTop: '6px' }} /></label><label>Intervalo entre horas disponibles (minutos)<input type="number" min="0" value={tempConfig.slotIntervalMinutes} onChange={(e) => setTempConfig({ ...tempConfig, slotIntervalMinutes: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '6px', marginTop: '6px' }} /></label><label>Antelación para solicitar cambios o cancelaciones (horas)<input type="number" min="0" value={tempConfig.cancellationHours} onChange={(e) => setTempConfig({ ...tempConfig, cancellationHours: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '6px', marginTop: '6px' }} /></label><p>La antelación para cancelar es una preferencia guardada. Su aplicación automática queda pendiente. El intervalo organiza las horas disponibles; no añade tiempo de preparación entre citas.</p></div>}{configSubTab === 'reservas' && <div style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#2C2521' }}><h3 style={{ color: '#8F6D24', margin: 0 }}>Reserva anticipada y sábados</h3><label><input type="checkbox" checked={tempConfig.advancePaymentEnabled} onChange={(e) => setTempConfig({ ...tempConfig, advancePaymentEnabled: e.target.checked })} /> Solicitar reserva anticipada</label><label>Importe de la reserva anticipada (€)<input type="text"  value={tempConfig.depositAmount} onChange={(e) => setTempConfig({ ...tempConfig, depositAmount: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '6px', marginTop: '6px' }} /></label><label>Solicitarla cuando la cita supere estos minutos<input type="number" min="0" value={tempConfig.advancePaymentThresholdMinutes} onChange={(e) => setTempConfig({ ...tempConfig, advancePaymentThresholdMinutes: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '6px', marginTop: '6px' }} /></label><label>Número de Bizum<input type="tel"  value={tempConfig.bizumNumber} onChange={(e) => setTempConfig({ ...tempConfig, bizumNumber: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '6px', marginTop: '6px' }} /></label><p>Las citas de los sábados requieren siempre la confirmación de Ana.</p><p>Los sábados se aprueban antes de solicitar el pago. El plazo de pago se acuerda con la clienta; no hay caducidad automática.</p></div>}{configSubTab === 'avisos' && <div style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#2C2521' }}><h3 style={{ color: '#8F6D24', margin: 0 }}>Avisos y recordatorios</h3><label>WhatsApp del Studio<input type="tel"  value={tempConfig.studioWhatsapp} onChange={(e) => setTempConfig({ ...tempConfig, studioWhatsapp: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '6px', marginTop: '6px' }} /></label><label>Correo del Studio<input type="email"  value={tempConfig.studioEmail} onChange={(e) => setTempConfig({ ...tempConfig, studioEmail: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '6px', marginTop: '6px' }} /></label><label>Recordatorio antes de la cita (horas)<input type="number" min="0" value={tempConfig.reminderHours} onChange={(e) => setTempConfig({ ...tempConfig, reminderHours: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '6px', marginTop: '6px' }} /></label><p style={{ color: '#8F6D24' }}>Envío automático pendiente de configurar.</p><p>Estos datos guardan tus preferencias. No envían mensajes ni programan recordatorios hasta conectar un servicio de envío. El registro de entregas y errores estará disponible con esa conexión.</p></div>}{configSubTab === 'backup' && <section className="studio-security-pin"><h3>PIN de administración</h3>                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#8F6D24', fontSize: '14px', fontWeight: 'bold' }}>PIN Maestro de Administración (4 dígitos):</label>
-                    <input type="password" maxLength={4} value={tempConfig.masterPin} onChange={(e) => setTempConfig({ ...tempConfig, masterPin: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '14px', textAlign: 'center', letterSpacing: '4px' }} />
-                  </div></section>}{configSubTab === 'backup' && <div style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#2C2521' }}><h3 style={{ color: '#8F6D24', margin: 0 }}>Copia de seguridad</h3><p>Descarga el catálogo, las citas, la configuración y los registros locales. Guarda el archivo en un lugar privado: puede contener datos personales y PIN.</p><button type="button" onClick={() => {
+{configSubTab === 'reservas' && <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Reservas y cancelaciones</h3><label>Antelación mínima (días)<input type="number" min="0" value={tempConfig.minAdvanceDays} onChange={(e) => setTempConfig({ ...tempConfig, minAdvanceDays: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Hasta cuántos meses se puede reservar<input type="number" min="0" value={tempConfig.maxBookingMonths} onChange={(e) => setTempConfig({ ...tempConfig, maxBookingMonths: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Intervalo entre horas disponibles (minutos)<input type="number" min="0" value={tempConfig.slotIntervalMinutes} onChange={(e) => setTempConfig({ ...tempConfig, slotIntervalMinutes: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Antelación para solicitar cambios o cancelaciones (horas)<input type="number" min="0" value={tempConfig.cancellationHours} onChange={(e) => setTempConfig({ ...tempConfig, cancellationHours: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><p>La antelación para cancelar es una preferencia guardada. Su aplicación automática queda pendiente. El intervalo organiza las horas disponibles; no añade tiempo de preparación entre citas.</p></div>}{configSubTab === 'reservas' && <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Reserva anticipada y sábados</h3><label><input type="checkbox" checked={tempConfig.advancePaymentEnabled} onChange={(e) => setTempConfig({ ...tempConfig, advancePaymentEnabled: e.target.checked })} /> Solicitar reserva anticipada</label><label>Importe de la reserva anticipada (€)<input type="text"  value={tempConfig.depositAmount} onChange={(e) => setTempConfig({ ...tempConfig, depositAmount: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Solicitarla cuando la cita supere estos minutos<input type="number" min="0" value={tempConfig.advancePaymentThresholdMinutes} onChange={(e) => setTempConfig({ ...tempConfig, advancePaymentThresholdMinutes: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Número de Bizum<input type="tel"  value={tempConfig.bizumNumber} onChange={(e) => setTempConfig({ ...tempConfig, bizumNumber: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><p>Las citas de los sábados requieren siempre la confirmación de Ana.</p><p>Los sábados se aprueban antes de solicitar el pago. El plazo de pago se acuerda con la clienta; no hay caducidad automática.</p></div>}{configSubTab === 'avisos' && <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Avisos y recordatorios</h3><label>WhatsApp del Studio<input type="tel"  value={tempConfig.studioWhatsapp} onChange={(e) => setTempConfig({ ...tempConfig, studioWhatsapp: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Correo del Studio<input type="email"  value={tempConfig.studioEmail} onChange={(e) => setTempConfig({ ...tempConfig, studioEmail: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Recordatorio antes de la cita (horas)<input type="number" min="0" value={tempConfig.reminderHours} onChange={(e) => setTempConfig({ ...tempConfig, reminderHours: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><p style={{ color: '#E4C687' }}>Envío automático pendiente de configurar.</p><p>Estos datos guardan tus preferencias. No envían mensajes ni programan recordatorios hasta conectar un servicio de envío. El registro de entregas y errores estará disponible con esa conexión.</p></div>}{configSubTab === 'backup' && <section className="studio-security-pin"><h3>PIN de administración</h3>                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+                    <label style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold' }}>PIN Maestro de Administración (4 dígitos):</label>
+                    <input type="password" maxLength={4} value={tempConfig.masterPin} onChange={(e) => setTempConfig({ ...tempConfig, masterPin: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px', textAlign: 'center', letterSpacing: '4px' }} />
+                  </div></section>}{configSubTab === 'backup' && <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Copia de seguridad</h3><p>Descarga el catálogo, las citas, la configuración y los registros locales. Guarda el archivo en un lugar privado: puede contener datos personales y PIN.</p><button type="button" onClick={() => {
 const data: Record<string, string | null> = {}; for (let index = 0; index < localStorage.length; index++) { const key = localStorage.key(index); if (key?.startsWith('lst_')) data[key] = localStorage.getItem(key); }
 data.lst_master_catalog = JSON.stringify(catalog); data.lst_business_config = JSON.stringify(bizConfig);
 const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, createdAt: new Date().toISOString(), data }, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `LStudio_copia_${new Date().toISOString().slice(0,10)}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }} style={{ padding: '12px', cursor: 'pointer' }}>Descargar copia de seguridad</button><p>La restauración no está incluida: la descarga no cambia ni elimina tus datos.</p></div>}
               {configSubTab === 'marca' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  <h3 style={{ color: '#8F6D24', fontSize: '16px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>Gestor de Marca, Dirección y Plantilla WhatsApp</h3>
-                  <div style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <span style={{ color: '#8F6D24', fontSize: '13px', fontWeight: 'bold' }}>💬 Plantilla Personalizada de WhatsApp</span>
-                    <p style={{ color: '#5C5248', fontSize: '14px', margin: 0 }}>Puedes editar la plantilla para mensajes de WhatsApp. Envío automático pendiente de configurar. Usa las etiquetas <code style={{ color: '#8F6D24' }}>{'{nombre}'}</code>, <code style={{ color: '#8F6D24' }}>{'{fecha}'}</code> y <code style={{ color: '#8F6D24' }}>{'{hora}'}</code>.</p>
+                  <h3 style={{ color: '#E4C687', fontSize: '16px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>Gestor de Marca, Dirección y Plantilla WhatsApp</h3>
+                  <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <span style={{ color: '#E4C687', fontSize: '13px', fontWeight: 'bold' }}>💬 Plantilla Personalizada de WhatsApp</span>
+                    <p style={{ color: '#D6CBB8', fontSize: '14px', margin: 0 }}>Puedes editar la plantilla para mensajes de WhatsApp. Envío automático pendiente de configurar. Usa las etiquetas <code style={{ color: '#E4C687' }}>{'{nombre}'}</code>, <code style={{ color: '#E4C687' }}>{'{fecha}'}</code> y <code style={{ color: '#E4C687' }}>{'{hora}'}</code>.</p>
                     <textarea 
                       value={tempConfig.whatsappTemplate} 
                       onChange={(e) => setTempConfig({ ...tempConfig, whatsappTemplate: e.target.value })} 
                       onFocus={(e) => e.target.select()} 
                       rows={3} 
-                      style={{ padding: '10px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} 
+                      style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} 
                     />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 280px', gap: '15px', alignItems: 'stretch' }}>
-                    <div style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
-                      <span style={{ color: '#8F6D24', fontSize: '12px', fontWeight: 'bold', alignSelf: 'flex-start' }}>Logotipo de la Marca</span>
+                    <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
+                      <span style={{ color: '#E4C687', fontSize: '12px', fontWeight: 'bold', alignSelf: 'flex-start' }}>Logotipo de la Marca</span>
                       <img src={STUDIO_BRAND_LOGO} alt="Logotipo L’A · Hair Experience" style={{ width: '110px', height: '110px', objectFit: 'contain', mixBlendMode: 'screen' }} />
-                      <button type="button" onClick={() => alert('Función de subida de logotipo')} style={{ backgroundColor: 'transparent', border: '1px solid #C5A059', color: '#8F6D24', padding: '6px 16px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Editar</button>
+                      <button type="button" onClick={() => alert('Función de subida de logotipo')} style={{ backgroundColor: 'transparent', border: '1px solid #C5A059', color: '#E4C687', padding: '6px 16px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Editar</button>
                     </div>
-                    <div style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
-                      <span style={{ color: '#8F6D24', fontSize: '12px', fontWeight: 'bold', alignSelf: 'flex-start' }}>Cabecera Principal</span>
+                    <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'space-between', gap: '15px' }}>
+                      <span style={{ color: '#E4C687', fontSize: '12px', fontWeight: 'bold', alignSelf: 'flex-start' }}>Cabecera Principal</span>
                       <img src={STUDIO_HEADER_LOGO} alt="L’Studio Ana · Hair Experience" style={{ width: '100%', maxWidth: '290px', height: '80px', objectFit: 'contain' }} />
-                      <button type="button" onClick={() => alert('Función de edición de cabecera')} style={{ backgroundColor: 'transparent', border: '1px solid #C5A059', color: '#8F6D24', padding: '6px 16px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Editar</button>
+                      <button type="button" onClick={() => alert('Función de edición de cabecera')} style={{ backgroundColor: 'transparent', border: '1px solid #C5A059', color: '#E4C687', padding: '6px 16px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Editar</button>
                     </div>
-                    <div style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px', padding: '15px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                      <span style={{ color: '#8F6D24', fontSize: '14px', fontWeight: 'bold', marginBottom: '5px' }}>Vista Previa en Tiempo Real</span>
+                    <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '15px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                      <span style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold', marginBottom: '5px' }}>Vista Previa en Tiempo Real</span>
                       <div style={{ width: '100%', backgroundColor: 'rgba(234,220,199,0.55)', border: '1px solid #C5A059', borderRadius: '10px', padding: '12px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <img src={STUDIO_HEADER_LOGO} alt={tempConfig.name} style={{ width: '100%', height: '45px', objectFit: 'contain' }} />
-                        <div style={{ textAlign: 'center', fontSize: '8px', color: '#5C5248', letterSpacing: '1px' }}>PORTAL PRIVADO</div>
-                        <div style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '6px', padding: '12px' }}>
-                          <div style={{ fontSize: '13px', color: '#8F6D24', fontWeight: 'bold' }}>{tempConfig.name}</div>
-                          <div style={{ fontSize: '8px', color: '#5C5248' }}>{tempConfig.location}</div>
-                          <div style={{ fontSize: '8px', color: '#5C5248' }}>{tempConfig.phone}</div>
+                        <div style={{ textAlign: 'center', fontSize: '8px', color: '#D6CBB8', letterSpacing: '1px' }}>PORTAL PRIVADO</div>
+                        <div style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '6px', padding: '12px' }}>
+                          <div style={{ fontSize: '13px', color: '#E4C687', fontWeight: 'bold' }}>{tempConfig.name}</div>
+                          <div style={{ fontSize: '8px', color: '#D6CBB8' }}>{tempConfig.location}</div>
+                          <div style={{ fontSize: '8px', color: '#D6CBB8' }}>{tempConfig.phone}</div>
                         </div>
-                        <div style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#2C2521', textAlign: 'center', fontSize: '9px', fontWeight: '600', padding: '6px', borderRadius: '4px', marginTop: '4px' }}>Reservar Cita</div>
+                        <div style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', textAlign: 'center', fontSize: '9px', fontWeight: '600', padding: '6px', borderRadius: '4px', marginTop: '4px' }}>Reservar Cita</div>
                       </div>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)' }}>
-                    <span style={{ color: '#8F6D24', fontSize: '13px', fontWeight: 'bold' }}>Detalles de Ubicación y Contacto</span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)' }}>
+                    <span style={{ color: '#E4C687', fontSize: '13px', fontWeight: 'bold' }}>Detalles de Ubicación y Contacto</span>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                        <label style={{ color: '#5C5248', fontSize: '14px' }}>Nombre oficial</label>
-                        <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig({ ...tempConfig, name: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '12px' }} />
+                        <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Nombre oficial</label>
+                        <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig({ ...tempConfig, name: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                        <label style={{ color: '#5C5248', fontSize: '14px' }}>Teléfono del Salón</label>
-                        <input type="text" value={tempConfig.phone} onChange={(e) => setTempConfig({ ...tempConfig, phone: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '12px' }} />
+                        <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Teléfono del Salón</label>
+                        <input type="text" value={tempConfig.phone} onChange={(e) => setTempConfig({ ...tempConfig, phone: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                       </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                      <label style={{ color: '#5C5248', fontSize: '14px' }}>Dirección del Studio</label>
-                      <input type="text" value={tempConfig.location} onChange={(e) => setTempConfig({ ...tempConfig, location: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '12px' }} />
+                      <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Dirección del Studio</label>
+                      <input type="text" value={tempConfig.location} onChange={(e) => setTempConfig({ ...tempConfig, location: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                      <label style={{ color: '#5C5248', fontSize: '14px' }}>Descripción Corporativa</label>
-                      <textarea value={tempConfig.description} onChange={(e) => setTempConfig({ ...tempConfig, description: e.target.value })} onFocus={(e) => e.target.select()} rows={3} style={{ padding: '10px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} />
+                      <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Descripción Corporativa</label>
+                      <textarea value={tempConfig.description} onChange={(e) => setTempConfig({ ...tempConfig, description: e.target.value })} onFocus={(e) => e.target.select()} rows={3} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} />
                     </div>
                   </div>
 
-                  <div style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <span style={{ color: '#8F6D24', fontSize: '13px', fontWeight: 'bold' }}>Fotos del inicio</span>
-                    <p style={{ color: '#5C5248', fontSize: '12px', margin: 0, lineHeight: 1.6 }}>Imagen protagonista del portal de clientas, bajo el logotipo. Sube una foto vertical u horizontal del salón; ajusta el encuadre con los deslizadores (el valor Y bajo centra la vista en las butacas recortando techo y suelo).</p>
+                  <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <span style={{ color: '#E4C687', fontSize: '13px', fontWeight: 'bold' }}>Fotos del inicio</span>
+                    <p style={{ color: '#D6CBB8', fontSize: '12px', margin: 0, lineHeight: 1.6 }}>Imagen protagonista del portal de clientas, bajo el logotipo. Sube una foto vertical u horizontal del salón; ajusta el encuadre con los deslizadores (el valor Y bajo centra la vista en las butacas recortando techo y suelo).</p>
                     <div style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                      <div style={{ width: '150px', height: '200px', borderRadius: '10px', overflow: 'hidden', background: '#F3E8D7', flexShrink: 0, border: '1px solid #E6D5B8' }}>
+                      <div style={{ width: '150px', height: '200px', borderRadius: '10px', overflow: 'hidden', background: '#3E342C', flexShrink: 0, border: '1px solid #3A312A' }}>
                         {tempConfig.homeHeroImage
                           ? <img src={tempConfig.homeHeroImage} alt="Vista previa del inicio" style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${tempConfig.homeHeroImagePosition?.x ?? 50}% ${tempConfig.homeHeroImagePosition?.y ?? 62}%` }} />
-                          : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#8F6D24', fontSize: '12px' }}>Sin foto</span>}
+                          : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#E4C687', fontSize: '12px' }}>Sin foto</span>}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, minWidth: '200px' }}>
-                        <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', minHeight: '44px', padding: '10px 14px', background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#2C2521', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
+                        <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', minHeight: '44px', padding: '10px 14px', background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
                           {tempConfig.homeHeroImage ? 'Sustituir fotografía' : 'Subir fotografía'}
                           <input type="file" accept="image/*" onChange={(e) => {
                             const file = e.target.files?.[0];
@@ -4883,10 +4883,10 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                             reader.readAsDataURL(file);
                           }} style={{ display: 'none' }} />
                         </label>
-                        <label style={{ color: '#5C5248', fontSize: '12px' }}>Encuadre horizontal
+                        <label style={{ color: '#D6CBB8', fontSize: '12px' }}>Encuadre horizontal
                           <input type="range" min={0} max={100} value={tempConfig.homeHeroImagePosition?.x ?? 50} onChange={(e) => setTempConfig({ ...tempConfig, homeHeroImagePosition: { x: Number(e.target.value), y: tempConfig.homeHeroImagePosition?.y ?? 62 } })} style={{ width: '100%', accentColor: '#C49A58' }} />
                         </label>
-                        <label style={{ color: '#5C5248', fontSize: '12px' }}>Encuadre vertical (menos = más butacas, recorta techo)
+                        <label style={{ color: '#D6CBB8', fontSize: '12px' }}>Encuadre vertical (menos = más butacas, recorta techo)
                           <input type="range" min={0} max={100} value={tempConfig.homeHeroImagePosition?.y ?? 62} onChange={(e) => setTempConfig({ ...tempConfig, homeHeroImagePosition: { x: tempConfig.homeHeroImagePosition?.x ?? 50, y: Number(e.target.value) } })} style={{ width: '100%', accentColor: '#C49A58' }} />
                         </label>
                         {tempConfig.homeHeroImage && tempConfig.homeHeroImage !== `/Salon_elegante_con_luz_calida.png` && !tempConfig.homeHeroImage.startsWith('/') && (
@@ -4897,7 +4897,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                               if (match && studioApi.serverConfigured && studioApi.currentToken()) await studioApi.deleteServiceImage(studioApi.currentToken()!, match[1]);
                             } catch { /* si falla el borrado, se restablece igualmente la vista previa */ }
                             setTempConfig(previous => ({ ...previous, homeHeroImage: '/Salon_elegante_con_luz_calida.png', homeHeroImagePosition: { x: 50, y: 62 } }));
-                          }} style={{ background: '#EADCC7', color: '#C0392B', border: '1px solid #dfaaa3', borderRadius: '6px', padding: '10px 14px', minHeight: '44px', fontSize: '12px', cursor: 'pointer' }}>Restablecer foto original</button>
+                          }} style={{ background: '#322A25', color: '#C0392B', border: '1px solid #dfaaa3', borderRadius: '6px', padding: '10px 14px', minHeight: '44px', fontSize: '12px', cursor: 'pointer' }}>Restablecer foto original</button>
                         )}
                       </div>
                     </div>
@@ -4907,28 +4907,28 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               )}
               {configSubTab === 'marca' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                  <div style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <h4 style={{ color: '#8F6D24', fontSize: '13px', margin: 0, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em' }}>Redes Sociales del Salón</h4>
+                  <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <h4 style={{ color: '#E4C687', fontSize: '13px', margin: 0, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em' }}>Redes Sociales del Salón</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                      <label style={{ color: '#5C5248', fontSize: '14px' }}>Instagram URL:</label>
-                      <input type="text" value={tempConfig.instagramUrl} onChange={(e) => setTempConfig({ ...tempConfig, instagramUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }} />
+                      <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Instagram URL:</label>
+                      <input type="text" value={tempConfig.instagramUrl} onChange={(e) => setTempConfig({ ...tempConfig, instagramUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                      <label style={{ color: '#5C5248', fontSize: '14px' }}>Facebook URL:</label>
-                      <input type="text" value={tempConfig.facebookUrl} onChange={(e) => setTempConfig({ ...tempConfig, facebookUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }} />
+                      <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Facebook URL:</label>
+                      <input type="text" value={tempConfig.facebookUrl} onChange={(e) => setTempConfig({ ...tempConfig, facebookUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                      <label style={{ color: '#5C5248', fontSize: '14px' }}>Tik Tok URL:</label>
-                      <input type="text" value={tempConfig.tiktokUrl} onChange={(e) => setTempConfig({ ...tempConfig, tiktokUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }} />
+                      <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Tik Tok URL:</label>
+                      <input type="text" value={tempConfig.tiktokUrl} onChange={(e) => setTempConfig({ ...tempConfig, tiktokUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#5C5248', fontSize: '14px' }}>Enlace Google Maps:</label>
-                    <input type="text" value={tempConfig.googleMapsUrl} onChange={(e) => setTempConfig({ ...tempConfig, googleMapsUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '12px' }} />
+                    <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Enlace Google Maps:</label>
+                    <input type="text" value={tempConfig.googleMapsUrl} onChange={(e) => setTempConfig({ ...tempConfig, googleMapsUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#5C5248', fontSize: '14px' }}>Enlace Reseñas Google My Business:</label>
-                    <input type="text" value={tempConfig.googleReviewUrl} onChange={(e) => setTempConfig({ ...tempConfig, googleReviewUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '12px' }} />
+                    <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Enlace Reseñas Google My Business:</label>
+                    <input type="text" value={tempConfig.googleReviewUrl} onChange={(e) => setTempConfig({ ...tempConfig, googleReviewUrl: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   
                 </div>
@@ -4936,20 +4936,20 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               {configSubTab === 'schedule' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#5C5248', fontSize: '14px' }}>Horario Lunes:</label>
-                    <input type="text" value={tempConfig.scheduleMonday} onChange={(e) => setTempConfig({ ...tempConfig, scheduleMonday: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '12px' }} />
+                    <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Horario Lunes:</label>
+                    <input type="text" value={tempConfig.scheduleMonday} onChange={(e) => setTempConfig({ ...tempConfig, scheduleMonday: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#5C5248', fontSize: '14px' }}>Horario Martes y Miércoles:</label>
-                    <input type="text" value={tempConfig.scheduleTueWed} onChange={(e) => setTempConfig({ ...tempConfig, scheduleTueWed: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '12px' }} />
+                    <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Horario Martes y Miércoles:</label>
+                    <input type="text" value={tempConfig.scheduleTueWed} onChange={(e) => setTempConfig({ ...tempConfig, scheduleTueWed: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#5C5248', fontSize: '14px' }}>Horario Jueves y Viernes:</label>
-                    <input type="text" value={tempConfig.scheduleThuFri} onChange={(e) => setTempConfig({ ...tempConfig, scheduleThuFri: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '12px' }} />
+                    <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Horario Jueves y Viernes:</label>
+                    <input type="text" value={tempConfig.scheduleThuFri} onChange={(e) => setTempConfig({ ...tempConfig, scheduleThuFri: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#5C5248', fontSize: '14px' }}>Horario Sábados:</label>
-                    <input type="text" value={tempConfig.scheduleSaturday} onChange={(e) => setTempConfig({ ...tempConfig, scheduleSaturday: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '12px' }} />
+                    <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Horario Sábados:</label>
+                    <input type="text" value={tempConfig.scheduleSaturday} onChange={(e) => setTempConfig({ ...tempConfig, scheduleSaturday: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   
                 </div>
@@ -4965,9 +4965,9 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               <style>{`
                 
                 
-                .studio-service-editor[open] { position: fixed !important; inset: 0 0 0 auto; width: min(670px, 96vw); max-height: 100vh; overflow-y: auto; z-index: 1800; box-sizing: border-box; border: 1px solid #B98A3E !important; border-radius: 0 !important; box-shadow: -20px 0 60px rgba(60, 50, 40, 0.12); padding: 20px !important; background: #EADCC7 !important; }
+                .studio-service-editor[open] { position: fixed !important; inset: 0 0 0 auto; width: min(670px, 96vw); max-height: 100vh; overflow-y: auto; z-index: 1800; box-sizing: border-box; border: 1px solid #B98A3E !important; border-radius: 0 !important; box-shadow: -20px 0 60px rgba(60, 50, 40, 0.12); padding: 20px !important; background: #322A25 !important; }
                 .studio-service-editor[open] > summary { display: none; }
-                .studio-editor-toolbar { position: sticky; top: -20px; z-index: 4; background: #EADCC7; border-bottom: 1px solid rgba(212, 175, 55, 0.35); padding: 15px 0; }
+                .studio-editor-toolbar { position: sticky; top: -20px; z-index: 4; background: #322A25; border-bottom: 1px solid rgba(212, 175, 55, 0.35); padding: 15px 0; }
                 .studio-service-editor[data-editor-tab=data] .studio-editor-options,
                 .studio-service-editor[data-editor-tab=data] .studio-editor-booking,
                 .studio-service-editor[data-editor-tab=data] .studio-editor-languages,
@@ -4980,21 +4980,21 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 .studio-service-editor[data-editor-tab=languages] .studio-editor-data,
                 .studio-service-editor[data-editor-tab=languages] .studio-editor-options,
                 .studio-service-editor[data-editor-tab=languages] .studio-editor-booking { display: none !important; }
-.studio-catalog-savebar { position: sticky; top: 0; z-index: 20; background: #EADCC7; border-bottom: 1px solid rgba(212, 175, 55, 0.35); padding: 12px 0; }
+.studio-catalog-savebar { position: sticky; top: 0; z-index: 20; background: #322A25; border-bottom: 1px solid rgba(212, 175, 55, 0.35); padding: 12px 0; }
                 .studio-catalog-savebar h3 { font-size: 24px !important; }
-                .studio-catalog-category { padding: 10px 12px !important; gap: 7px !important; background: #EADCC7 !important; border-color: #5A5248 !important; }
+                .studio-catalog-category { padding: 10px 12px !important; gap: 7px !important; background: #322A25 !important; border-color: #5A5248 !important; }
                 .studio-catalog-category > div:first-child { padding: 4px !important; gap: 10px !important; }
                 .studio-catalog-category h3 { font-size: 20px !important; margin: 4px 0 !important; }
                 .studio-catalog-category > details:not([open]) { padding: 8px 10px !important; background: transparent !important; border: none !important; }
                 .studio-catalog-category > details > summary { font-size: 11px !important; }
-                .studio-catalog-service-row { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 7px !important; padding: 8px 10px !important; background: #EADCC7 !important; border: 1px solid #C5A059 !important; border-radius: 6px !important; }
+                .studio-catalog-service-row { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 7px !important; padding: 8px 10px !important; background: #322A25 !important; border: 1px solid #C5A059 !important; border-radius: 6px !important; }
                 .studio-catalog-service-heading { padding: 0 !important; gap: 10px !important; }
                 .studio-catalog-service-heading > div:first-child { flex: 1 1 180px !important; }
                 .studio-catalog-service-heading h4 { font-family: 'Garet', 'Poppins', sans-serif !important; font-size: 14px !important; margin: 0 0 4px !important; }
                 .studio-catalog-service-heading span { font-size: 12px !important; }
                 .studio-catalog-service-heading button { min-height: 38px !important; padding: 8px 10px !important; font-size: 12px !important; }
                 .studio-catalog-service-row > .studio-service-editor:not([open]) { padding: 0 !important; border: none !important; background: transparent !important; }
-                .studio-catalog-service-row > .studio-service-editor > summary { list-style: none; padding: 10px 12px !important; background: #EADCC7; border: 1px solid #C5A059; border-radius: 6px; font-size: 12px !important; color: #8F6D24 !important; cursor: pointer; }
+                .studio-catalog-service-row > .studio-service-editor > summary { list-style: none; padding: 10px 12px !important; background: #322A25; border: 1px solid #C5A059; border-radius: 6px; font-size: 12px !important; color: #E4C687 !important; cursor: pointer; }
                 .studio-catalog-service-row > .studio-service-editor[open] { grid-column: 1 / -1; }
                 @media (max-width: 700px) {
                   .studio-catalog-service-row { grid-template-columns: 1fr !important; }
@@ -5006,29 +5006,29 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 
                 .studio-editor-booking > label { display: block; margin: 0 0 14px; font-size: 13px !important; }
                 .studio-editor-booking select { margin-top: 6px; min-height: 42px !important; padding: 10px !important; font-size: 13px !important; }
-                .studio-editor-booking > label:has(input[type=checkbox]) { display: flex; align-items: center; gap: 9px; padding: 9px 0; color: #5C5248; }
-                .studio-editor-booking input[type=checkbox] { width: 16px; height: 16px; margin: 0; accent-color: #8F6D24; flex-shrink: 0; }
-                .studio-booking-help { border-top: 1px solid #5A5248; padding-top: 12px; margin-top: 6px; color: #5C5248; font-size: 12px; line-height: 1.6; }
-                .studio-booking-help summary { cursor: pointer; color: #8F6D24; }
+                .studio-editor-booking > label:has(input[type=checkbox]) { display: flex; align-items: center; gap: 9px; padding: 9px 0; color: #D6CBB8; }
+                .studio-editor-booking input[type=checkbox] { width: 16px; height: 16px; margin: 0; accent-color: #E4C687; flex-shrink: 0; }
+                .studio-booking-help { border-top: 1px solid #5A5248; padding-top: 12px; margin-top: 6px; color: #D6CBB8; font-size: 12px; line-height: 1.6; }
+                .studio-booking-help summary { cursor: pointer; color: #E4C687; }
                 .studio-booking-help p { margin: 10px 0; }
                 
                 .studio-booking-buttons fieldset { border: 0; padding: 0; margin: 0 0 20px; min-width: 0; }
-                .studio-booking-buttons legend { color: #5C5248; font-size: 12px; padding: 0; margin-bottom: 9px; }
+                .studio-booking-buttons legend { color: #D6CBB8; font-size: 12px; padding: 0; margin-bottom: 9px; }
                 .studio-condition-choices { display: flex; gap: 7px; flex-wrap: wrap; }
-                .studio-condition-choices button { flex: 1 1 110px; padding: 10px 12px; min-height: 42px; border: 1px solid #5A5248; border-radius: 8px; background: #EADCC7; color: #5C5248; font-size: 12px; cursor: pointer; }
+                .studio-condition-choices button { flex: 1 1 110px; padding: 10px 12px; min-height: 42px; border: 1px solid #5A5248; border-radius: 8px; background: #322A25; color: #D6CBB8; font-size: 12px; cursor: pointer; }
                 .studio-condition-choices button[aria-pressed=true] { border-color: #B8972E; background: rgba(212, 175, 55, 0.12); color: #B8972E; }
                 .studio-condition-choices button:focus-visible { outline: 2px solid #B98A3E; outline-offset: 3px; }
                 .studio-condition-finishes { border-top: 1px solid #5A5248; padding-top: 16px; }
-                .studio-condition-unset { display: block; font-size: 11px; color: #5C5248; margin-top: 8px; }
-                .studio-condition-reset { margin-top: 7px; background: none; border: 0; color: #5C5248; font-size: 11px; cursor: pointer; text-decoration: underline; padding: 4px 0; }
+                .studio-condition-unset { display: block; font-size: 11px; color: #D6CBB8; margin-top: 8px; }
+                .studio-condition-reset { margin-top: 7px; background: none; border: 0; color: #D6CBB8; font-size: 11px; cursor: pointer; text-decoration: underline; padding: 4px 0; }
                 .studio-new-form { padding: 18px !important; border: 1px solid #C5A059 !important; border-radius: 10px !important; gap: 14px !important; }
-                .studio-new-field { display: flex; flex-direction: column; gap: 7px; flex: 1 1 160px; min-width: 0; color: #5C5248; font-size: 12px; }
+                .studio-new-field { display: flex; flex-direction: column; gap: 7px; flex: 1 1 160px; min-width: 0; color: #D6CBB8; font-size: 12px; }
                 .studio-new-field input { width: 100% !important; box-sizing: border-box; padding: 11px !important; min-height: 42px; border-radius: 7px !important; }
                 .studio-new-form button { min-height: 42px; padding: 10px 14px !important; }
-                .studio-service-editor { background: #EADCC7; border: 1px solid #C5A059; color: #2B2521; border-radius: 12px; padding: 18px !important; }
-                .studio-service-editor input:not([type=checkbox]), .studio-service-editor select, .studio-service-editor textarea { box-sizing: border-box; min-height: 44px; font-size: 14px !important; padding: 12px !important; border: 1px solid rgba(212, 175, 55, 0.22) !important; border-radius: 8px !important; background: #EADCC7 !important; color: #2B2521 !important; max-width: 100%; }
+                .studio-service-editor { background: #322A25; border: 1px solid #C5A059; color: #2B2521; border-radius: 12px; padding: 18px !important; }
+                .studio-service-editor input:not([type=checkbox]), .studio-service-editor select, .studio-service-editor textarea { box-sizing: border-box; min-height: 44px; font-size: 14px !important; padding: 12px !important; border: 1px solid rgba(212, 175, 55, 0.22) !important; border-radius: 8px !important; background: #322A25 !important; color: #FFF8EE !important; max-width: 100%; }
                 .studio-service-editor textarea { min-height: 90px; resize: vertical !important; }
-                .studio-service-editor label { color: #5C5248 !important; font-size: 13px !important; line-height: 1.6; }
+                .studio-service-editor label { color: #D6CBB8 !important; font-size: 13px !important; line-height: 1.6; }
                 .studio-base-field { display: flex; flex-direction: column; gap: 6px; flex: 1 1 150px; min-width: 0; }
                 .studio-base-field input { width: 100% !important; }
                 .studio-variant-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; flex: 1 1 350px; min-width: 0; }
@@ -5039,38 +5039,38 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
 
               <div className="studio-catalog-savebar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
-                  <h3 style={{ color: '#8F6D24', fontSize: '28px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Catálogo · Servicios y experiencias</h3>
-                  <p style={{ color: '#5C5248', fontSize: '14px', margin: 0 }}>Gestiona servicios, precios y packs. Guarda los cambios para conservarlos en el catálogo de este navegador.</p>
+                  <h3 style={{ color: '#E4C687', fontSize: '28px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Catálogo · Servicios y experiencias</h3>
+                  <p style={{ color: '#D6CBB8', fontSize: '14px', margin: 0 }}>Gestiona servicios, precios y packs. Guarda los cambios para conservarlos en el catálogo de este navegador.</p>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
-                  <button onClick={() => setIsAddingCategory(true)} style={{ backgroundColor: 'transparent', border: '1px solid #B98A3E', color: '#8F6D24', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>+ Nueva Categoría</button>
+                  <button onClick={() => setIsAddingCategory(true)} style={{ backgroundColor: 'transparent', border: '1px solid #B98A3E', color: '#E4C687', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>+ Nueva Categoría</button>
                   <span role="status" aria-live="polite" style={{ fontSize: '12px', color: catalogHasChanges ? '#B3823B' : '#2E7D32' }}>{catalogHasChanges ? 'Cambios pendientes' : 'Catálogo guardado'}</span>
-                  <button onClick={handleSaveCatalogMaster} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#2C2521', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', boxShadow: 'none' }}>Guardar catálogo</button>
+                  <button onClick={handleSaveCatalogMaster} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', boxShadow: 'none' }}>Guardar catálogo</button>
                 </div>
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '10px', padding: '16px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)' }}>
-                <input type="search" aria-label="Buscar categoría o servicio" placeholder="Buscar categoría o servicio…" value={adminCatalogSearch} onChange={e => setAdminCatalogSearch(e.target.value)} style={{ flex: '1 1 200px', minWidth: 0, padding: '12px', backgroundColor: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '7px', fontSize: '14px' }} />
-                <span style={{ color: '#5C5248', fontSize: '13px' }}>{catalog.flatMap(cat => cat.subservices).filter(sub => sub.active !== false).length} activos · {catalog.flatMap(cat => cat.subservices).filter(sub => sub.active === false).length} desactivados</span>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '10px', padding: '16px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)' }}>
+                <input type="search" aria-label="Buscar categoría o servicio" placeholder="Buscar categoría o servicio…" value={adminCatalogSearch} onChange={e => setAdminCatalogSearch(e.target.value)} style={{ flex: '1 1 200px', minWidth: 0, padding: '12px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '7px', fontSize: '14px' }} />
+                <span style={{ color: '#D6CBB8', fontSize: '13px' }}>{catalog.flatMap(cat => cat.subservices).filter(sub => sub.active !== false).length} activos · {catalog.flatMap(cat => cat.subservices).filter(sub => sub.active === false).length} desactivados</span>
               </div>
-              {adminCatalogSearch.trim() && !catalog.some(cat => normalizeCatalogSearch(cat.title).includes(normalizeCatalogSearch(adminCatalogSearch)) || cat.subservices.some(sub => normalizeCatalogSearch(sub.name).includes(normalizeCatalogSearch(adminCatalogSearch)))) && <p style={{ color: '#5C5248', fontSize: '14px' }}>No hay servicios que coincidan con esta búsqueda.</p>}
+              {adminCatalogSearch.trim() && !catalog.some(cat => normalizeCatalogSearch(cat.title).includes(normalizeCatalogSearch(adminCatalogSearch)) || cat.subservices.some(sub => normalizeCatalogSearch(sub.name).includes(normalizeCatalogSearch(adminCatalogSearch)))) && <p style={{ color: '#D6CBB8', fontSize: '14px' }}>No hay servicios que coincidan con esta búsqueda.</p>}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {([['all', 'Todos'], ['active', 'Activos'], ['inactive', 'Desactivados']] as const).map(([status, label]) => <button type="button" key={status} aria-pressed={adminCatalogStatus === status} onClick={() => setAdminCatalogStatus(status)} style={{ padding: '10px 16px', minHeight: '44px', backgroundColor: adminCatalogStatus === status ? '#8F6D24' : '#F3E8D7', color: adminCatalogStatus === status ? '#2C2521' : '#2C2521', border: '1px solid #E6D5B8', borderRadius: '8px', cursor: 'pointer' }}>{label}</button>)}
+                {([['all', 'Todos'], ['active', 'Activos'], ['inactive', 'Desactivados']] as const).map(([status, label]) => <button type="button" key={status} aria-pressed={adminCatalogStatus === status} onClick={() => setAdminCatalogStatus(status)} style={{ padding: '10px 16px', minHeight: '44px', backgroundColor: adminCatalogStatus === status ? '#8F6D24' : '#3E342C', color: adminCatalogStatus === status ? '#2C2521' : '#2C2521', border: '1px solid #3A312A', borderRadius: '8px', cursor: 'pointer' }}>{label}</button>)}
               </div>
               {catalogSavedMsg && (
-                <div style={{ padding: '12px', backgroundColor: '#DFE9DF', border: '1px solid #44bb44', color: '#2E7D32', borderRadius: '8px', fontSize: '12px', textAlign: 'center', fontWeight: 'bold' }}>
+                <div style={{ padding: '12px', backgroundColor: '#8FC98F', border: '1px solid #44bb44', color: '#2E7D32', borderRadius: '8px', fontSize: '12px', textAlign: 'center', fontWeight: 'bold' }}>
                   {catalogSavedMsg}
                 </div>
               )}
               {isAddingCategory && (
-                <form onSubmit={handleAddCategorySubmit} style={{ backgroundColor: '#EADCC7', border: '1px solid #B98A3E', borderRadius: '8px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <h4 style={{ color: '#8F6D24', fontSize: '13px', margin: 0 }}>Añadir Categoría Principal</h4>
+                <form onSubmit={handleAddCategorySubmit} style={{ backgroundColor: '#322A25', border: '1px solid #B98A3E', borderRadius: '8px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <h4 style={{ color: '#E4C687', fontSize: '13px', margin: 0 }}>Añadir Categoría Principal</h4>
                   <div style={{ display: 'flex', gap: '10px' }}>
-                    <input type="text" placeholder="Código (ej. 0.10)" value={newCatCode} onChange={(e) => setNewCatCode(e.target.value)} onFocus={(e) => e.target.select()} style={{ width: '120px', padding: '8px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }} />
-                    <input type="text" placeholder="Título de la Categoría" value={newCatTitle} onChange={(e) => setNewCatTitle(e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '8px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }} />
+                    <input type="text" placeholder="Código (ej. 0.10)" value={newCatCode} onChange={(e) => setNewCatCode(e.target.value)} onFocus={(e) => e.target.select()} style={{ width: '120px', padding: '8px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
+                    <input type="text" placeholder="Título de la Categoría" value={newCatTitle} onChange={(e) => setNewCatTitle(e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '8px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
                   </div>
                   <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                    <button type="button" onClick={() => setIsAddingCategory(false)} style={{ background: 'none', border: '1px solid #E6D5B8', color: '#5C5248', padding: '6px 12px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
-                    <button type="submit" style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#2C2521', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Guardar Categoría</button>
+                    <button type="button" onClick={() => setIsAddingCategory(false)} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '6px 12px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
+                    <button type="submit" style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Guardar Categoría</button>
                   </div>
                 </form>
               )}
@@ -5083,109 +5083,109 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                   if (query && !categoryMatches && !cat.subservices.some(sub => normalizeCatalogSearch(sub.name).includes(query))) return null;
                   const isCategoryExpandedAdmin = !!query || (expandedCategories[`admin_cat_${cat.id}`] ?? false);
                   return (
-                    <div className="studio-catalog-category" key={cat.id} style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div className="studio-catalog-category" key={cat.id} style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', padding: '8px' }}>
                         <div style={{ flex: '1 1 240px' }}>
-                          <span style={{ color: '#8F6D24', fontSize: '11px', letterSpacing: '1px' }}>{cat.code} · CATEGORÍA</span>
-                          <h3 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '24px', fontWeight: 'normal', lineHeight: 1.4, margin: '8px 0' }}>{cat.title}</h3>
-                          <span style={{ color: '#5C5248', fontSize: '13px' }}>{cat.subservices.length} servicios · {cat.subservices.filter(sub => sub.active !== false).length} activos</span>
+                          <span style={{ color: '#E4C687', fontSize: '11px', letterSpacing: '1px' }}>{cat.code} · CATEGORÍA</span>
+                          <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '24px', fontWeight: 'normal', lineHeight: 1.4, margin: '8px 0' }}>{cat.title}</h3>
+                          <span style={{ color: '#D6CBB8', fontSize: '13px' }}>{cat.subservices.length} servicios · {cat.subservices.filter(sub => sub.active !== false).length} activos</span>
                         </div>
-                        <button type="button" aria-expanded={isCategoryExpandedAdmin} onClick={() => setExpandedCategories({ ...expandedCategories, [`admin_cat_${cat.id}`]: !isCategoryExpandedAdmin })} style={{ background: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>{isCategoryExpandedAdmin ? 'Ocultar servicios −' : 'Ver servicios +'}</button>
+                        <button type="button" aria-expanded={isCategoryExpandedAdmin} onClick={() => setExpandedCategories({ ...expandedCategories, [`admin_cat_${cat.id}`]: !isCategoryExpandedAdmin })} style={{ background: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>{isCategoryExpandedAdmin ? 'Ocultar servicios −' : 'Ver servicios +'}</button>
                       </div>
-                      <details style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '9px', padding: '14px' }}>
-                        <summary style={{ color: '#8F6D24', cursor: 'pointer', fontSize: '13px' }}>Editar categoría y ordenar</summary>
+                      <details style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '9px', padding: '14px' }}>
+                        <summary style={{ color: '#E4C687', cursor: 'pointer', fontSize: '13px' }}>Editar categoría y ordenar</summary>
                         <details style={{ border: '1px solid #C5A059', padding: '14px', borderRadius: '8px', marginTop: '14px' }}>
-                          <summary style={{ color: '#8F6D24', cursor: 'pointer' }}>Idiomas · Nombre de la categoría</summary>
+                          <summary style={{ color: '#E4C687', cursor: 'pointer' }}>Idiomas · Nombre de la categoría</summary>
                           {translationLanguagePicker()}
-                          <p style={{ color: '#5C5248', fontSize: '12px' }}>Original: {cat.title}. Un campo vacío muestra el original en español.</p>
-                          <input aria-label="Nombre traducido de la categoría" dir={catalogTranslationLang === 'ar' ? 'rtl' : 'ltr'} lang={catalogTranslationLang} value={cat.translations?.[catalogTranslationLang]?.title || ''} onChange={event => { const title = event.target.value; setCatalog(previous => previous.map(category => category.id !== cat.id ? category : { ...category, translations: { ...category.translations, [catalogTranslationLang]: { title } } })); }} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', background: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '7px' }} />
+                          <p style={{ color: '#D6CBB8', fontSize: '12px' }}>Original: {cat.title}. Un campo vacío muestra el original en español.</p>
+                          <input aria-label="Nombre traducido de la categoría" dir={catalogTranslationLang === 'ar' ? 'rtl' : 'ltr'} lang={catalogTranslationLang} value={cat.translations?.[catalogTranslationLang]?.title || ''} onChange={event => { const title = event.target.value; setCatalog(previous => previous.map(category => category.id !== cat.id ? category : { ...category, translations: { ...category.translations, [catalogTranslationLang]: { title } } })); }} style={{ width: '100%', boxSizing: 'border-box', padding: '12px', background: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '7px' }} />
                         </details>
 
                         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '12px', marginTop: '16px' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', backgroundColor: '#EADCC7', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px' }}>
-                            <label style={{ color: '#8F6D24', fontSize: '12px', fontWeight: 'bold' }}>Fotografía de la categoría</label>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px' }}>
+                            <label style={{ color: '#E4C687', fontSize: '12px', fontWeight: 'bold' }}>Fotografía de la categoría</label>
                             <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                              <div style={{ width: '140px', height: '105px', borderRadius: '8px', overflow: 'hidden', background: '#F3E8D7', flexShrink: 0, border: '1px solid #E6D5B8' }}>
+                              <div style={{ width: '140px', height: '105px', borderRadius: '8px', overflow: 'hidden', background: '#3E342C', flexShrink: 0, border: '1px solid #3A312A' }}>
                                 {(() => { const first = cat.subservices.find(s => s.active !== false); const shown = cat.imageUrl || first?.imageUrl; return shown
                                   ? <img src={shown} alt={'Foto de ' + cat.title} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${(cat.imageUrl ? cat.imagePosition?.x : first?.imagePosition?.x) ?? 50}% ${(cat.imageUrl ? cat.imagePosition?.y : first?.imagePosition?.y) ?? 50}%` }} />
-                                  : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#8F6D24', fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '26px', letterSpacing: '3px' }}>LS</span>; })()}
+                                  : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#E4C687', fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '26px', letterSpacing: '3px' }}>LS</span>; })()}
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '180px' }}>
-                                <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', minHeight: '44px', padding: '10px 14px', background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#2C2521', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: photoUploadBusy ? 'wait' : 'pointer' }}>
+                                <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', minHeight: '44px', padding: '10px 14px', background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: photoUploadBusy ? 'wait' : 'pointer' }}>
                                   <ImagePlus size={16} strokeWidth={1.8} aria-hidden="true" />
                                   {photoUploadBusy ? 'Subiendo…' : (cat.imageUrl ? 'Sustituir foto de la categoría' : 'Subir foto de la categoría')}
                                   <input type="file" accept="image/*" disabled={photoUploadBusy} onChange={(e) => { handleCategoryPhotoSelect(cat.id, e.target.files?.[0]); e.target.value = ''; }} style={{ display: 'none' }} />
                                 </label>
-                                {cat.imageUrl && <button type="button" disabled={photoUploadBusy} onClick={() => handleCategoryPhotoDelete(cat.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 14px', background: '#EADCC7', color: '#C0392B', border: '1px solid #dfaaa3', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                                {cat.imageUrl && <button type="button" disabled={photoUploadBusy} onClick={() => handleCategoryPhotoDelete(cat.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 14px', background: '#322A25', color: '#C0392B', border: '1px solid #dfaaa3', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>
                                   <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" /> Eliminar foto
                                 </button>}
-                                {cat.imageUrl && <p style={{ color: '#5C5248', fontSize: '11px', margin: 0 }}>La miniatura del listado de categorías del portal usa esta foto.</p>}
-                                {!cat.imageUrl && <p style={{ color: '#5C5248', fontSize: '11px', margin: 0 }}>Si no subes una foto propia, la categoría muestra la foto de su primer servicio.</p>}
+                                {cat.imageUrl && <p style={{ color: '#D6CBB8', fontSize: '11px', margin: 0 }}>La miniatura del listado de categorías del portal usa esta foto.</p>}
+                                {!cat.imageUrl && <p style={{ color: '#D6CBB8', fontSize: '11px', margin: 0 }}>Si no subes una foto propia, la categoría muestra la foto de su primer servicio.</p>}
                               </div>
                             </div>
                           </div>
-                          <label style={{ color: '#5C5248', fontSize: '13px' }}>Código<input type="text" value={cat.code} onChange={e => handleUpdateCategoryCode(cat.id, e.target.value)} style={{ display: 'block', width: '90px', padding: '12px', boxSizing: 'border-box', marginTop: '6px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '7px' }} /></label>
-                          <label style={{ flex: '1 1 220px', color: '#5C5248', fontSize: '13px' }}>Nombre de la categoría<input type="text" value={cat.title} onChange={e => handleUpdateCategoryTitle(cat.id, e.target.value)} style={{ display: 'block', width: '100%', padding: '12px', boxSizing: 'border-box', marginTop: '6px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '7px', fontSize: '14px' }} /></label>
-                          <button type="button" disabled={catIdx === 0} onClick={() => handleMoveCategory(catIdx, -1)} style={{ background: '#EADCC7', border: '1px solid #E6D5B8', color: '#2C2521', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Subir ↑</button>
-                          <button type="button" disabled={catIdx === catalog.length - 1} onClick={() => handleMoveCategory(catIdx, 1)} style={{ background: '#EADCC7', border: '1px solid #E6D5B8', color: '#2C2521', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Bajar ↓</button>
-                          <button type="button" onClick={() => handleDeleteCategory(cat.id)} style={{ background: '#EADCC7', border: '1px solid #74433e', color: '#C0392B', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Eliminar categoría</button>
+                          <label style={{ color: '#D6CBB8', fontSize: '13px' }}>Código<input type="text" value={cat.code} onChange={e => handleUpdateCategoryCode(cat.id, e.target.value)} style={{ display: 'block', width: '90px', padding: '12px', boxSizing: 'border-box', marginTop: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '7px' }} /></label>
+                          <label style={{ flex: '1 1 220px', color: '#D6CBB8', fontSize: '13px' }}>Nombre de la categoría<input type="text" value={cat.title} onChange={e => handleUpdateCategoryTitle(cat.id, e.target.value)} style={{ display: 'block', width: '100%', padding: '12px', boxSizing: 'border-box', marginTop: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '7px', fontSize: '14px' }} /></label>
+                          <button type="button" disabled={catIdx === 0} onClick={() => handleMoveCategory(catIdx, -1)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Subir ↑</button>
+                          <button type="button" disabled={catIdx === catalog.length - 1} onClick={() => handleMoveCategory(catIdx, 1)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Bajar ↓</button>
+                          <button type="button" onClick={() => handleDeleteCategory(cat.id)} style={{ background: '#322A25', border: '1px solid #74433e', color: '#C0392B', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Eliminar categoría</button>
                         </div>
-                        <p style={{ color: '#5C5248', fontSize: '12px', marginBottom: 0 }}>Después de modificar el nombre, código u orden, pulsa «Guardar catálogo».</p>
+                        <p style={{ color: '#D6CBB8', fontSize: '12px', marginBottom: 0 }}>Después de modificar el nombre, código u orden, pulsa «Guardar catálogo».</p>
                       </details>
                       {isCategoryExpandedAdmin && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingLeft: '15px', borderLeft: '2px solid rgba(212, 175, 55, 0.2)', marginTop: '8px' }}>
                           {cat.subservices.filter(sub => matchesStatus(sub) && (!query || categoryMatches || normalizeCatalogSearch(sub.name).includes(query))).map((sub) => {
                             const isExpandedAdmin = true;
                             return (
-                              <div className="studio-catalog-service-row" key={sub.id} style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                              <div className="studio-catalog-service-row" key={sub.id} style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <div className="studio-catalog-service-heading" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '14px', padding: '8px' }}>
-                                  <div style={{ flex: '1 1 220px' }}><h4 style={{ color: '#2C2521', fontSize: '18px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', lineHeight: 1.4, margin: '0 0 8px' }}>{sub.name}</h4><span style={{ color: '#8F6D24', fontSize: '14px' }}>{sub.price}</span><span style={{ color: '#5C5248', fontSize: '13px', marginLeft: '14px' }}>{sub.duration}</span></div>
-                                  <span style={{ color: sub.active === false ? '#5C5248' : '#2E7D32', border: '1px solid #E6D5B8', borderRadius: '20px', padding: '6px 12px', fontSize: '12px' }}>{sub.active === false ? 'Desactivado' : 'Activo'}</span>
-                                  <button type="button" onClick={() => { setPreviewServiceId(sub.id); setPreviewVariantId(sub.hasVariants ? sub.variants?.[0]?.id || '' : ''); }} style={{ background: 'none', color: '#8F6D24', border: '1px solid #C5A059', borderRadius: '7px', padding: '10px 14px', minHeight: '44px', cursor: 'pointer' }}>Vista previa</button>
+                                  <div style={{ flex: '1 1 220px' }}><h4 style={{ color: '#FFF8EE', fontSize: '18px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', lineHeight: 1.4, margin: '0 0 8px' }}>{sub.name}</h4><span style={{ color: '#E4C687', fontSize: '14px' }}>{sub.price}</span><span style={{ color: '#D6CBB8', fontSize: '13px', marginLeft: '14px' }}>{sub.duration}</span></div>
+                                  <span style={{ color: sub.active === false ? '#5C5248' : '#2E7D32', border: '1px solid #3A312A', borderRadius: '20px', padding: '6px 12px', fontSize: '12px' }}>{sub.active === false ? 'Desactivado' : 'Activo'}</span>
+                                  <button type="button" onClick={() => { setPreviewServiceId(sub.id); setPreviewVariantId(sub.hasVariants ? sub.variants?.[0]?.id || '' : ''); }} style={{ background: 'none', color: '#E4C687', border: '1px solid #C5A059', borderRadius: '7px', padding: '10px 14px', minHeight: '44px', cursor: 'pointer' }}>Vista previa</button>
                                 </div>
                                 <details open={catalogEditorId === sub.id} onToggle={event => {
                                   if (event.currentTarget.open) { if (catalogEditorId !== sub.id) { setCatalogEditorId(sub.id); setCatalogEditorTab('data'); } }
                                   else if (catalogEditorId === sub.id) setCatalogEditorId(null);
-                                }} data-editor-tab={catalogEditorTab} className="studio-service-editor"  style={{ borderTop: '1px solid #E6D5B8', padding: '12px 8px 4px' }}>
-                                  <summary style={{ color: '#8F6D24', fontSize: '14px', cursor: 'pointer', padding: '8px 0' }}>Editar</summary>
+                                }} data-editor-tab={catalogEditorTab} className="studio-service-editor"  style={{ borderTop: '1px solid #3A312A', padding: '12px 8px 4px' }}>
+                                  <summary style={{ color: '#E4C687', fontSize: '14px', cursor: 'pointer', padding: '8px 0' }}>Editar</summary>
                                   <div className="studio-editor-toolbar">
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                                      <h3 style={{ color: '#2C2521', fontSize: '22px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>{sub.name}</h3>
+                                      <h3 style={{ color: '#FFF8EE', fontSize: '22px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>{sub.name}</h3>
                                       <button type="button" onClick={() => setCatalogEditorId(null)}>Cerrar</button>
                                     </div>
                                     <nav aria-label="Apartados del servicio" style={{ display: 'flex', flexWrap: 'wrap', gap: '7px', margin: '15px 0' }}>
                                       {([['data', 'Datos'], ['options', 'Opciones'], ['booking', 'Reserva'], ['languages', 'Idiomas']] as const).map(([tab, label]) =>
                                         <button type="button" key={tab} aria-pressed={catalogEditorTab === tab} onClick={() => setCatalogEditorTab(tab)}
-                                          style={{ background: catalogEditorTab === tab ? '#8F6D24' : '#F3E8D7', color: catalogEditorTab === tab ? '#2C2521' : '#8F6D24', padding: '10px', border: '1px solid #C5A059', borderRadius: '6px', cursor: 'pointer' }}>{label}</button>)}
+                                          style={{ background: catalogEditorTab === tab ? '#8F6D24' : '#3E342C', color: catalogEditorTab === tab ? '#2C2521' : '#8F6D24', padding: '10px', border: '1px solid #C5A059', borderRadius: '6px', cursor: 'pointer' }}>{label}</button>)}
                                     </nav>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-                                      <button type="button" onClick={handleSaveCatalogMaster} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#2C2521', padding: '10px', border: 0, cursor: 'pointer' }}>Guardar cambios</button>
+                                      <button type="button" onClick={handleSaveCatalogMaster} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', padding: '10px', border: 0, cursor: 'pointer' }}>Guardar cambios</button>
                                       <button type="button" onClick={() => { setPreviewServiceId(sub.id); setPreviewVariantId(sub.hasVariants ? sub.variants?.[0]?.id || '' : ''); }}>Vista previa</button>
-                                      <span style={{ color: '#5C5248', fontSize: '12px' }}>{catalogHasChanges ? 'Cambios pendientes' : 'Catálogo guardado'}</span>
+                                      <span style={{ color: '#D6CBB8', fontSize: '12px' }}>{catalogHasChanges ? 'Cambios pendientes' : 'Catálogo guardado'}</span>
                                     </div>
-                                    <p style={{ color: '#5C5248', fontSize: '11px', marginBottom: 0 }}>Guardar conserva todos los cambios pendientes del catálogo.</p>
+                                    <p style={{ color: '#D6CBB8', fontSize: '11px', marginBottom: 0 }}>Guardar conserva todos los cambios pendientes del catálogo.</p>
                                     {catalogSavedMsg && <p role="status" style={{ color: '#2E7D32', fontSize: '12px' }}>{catalogSavedMsg}</p>}
                                   </div>
 
                                   <details open className="studio-editor-languages" style={{ padding: '16px', marginTop: '16px', border: '1px solid #C5A059', borderRadius: '10px' }}>
-                                    <summary style={{ color: '#8F6D24', cursor: 'pointer' }}>Idiomas · Traducciones del servicio</summary>
-                                    <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.6 }}>Escribe la traducción de cada campo. Si queda vacío, el portal mostrará el contenido original en español. Los precios y la duración se mantienen comunes.</p>
+                                    <summary style={{ color: '#E4C687', cursor: 'pointer' }}>Idiomas · Traducciones del servicio</summary>
+                                    <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6 }}>Escribe la traducción de cada campo. Si queda vacío, el portal mostrará el contenido original en español. Los precios y la duración se mantienen comunes.</p>
                                     <label>Idioma de la traducción<select value={catalogTranslationLang} onChange={event => setCatalogTranslationLang(event.target.value)} style={{ display: 'block', width: '100%', margin: '8px 0 16px' }}>
                                       {Object.keys(TRANSLATIONS).filter(language => language !== 'es').map(language => <option key={language} value={language}>{({ en: 'English', fr: 'Français', it: 'Italiano', pt: 'Português', de: 'Deutsch', nl: 'Nederlands', pl: 'Polski', cs: 'Čeština', nb: 'Norsk', sv: 'Svenska', ar: 'العربية' } as Record<string, string>)[language]}</option>)}
                                     </select></label>
-                                    {([{ field: 'name', label: 'Nombre del servicio' }, { field: 'description', label: 'Descripción' }, { field: 'includesText', label: 'Qué incluye' }, { field: 'achievedText', label: 'Qué consigues' }, { field: 'alertText', label: 'Aviso del servicio' }] as { field: keyof ServiceTranslation; label: string }[]).map(({field, label}) => <label key={field} style={{ display: 'block', marginBottom: '14px' }}>{label}<span style={{ display: 'block', color: '#5C5248', fontSize: '12px', margin: '6px 0', whiteSpace: 'pre-wrap' }}>Original: {sub[field] || 'Sin contenido'}</span><textarea dir={catalogTranslationLang === 'ar' ? 'rtl' : 'ltr'} lang={catalogTranslationLang} value={sub.translations?.[catalogTranslationLang]?.[field] || ''} onChange={event => updateServiceTranslation(cat.id, sub.id, field, event.target.value)} placeholder="Añade aquí la traducción" style={{ width: '100%' }} /></label>)}
+                                    {([{ field: 'name', label: 'Nombre del servicio' }, { field: 'description', label: 'Descripción' }, { field: 'includesText', label: 'Qué incluye' }, { field: 'achievedText', label: 'Qué consigues' }, { field: 'alertText', label: 'Aviso del servicio' }] as { field: keyof ServiceTranslation; label: string }[]).map(({field, label}) => <label key={field} style={{ display: 'block', marginBottom: '14px' }}>{label}<span style={{ display: 'block', color: '#D6CBB8', fontSize: '12px', margin: '6px 0', whiteSpace: 'pre-wrap' }}>Original: {sub[field] || 'Sin contenido'}</span><textarea dir={catalogTranslationLang === 'ar' ? 'rtl' : 'ltr'} lang={catalogTranslationLang} value={sub.translations?.[catalogTranslationLang]?.[field] || ''} onChange={event => updateServiceTranslation(cat.id, sub.id, field, event.target.value)} placeholder="Añade aquí la traducción" style={{ width: '100%' }} /></label>)}
 
-                                    {!!sub.variants?.length && <section style={{ borderTop: '1px solid #E6D5B8', paddingTop: '14px' }}>
-                                      <h4 style={{ color: '#8F6D24', margin: '0 0 12px' }}>Nombres de variantes · {catalogTranslationLang.toUpperCase()}</h4>
-                                      <p style={{ color: '#5C5248', fontSize: '12px' }}>Deja el campo vacío para mostrar el nombre original. Precio y duración son comunes a todos los idiomas.</p>
+                                    {!!sub.variants?.length && <section style={{ borderTop: '1px solid #3A312A', paddingTop: '14px' }}>
+                                      <h4 style={{ color: '#E4C687', margin: '0 0 12px' }}>Nombres de variantes · {catalogTranslationLang.toUpperCase()}</h4>
+                                      <p style={{ color: '#D6CBB8', fontSize: '12px' }}>Deja el campo vacío para mostrar el nombre original. Precio y duración son comunes a todos los idiomas.</p>
                                       {sub.variants.map(variant => <label key={variant.id} style={{ display: 'block', marginBottom: '14px' }}>Original: {variant.name}<input dir={catalogTranslationLang === 'ar' ? 'rtl' : 'ltr'} lang={catalogTranslationLang} value={variant.translations?.[catalogTranslationLang]?.name || ''} onChange={event => { const name = event.target.value; setCatalog(previous => previous.map(category => category.id !== cat.id ? category : { ...category, subservices: category.subservices.map(service => service.id !== sub.id ? service : { ...service, variants: service.variants?.map(item => item.id !== variant.id ? item : { ...item, translations: { ...item.translations, [catalogTranslationLang]: { name } } }) }) })); }} style={{ display: 'block', width: '100%', marginTop: '6px' }} /></label>)}
                                     </section>}
-                                    <button type="button" onClick={() => { if (window.confirm('¿Borrar todos los textos traducidos de este servicio en el idioma seleccionado? Se mostrará el original en español.')) setCatalog(previous => previous.map(category => category.id !== cat.id ? category : { ...category, subservices: category.subservices.map(service => { if (service.id !== sub.id) return service; const translations = { ...service.translations }; delete translations[catalogTranslationLang]; return { ...service, translations, variants: service.variants?.map(variant => { const variantTranslations = { ...variant.translations }; delete variantTranslations[catalogTranslationLang]; return { ...variant, translations: variantTranslations }; }) }; }) })); }} style={{ background: 'none', border: '1px solid #E6D5B8', color: '#C0392B', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Borrar traducción de este idioma</button>
+                                    <button type="button" onClick={() => { if (window.confirm('¿Borrar todos los textos traducidos de este servicio en el idioma seleccionado? Se mostrará el original en español.')) setCatalog(previous => previous.map(category => category.id !== cat.id ? category : { ...category, subservices: category.subservices.map(service => { if (service.id !== sub.id) return service; const translations = { ...service.translations }; delete translations[catalogTranslationLang]; return { ...service, translations, variants: service.variants?.map(variant => { const variantTranslations = { ...variant.translations }; delete variantTranslations[catalogTranslationLang]; return { ...variant, translations: variantTranslations }; }) }; }) })); }} style={{ background: 'none', border: '1px solid #3A312A', color: '#C0392B', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Borrar traducción de este idioma</button>
                                   </details>
 
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', paddingTop: '16px' }}>
 
-                                <button type="button" onClick={() => { setPreviewServiceId(sub.id); setPreviewVariantId(sub.hasVariants ? sub.variants?.[0]?.id || '' : ''); }} style={{ alignSelf: 'flex-start', background: 'none', color: '#8F6D24', border: '1px solid #B98A3E', borderRadius: '5px', padding: '7px 12px', cursor: 'pointer' }}>Vista previa · Clienta</button>
+                                <button type="button" onClick={() => { setPreviewServiceId(sub.id); setPreviewVariantId(sub.hasVariants ? sub.variants?.[0]?.id || '' : ''); }} style={{ alignSelf: 'flex-start', background: 'none', color: '#E4C687', border: '1px solid #B98A3E', borderRadius: '5px', padding: '7px 12px', cursor: 'pointer' }}>Vista previa · Clienta</button>
                                 <label style={{ color: sub.active === false ? '#5C5248' : '#8F6D24', fontSize: '12px' }}>
                                   <input type="checkbox" checked={sub.active !== false} onChange={e => {
                                     const active = e.target.checked;
@@ -5202,45 +5202,45 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                     <label className="studio-base-field">Nombre del servicio<input type="text" value={sub.name} onChange={(e) => {
                                       const updatedName = e.target.value;
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, name: updatedName } : s) } : c));
-                                    }} style={{ backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', flex: 1 }} /></label>
+                                    }} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', flex: 1 }} /></label>
                                     <label className="studio-base-field">Precio base<input type="text" value={sub.price} onChange={(e) => {
                                       const updatedPrice = e.target.value;
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, price: updatedPrice } : s) } : c));
-                                    }} style={{ backgroundColor: '#EADCC7', border: '1px solid #B98A3E', color: '#2C2521', padding: '4px 8px', borderRadius: '4px', fontSize: '14px', width: '100px' }} /></label>
+                                    }} style={{ backgroundColor: '#322A25', border: '1px solid #B98A3E', color: '#FFF8EE', padding: '4px 8px', borderRadius: '4px', fontSize: '14px', width: '100px' }} /></label>
                                     <label className="studio-base-field">Duración base<input type="text" value={sub.duration} onChange={(e) => {
                                       const updatedDur = e.target.value;
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, duration: updatedDur } : s) } : c));
-                                    }} style={{ backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#5C5248', padding: '4px 8px', borderRadius: '4px', fontSize: '14px', width: '80px' }} /></label>
+                                    }} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#D6CBB8', padding: '4px 8px', borderRadius: '4px', fontSize: '14px', width: '80px' }} /></label>
                                   </div>
                                   <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-                                    <label style={{ color: '#8F6D24', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
+                                    <label style={{ color: '#E4C687', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer' }}>
                                       <input type="checkbox" checked={!!sub.hasVariants} onChange={() => handleToggleVariants(cat.id, sub.id)} style={{ accentColor: '#8F6D24' }} />
                                       Opciones de largo o pack
                                     </label>
                                     <button onClick={() => handleDeleteSubservice(cat.id, sub.id)} style={{ background: 'none', border: 'none', color: '#C0392B', cursor: 'pointer', fontSize: '14px' }}>X</button>
                                   </div>
                                 </div>
-                                <div className="studio-editor-booking" style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
+                                <div className="studio-editor-booking" style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     <input type="checkbox" checked={!!sub.showAlertBadge} onChange={(e) => {
                                       const val = e.target.checked;
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, showAlertBadge: val } : s) } : c));
                                     }} style={{ accentColor: '#8F6D24', width: '16px', height: '16px', cursor: 'pointer' }} />
-                                    <span style={{ color: '#8F6D24', fontSize: '14px', fontWeight: 'bold' }}>💡 Activar aviso/advertencia en este servicio</span>
+                                    <span style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold' }}>💡 Activar aviso/advertencia en este servicio</span>
                                   </div>
                                   {sub.showAlertBadge && (
                                     <input type="text" value={sub.alertText || ''} onChange={(e) => {
                                       const val = e.target.value;
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, alertText: val } : s) } : c));
-                                    }} placeholder="Texto del aviso (ej. ⚠️ Recuerda añadir tu peinado)" style={{ width: '100%', padding: '6px', backgroundColor: '#EADCC7', border: '1px solid #B98A3E', color: '#2C2521', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }} />
+                                    }} placeholder="Texto del aviso (ej. ⚠️ Recuerda añadir tu peinado)" style={{ width: '100%', padding: '6px', backgroundColor: '#322A25', border: '1px solid #B98A3E', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px', boxSizing: 'border-box' }} />
                                   )}
                                 </div>
                                 {sub.hasVariants && (
-                                  <div className="studio-editor-options" style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
-                                    <span style={{ color: '#8F6D24', fontSize: '14px', fontWeight: 'bold' }}>Opciones del servicio</span>
+                                  <div className="studio-editor-options" style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
+                                    <span style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold' }}>Opciones del servicio</span>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
                                       {sub.variants?.map((v) => (
-                                        <div key={v.id} style={{ backgroundColor: '#EADCC7', border: '1px solid #B98A3E', borderRadius: '4px', padding: '6px 10px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#2C2521', width: '100%', boxSizing: 'border-box' }}>
+                                        <div key={v.id} style={{ backgroundColor: '#322A25', border: '1px solid #B98A3E', borderRadius: '4px', padding: '6px 10px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#FFF8EE', width: '100%', boxSizing: 'border-box' }}>
                                           <div className="studio-variant-fields">
                                             {(['name', 'description', 'price', 'duration'] as const).map(field => <label key={field}>{({ name: 'Nombre de la opción', description: 'Descripción · Largo o qué incluye', price: 'Precio', duration: 'Duración' })[field]}<input aria-label={`${field} de ${v.name}`} type="text" value={v[field] || ''} onChange={e => {
                                               const value = e.target.value;
@@ -5257,33 +5257,33 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                                 [variants[index], variants[target]] = [variants[target], variants[index]];
                                                 return { ...service, variants };
                                               })
-                                            }))} style={{ padding: '8px', background: '#EADCC7', border: '1px solid #E6D5B8', color: '#2C2521', cursor: 'pointer' }}>{direction < 0 ? '↑' : '↓'}</button>)}
+                                            }))} style={{ padding: '8px', background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', cursor: 'pointer' }}>{direction < 0 ? '↑' : '↓'}</button>)}
                                           <button onClick={() => handleDeleteVariant(cat.id, sub.id, v.id)} style={{ background: 'none', border: 'none', color: '#C0392B', cursor: 'pointer', fontSize: '14px' }}>x</button>
                                         </div>
                                       ))}
                                     </div>
                                     <form className="studio-new-form" onSubmit={(e) => handleAddVariant(cat.id, sub.id, e)} style={{ display: 'flex', gap: '8px', marginTop: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                      <label className="studio-new-field">Nombre de la opción *<input required type="text" placeholder="Nombre (ej. M)" value={newVariantName} onChange={(e) => setNewVariantName(e.target.value)} style={{ width: '80px', padding: '6px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '4px', fontSize: '14px' }} /></label>
-                                      <label className="studio-new-field">Precio *<input required type="text" placeholder="Precio (ej. 320,00 €)" value={newVariantPrice} onChange={(e) => setNewVariantPrice(e.target.value)} style={{ width: '120px', padding: '6px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '4px', fontSize: '14px' }} /></label>
-                                      <label className="studio-new-field">Duración *<input required type="text" placeholder="Duración (ej. 240 min)" value={newVariantDuration} onChange={(e) => setNewVariantDuration(e.target.value)} style={{ width: '110px', padding: '6px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '4px', fontSize: '14px' }} /></label>
-                                      <p style={{ width: '100%', fontSize: '12px', color: '#5C5248', margin: 0 }}>Se añadirá a la lista. Pulsa Guardar catálogo para conservarla.</p>
-                                      <button type="button" onClick={() => { setNewVariantName(''); setNewVariantPrice(''); setNewVariantDuration(''); }} style={{ padding: '10px 14px', background: 'transparent', border: '1px solid #E6D5B8', color: '#5C5248', borderRadius: '7px', cursor: 'pointer' }}>Cancelar</button>
-                                      <button type="submit" style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#2C2521', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>+ Añadir opción</button>
+                                      <label className="studio-new-field">Nombre de la opción *<input required type="text" placeholder="Nombre (ej. M)" value={newVariantName} onChange={(e) => setNewVariantName(e.target.value)} style={{ width: '80px', padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} /></label>
+                                      <label className="studio-new-field">Precio *<input required type="text" placeholder="Precio (ej. 320,00 €)" value={newVariantPrice} onChange={(e) => setNewVariantPrice(e.target.value)} style={{ width: '120px', padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} /></label>
+                                      <label className="studio-new-field">Duración *<input required type="text" placeholder="Duración (ej. 240 min)" value={newVariantDuration} onChange={(e) => setNewVariantDuration(e.target.value)} style={{ width: '110px', padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} /></label>
+                                      <p style={{ width: '100%', fontSize: '12px', color: '#D6CBB8', margin: 0 }}>Se añadirá a la lista. Pulsa Guardar catálogo para conservarla.</p>
+                                      <button type="button" onClick={() => { setNewVariantName(''); setNewVariantPrice(''); setNewVariantDuration(''); }} style={{ padding: '10px 14px', background: 'transparent', border: '1px solid #3A312A', color: '#D6CBB8', borderRadius: '7px', cursor: 'pointer' }}>Cancelar</button>
+                                      <button type="submit" style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>+ Añadir opción</button>
                                     </form>
                                   </div>
                                 )}
                                 {isExpandedAdmin && (
-                                  <div style={{ backgroundColor: '#EADCC7', padding: '10px', borderRadius: '6px', fontSize: '14px', color: '#5C5248', display: 'flex', flexDirection: 'column', gap: '6px', borderLeft: '2px solid #B98A3E', marginTop: '4px' }}>
+                                  <div style={{ backgroundColor: '#322A25', padding: '10px', borderRadius: '6px', fontSize: '14px', color: '#D6CBB8', display: 'flex', flexDirection: 'column', gap: '6px', borderLeft: '2px solid #B98A3E', marginTop: '4px' }}>
                                     <div className="studio-editor-data" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                      <h4 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '20px', margin: '8px 0 12px' }}>Contenido para la clienta</h4>
-                                      <label style={{ color: '#8F6D24', fontSize: '12px' }}>Descripción:</label>
+                                      <h4 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '20px', margin: '8px 0 12px' }}>Contenido para la clienta</h4>
+                                      <label style={{ color: '#E4C687', fontSize: '12px' }}>Descripción:</label>
                                       <textarea value={sub.description} onChange={(e) => {
                                         const val = e.target.value;
                                         setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, description: val } : s) } : c));
-                                      }} rows={2} style={{ backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
+                                      }} rows={2} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
                                     </div>
-<section className="studio-editor-booking studio-booking-buttons" style={{ padding: '16px', border: '1px solid #E6D5B8', borderRadius: '10px', background: '#EADCC7' }}>
-                                      <h4 style={{ color: '#2C2521', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '17px', margin: '0 0 18px' }}>Condiciones de reserva</h4>
+<section className="studio-editor-booking studio-booking-buttons" style={{ padding: '16px', border: '1px solid #3A312A', borderRadius: '10px', background: '#322A25' }}>
+                                      <h4 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '17px', margin: '0 0 18px' }}>Condiciones de reserva</h4>
                                       <fieldset>
                                         <legend>Reserva</legend>
                                         <div className="studio-condition-choices">
@@ -5297,7 +5297,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                         </div>
                                       </fieldset>
                                       {(!sub.isTonerService || !sub.isStylingService) && <div className="studio-condition-finishes">
-                                        <h5 style={{ fontSize: '13px', color: '#8F6D24', margin: '0 0 12px', fontWeight: 'normal' }}>Acabados del servicio</h5>
+                                        <h5 style={{ fontSize: '13px', color: '#E4C687', margin: '0 0 12px', fontWeight: 'normal' }}>Acabados del servicio</h5>
                                         {([{ field: 'tonerPolicy', label: 'Matiz', hidden: !!sub.isTonerService }, { field: 'stylingPolicy', label: 'Peinado', hidden: !!sub.isStylingService }] as const).filter(row => !row.hidden).map(row => <fieldset key={row.field}>
                                           <legend>{row.label}</legend>
                                           <div className="studio-condition-choices">
@@ -5313,47 +5313,47 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                         <p>Los complementos suman su precio y duración. Incluido significa que el acabado ya forma parte del servicio; Añadir pide elegirlo por separado.</p>
                                       </details>
                                     </section>
-                                    <div className="studio-editor-data" style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px' }}>
-                                      <label style={{ color: '#8F6D24', fontSize: '12px', fontWeight: 'bold' }}>Fotografía del servicio</label>
+                                    <div className="studio-editor-data" style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px' }}>
+                                      <label style={{ color: '#E4C687', fontSize: '12px', fontWeight: 'bold' }}>Fotografía del servicio</label>
                                       <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                                        <div style={{ width: '140px', height: '105px', borderRadius: '8px', overflow: 'hidden', background: '#F3E8D7', flexShrink: 0, border: '1px solid #E6D5B8' }}>
+                                        <div style={{ width: '140px', height: '105px', borderRadius: '8px', overflow: 'hidden', background: '#3E342C', flexShrink: 0, border: '1px solid #3A312A' }}>
                                           {sub.imageUrl
                                             ? <img src={sub.imageUrl} alt={'Foto actual de ' + sub.name} style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: `${sub.imagePosition?.x ?? 50}% ${sub.imagePosition?.y ?? 50}%` }} />
-                                            : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#8F6D24', fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '26px', letterSpacing: '3px' }}>LS</span>}
+                                            : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#E4C687', fontFamily: "'Cormorant Garamond', Georgia, serif", fontSize: '26px', letterSpacing: '3px' }}>LS</span>}
                                         </div>
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '180px' }}>
-                                          <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', minHeight: '44px', padding: '10px 14px', background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#2C2521', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: photoUploadBusy ? 'wait' : 'pointer' }}>
+                                          <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', minHeight: '44px', padding: '10px 14px', background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: photoUploadBusy ? 'wait' : 'pointer' }}>
                                             <ImagePlus size={16} strokeWidth={1.8} aria-hidden="true" />
                                             {photoUploadBusy ? 'Subiendo…' : (sub.imageUrl ? 'Sustituir por otra foto' : 'Subir foto desde el dispositivo')}
                                             <input type="file" accept="image/*" disabled={photoUploadBusy} onChange={(e) => { handleServicePhotoSelect(cat.id, sub.id, e.target.files?.[0]); e.target.value = ''; }} style={{ display: 'none' }} />
                                           </label>
-                                          {sub.imageUrl && <button type="button" disabled={photoUploadBusy} onClick={() => handleServicePhotoDelete(cat.id, sub.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 14px', background: '#EADCC7', color: '#C0392B', border: '1px solid #dfaaa3', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>
+                                          {sub.imageUrl && <button type="button" disabled={photoUploadBusy} onClick={() => handleServicePhotoDelete(cat.id, sub.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 14px', background: '#322A25', color: '#C0392B', border: '1px solid #dfaaa3', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>
                                             <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" /> Eliminar foto
                                           </button>}
                                           {sub.imageUrl && <>
-                                            <label style={{ color: '#5C5248', fontSize: '12px' }}>Encuadre horizontal: {sub.imagePosition?.x ?? 50}%</label>
+                                            <label style={{ color: '#D6CBB8', fontSize: '12px' }}>Encuadre horizontal: {sub.imagePosition?.x ?? 50}%</label>
                                             <input type="range" min={0} max={100} value={sub.imagePosition?.x ?? 50} onChange={(e) => updateSubserviceField(cat.id, sub.id, { imagePosition: { x: Number(e.target.value), y: sub.imagePosition?.y ?? 50 } })} style={{ accentColor: '#8F6D24' }} />
-                                            <label style={{ color: '#5C5248', fontSize: '12px' }}>Encuadre vertical: {sub.imagePosition?.y ?? 50}%</label>
+                                            <label style={{ color: '#D6CBB8', fontSize: '12px' }}>Encuadre vertical: {sub.imagePosition?.y ?? 50}%</label>
                                             <input type="range" min={0} max={100} value={sub.imagePosition?.y ?? 50} onChange={(e) => updateSubserviceField(cat.id, sub.id, { imagePosition: { x: sub.imagePosition?.x ?? 50, y: Number(e.target.value) } })} style={{ accentColor: '#8F6D24' }} />
                                           </>}
-                                          {sub.imageIsAiPlaceholder && <p style={{ color: '#5C5248', fontSize: '11px', margin: 0 }}>Esta es una imagen ilustrativa generada. Al subir tu propia foto se retirará la etiqueta del portal.</p>}
+                                          {sub.imageIsAiPlaceholder && <p style={{ color: '#D6CBB8', fontSize: '11px', margin: 0 }}>Esta es una imagen ilustrativa generada. Al subir tu propia foto se retirará la etiqueta del portal.</p>}
                                         </div>
                                       </div>
-                                      <input type="url" value={sub.imageUrl || ''} onChange={(e) => updateSubserviceField(cat.id, sub.id, { imageUrl: e.target.value, imageIsAiPlaceholder: e.target.value ? false : sub.imageIsAiPlaceholder })} placeholder="O pega la URL de una foto (https://...)" style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', color: '#2C2521', padding: '6px', borderRadius: '4px', fontSize: '13px' }} />
+                                      <input type="url" value={sub.imageUrl || ''} onChange={(e) => updateSubserviceField(cat.id, sub.id, { imageUrl: e.target.value, imageIsAiPlaceholder: e.target.value ? false : sub.imageIsAiPlaceholder })} placeholder="O pega la URL de una foto (https://...)" style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '6px', borderRadius: '4px', fontSize: '13px' }} />
                                     </div>
                                     <div className="studio-editor-data" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                      <label style={{ color: '#8F6D24', fontSize: '12px' }}>Qué incluye:</label>
+                                      <label style={{ color: '#E4C687', fontSize: '12px' }}>Qué incluye:</label>
                                       <input type="text" value={sub.includesText || ''} onChange={(e) => {
                                         const val = e.target.value;
                                         setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, includesText: val } : s) } : c));
-                                      }} style={{ backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
+                                      }} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
                                     </div>
                                     <div className="studio-editor-data" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                      <label style={{ color: '#8F6D24', fontSize: '12px' }}>Qué se consigue:</label>
+                                      <label style={{ color: '#E4C687', fontSize: '12px' }}>Qué se consigue:</label>
                                       <input type="text" value={sub.achievedText || ''} onChange={(e) => {
                                         const val = e.target.value;
                                         setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, achievedText: val } : s) } : c));
-                                      }} style={{ backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
+                                      }} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
                                     </div>
                                   </div>
                                 )}
@@ -5363,46 +5363,46 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                             );
                           })}
                           {isAddingSub === cat.id ? (
-                            <form className="studio-new-form" onSubmit={(e) => handleAddSubserviceSubmit(cat.id, e)} style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#EADCC7', padding: '12px', borderRadius: '6px', border: '1px solid #E6D5B8', marginTop: '5px' }}>
-                              <h5 style={{ color: '#8F6D24', fontSize: '12px', margin: 0 }}>Nuevo servicio</h5>
-                              <label className="studio-new-field">Nombre del servicio *<input type="text" placeholder="Nombre del servicio" value={newSubName} onChange={(e) => setNewSubName(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '6px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '4px', fontSize: '14px' }} /></label>
-                              <label className="studio-new-field">Descripción para la clienta<input type="text" placeholder="Descripción breve" value={newSubDesc} onChange={(e) => setNewSubDesc(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '6px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '4px', fontSize: '14px' }} /></label>
+                            <form className="studio-new-form" onSubmit={(e) => handleAddSubserviceSubmit(cat.id, e)} style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#322A25', padding: '12px', borderRadius: '6px', border: '1px solid #3A312A', marginTop: '5px' }}>
+                              <h5 style={{ color: '#E4C687', fontSize: '12px', margin: 0 }}>Nuevo servicio</h5>
+                              <label className="studio-new-field">Nombre del servicio *<input type="text" placeholder="Nombre del servicio" value={newSubName} onChange={(e) => setNewSubName(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} /></label>
+                              <label className="studio-new-field">Descripción para la clienta<input type="text" placeholder="Descripción breve" value={newSubDesc} onChange={(e) => setNewSubDesc(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} /></label>
                               <div style={{ display: 'flex', gap: '8px' }}>
-                                <label className="studio-new-field">Duración *<input required type="text" placeholder="Duración (ej. 45 min)" value={newSubDur} onChange={(e) => setNewSubDur(e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '6px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '4px', fontSize: '14px' }} /></label>
+                                <label className="studio-new-field">Duración *<input required type="text" placeholder="Duración (ej. 45 min)" value={newSubDur} onChange={(e) => setNewSubDur(e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} /></label>
                               </div>
                               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                                <select aria-label="Tipo de precio" value={newSubPriceType} onChange={(e) => setNewSubPriceType(e.target.value as any)} style={{ padding: '6px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '4px', fontSize: '14px' }}>
+                                <select aria-label="Tipo de precio" value={newSubPriceType} onChange={(e) => setNewSubPriceType(e.target.value as any)} style={{ padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }}>
                                   <option value="desde">Desde</option>
                                   <option value="aprox">Aprox.</option>
                                   <option value="fijo">Fijo</option>
                                   <option value="consultar">Consultar</option>
                                 </select>
-                                <label className="studio-new-field">Precio<input type="text" placeholder="Precio (ej. 45 €)" value={newSubPrice} onChange={(e) => setNewSubPrice(e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '6px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '4px', fontSize: '14px' }} /></label>
+                                <label className="studio-new-field">Precio<input type="text" placeholder="Precio (ej. 45 €)" value={newSubPrice} onChange={(e) => setNewSubPrice(e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} /></label>
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <label style={{ color: '#8F6D24', fontSize: '12px' }}>Qué incluye:</label>
-                                <input type="text" placeholder="Ej. Lavado sensorial y protector térmico" value={newSubIncludes} onChange={(e) => setNewSubIncludes(e.target.value)} style={{ padding: '6px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '4px', fontSize: '14px' }} />
+                                <label style={{ color: '#E4C687', fontSize: '12px' }}>Qué incluye:</label>
+                                <input type="text" placeholder="Ej. Lavado sensorial y protector térmico" value={newSubIncludes} onChange={(e) => setNewSubIncludes(e.target.value)} style={{ padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} />
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <label style={{ color: '#8F6D24', fontSize: '12px' }}>Qué se consigue:</label>
-                                <input type="text" placeholder="Ej. Brillo extremo y duración prolongada" value={newSubAchieved} onChange={(e) => setNewSubAchieved(e.target.value)} style={{ padding: '6px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '4px', fontSize: '14px' }} />
+                                <label style={{ color: '#E4C687', fontSize: '12px' }}>Qué se consigue:</label>
+                                <input type="text" placeholder="Ej. Brillo extremo y duración prolongada" value={newSubAchieved} onChange={(e) => setNewSubAchieved(e.target.value)} style={{ padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} />
                               </div>
-                              <div style={{ backgroundColor: '#EADCC7', border: '1px solid #C5A059', padding: '8px', borderRadius: '4px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              <div style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', padding: '8px', borderRadius: '4px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                   <input type="checkbox" checked={newSubAlertBadge} onChange={(e) => setNewSubAlertBadge(e.target.checked)} style={{ accentColor: '#8F6D24' }} />
-                                  <span style={{ color: '#8F6D24', fontSize: '14px', fontWeight: 'bold' }}>Activar aviso en este servicio</span>
+                                  <span style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold' }}>Activar aviso en este servicio</span>
                                 </div>
                                 {newSubAlertBadge && (
-                                  <input type="text" placeholder="Texto del aviso..." value={newSubAlertText} onChange={(e) => setNewSubAlertText(e.target.value)} style={{ padding: '6px', backgroundColor: '#EADCC7', border: '1px solid #B98A3E', color: '#2C2521', borderRadius: '4px', fontSize: '14px' }} />
+                                  <input type="text" placeholder="Texto del aviso..." value={newSubAlertText} onChange={(e) => setNewSubAlertText(e.target.value)} style={{ padding: '6px', backgroundColor: '#322A25', border: '1px solid #B98A3E', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} />
                                 )}
                               </div>
                               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '4px' }}>
-                                <button type="button" onClick={() => setIsAddingSub(null)} style={{ background: 'none', border: 'none', color: '#5C5248', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
-                                <button type="submit" style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#2C2521', border: 'none', padding: '4px 10px', borderRadius: '4px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Añadir Subservicio</button>
+                                <button type="button" onClick={() => setIsAddingSub(null)} style={{ background: 'none', border: 'none', color: '#D6CBB8', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
+                                <button type="submit" style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '4px 10px', borderRadius: '4px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Añadir Subservicio</button>
                               </div>
                             </form>
                           ) : (
-                            <button onClick={() => setIsAddingSub(cat.id)} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#8F6D24', fontSize: '14px', cursor: 'pointer', padding: '2px 0' }}>+ Añadir servicio a esta categoría</button>
+                            <button onClick={() => setIsAddingSub(cat.id)} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#E4C687', fontSize: '14px', cursor: 'pointer', padding: '2px 0' }}>+ Añadir servicio a esta categoría</button>
                           )}
                         </div>
                       )}
@@ -5411,7 +5411,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 })}
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-                <button onClick={handleSaveCatalogMaster} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#2C2521', border: 'none', padding: '12px 24px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: 'none' }}>Guardar catálogo</button>
+                <button onClick={handleSaveCatalogMaster} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '12px 24px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: 'none' }}>Guardar catálogo</button>
               </div>
             </div>
           )}
@@ -5427,36 +5427,36 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                   setFechaSeleccionada(date); setMesNavegacion(new Date(date.getFullYear(), date.getMonth(), 1));
                   setViewApptModal(appointment);
                 } else alert('Esta cita ya no existe. Puedes buscar otra en la agenda.');
-              }} style={{ alignSelf: 'flex-start', padding: '10px 14px', background: '#EADCC7', color: '#2C2521',
+              }} style={{ alignSelf: 'flex-start', padding: '10px 14px', background: '#322A25', color: '#FFF8EE',
                 border: '1px solid #C5A059', borderRadius: '7px', cursor: 'pointer' }}>← Volver a la cita</button>}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
-                  <h3 style={{ color: '#8F6D24', fontSize: '28px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Clientas · Cuidado y seguimiento</h3>
-                  <p style={{ color: '#5C5248', fontSize: '14px', margin: 0 }}>Consulta sus datos, cuida su evolución y actualiza su pasaporte. Los cambios se reflejan en el portal de este navegador.</p>
+                  <h3 style={{ color: '#E4C687', fontSize: '28px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Clientas · Cuidado y seguimiento</h3>
+                  <p style={{ color: '#D6CBB8', fontSize: '14px', margin: 0 }}>Consulta sus datos, cuida su evolución y actualiza su pasaporte. Los cambios se reflejan en el portal de este navegador.</p>
                 </div>
-                <button onClick={() => setIsAddingClient(!isAddingClient)} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#2C2521', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
+                <button onClick={() => setIsAddingClient(!isAddingClient)} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
                   {isAddingClient ? 'Cancelar' : '+ Dar de Alta Clienta'}
                 </button>
               </div>
               {isAddingClient && (
-                <form onSubmit={handleGuardarNuevoCliente} style={{ backgroundColor: '#EADCC7', border: '1px solid #B98A3E', borderRadius: '8px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <h4 style={{ color: '#8F6D24', fontSize: '13px', margin: 0 }}>Nueva Ficha de Clienta</h4>
+                <form onSubmit={handleGuardarNuevoCliente} style={{ backgroundColor: '#322A25', border: '1px solid #B98A3E', borderRadius: '8px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <h4 style={{ color: '#E4C687', fontSize: '13px', margin: 0 }}>Nueva Ficha de Clienta</h4>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
-                    <input type="text" placeholder="Nombre *" value={novoNombre} onChange={(e) => setNovoNombre(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '12px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }} />
-                    <input type="text" placeholder="Apellidos" value={novoApellidos} onChange={(e) => setNovoApellidos(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }} />
-                    <input type="text" placeholder="Fecha Nacimiento" value={novoNacimiento} onChange={(e) => setNovoNacimiento(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }} />
-                    <input type="text" placeholder="Teléfono" value={novoTelefono} onChange={(e) => setNovoTelefono(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }} />
-                    <input type="email" placeholder="Email (Identificador) *" value={novoEmail} onChange={(e) => setNovoEmail(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '12px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }} />
-                    <input type="text" placeholder="PIN acceso (4 digs)" maxLength={4} value={novoPin} onChange={(e) => setNovoPin(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }} />
+                    <input type="text" placeholder="Nombre *" value={novoNombre} onChange={(e) => setNovoNombre(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
+                    <input type="text" placeholder="Apellidos" value={novoApellidos} onChange={(e) => setNovoApellidos(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
+                    <input type="text" placeholder="Fecha Nacimiento" value={novoNacimiento} onChange={(e) => setNovoNacimiento(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
+                    <input type="text" placeholder="Teléfono" value={novoTelefono} onChange={(e) => setNovoTelefono(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
+                    <input type="email" placeholder="Email (Identificador) *" value={novoEmail} onChange={(e) => setNovoEmail(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
+                    <input type="text" placeholder="PIN acceso (4 digs)" maxLength={4} value={novoPin} onChange={(e) => setNovoPin(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
                   </div>
-                  <input type="text" placeholder="Diagnóstico capilar o notas" value={novoDiagnostico} onChange={(e) => setNovoDiagnostico(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }} />
+                  <input type="text" placeholder="Diagnóstico capilar o notas" value={novoDiagnostico} onChange={(e) => setNovoDiagnostico(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <button type="submit" style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#2C2521', border: 'none', padding: '8px 16px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Guardar Clienta</button>
+                    <button type="submit" style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '8px 16px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Guardar Clienta</button>
                   </div>
                 </form>
               )}
               <div>
-                <input type="text" placeholder="Buscar por Nombre, Email, Teléfono o ID..." value={busquedaCliente} onChange={(e) => setBusquedaCliente(e.target.value)} onFocus={(e) => e.target.select()} style={{ width: '100%', maxWidth: '560px', boxSizing: 'border-box', padding: '12px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '14px', outline: 'none' }} />
+                <input type="text" placeholder="Buscar por Nombre, Email, Teléfono o ID..." value={busquedaCliente} onChange={(e) => setBusquedaCliente(e.target.value)} onFocus={(e) => e.target.select()} style={{ width: '100%', maxWidth: '560px', boxSizing: 'border-box', padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px', outline: 'none' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {listaClientes
@@ -5470,13 +5470,13 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                   .map((c) => {
                     const isEditing = editingClientId === c.idNum;
                     return (
-                      <div key={c.idNum} style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      <div key={c.idNum} style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                            <span style={{ backgroundColor: '#EADCC7', color: '#2C2521', padding: '3px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
+                            <span style={{ backgroundColor: '#322A25', color: '#FFF8EE', padding: '3px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
                               ID #{c.idNum} ({c.registroId})
                             </span>
-                            <span style={{ color: '#2C2521', fontSize: '14px', fontWeight: 'bold' }}>{c.nombre} {c.apellidos}</span>
+                            <span style={{ color: '#FFF8EE', fontSize: '14px', fontWeight: 'bold' }}>{c.nombre} {c.apellidos}</span>
                           </div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
                             <button onClick={() => {
@@ -5490,66 +5490,66 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                 setEditAdminDniCapilar(c.dniCapilar || '');
                                 setEditAdminPrescripcionCasa(c.prescripcionCasa || '');
                               }
-                            }} style={{ background: 'transparent', border: '1px solid #B98A3E', color: '#8F6D24', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>
+                            }} style={{ background: 'transparent', border: '1px solid #B98A3E', color: '#E4C687', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>
                               {isEditing ? 'Cerrar Edición' : 'Editar ficha y fórmulas'}
                             </button>
-                            <button type="button" onClick={() => setClientDetailsDraft({ ...c })} style={{ background: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', padding: '8px 12px', cursor: 'pointer', fontSize: '12px' }}>Editar datos y acceso</button>
-                            <button type="button" onClick={() => openPassportEditor(c)} style={{ background: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', padding: '8px 12px', cursor: 'pointer', fontSize: '12px' }}>Editar pasaporte e historial</button>
+                            <button type="button" onClick={() => setClientDetailsDraft({ ...c })} style={{ background: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', padding: '8px 12px', cursor: 'pointer', fontSize: '12px' }}>Editar datos y acceso</button>
+                            <button type="button" onClick={() => openPassportEditor(c)} style={{ background: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', padding: '8px 12px', cursor: 'pointer', fontSize: '12px' }}>Editar pasaporte e historial</button>
                             <button onClick={() => handleBorrarCliente(c.idNum)} title="Eliminar clienta" style={{ background: 'transparent', border: 'none', color: '#C0392B', fontSize: '14px', cursor: 'pointer' }}> X </button>
                           </div>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', fontSize: '14px', color: '#5C5248', backgroundColor: '#EADCC7', padding: '10px', borderRadius: '6px' }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', fontSize: '14px', color: '#D6CBB8', backgroundColor: '#322A25', padding: '10px', borderRadius: '6px' }}>
                           <div><strong>Email:</strong> {c.email}</div>
                           <div><strong>Teléfono:</strong> {c.telefono}</div>
-                          <div><strong>PIN Acceso:</strong> <span style={{ color: '#8F6D24', fontWeight: 'bold' }}>{c.pinAcceso}</span></div>
+                          <div><strong>PIN Acceso:</strong> <span style={{ color: '#E4C687', fontWeight: 'bold' }}>{c.pinAcceso}</span></div>
                           <div><strong>F. Nacimiento:</strong> {c.fechaNacimiento}</div>
                         </div>
                         {isEditing ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#EADCC7', padding: '14px', borderRadius: '8px', border: '1px solid #B98A3E' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#322A25', padding: '14px', borderRadius: '8px', border: '1px solid #B98A3E' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                               <div>
-                                <label style={{ color: '#8F6D24', fontSize: '12px', display: 'block', marginBottom: '2px' }}>Última Visita:</label>
-                                <input type="text" value={editAdminUltimaVisita} onChange={(e) => setEditAdminUltimaVisita(e.target.value)} style={{ width: '100%', padding: '6px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '4px', fontSize: '14px' }} />
+                                <label style={{ color: '#E4C687', fontSize: '12px', display: 'block', marginBottom: '2px' }}>Última Visita:</label>
+                                <input type="text" value={editAdminUltimaVisita} onChange={(e) => setEditAdminUltimaVisita(e.target.value)} style={{ width: '100%', padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} />
                               </div>
                               <div>
-                                <label style={{ color: '#8F6D24', fontSize: '12px', display: 'block', marginBottom: '2px' }}>Próxima Visita Sugerida:</label>
-                                <input type="text" value={editAdminProxima} onChange={(e) => setEditAdminProxima(e.target.value)} style={{ width: '100%', padding: '6px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '4px', fontSize: '14px' }} />
+                                <label style={{ color: '#E4C687', fontSize: '12px', display: 'block', marginBottom: '2px' }}>Próxima Visita Sugerida:</label>
+                                <input type="text" value={editAdminProxima} onChange={(e) => setEditAdminProxima(e.target.value)} style={{ width: '100%', padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} />
                               </div>
                             </div>
                             <div>
-                              <label style={{ color: '#8F6D24', fontSize: '12px', display: 'block', marginBottom: '2px' }}>DNI Capilar Activo (Visible en Pasaporte de la clienta):</label>
-                              <input type="text" value={editAdminDniCapilar} onChange={(e) => setEditAdminDniCapilar(e.target.value)} placeholder="Ej. Porosidad: Media | Hidratación: Necesaria" style={{ width: '100%', padding: '6px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '4px', fontSize: '14px' }} />
+                              <label style={{ color: '#E4C687', fontSize: '12px', display: 'block', marginBottom: '2px' }}>DNI Capilar Activo (Visible en Pasaporte de la clienta):</label>
+                              <input type="text" value={editAdminDniCapilar} onChange={(e) => setEditAdminDniCapilar(e.target.value)} placeholder="Ej. Porosidad: Media | Hidratación: Necesaria" style={{ width: '100%', padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} />
                             </div>
                             <div>
-                              <label style={{ color: '#8F6D24', fontSize: '12px', display: 'block', marginBottom: '2px' }}>Mantenimiento en Casa (Visible en Pasaporte de la clienta):</label>
-                              <input type="text" value={editAdminPrescripcionCasa} onChange={(e) => setEditAdminPrescripcionCasa(e.target.value)} placeholder="Ej. Champú Hidratante | Sérum Nutritivo" style={{ width: '100%', padding: '6px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '4px', fontSize: '14px' }} />
+                              <label style={{ color: '#E4C687', fontSize: '12px', display: 'block', marginBottom: '2px' }}>Mantenimiento en Casa (Visible en Pasaporte de la clienta):</label>
+                              <input type="text" value={editAdminPrescripcionCasa} onChange={(e) => setEditAdminPrescripcionCasa(e.target.value)} placeholder="Ej. Champú Hidratante | Sérum Nutritivo" style={{ width: '100%', padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} />
                             </div>
                             <div>
-                              <label style={{ color: '#8F6D24', fontSize: '12px', display: 'block', marginBottom: '2px' }}>Fórmulas y Notas (Uso Exclusivo Intranet):</label>
-                              <textarea value={editAdminFormulas} onChange={(e) => setEditAdminFormulas(e.target.value)} rows={2} style={{ width: '100%', padding: '6px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '4px', fontSize: '14px', resize: 'none' }} />
+                              <label style={{ color: '#E4C687', fontSize: '12px', display: 'block', marginBottom: '2px' }}>Fórmulas y Notas (Uso Exclusivo Intranet):</label>
+                              <textarea value={editAdminFormulas} onChange={(e) => setEditAdminFormulas(e.target.value)} rows={2} style={{ width: '100%', padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px', resize: 'none' }} />
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
-                              <button onClick={() => setEditingClientId(null)} style={{ background: 'none', border: 'none', color: '#5C5248', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
-                              <button onClick={() => handleGuardarEdicionAdminCliente(c.idNum)} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#2C2521', border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Guardar y Sincronizar Pasaporte</button>
+                              <button onClick={() => setEditingClientId(null)} style={{ background: 'none', border: 'none', color: '#D6CBB8', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
+                              <button onClick={() => handleGuardarEdicionAdminCliente(c.idNum)} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Guardar y Sincronizar Pasaporte</button>
                             </div>
                           </div>
                         ) : (
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
-                            <section style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '10px', padding: '18px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', color: '#5C5248', fontSize: '14px', lineHeight: 1.7 }}>
-                              <h4 style={{ color: '#8F6D24', fontSize: '14px', margin: '0 0 10px' }}>Pasaporte capilar</h4>
-                              <strong style={{ color: '#2C2521' }}>Diagnóstico</strong><p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: '6px 0 14px' }}>{c.dniCapilar || 'Sin diagnóstico registrado'}</p>
-                              <strong style={{ color: '#2C2521' }}>Cuidados en casa</strong><p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: '6px 0' }}>{c.prescripcionCasa || 'Sin recomendaciones registradas'}</p>
-                              <button type="button" onClick={() => openPassportEditor(c)} style={{ background: 'none', border: '1px solid #C5A059', color: '#8F6D24', padding: '10px 12px', borderRadius: '6px', cursor: 'pointer', marginTop: '12px' }}>Editar pasaporte</button>
+                            <section style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '10px', padding: '18px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', color: '#D6CBB8', fontSize: '14px', lineHeight: 1.7 }}>
+                              <h4 style={{ color: '#E4C687', fontSize: '14px', margin: '0 0 10px' }}>Pasaporte capilar</h4>
+                              <strong style={{ color: '#FFF8EE' }}>Diagnóstico</strong><p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: '6px 0 14px' }}>{c.dniCapilar || 'Sin diagnóstico registrado'}</p>
+                              <strong style={{ color: '#FFF8EE' }}>Cuidados en casa</strong><p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: '6px 0' }}>{c.prescripcionCasa || 'Sin recomendaciones registradas'}</p>
+                              <button type="button" onClick={() => openPassportEditor(c)} style={{ background: 'none', border: '1px solid #C5A059', color: '#E4C687', padding: '10px 12px', borderRadius: '6px', cursor: 'pointer', marginTop: '12px' }}>Editar pasaporte</button>
                             </section>
-                            <section style={{ backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '10px', padding: '18px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', color: '#5C5248', fontSize: '14px', lineHeight: 1.7 }}>
-                              <h4 style={{ color: '#8F6D24', fontSize: '14px', margin: '0 0 10px' }}>Seguimiento</h4>
-                              <p>Última visita: <span style={{ color: '#2C2521' }}>{c.ultimaVisita || 'Sin registrar'}</span></p>
-                              <p>Próxima recomendada: <span style={{ color: '#2C2521' }}>{c.proximaVisitaSugerida || 'Sin indicar'}</span></p>
+                            <section style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '10px', padding: '18px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', color: '#D6CBB8', fontSize: '14px', lineHeight: 1.7 }}>
+                              <h4 style={{ color: '#E4C687', fontSize: '14px', margin: '0 0 10px' }}>Seguimiento</h4>
+                              <p>Última visita: <span style={{ color: '#FFF8EE' }}>{c.ultimaVisita || 'Sin registrar'}</span></p>
+                              <p>Próxima recomendada: <span style={{ color: '#FFF8EE' }}>{c.proximaVisitaSugerida || 'Sin indicar'}</span></p>
                               <p>{c.pastVisits?.length || 0} visitas en el historial</p>
-                              <button type="button" onClick={() => openPassportEditor(c)} style={{ background: 'none', border: '1px solid #C5A059', color: '#8F6D24', padding: '10px 12px', borderRadius: '6px', cursor: 'pointer' }}>Ver y editar historial</button>
+                              <button type="button" onClick={() => openPassportEditor(c)} style={{ background: 'none', border: '1px solid #C5A059', color: '#E4C687', padding: '10px 12px', borderRadius: '6px', cursor: 'pointer' }}>Ver y editar historial</button>
                             </section>
-                            <details style={{ gridColumn: '1 / -1', backgroundColor: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '10px', padding: '18px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', color: '#5C5248', fontSize: '14px' }}>
-                              <summary style={{ cursor: 'pointer', color: '#8F6D24' }}>Fórmulas y notas de la intranet</summary>
+                            <details style={{ gridColumn: '1 / -1', backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '10px', padding: '18px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', color: '#D6CBB8', fontSize: '14px' }}>
+                              <summary style={{ cursor: 'pointer', color: '#E4C687' }}>Fórmulas y notas de la intranet</summary>
                               <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.7 }}>{c.formulasAplicadas || 'Sin fórmulas registradas'}</p>
                             </details>
                           </div>
@@ -5571,89 +5571,89 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 .studio-review-card { padding: 22px !important; border: 1px solid rgba(212, 175, 55, 0.22) !important; border-radius: 14px !important; background: linear-gradient(145deg,#24251f,#181914) !important; box-shadow: 0 8px 24px #0002; gap: 17px !important; }
                 .studio-review-card > div:first-child { align-items: baseline !important; flex-wrap: wrap; gap: 8px; }
                 .studio-review-card > div:first-child > span:first-child { font-size: 14px !important; font-weight: normal !important; color: #B8972E !important; }
-                .studio-review-card > p { background: transparent !important; border: 0 !important; padding: 0 !important; color: #2B2521 !important; font-style: normal !important; font-size: 13px !important; line-height: 1.8 !important; }
+                .studio-review-card > p { background: transparent !important; border: 0 !important; padding: 0 !important; color: #FFF8EE !important; font-style: normal !important; font-size: 13px !important; line-height: 1.8 !important; }
                 .studio-mailbox-premium .studio-review-response { border: 0 !important; border-top: 1px solid rgba(212, 175, 55, 0.22) !important; border-radius: 0 !important; background: transparent !important; padding: 12px 0 0 !important; }
-                .studio-review-response summary { display: flex; justify-content: space-between; color: #8F6D24; list-style: none; font-size: 12px; }
+                .studio-review-response summary { display: flex; justify-content: space-between; color: #E4C687; list-style: none; font-size: 12px; }
                 .studio-review-response summary::-webkit-details-marker { display: none; }
                 .studio-review-response[open] summary { margin-bottom: 18px; }
                 .studio-review-response textarea { margin: 12px 0; }
                 .studio-review-response a { background: #DFE9DF !important; color: #2E7D32 !important; padding: 10px 12px !important; }
                 .studio-review-card > div:last-child { justify-content: flex-start !important; margin: 0 !important; }
-                .studio-review-card > div:last-child button { border: 0 !important; background: transparent !important; padding: 4px 0 !important; min-height: 32px; color: #5C5248 !important; }
+                .studio-review-card > div:last-child button { border: 0 !important; background: transparent !important; padding: 4px 0 !important; min-height: 32px; color: #D6CBB8 !important; }
                 .studio-mailbox-premium { color: #2B2521; }
-                .studio-mailbox-premium > div { border-color: #E6D5B8 !important; }
+                .studio-mailbox-premium > div { border-color: #3A312A !important; }
                 .studio-mailbox-premium button, .studio-mailbox-premium a { font-size: 12px !important; font-weight: normal !important; letter-spacing: .2px; }
                 .studio-mailbox-premium button { min-height: 38px; border-radius: 7px !important; }
-                .studio-mailbox-premium button[aria-pressed] { padding: 10px 16px !important; border-color: #E0D8CE !important; background: #EADCC7 !important; color: #5C5248 !important; }
-                .studio-mailbox-premium button[aria-pressed=true] { background: #EADCC7 !important; border-color: #B8972E !important; color: #B8972E !important; }
-                .studio-mailbox-premium details { background: #EADCC7; border-color: #E6D5B8 !important; }
+                .studio-mailbox-premium button[aria-pressed] { padding: 10px 16px !important; border-color: #3A312A !important; background: #322A25 !important; color: #D6CBB8 !important; }
+                .studio-mailbox-premium button[aria-pressed=true] { background: #322A25 !important; border-color: #B8972E !important; color: #B8972E !important; }
+                .studio-mailbox-premium details { background: #322A25; border-color: #3A312A !important; }
                 .studio-mailbox-premium summary { font-size: 13px; padding: 2px; }
-                .studio-mailbox-premium textarea { box-sizing: border-box; width: 100%; min-height: 88px; padding: 13px !important; font-size: 13px !important; line-height: 1.6; background: #EADCC7 !important; border-color: #E0D8CE !important; border-radius: 8px !important; }
+                .studio-mailbox-premium textarea { box-sizing: border-box; width: 100%; min-height: 88px; padding: 13px !important; font-size: 13px !important; line-height: 1.6; background: #322A25 !important; border-color: #3A312A !important; border-radius: 8px !important; }
                 .studio-mailbox-premium textarea:focus { outline: 1px solid #a68f59; }
                 .studio-mailbox-premium p { line-height: 1.7; }
               `}</style>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
-                  <h3 style={{ color: '#8F6D24', fontSize: '23px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Opiniones del Studio</h3>
-                  <p style={{ color: '#5C5248', fontSize: '11px', margin: 0 }}>Opiniones del portal y solicitudes de reseña después de cada visita.</p>
+                  <h3 style={{ color: '#E4C687', fontSize: '23px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Opiniones del Studio</h3>
+                  <p style={{ color: '#D6CBB8', fontSize: '11px', margin: 0 }}>Opiniones del portal y solicitudes de reseña después de cada visita.</p>
                 </div>
-                <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ backgroundColor: '#EADCC7', border: '1px solid #B98A3E', color: '#2C2521', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ backgroundColor: '#322A25', border: '1px solid #B98A3E', color: '#FFF8EE', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   Abrir enlace para reseñar ↗
                 </a>
               </div>
-              <div style={{ border: '1px solid #E6D5B8', padding: '14px', borderRadius: '9px', color: '#5C5248', fontSize: '13px' }}>Google · Conexión pendiente</div>
+              <div style={{ border: '1px solid #3A312A', padding: '14px', borderRadius: '9px', color: '#D6CBB8', fontSize: '13px' }}>Google · Conexión pendiente</div>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {([['pending', 'Pendientes'], ['all', 'Todas'], ['resolved', 'Resueltas']] as const).map(([filter, label]) => <button type="button" key={filter} aria-pressed={mailboxFilter === filter} onClick={() => setMailboxFilter(filter)} style={{ background: mailboxFilter === filter ? '#EADCC7' : '#EADCC7', color: '#8F6D24', border: '1px solid #E6D5B8', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer' }}>{label} · {feedbackList.filter(item => filter === 'all' || (filter === 'resolved' ? !!item.resolvedAt : !item.resolvedAt)).length}</button>)}
+                {([['pending', 'Pendientes'], ['all', 'Todas'], ['resolved', 'Resueltas']] as const).map(([filter, label]) => <button type="button" key={filter} aria-pressed={mailboxFilter === filter} onClick={() => setMailboxFilter(filter)} style={{ background: mailboxFilter === filter ? '#322A25' : '#322A25', color: '#E4C687', border: '1px solid #3A312A', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer' }}>{label} · {feedbackList.filter(item => filter === 'all' || (filter === 'resolved' ? !!item.resolvedAt : !item.resolvedAt)).length}</button>)}
               </div>
-              <details style={{ border: '1px solid #E6D5B8', padding: '16px', borderRadius: '10px', color: '#5C5248' }}>
-                <summary style={{ cursor: 'pointer', color: '#8F6D24' }}>Pedir reseña · Visitas realizadas</summary>
+              <details style={{ border: '1px solid #3A312A', padding: '16px', borderRadius: '10px', color: '#D6CBB8' }}>
+                <summary style={{ cursor: 'pointer', color: '#E4C687' }}>Pedir reseña · Visitas realizadas</summary>
                 <p style={{ fontSize: '12px' }}>Abre el mensaje y envíalo desde WhatsApp. Abrirlo no confirma que se haya enviado.</p>
-                {appointments.filter(item => !!item.completedAt && item.lifecycleStatus !== 'cancelled' && item.lifecycleStatus !== 'no_show').map(item => <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', padding: '12px 0', borderTop: '1px solid #E6D5B8', fontSize: '13px' }}><span>{item.clientName} · {item.dateKey}</span>{item.phone ? <a target="_blank" rel="noreferrer" href={`https://wa.me/${item.phone.replace(/\D/g, '').length === 9 ? '34' : ''}${item.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${item.clientName.split(' ')[0]}, gracias por tu visita a ${bizConfig.name}. Si te apetece, puedes compartir tu experiencia en Google: ${bizConfig.googleReviewUrl}. ¡Gracias por tu tiempo! Ana.`)}`} style={{ color: '#8F6D24' }}>Pedir reseña por WhatsApp ↗</a> : <span>Sin teléfono registrado</span>}</div>)}
+                {appointments.filter(item => !!item.completedAt && item.lifecycleStatus !== 'cancelled' && item.lifecycleStatus !== 'no_show').map(item => <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', padding: '12px 0', borderTop: '1px solid #3A312A', fontSize: '13px' }}><span>{item.clientName} · {item.dateKey}</span>{item.phone ? <a target="_blank" rel="noreferrer" href={`https://wa.me/${item.phone.replace(/\D/g, '').length === 9 ? '34' : ''}${item.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${item.clientName.split(' ')[0]}, gracias por tu visita a ${bizConfig.name}. Si te apetece, puedes compartir tu experiencia en Google: ${bizConfig.googleReviewUrl}. ¡Gracias por tu tiempo! Ana.`)}`} style={{ color: '#E4C687' }}>Pedir reseña por WhatsApp ↗</a> : <span>Sin teléfono registrado</span>}</div>)}
                 {!appointments.some(item => !!item.completedAt) && <p style={{ fontSize: '13px' }}>Marca una cita como realizada para verla aquí.</p>}
               </details>
               <div className="studio-review-grid">
                 {feedbackList.filter(f => mailboxFilter === 'all' || (mailboxFilter === 'resolved' ? !!f.resolvedAt : !f.resolvedAt)).length === 0 ? (
-                  <div style={{ backgroundColor: '#EADCC7', padding: '20px', borderRadius: '8px', textAlign: 'center', color: '#5C5248', fontSize: '12px', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
+                  <div style={{ backgroundColor: '#322A25', padding: '20px', borderRadius: '8px', textAlign: 'center', color: '#D6CBB8', fontSize: '12px', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
                     No hay opiniones en esta vista.
                   </div>
                 ) : (
                   feedbackList.filter(f => mailboxFilter === 'all' || (mailboxFilter === 'resolved' ? !!f.resolvedAt : !f.resolvedAt)).map((fb) => {
                     const currentReply = detractorReplies[fb.id] || "";
                     return (
-                      <div className="studio-review-card" key={fb.id} style={{ backgroundColor: '#EADCC7', border: '1px solid #3d3e33', borderRadius: '10px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div className="studio-review-card" key={fb.id} style={{ backgroundColor: '#322A25', border: '1px solid #463B32', borderRadius: '10px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ color: '#8F6D24', fontWeight: 'bold', fontSize: '12px' }}>★ {fb.rating}/5 · {fb.clientName.replace(/\s*\(PIN\s+[^)]*\)/gi, '')}</span>
-                          <span style={{ color: '#5C5248', fontSize: '10px' }}>{fb.date}</span>
+                          <span style={{ color: '#E4C687', fontWeight: 'bold', fontSize: '12px' }}>★ {fb.rating}/5 · {fb.clientName.replace(/\s*\(PIN\s+[^)]*\)/gi, '')}</span>
+                          <span style={{ color: '#D6CBB8', fontSize: '10px' }}>{fb.date}</span>
                         </div>
-                        <p style={{ color: '#2C2521', fontSize: '12px', margin: 0, fontStyle: 'italic', backgroundColor: '#EADCC7', padding: '10px', borderRadius: '6px', borderLeft: '2px solid #a68f59' }}>
+                        <p style={{ color: '#FFF8EE', fontSize: '12px', margin: 0, fontStyle: 'italic', backgroundColor: '#322A25', padding: '10px', borderRadius: '6px', borderLeft: '2px solid #a68f59' }}>
                           "{fb.comment}"
                         </p>
-                        <details className="studio-review-response" style={{ backgroundColor: '#EADCC7', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px', display: 'block' }}>
+                        <details className="studio-review-response" style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px', display: 'block' }}>
                           <summary>Responder a la clienta <span>＋</span></summary>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#2C2521', fontSize: '11px', fontWeight: 'bold' }}>Respuesta para la clienta</span>
+                            <span style={{ color: '#FFF8EE', fontSize: '11px', fontWeight: 'bold' }}>Respuesta para la clienta</span>
                             <button type="button" onClick={() => {
                               const generated = `Hola ${fb.clientName.split(" ")[0]}, gracias por compartir tu experiencia en ${bizConfig.name}. Hemos leído tu comentario y nos gustaría hablar contigo para dar seguimiento a tu visita. Ana.`;
                               setDetractorReplies(prev => ({ ...prev, [fb.id]: generated }));
-                            }} style={{ backgroundColor: 'transparent', border: '1px solid #B98A3E', color: '#8F6D24', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}>
+                            }} style={{ backgroundColor: 'transparent', border: '1px solid #B98A3E', color: '#E4C687', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}>
                               Preparar respuesta
                             </button>
                           </div>
-                          <textarea value={currentReply} onChange={(e) => setDetractorReplies(prev => ({ ...prev, [fb.id]: e.target.value }))} rows={3} placeholder="Escribe tu respuesta personalizada..." style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', padding: '8px', fontSize: '11px', resize: 'vertical' }} />
+                          <textarea value={currentReply} onChange={(e) => setDetractorReplies(prev => ({ ...prev, [fb.id]: e.target.value }))} rows={3} placeholder="Escribe tu respuesta personalizada..." style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', padding: '8px', fontSize: '11px', resize: 'vertical' }} />
                           <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                            <a href={`https://wa.me/?text=${encodeURIComponent(currentReply)}`} target="_blank" rel="noreferrer" style={{ backgroundColor: '#25D366', color: '#2C2521', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <a href={`https://wa.me/?text=${encodeURIComponent(currentReply)}`} target="_blank" rel="noreferrer" style={{ backgroundColor: '#25D366', color: '#FFF8EE', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '4px' }}>
                               Abrir WhatsApp
                             </a>
                             <button type="button" onClick={() => {
                               navigator.clipboard.writeText(currentReply);
                               alert('¡Respuesta copiada al portapapeles!');
-                            }} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#2C2521', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>
+                            }} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>
                               Copiar Respuesta
                             </button>
                           </div>
                         </details>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '5px' }}>
-                          <button onClick={() => setFeedbackList(previous => previous.map(item => item.id !== fb.id ? item : { ...item, resolvedAt: item.resolvedAt ? undefined : new Date().toISOString() }))} style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#5C5248', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>
+                          <button onClick={() => setFeedbackList(previous => previous.map(item => item.id !== fb.id ? item : { ...item, resolvedAt: item.resolvedAt ? undefined : new Date().toISOString() }))} style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#D6CBB8', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>
                             {fb.resolvedAt ? 'Reabrir opinión' : 'Marcar como resuelta'}
                           </button>
                         </div>
@@ -5736,14 +5736,14 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               { label: 'Ocupación', current: capacity ? Math.round(occupied / capacity * 100) : null, previous: previousCapacity ? Math.round(previousOccupied / previousCapacity * 100) : null, unit: 'puntos porcentuales' },
               { label: 'Búsquedas sin hueco', current: demandInPeriod.length, previous: previousDemand, unit: 'intentos' }
             ];
-            return <section className="studio-crm-report" style={{ display: 'flex', flexDirection: 'column', gap: '18px', color: '#8F6D24' }}>
+            return <section className="studio-crm-report" style={{ display: 'flex', flexDirection: 'column', gap: '18px', color: '#E4C687' }}>
             <style>{`
               @media print {
                 body * { visibility: hidden !important; }
                 .studio-crm-report, .studio-crm-report * { visibility: visible !important; }
                 .studio-crm-report { position: absolute !important; left: 0; top: 0; width: 100% !important; background: white !important; color: #2B2521 !important; padding: 16px !important; box-sizing: border-box; }
                 .studio-crm-report * { color: #2B2521 !important; box-shadow: none !important; }
-                .studio-crm-report section, .studio-crm-report > div { break-inside: avoid; border-color: #E0D8CE !important; background: white !important; }
+                .studio-crm-report section, .studio-crm-report > div { break-inside: avoid; border-color: #3A312A !important; background: white !important; }
                 .studio-crm-report button, .studio-crm-report input, .studio-crm-export, .studio-crm-report summary { display: none !important; }
                 .studio-crm-report { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
               }
@@ -5762,14 +5762,14 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 const csv = '\uFEFF' + rows.map(row => row.map(cell).join(';')).join('\r\n');
                 const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
                 const link = document.createElement('a'); link.href = url; link.download = `CRM-${dashboardStart}-${dashboardEnd}.csv`; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-              }} style={{ padding: '10px 16px', background: '#EADCC7', color: '#2C2521', border: '1px solid #C5A059', borderRadius: '8px', cursor: 'pointer' }}>Descargar CSV</button>
-              <button type="button" disabled={!valid} onClick={() => window.print()} style={{ padding: '10px 16px', background: '#EADCC7', color: '#2C2521', border: '1px solid #C5A059', borderRadius: '8px', cursor: 'pointer' }}>Imprimir / Guardar PDF</button>
+              }} style={{ padding: '10px 16px', background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059', borderRadius: '8px', cursor: 'pointer' }}>Descargar CSV</button>
+              <button type="button" disabled={!valid} onClick={() => window.print()} style={{ padding: '10px 16px', background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059', borderRadius: '8px', cursor: 'pointer' }}>Imprimir / Guardar PDF</button>
             </div>
-            <header><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '25px', fontWeight: 'normal', color: '#8F6D24', margin: '0 0 8px' }}>Dashboard · CRM e informes</h2><p style={{ fontSize: '13px', color: '#5C5248' }}>Resumen de todos los registros guardados en este navegador.</p></header>
+            <header><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '25px', fontWeight: 'normal', color: '#E4C687', margin: '0 0 8px' }}>Dashboard · CRM e informes</h2><p style={{ fontSize: '13px', color: '#D6CBB8' }}>Resumen de todos los registros guardados en este navegador.</p></header>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: '16px' }}>
-              <section style={{ padding: '20px', background: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px' }}><h3 style={{ color: '#8F6D24', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Ocupación del periodo</h3><strong style={{ color: '#8F6D24', fontSize: '32px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal' }}>{capacity ? Math.round(occupied / capacity * 100) + '%' : '—'}</strong><p style={{ fontSize: '13px' }}>{(occupied / 60).toFixed(1)} h reservadas · {(capacity / 60).toFixed(1)} h disponibles</p><p style={{ fontSize: '12px', color: '#5C5248' }}>Citas confirmadas y realizadas dentro del horario laboral. Descuenta festivos y bloqueos; los solapamientos se cuentan una vez. Excluye solicitudes pendientes.</p><details><summary style={{ fontSize: '12px', cursor: 'pointer' }}>Ver ocupación por día</summary>{days.map(day => <p key={day.date} style={{ fontSize: '12px', color: '#5C5248' }}>{day.date} · {day.available ? Math.round(day.occupied / day.available * 100) + '%' : 'Sin horario disponible'}</p>)}</details></section>
-              <section style={{ padding: '20px', background: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px' }}><h3 style={{ color: '#8F6D24', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Servicios más reservados</h3><p style={{ fontSize: '12px', color: '#5C5248' }}>Citas confirmadas y realizadas en las fechas seleccionadas. Un servicio cuenta una vez por cita; agrupa sus variantes.</p>{ranking.slice(0,8).map(item => <div key={item.name} style={{ margin: '14px 0' }}><div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '13px' }}><span>{item.name}</span><strong>{item.count}</strong></div><div style={{ background: '#EADCC7', height: '4px', marginTop: '8px' }}><div style={{ background: '#8F6D24', height: '100%', width: (item.count / ranking[0].count * 100) + '%' }} /></div></div>)}{!ranking.length && <p style={{ fontSize: '13px' }}>No hay servicios registrados para este periodo.</p>}{booked.some(item => !item.services?.length) && <p style={{ color: '#5C5248', fontSize: '12px' }}>Hay citas antiguas sin servicios desglosados; no se incluyen en el ranking.</p>}</section>
+              <section style={{ padding: '20px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '12px' }}><h3 style={{ color: '#E4C687', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Ocupación del periodo</h3><strong style={{ color: '#E4C687', fontSize: '32px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal' }}>{capacity ? Math.round(occupied / capacity * 100) + '%' : '—'}</strong><p style={{ fontSize: '13px' }}>{(occupied / 60).toFixed(1)} h reservadas · {(capacity / 60).toFixed(1)} h disponibles</p><p style={{ fontSize: '12px', color: '#D6CBB8' }}>Citas confirmadas y realizadas dentro del horario laboral. Descuenta festivos y bloqueos; los solapamientos se cuentan una vez. Excluye solicitudes pendientes.</p><details><summary style={{ fontSize: '12px', cursor: 'pointer' }}>Ver ocupación por día</summary>{days.map(day => <p key={day.date} style={{ fontSize: '12px', color: '#D6CBB8' }}>{day.date} · {day.available ? Math.round(day.occupied / day.available * 100) + '%' : 'Sin horario disponible'}</p>)}</details></section>
+              <section style={{ padding: '20px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '12px' }}><h3 style={{ color: '#E4C687', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Servicios más reservados</h3><p style={{ fontSize: '12px', color: '#D6CBB8' }}>Citas confirmadas y realizadas en las fechas seleccionadas. Un servicio cuenta una vez por cita; agrupa sus variantes.</p>{ranking.slice(0,8).map(item => <div key={item.name} style={{ margin: '14px 0' }}><div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '13px' }}><span>{item.name}</span><strong>{item.count}</strong></div><div style={{ background: '#322A25', height: '4px', marginTop: '8px' }}><div style={{ background: '#8F6D24', height: '100%', width: (item.count / ranking[0].count * 100) + '%' }} /></div></div>)}{!ranking.length && <p style={{ fontSize: '13px' }}>No hay servicios registrados para este periodo.</p>}{booked.some(item => !item.services?.length) && <p style={{ color: '#D6CBB8', fontSize: '12px' }}>Hay citas antiguas sin servicios desglosados; no se incluyen en el ranking.</p>}</section>
             </div>
 
             {(() => {
@@ -5823,48 +5823,48 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               { label: 'Ocupación', current: capacity ? Math.round(occupied / capacity * 100) : null, previous: previousCapacity ? Math.round(previousOccupied / previousCapacity * 100) : null, unit: 'puntos porcentuales' },
               { label: 'Búsquedas sin hueco', current: demandInPeriod.length, previous: previousDemand, unit: 'intentos' }
             ];
-            return <section style={{ padding: '20px', background: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px' }}>
-              <h3 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '18px', color: '#8F6D24', fontWeight: 'normal', marginTop: 0 }}>Comparación con el periodo anterior</h3>
-            <div style={{ background: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              <span style={{ color: '#8F6D24', fontSize: '12px' }}>Periodo de comparación</span>
+            return <section style={{ padding: '20px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '12px' }}>
+              <h3 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '18px', color: '#E4C687', fontWeight: 'normal', marginTop: 0 }}>Comparación con el periodo anterior</h3>
+            <div style={{ background: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <span style={{ color: '#E4C687', fontSize: '12px' }}>Periodo de comparación</span>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {([{ label: '7 días', days: 7 }, { label: '15 días', days: 15 }, { label: '1 mes', days: 0 }]).map(option => <button type="button" key={option.label} onClick={() => { const end = new Date(); const start = new Date(end); if (option.days) start.setDate(start.getDate() - option.days + 1); else { const day = start.getDate(); start.setDate(1); start.setMonth(start.getMonth() - 1); const last = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate(); start.setDate(Math.min(day,last)); start.setDate(start.getDate() + 1); } setCompareStart(formatDateKey(start)); setCompareEnd(formatDateKey(end)); }} style={{ padding: '10px 16px', minHeight: '40px', background: '#EADCC7', color: '#2C2521', border: '1px solid #C5A059', borderRadius: '7px', cursor: 'pointer' }}>{option.label}</button>)}
+                {([{ label: '7 días', days: 7 }, { label: '15 días', days: 15 }, { label: '1 mes', days: 0 }]).map(option => <button type="button" key={option.label} onClick={() => { const end = new Date(); const start = new Date(end); if (option.days) start.setDate(start.getDate() - option.days + 1); else { const day = start.getDate(); start.setDate(1); start.setMonth(start.getMonth() - 1); const last = new Date(start.getFullYear(), start.getMonth() + 1, 0).getDate(); start.setDate(Math.min(day,last)); start.setDate(start.getDate() + 1); } setCompareStart(formatDateKey(start)); setCompareEnd(formatDateKey(end)); }} style={{ padding: '10px 16px', minHeight: '40px', background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059', borderRadius: '7px', cursor: 'pointer' }}>{option.label}</button>)}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'end' }}>
-                <label style={{ fontSize: '12px', color: '#5C5248' }}>Desde<input aria-label="Fecha inicial del informe" type="date" value={compareStart} max={compareEnd || undefined} onChange={e => setCompareStart(e.target.value)} style={{ display: 'block', colorScheme: 'dark', padding: '10px', marginTop: '6px', background: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '7px' }} /></label>
-                <label style={{ fontSize: '12px', color: '#5C5248' }}>Hasta<input aria-label="Fecha final del informe" type="date" value={compareEnd} min={compareStart || undefined} onChange={e => setCompareEnd(e.target.value)} style={{ display: 'block', colorScheme: 'dark', padding: '10px', marginTop: '6px', background: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '7px' }} /></label>
+                <label style={{ fontSize: '12px', color: '#D6CBB8' }}>Desde<input aria-label="Fecha inicial del informe" type="date" value={compareStart} max={compareEnd || undefined} onChange={e => setCompareStart(e.target.value)} style={{ display: 'block', colorScheme: 'dark', padding: '10px', marginTop: '6px', background: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '7px' }} /></label>
+                <label style={{ fontSize: '12px', color: '#D6CBB8' }}>Hasta<input aria-label="Fecha final del informe" type="date" value={compareEnd} min={compareStart || undefined} onChange={e => setCompareEnd(e.target.value)} style={{ display: 'block', colorScheme: 'dark', padding: '10px', marginTop: '6px', background: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '7px' }} /></label>
                 {!valid && <span style={{ fontSize: '12px' }}>Elige fechas válidas, con un máximo de un año.</span>}
               </div>
-              {valid && <span style={{ fontSize: '12px', color: '#5C5248' }}>Actual: {compareStart.split('-').reverse().join('/')} – {compareEnd.split('-').reverse().join('/')} · Anterior: {previousFrom.split('-').reverse().join('/')} – {previousTo.split('-').reverse().join('/')}</span>}
+              {valid && <span style={{ fontSize: '12px', color: '#D6CBB8' }}>Actual: {compareStart.split('-').reverse().join('/')} – {compareEnd.split('-').reverse().join('/')} · Anterior: {previousFrom.split('-').reverse().join('/')} – {previousTo.split('-').reverse().join('/')}</span>}
             </div>
-              <p style={{ fontSize: '12px', color: '#5C5248' }}>Anterior: {previousFrom} a {previousTo} · {spanDays} días</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: '18px' }}>{comparison.map(metric => <div key={metric.label}><span style={{ fontSize: '12px', color: '#5C5248' }}>{metric.label}</span><p style={{ fontSize: '20px', color: '#8F6D24', margin: '10px 0' }}>{metric.current ?? '—'}{metric.unit === 'puntos porcentuales' && metric.current !== null ? '%' : ''}<span style={{ fontSize: '12px', color: '#5C5248' }}> · anterior {metric.previous ?? '—'}{metric.unit === 'puntos porcentuales' && metric.previous !== null ? '%' : ''}</span></p><div role="img" aria-label={`${metric.label}: actual ${metric.current ?? 'sin datos'}, anterior ${metric.previous ?? 'sin datos'}`} style={{ margin: '14px 0 10px', display: 'flex', flexDirection: 'column', gap: '9px' }}>
-                  {[{ label: 'Actual', value: metric.current, color: '#8F6D24' }, { label: 'Anterior', value: metric.previous, color: '#D9CDBB' }].map(bar => <div key={bar.label} style={{ display: 'grid', gridTemplateColumns: '52px minmax(0,1fr) 32px', alignItems: 'center', gap: '8px' }}><span style={{ fontSize: '11px', color: '#5C5248' }}>{bar.label}</span><div style={{ height: '10px', background: '#EADCC7', borderRadius: '5px', overflow: 'hidden' }}><div style={{ height: '100%', borderRadius: '5px', background: bar.color, width: `${bar.value === null ? 0 : bar.value / (metric.unit === 'puntos porcentuales' ? 100 : Math.max(metric.current || 0, metric.previous || 0, 1)) * 100}%` }} /></div><span style={{ fontSize: '11px', color: '#8F6D24', textAlign: 'right' }}>{bar.value ?? '—'}</span></div>)}
-                </div><span style={{ fontSize: '12px', color: '#5C5248' }}>{metric.current === null || metric.previous === null ? 'Sin horario disponible para comparar' : `${metric.current - metric.previous > 0 ? '+' : ''}${metric.current - metric.previous} ${metric.unit}`}</span></div>)}</div>
-              <p style={{ fontSize: '11px', color: '#5C5248', marginBottom: 0 }}>Compara registros guardados, no toda la actividad del Studio. Un cero puede indicar ausencia de registros. La ocupación histórica usa el horario configurado actualmente.</p>
+              <p style={{ fontSize: '12px', color: '#D6CBB8' }}>Anterior: {previousFrom} a {previousTo} · {spanDays} días</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(180px,1fr))', gap: '18px' }}>{comparison.map(metric => <div key={metric.label}><span style={{ fontSize: '12px', color: '#D6CBB8' }}>{metric.label}</span><p style={{ fontSize: '20px', color: '#E4C687', margin: '10px 0' }}>{metric.current ?? '—'}{metric.unit === 'puntos porcentuales' && metric.current !== null ? '%' : ''}<span style={{ fontSize: '12px', color: '#D6CBB8' }}> · anterior {metric.previous ?? '—'}{metric.unit === 'puntos porcentuales' && metric.previous !== null ? '%' : ''}</span></p><div role="img" aria-label={`${metric.label}: actual ${metric.current ?? 'sin datos'}, anterior ${metric.previous ?? 'sin datos'}`} style={{ margin: '14px 0 10px', display: 'flex', flexDirection: 'column', gap: '9px' }}>
+                  {[{ label: 'Actual', value: metric.current, color: '#E4C687' }, { label: 'Anterior', value: metric.previous, color: '#3A312A' }].map(bar => <div key={bar.label} style={{ display: 'grid', gridTemplateColumns: '52px minmax(0,1fr) 32px', alignItems: 'center', gap: '8px' }}><span style={{ fontSize: '11px', color: '#D6CBB8' }}>{bar.label}</span><div style={{ height: '10px', background: '#322A25', borderRadius: '5px', overflow: 'hidden' }}><div style={{ height: '100%', borderRadius: '5px', background: bar.color, width: `${bar.value === null ? 0 : bar.value / (metric.unit === 'puntos porcentuales' ? 100 : Math.max(metric.current || 0, metric.previous || 0, 1)) * 100}%` }} /></div><span style={{ fontSize: '11px', color: '#E4C687', textAlign: 'right' }}>{bar.value ?? '—'}</span></div>)}
+                </div><span style={{ fontSize: '12px', color: '#D6CBB8' }}>{metric.current === null || metric.previous === null ? 'Sin horario disponible para comparar' : `${metric.current - metric.previous > 0 ? '+' : ''}${metric.current - metric.previous} ${metric.unit}`}</span></div>)}</div>
+              <p style={{ fontSize: '11px', color: '#D6CBB8', marginBottom: 0 }}>Compara registros guardados, no toda la actividad del Studio. Un cero puede indicar ausencia de registros. La ocupación histórica usa el horario configurado actualmente.</p>
             </section>;
             })()}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(250px,1fr))', gap: '16px' }}>
-              <section style={{ padding: '20px', background: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px' }}><h3 style={{ color: '#8F6D24', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Reservas por canal</h3><p style={{ fontSize: '12px', color: '#5C5248' }}>Todas las citas del periodo por fecha de cita, incluidas pendientes y canceladas. El canal empieza a registrarse con esta versión.</p>{channelRows.map(row => <p key={row.name} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '13px' }}><span>{row.name}</span><strong>{row.count}</strong></p>)}</section>
-              <section style={{ padding: '20px', background: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px' }}><h3 style={{ color: '#8F6D24', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Clientas que vuelven</h3><strong style={{ fontSize: '28px', color: '#8F6D24' }}>{returning}</strong><p style={{ fontSize: '13px' }}>De {attendedEmails.size} clientas atendidas en el periodo.</p><p style={{ fontSize: '12px', color: '#5C5248' }}>Con una cita realizada anterior a su primera visita del periodo. Identificación por email; solo cuenta el historial de citas registrado aquí.</p></section>
-              <section style={{ padding: '20px', background: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px' }}>
-                <h3 style={{ color: '#8F6D24', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Clientas nuevas por mes</h3>
-                <strong style={{ fontSize: '28px', color: '#8F6D24' }}>{newClientsInPeriod}</strong><p style={{ fontSize: '13px' }}>Altas en el periodo seleccionado</p>
-                <p style={{ fontSize: '12px', color: '#5C5248' }}>Cuenta fichas nuevas del portal o creadas por Ana, según fecha de alta; no equivale a primeras visitas realizadas.</p>
-                {monthlyClientsRows.map(([month,count]) => <div key={month} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '13px', padding: '9px 0', borderTop: '1px solid #34352c' }}><span>{new Date(month + '-01T12:00:00').toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</span><strong>{count}</strong></div>)}
-                {!monthlyClientsRows.length && <p style={{ fontSize: '12px', color: '#5C5248' }}>Todavía no hay altas con fecha registrada.</p>}
-                <p style={{ fontSize: '11px', color: '#5C5248' }}>Histórico: últimos 12 meses con altas registradas. Fecha de alta desconocida: {listaClientes.filter(client => !client.createdAt || !Number.isFinite(Date.parse(client.createdAt))).length} fichas.</p>
+              <section style={{ padding: '20px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '12px' }}><h3 style={{ color: '#E4C687', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Reservas por canal</h3><p style={{ fontSize: '12px', color: '#D6CBB8' }}>Todas las citas del periodo por fecha de cita, incluidas pendientes y canceladas. El canal empieza a registrarse con esta versión.</p>{channelRows.map(row => <p key={row.name} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '13px' }}><span>{row.name}</span><strong>{row.count}</strong></p>)}</section>
+              <section style={{ padding: '20px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '12px' }}><h3 style={{ color: '#E4C687', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Clientas que vuelven</h3><strong style={{ fontSize: '28px', color: '#E4C687' }}>{returning}</strong><p style={{ fontSize: '13px' }}>De {attendedEmails.size} clientas atendidas en el periodo.</p><p style={{ fontSize: '12px', color: '#D6CBB8' }}>Con una cita realizada anterior a su primera visita del periodo. Identificación por email; solo cuenta el historial de citas registrado aquí.</p></section>
+              <section style={{ padding: '20px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '12px' }}>
+                <h3 style={{ color: '#E4C687', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Clientas nuevas por mes</h3>
+                <strong style={{ fontSize: '28px', color: '#E4C687' }}>{newClientsInPeriod}</strong><p style={{ fontSize: '13px' }}>Altas en el periodo seleccionado</p>
+                <p style={{ fontSize: '12px', color: '#D6CBB8' }}>Cuenta fichas nuevas del portal o creadas por Ana, según fecha de alta; no equivale a primeras visitas realizadas.</p>
+                {monthlyClientsRows.map(([month,count]) => <div key={month} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '13px', padding: '9px 0', borderTop: '1px solid #463B32' }}><span>{new Date(month + '-01T12:00:00').toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</span><strong>{count}</strong></div>)}
+                {!monthlyClientsRows.length && <p style={{ fontSize: '12px', color: '#D6CBB8' }}>Todavía no hay altas con fecha registrada.</p>}
+                <p style={{ fontSize: '11px', color: '#D6CBB8' }}>Histórico: últimos 12 meses con altas registradas. Fecha de alta desconocida: {listaClientes.filter(client => !client.createdAt || !Number.isFinite(Date.parse(client.createdAt))).length} fichas.</p>
               </section>
 
             </div>
-            <section style={{ background: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px', padding: '20px' }}>
-              <h3 style={{ color: '#8F6D24', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', marginTop: 0 }}>Actividad web/app · Registro local</h3>
-              <p style={{ color: '#5C5248', fontSize: '12px' }}>Datos desde la instalación de esta versión. Una visita por sesión de pestaña; visitantes por navegador. Incluye tus propias pruebas. Supabase todavía no recibe estos eventos.</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: '14px' }}>{[{ label: 'Visitas', count: trafficEvents.filter(item => item.type === 'visit').length }, { label: 'Navegadores únicos', count: new Set(trafficEvents.filter(item => item.type === 'visit').map(item => item.visitor)).size }, { label: 'Accesos al portal', count: trafficEvents.filter(item => item.type === 'login').length }, { label: 'Registros del portal', count: trafficEvents.filter(item => item.type === 'registration').length }, { label: 'Citas registradas', count: trafficEvents.filter(item => item.type === 'booking').length }].map(metric => <div key={metric.label}><span style={{ color: '#5C5248', fontSize: '12px' }}>{metric.label}</span><strong style={{ display: 'block', color: '#8F6D24', fontSize: '26px', marginTop: '8px' }}>{metric.count}</strong></div>)}</div>
+            <section style={{ background: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px' }}>
+              <h3 style={{ color: '#E4C687', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', marginTop: 0 }}>Actividad web/app · Registro local</h3>
+              <p style={{ color: '#D6CBB8', fontSize: '12px' }}>Datos desde la instalación de esta versión. Una visita por sesión de pestaña; visitantes por navegador. Incluye tus propias pruebas. Supabase todavía no recibe estos eventos.</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(130px,1fr))', gap: '14px' }}>{[{ label: 'Visitas', count: trafficEvents.filter(item => item.type === 'visit').length }, { label: 'Navegadores únicos', count: new Set(trafficEvents.filter(item => item.type === 'visit').map(item => item.visitor)).size }, { label: 'Accesos al portal', count: trafficEvents.filter(item => item.type === 'login').length }, { label: 'Registros del portal', count: trafficEvents.filter(item => item.type === 'registration').length }, { label: 'Citas registradas', count: trafficEvents.filter(item => item.type === 'booking').length }].map(metric => <div key={metric.label}><span style={{ color: '#D6CBB8', fontSize: '12px' }}>{metric.label}</span><strong style={{ display: 'block', color: '#E4C687', fontSize: '26px', marginTop: '8px' }}>{metric.count}</strong></div>)}</div>
               <details style={{ marginTop: '18px', fontSize: '12px' }}><summary>Origen de las visitas</summary>{Array.from(new Set(trafficEvents.filter(item => item.type === 'visit').map(item => item.source))).map(source => <p key={source}>{source} · {trafficEvents.filter(item => item.type === 'visit' && item.source === source).length}</p>)}</details>
             </section>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '12px' }}>{[{ label: 'Clientas registradas', count: listaClientes.length }, { label: 'Visitas realizadas', count: appointments.filter(item => !!item.completedAt && item.lifecycleStatus !== 'cancelled' && item.lifecycleStatus !== 'no_show').length }, { label: 'Citas canceladas', count: appointments.filter(item => item.lifecycleStatus === 'cancelled').length }, { label: 'Ausencias', count: appointments.filter(item => item.lifecycleStatus === 'no_show').length }].map(metric => <div key={metric.label} style={{ padding: '20px', border: '1px solid #E6D5B8', borderRadius: '12px', background: '#EADCC7' }}><span style={{ fontSize: '12px', color: '#5C5248' }}>{metric.label}</span><strong style={{ display: 'block', fontSize: '28px', color: '#8F6D24', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', marginTop: '12px' }}>{metric.count}</strong></div>)}</div>
-            <button type="button" onClick={() => setAdminTab('demands')} style={{ alignSelf: 'flex-start', padding: '12px 16px', border: '1px solid #C5A059', borderRadius: '8px', background: '#EADCC7', color: '#2C2521', cursor: 'pointer' }}>Ver demandas y oportunidades de cita →</button>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: '12px' }}>{[{ label: 'Clientas registradas', count: listaClientes.length }, { label: 'Visitas realizadas', count: appointments.filter(item => !!item.completedAt && item.lifecycleStatus !== 'cancelled' && item.lifecycleStatus !== 'no_show').length }, { label: 'Citas canceladas', count: appointments.filter(item => item.lifecycleStatus === 'cancelled').length }, { label: 'Ausencias', count: appointments.filter(item => item.lifecycleStatus === 'no_show').length }].map(metric => <div key={metric.label} style={{ padding: '20px', border: '1px solid #3A312A', borderRadius: '12px', background: '#322A25' }}><span style={{ fontSize: '12px', color: '#D6CBB8' }}>{metric.label}</span><strong style={{ display: 'block', fontSize: '28px', color: '#E4C687', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', marginTop: '12px' }}>{metric.count}</strong></div>)}</div>
+            <button type="button" onClick={() => setAdminTab('demands')} style={{ alignSelf: 'flex-start', padding: '12px 16px', border: '1px solid #C5A059', borderRadius: '8px', background: '#322A25', color: '#FFF8EE', cursor: 'pointer' }}>Ver demandas y oportunidades de cita →</button>
           </section>;
           })()}
 
@@ -5896,48 +5896,48 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
             ];
             const rows = valid ? lostDemandsList.filter(item => dateKey(item) >= from && dateKey(item) <= to && demandFilter !== 'unfinished' && (demandFilter === 'all' || demandFilter === 'no_slots' && item.reason === 'sin_disponibilidad' && !item.recoveredAt || demandFilter === 'contacted' && !!item.contactedAt || demandFilter === 'recovered' && !!item.recoveredAt)).sort((a,b) => dateKey(b).localeCompare(dateKey(a))) : [];
             const unfinished = valid ? bookingAttempts.filter(item => (item.registered ? demandFilter === 'recovered' || demandFilter === 'all' : attemptClock - Date.parse(item.updatedAt) >= 30 * 60000) && demandFilter !== 'no_slots' && (demandFilter !== 'contacted' || !!item.contactedAt) && (demandFilter !== 'recovered' || !!item.recoveredAt) && formatDateKey(new Date(item.updatedAt)) >= from && formatDateKey(new Date(item.updatedAt)) <= to) : [];
-            return <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', color: '#8F6D24' }}>
-              <header><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '25px', fontWeight: 'normal', color: '#8F6D24', margin: '0 0 8px' }}>Demanda · Oportunidades de cita</h2><p style={{ fontSize: '13px', color: '#5C5248' }}>Intentos registrados en este navegador. No representa todas las visitas a la app.</p></header>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>{(['hoy', '7d', '30d', 'personalizado'] as const).map(period => <button type="button" key={period} onClick={() => setCrmPeriod(period)} aria-pressed={crmPeriod === period} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #C5A059', background: crmPeriod === period ? '#EADCC7' : '#EADCC7', color: '#8F6D24', cursor: 'pointer' }}>{({ hoy: 'Hoy', '7d': '7 días', '30d': '30 días', personalizado: 'Elegir fechas' })[period]}</button>)}</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>{([['all','Todas'], ['no_slots','Sin hueco'], ['unfinished','Sin terminar'], ['contacted','Contactadas'], ['recovered','Recuperadas']] as const).map(([filter,label]) => <button key={filter} type="button" aria-pressed={demandFilter === filter} onClick={() => setDemandFilter(filter)} style={{ padding: '9px 12px', borderRadius: '7px', background: demandFilter === filter ? '#EADCC7' : '#EADCC7', color: '#8F6D24', border: '1px solid #C5A059', cursor: 'pointer' }}>{label}</button>)}</div>
+            return <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', color: '#E4C687' }}>
+              <header><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '25px', fontWeight: 'normal', color: '#E4C687', margin: '0 0 8px' }}>Demanda · Oportunidades de cita</h2><p style={{ fontSize: '13px', color: '#D6CBB8' }}>Intentos registrados en este navegador. No representa todas las visitas a la app.</p></header>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>{(['hoy', '7d', '30d', 'personalizado'] as const).map(period => <button type="button" key={period} onClick={() => setCrmPeriod(period)} aria-pressed={crmPeriod === period} style={{ padding: '10px 16px', borderRadius: '8px', border: '1px solid #C5A059', background: crmPeriod === period ? '#322A25' : '#322A25', color: '#E4C687', cursor: 'pointer' }}>{({ hoy: 'Hoy', '7d': '7 días', '30d': '30 días', personalizado: 'Elegir fechas' })[period]}</button>)}</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>{([['all','Todas'], ['no_slots','Sin hueco'], ['unfinished','Sin terminar'], ['contacted','Contactadas'], ['recovered','Recuperadas']] as const).map(([filter,label]) => <button key={filter} type="button" aria-pressed={demandFilter === filter} onClick={() => setDemandFilter(filter)} style={{ padding: '9px 12px', borderRadius: '7px', background: demandFilter === filter ? '#322A25' : '#322A25', color: '#E4C687', border: '1px solid #C5A059', cursor: 'pointer' }}>{label}</button>)}</div>
               {crmPeriod === 'personalizado' && <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}><label>Desde <input type="date" value={demandStart} onChange={e => setDemandStart(e.target.value)} /></label><label>Hasta <input type="date" value={demandEnd} onChange={e => setDemandEnd(e.target.value)} /></label>{!valid && <span>Elige un periodo válido.</span>}</div>}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: '12px' }}>{[{ label: 'Búsquedas sin hueco', count: periodDemands.filter(item => item.reason === 'sin_disponibilidad').length }, { label: 'Reservas sin terminar', count: periodAttempts.filter(item => !item.registered && attemptClock - Date.parse(item.updatedAt) >= 30 * 60000).length }, { label: 'Clientas contactadas', count: new Set([...periodDemands.filter(item => item.contactedAt).map(item => item.clientEmail || item.phone || item.id), ...periodAttempts.filter(item => item.contactedAt).map(item => item.email)]).size }, { label: 'Clientas recuperadas', count: new Set([...periodDemands.filter(item => item.recoveredAt).map(item => item.clientEmail || item.phone || item.id), ...periodAttempts.filter(item => item.recoveredAt).map(item => item.email)]).size }].map(metric => <div key={metric.label} style={{ padding: '20px', background: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px' }}><span style={{ fontSize: '12px', color: '#5C5248' }}>{metric.label}</span><strong style={{ display: 'block', fontSize: '28px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', color: '#8F6D24', marginTop: '12px' }}>{metric.count}</strong></div>)}</div>
-              <p style={{ fontSize: '12px', color: '#5C5248' }}>Una búsqueda sin hueco no confirma abandono. Una reserva sin terminar lleva 30 minutos sin cambios de paso; su motivo es desconocido. Los registros antiguos pueden proceder de datos de ejemplo.</p>
-            <section style={{ padding: '20px', background: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px' }}>
-              <h3 style={{ color: '#8F6D24', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Demanda sin disponibilidad</h3>
-              <p style={{ fontSize: '12px', color: '#5C5248' }}>{demandInPeriod.length} búsquedas sin hueco registradas en el periodo. Mide intentos, no personas únicas ni reservas perdidas definitivas.</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: '12px' }}>{[{ label: 'Búsquedas sin hueco', count: periodDemands.filter(item => item.reason === 'sin_disponibilidad').length }, { label: 'Reservas sin terminar', count: periodAttempts.filter(item => !item.registered && attemptClock - Date.parse(item.updatedAt) >= 30 * 60000).length }, { label: 'Clientas contactadas', count: new Set([...periodDemands.filter(item => item.contactedAt).map(item => item.clientEmail || item.phone || item.id), ...periodAttempts.filter(item => item.contactedAt).map(item => item.email)]).size }, { label: 'Clientas recuperadas', count: new Set([...periodDemands.filter(item => item.recoveredAt).map(item => item.clientEmail || item.phone || item.id), ...periodAttempts.filter(item => item.recoveredAt).map(item => item.email)]).size }].map(metric => <div key={metric.label} style={{ padding: '20px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '12px' }}><span style={{ fontSize: '12px', color: '#D6CBB8' }}>{metric.label}</span><strong style={{ display: 'block', fontSize: '28px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', color: '#E4C687', marginTop: '12px' }}>{metric.count}</strong></div>)}</div>
+              <p style={{ fontSize: '12px', color: '#D6CBB8' }}>Una búsqueda sin hueco no confirma abandono. Una reserva sin terminar lleva 30 minutos sin cambios de paso; su motivo es desconocido. Los registros antiguos pueden proceder de datos de ejemplo.</p>
+            <section style={{ padding: '20px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '12px' }}>
+              <h3 style={{ color: '#E4C687', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Demanda sin disponibilidad</h3>
+              <p style={{ fontSize: '12px', color: '#D6CBB8' }}>{demandInPeriod.length} búsquedas sin hueco registradas en el periodo. Mide intentos, no personas únicas ni reservas perdidas definitivas.</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(230px,1fr))', gap: '24px' }}>
-                <div><h4 style={{ fontSize: '13px', fontWeight: 'normal', color: '#8F6D24' }}>Días buscados sin hueco</h4>{demandDaysRanking.map(([day,count]) => <div key={day} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid #34352c', fontSize: '13px' }}><span>{['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][day]}</span><strong>{count}</strong></div>)}{!demandDaysRanking.length && <p style={{ color: '#5C5248', fontSize: '12px' }}>No hay fechas deseadas registradas en este periodo.</p>}<p style={{ color: '#5C5248', fontSize: '11px' }}>Se agrupa por el día que quería reservar la clienta. Las horas deseadas todavía no se registran.</p></div>
-                <div><h4 style={{ fontSize: '13px', fontWeight: 'normal', color: '#8F6D24' }}>Servicios buscados sin hueco</h4>{demandServicesRanking.slice(0,8).map(([name,count]) => <div key={name} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid #34352c', fontSize: '13px' }}><span>{name}</span><strong>{count}</strong></div>)}{!demandServicesRanking.length && <p style={{ color: '#5C5248', fontSize: '12px' }}>No hay servicios buscados sin hueco en estas fechas.</p>}<p style={{ color: '#5C5248', fontSize: '11px' }}>Las combinaciones y variantes se muestran como fueron seleccionadas.</p></div>
+                <div><h4 style={{ fontSize: '13px', fontWeight: 'normal', color: '#E4C687' }}>Días buscados sin hueco</h4>{demandDaysRanking.map(([day,count]) => <div key={day} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid #463B32', fontSize: '13px' }}><span>{['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][day]}</span><strong>{count}</strong></div>)}{!demandDaysRanking.length && <p style={{ color: '#D6CBB8', fontSize: '12px' }}>No hay fechas deseadas registradas en este periodo.</p>}<p style={{ color: '#D6CBB8', fontSize: '11px' }}>Se agrupa por el día que quería reservar la clienta. Las horas deseadas todavía no se registran.</p></div>
+                <div><h4 style={{ fontSize: '13px', fontWeight: 'normal', color: '#E4C687' }}>Servicios buscados sin hueco</h4>{demandServicesRanking.slice(0,8).map(([name,count]) => <div key={name} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid #463B32', fontSize: '13px' }}><span>{name}</span><strong>{count}</strong></div>)}{!demandServicesRanking.length && <p style={{ color: '#D6CBB8', fontSize: '12px' }}>No hay servicios buscados sin hueco en estas fechas.</p>}<p style={{ color: '#D6CBB8', fontSize: '11px' }}>Las combinaciones y variantes se muestran como fueron seleccionadas.</p></div>
               </div>
-              <button type="button" onClick={() => { setDemandFilter('no_slots'); }} style={{ marginTop: '12px', padding: '10px 14px', background: '#EADCC7', color: '#2C2521', border: '1px solid #C5A059', borderRadius: '7px', cursor: 'pointer' }}>Ver intentos y contactar →</button>
+              <button type="button" onClick={() => { setDemandFilter('no_slots'); }} style={{ marginTop: '12px', padding: '10px 14px', background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059', borderRadius: '7px', cursor: 'pointer' }}>Ver intentos y contactar →</button>
             </section>
-              <section style={{ padding: '20px', border: '1px solid #E6D5B8', borderRadius: '12px', background: '#EADCC7' }}>
-                <h3 style={{ color: '#8F6D24', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Recorrido de reserva</h3>
-                <p style={{ color: '#5C5248', fontSize: '12px' }}>Clientas únicas por paso observado en el periodo. Se conserva el avance aunque vuelvan atrás. No incluye todas las visitas ni reservas anteriores al registro de pasos.</p>
-                {journey.map(stage => <div key={stage.label} style={{ margin: '16px 0' }}><div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '7px' }}><span>{stage.label}</span><strong style={{ color: '#8F6D24' }}>{stage.count}</strong></div><div style={{ height: '5px', borderRadius: '4px', background: '#EADCC7' }}><div style={{ height: '100%', width: `${journey[0].count ? Math.min(100, stage.count / journey[0].count * 100) : 0}%`, borderRadius: '4px', background: '#8F6D24' }} /></div></div>)}
-                {!periodAttempts.length && <p style={{ fontSize: '12px', color: '#5C5248' }}>Todavía no hay pasos registrados en estas fechas.</p>}
+              <section style={{ padding: '20px', border: '1px solid #3A312A', borderRadius: '12px', background: '#322A25' }}>
+                <h3 style={{ color: '#E4C687', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '18px', marginTop: 0 }}>Recorrido de reserva</h3>
+                <p style={{ color: '#D6CBB8', fontSize: '12px' }}>Clientas únicas por paso observado en el periodo. Se conserva el avance aunque vuelvan atrás. No incluye todas las visitas ni reservas anteriores al registro de pasos.</p>
+                {journey.map(stage => <div key={stage.label} style={{ margin: '16px 0' }}><div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '7px' }}><span>{stage.label}</span><strong style={{ color: '#E4C687' }}>{stage.count}</strong></div><div style={{ height: '5px', borderRadius: '4px', background: '#322A25' }}><div style={{ height: '100%', width: `${journey[0].count ? Math.min(100, stage.count / journey[0].count * 100) : 0}%`, borderRadius: '4px', background: '#8F6D24' }} /></div></div>)}
+                {!periodAttempts.length && <p style={{ fontSize: '12px', color: '#D6CBB8' }}>Todavía no hay pasos registrados en estas fechas.</p>}
               </section>
-              <section style={{ padding: '20px', border: '1px solid #E6D5B8', borderRadius: '12px', background: '#EADCC7' }}>
-                <h3 style={{ fontSize: '17px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', color: '#8F6D24', fontWeight: 'normal', marginTop: 0 }}>Recorrido de reservas · {unfinished.length}</h3>
-                <p style={{ fontSize: '12px', color: '#5C5248' }}>Último paso observado. No mide todas las entradas ni confirma que la clienta haya cerrado la app.</p>
-                {unfinished.map(item => <div key={item.id} style={{ padding: '12px 0', borderTop: '1px solid #3e4034', fontSize: '13px' }}><strong>{item.name}</strong><p>{item.services}</p><span style={{ color: '#5C5248', fontSize: '12px' }}>{item.registered ? 'Recuperada · Cita registrada' : item.step + ' · Motivo desconocido'} · {item.date || 'Sin fecha'} {item.time} · Último paso: {new Date(item.updatedAt).toLocaleString('es-ES')}</span>
+              <section style={{ padding: '20px', border: '1px solid #3A312A', borderRadius: '12px', background: '#322A25' }}>
+                <h3 style={{ fontSize: '17px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', color: '#E4C687', fontWeight: 'normal', marginTop: 0 }}>Recorrido de reservas · {unfinished.length}</h3>
+                <p style={{ fontSize: '12px', color: '#D6CBB8' }}>Último paso observado. No mide todas las entradas ni confirma que la clienta haya cerrado la app.</p>
+                {unfinished.map(item => <div key={item.id} style={{ padding: '12px 0', borderTop: '1px solid #463B32', fontSize: '13px' }}><strong>{item.name}</strong><p>{item.services}</p><span style={{ color: '#D6CBB8', fontSize: '12px' }}>{item.registered ? 'Recuperada · Cita registrada' : item.step + ' · Motivo desconocido'} · {item.date || 'Sin fecha'} {item.time} · Último paso: {new Date(item.updatedAt).toLocaleString('es-ES')}</span>
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginTop: '12px' }}>
-                    <button type="button" onClick={() => { setBusquedaCliente(item.email); setAdminTab('clients'); }} style={{ background: 'none', color: '#8F6D24', border: '1px solid #C5A059', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>Ver ficha</button>
-                    {listaClientes.find(client => client.email.trim().toLowerCase() === item.email)?.telefono && <a target="_blank" rel="noreferrer" style={{ color: '#8F6D24', padding: '8px' }} href={`https://wa.me/${(() => { const phone = (listaClientes.find(client => client.email.trim().toLowerCase() === item.email)?.telefono || '').replace(/\D/g,''); return (phone.length === 9 ? '34' : '') + phone; })()}?text=${encodeURIComponent(`Hola ${item.name.split(' ')[0]}, soy Ana de ${bizConfig.name}. Si necesitas ayuda para terminar tu reserva, podemos revisar fechas y servicios juntas.`)}`}>Abrir WhatsApp</a>}
-                    <button type="button" onClick={() => setBookingAttempts(previous => previous.map(record => record.id !== item.id ? record : { ...record, contactedAt: record.contactedAt ? undefined : new Date().toISOString() }))} style={{ background: 'none', color: '#5C5248', border: '1px solid #E6D5B8', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>{item.contactedAt ? 'Contactada · Deshacer' : 'Marcar contactada'}</button>
+                    <button type="button" onClick={() => { setBusquedaCliente(item.email); setAdminTab('clients'); }} style={{ background: 'none', color: '#E4C687', border: '1px solid #C5A059', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>Ver ficha</button>
+                    {listaClientes.find(client => client.email.trim().toLowerCase() === item.email)?.telefono && <a target="_blank" rel="noreferrer" style={{ color: '#E4C687', padding: '8px' }} href={`https://wa.me/${(() => { const phone = (listaClientes.find(client => client.email.trim().toLowerCase() === item.email)?.telefono || '').replace(/\D/g,''); return (phone.length === 9 ? '34' : '') + phone; })()}?text=${encodeURIComponent(`Hola ${item.name.split(' ')[0]}, soy Ana de ${bizConfig.name}. Si necesitas ayuda para terminar tu reserva, podemos revisar fechas y servicios juntas.`)}`}>Abrir WhatsApp</a>}
+                    <button type="button" onClick={() => setBookingAttempts(previous => previous.map(record => record.id !== item.id ? record : { ...record, contactedAt: record.contactedAt ? undefined : new Date().toISOString() }))} style={{ background: 'none', color: '#D6CBB8', border: '1px solid #3A312A', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>{item.contactedAt ? 'Contactada · Deshacer' : 'Marcar contactada'}</button>
                   </div></div>)}
                 {!unfinished.length && <p style={{ fontSize: '13px' }}>No hay reservas sin terminar registradas en este periodo.</p>}
               </section>
-              {rows.length === 0 && <p style={{ padding: '24px', border: '1px solid #E6D5B8', borderRadius: '10px' }}>No hay intentos registrados en este periodo.</p>}
-              {rows.map(item => <article key={item.id} style={{ background: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '12px', padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}><strong>{item.clientName}</strong><span style={{ color: '#5C5248', fontSize: '12px' }}>{item.date} · {item.recoveredAt ? 'Recuperada' : item.reason === 'sin_disponibilidad' ? 'Sin hueco' : 'Registro anterior'}</span></div>
-                <p style={{ color: '#8F6D24', fontSize: '13px' }}>{item.serviceName}</p><p style={{ fontSize: '12px', color: '#5C5248' }}>Fecha deseada: {item.desiredDate || 'Sin registrar'} · {item.clientNote}</p>
+              {rows.length === 0 && <p style={{ padding: '24px', border: '1px solid #3A312A', borderRadius: '10px' }}>No hay intentos registrados en este periodo.</p>}
+              {rows.map(item => <article key={item.id} style={{ background: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}><strong>{item.clientName}</strong><span style={{ color: '#D6CBB8', fontSize: '12px' }}>{item.date} · {item.recoveredAt ? 'Recuperada' : item.reason === 'sin_disponibilidad' ? 'Sin hueco' : 'Registro anterior'}</span></div>
+                <p style={{ color: '#E4C687', fontSize: '13px' }}>{item.serviceName}</p><p style={{ fontSize: '12px', color: '#D6CBB8' }}>Fecha deseada: {item.desiredDate || 'Sin registrar'} · {item.clientNote}</p>
                 <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                  {item.clientEmail && <button type="button" onClick={() => { setBusquedaCliente(item.clientEmail || ''); setAdminTab('clients'); }} style={{ background: 'none', color: '#8F6D24', border: '1px solid #C5A059', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>Ver ficha</button>}
-                  {item.phone && <a target="_blank" rel="noreferrer" style={{ color: '#8F6D24', fontSize: '12px' }} href={`https://wa.me/${item.phone.replace(/\D/g, '').length === 9 ? '34' : ''}${item.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${item.clientName.split(' ')[0]}, soy Ana de ${bizConfig.name}. Si sigues buscando cita, podemos revisar alternativas de fecha para tus servicios.`)}`}>Abrir WhatsApp</a>}
-                  <button type="button" onClick={() => setLostDemandsList(previous => previous.map(record => record.id !== item.id ? record : { ...record, contactedAt: new Date().toISOString() }))} style={{ background: 'none', color: '#5C5248', border: '1px solid #E6D5B8', borderRadius: '6px', padding: '8px', cursor: 'pointer' }}>{item.contactedAt ? 'Contactada' : 'Marcar contactada'}</button>
-                  <button type="button" onClick={() => setLostDemandsList(previous => previous.map(record => record.id !== item.id ? record : { ...record, recoveredAt: record.recoveredAt ? undefined : new Date().toISOString() }))} style={{ background: 'none', color: '#5C5248', border: '1px solid #E6D5B8', borderRadius: '6px', padding: '8px', cursor: 'pointer' }}>{item.recoveredAt ? 'Deshacer recuperación' : 'Marcar recuperada'}</button>
+                  {item.clientEmail && <button type="button" onClick={() => { setBusquedaCliente(item.clientEmail || ''); setAdminTab('clients'); }} style={{ background: 'none', color: '#E4C687', border: '1px solid #C5A059', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>Ver ficha</button>}
+                  {item.phone && <a target="_blank" rel="noreferrer" style={{ color: '#E4C687', fontSize: '12px' }} href={`https://wa.me/${item.phone.replace(/\D/g, '').length === 9 ? '34' : ''}${item.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${item.clientName.split(' ')[0]}, soy Ana de ${bizConfig.name}. Si sigues buscando cita, podemos revisar alternativas de fecha para tus servicios.`)}`}>Abrir WhatsApp</a>}
+                  <button type="button" onClick={() => setLostDemandsList(previous => previous.map(record => record.id !== item.id ? record : { ...record, contactedAt: new Date().toISOString() }))} style={{ background: 'none', color: '#D6CBB8', border: '1px solid #3A312A', borderRadius: '6px', padding: '8px', cursor: 'pointer' }}>{item.contactedAt ? 'Contactada' : 'Marcar contactada'}</button>
+                  <button type="button" onClick={() => setLostDemandsList(previous => previous.map(record => record.id !== item.id ? record : { ...record, recoveredAt: record.recoveredAt ? undefined : new Date().toISOString() }))} style={{ background: 'none', color: '#D6CBB8', border: '1px solid #3A312A', borderRadius: '6px', padding: '8px', cursor: 'pointer' }}>{item.recoveredAt ? 'Deshacer recuperación' : 'Marcar recuperada'}</button>
                 </div>
               </article>)}
             </div>;
@@ -5947,20 +5947,20 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
           {adminTab === 'holidays' && (
             <div className="studio-holidays-premium" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <style>{`
-                .studio-holidays-premium form { background: #EADCC7 !important; border-color: #E6D5B8 !important; border-radius: 14px !important; padding: 22px !important; gap: 18px !important; }
-                .studio-holidays-premium input, .studio-holidays-premium select { min-height: 44px; box-sizing: border-box; font-size: 13px !important; padding: 11px !important; color-scheme: light; border-radius: 8px !important; background: #EADCC7 !important; border-color: #E0D8CE !important; }
-                .studio-holidays-premium label { font-size: 12px !important; color: #5C5248 !important; margin-bottom: 5px; }
+                .studio-holidays-premium form { background: #322A25 !important; border-color: #3A312A !important; border-radius: 14px !important; padding: 22px !important; gap: 18px !important; }
+                .studio-holidays-premium input, .studio-holidays-premium select { min-height: 44px; box-sizing: border-box; font-size: 13px !important; padding: 11px !important; color-scheme: dark; border-radius: 8px !important; background: #322A25 !important; border-color: #3A312A !important; }
+                .studio-holidays-premium label { font-size: 12px !important; color: #D6CBB8 !important; margin-bottom: 5px; }
                 .studio-holidays-premium button { font-size: 12px !important; min-height: 40px; font-weight: normal !important; border-radius: 8px !important; }
                 .studio-holidays-premium form button[type=submit] { padding: 12px 20px !important; }
-                .studio-holidays-premium > div:last-child > div { background: #EADCC7 !important; border-color: #E6D5B8 !important; border-radius: 12px !important; padding: 18px !important; }
-                .studio-holidays-premium > div:last-child button { background: transparent !important; color: #5C5248 !important; border-color: #E0D8CE !important; }
+                .studio-holidays-premium > div:last-child > div { background: #322A25 !important; border-color: #3A312A !important; border-radius: 12px !important; padding: 18px !important; }
+                .studio-holidays-premium > div:last-child button { background: transparent !important; color: #D6CBB8 !important; border-color: #3A312A !important; }
               `}</style>
               <div>
-                <h3 style={{ color: '#8F6D24', fontSize: '24px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Vacaciones y festivos</h3>
-                <p style={{ color: '#5C5248', fontSize: '11px', margin: 0 }}>Planifica cierres de días completos. Se aplican a la agenda de Ana y a las horas disponibles del portal en este navegador.</p>
+                <h3 style={{ color: '#E4C687', fontSize: '24px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Vacaciones y festivos</h3>
+                <p style={{ color: '#D6CBB8', fontSize: '11px', margin: 0 }}>Planifica cierres de días completos. Se aplican a la agenda de Ana y a las horas disponibles del portal en este navegador.</p>
               </div>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', background: '#EADCC7', border: '1px solid #454634', borderRadius: '10px', padding: '14px', color: '#5C5248', fontSize: '12px' }}><span>Agenda de Ana + Portal de clientas · Bloqueo compartido local</span><button type="button" onClick={() => setAdminTab('agenda')} style={{ marginLeft: 'auto', cursor: 'pointer', color: '#8F6D24', background: 'none', border: '1px solid #C5A059', borderRadius: '7px', padding: '9px 12px' }}>Ver agenda →</button></div>
-              {newHolidayStart && newHolidayEnd && newHolidayEnd >= newHolidayStart && appointments.some(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd) && <div style={{ color: '#8F6D24', fontSize: '13px', padding: '14px', borderLeft: '2px solid #b69b60' }}>Hay {appointments.filter(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd).length} citas en estas fechas. Guardar el cierre no las cancela.</div>}
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', background: '#322A25', border: '1px solid #454634', borderRadius: '10px', padding: '14px', color: '#D6CBB8', fontSize: '12px' }}><span>Agenda de Ana + Portal de clientas · Bloqueo compartido local</span><button type="button" onClick={() => setAdminTab('agenda')} style={{ marginLeft: 'auto', cursor: 'pointer', color: '#E4C687', background: 'none', border: '1px solid #C5A059', borderRadius: '7px', padding: '9px 12px' }}>Ver agenda →</button></div>
+              {newHolidayStart && newHolidayEnd && newHolidayEnd >= newHolidayStart && appointments.some(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd) && <div style={{ color: '#E4C687', fontSize: '13px', padding: '14px', borderLeft: '2px solid #b69b60' }}>Hay {appointments.filter(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd).length} citas en estas fechas. Guardar el cierre no las cancela.</div>}
               <form onSubmit={(e) => {
                 e.preventDefault();
                 if (!newHolidayStart || !newHolidayEnd) {
@@ -5983,52 +5983,52 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 setNewHolidayEnd("");
                 setNewHolidayReason("");
                 alert('¡Periodo bloqueado correctamente y sincronizado con la agenda!');
-              }} style={{ backgroundColor: '#EADCC7', border: '1px solid #B98A3E', borderRadius: '10px', padding: '16px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <h4 style={{ color: '#8F6D24', fontSize: '13px', margin: 0 }}>Nuevo cierre</h4>
+              }} style={{ backgroundColor: '#322A25', border: '1px solid #B98A3E', borderRadius: '10px', padding: '16px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <h4 style={{ color: '#E4C687', fontSize: '13px', margin: 0 }}>Nuevo cierre</h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ color: '#2C2521', fontSize: '11px' }}>Tipo:</label>
-                    <select value={newHolidayType} onChange={(e) => setNewHolidayType(e.target.value as any)} style={{ padding: '8px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '11px' }}>
+                    <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Tipo:</label>
+                    <select value={newHolidayType} onChange={(e) => setNewHolidayType(e.target.value as any)} style={{ padding: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '11px' }}>
                       <option value="vacaciones">Vacaciones</option>
                       <option value="festivo">Festivo</option>
                     </select>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ color: '#2C2521', fontSize: '11px' }}>Desde el día:</label>
-                    <input type="date" value={newHolidayStart} onChange={(e) => setNewHolidayStart(e.target.value)} required style={{ padding: '8px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '11px' }} />
+                    <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Desde el día:</label>
+                    <input type="date" value={newHolidayStart} onChange={(e) => setNewHolidayStart(e.target.value)} required style={{ padding: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '11px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ color: '#2C2521', fontSize: '11px' }}>Hasta el día:</label>
-                    <input type="date" min={newHolidayStart || undefined} value={newHolidayEnd} onChange={(e) => setNewHolidayEnd(e.target.value)} required style={{ padding: '8px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '11px' }} />
+                    <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Hasta el día:</label>
+                    <input type="date" min={newHolidayStart || undefined} value={newHolidayEnd} onChange={(e) => setNewHolidayEnd(e.target.value)} required style={{ padding: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '11px' }} />
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ color: '#2C2521', fontSize: '11px' }}>Motivo o descripción:</label>
-                  <input type="text" placeholder="Ej. Vacaciones de verano o Festivo local de Elche" value={newHolidayReason} onChange={(e) => setNewHolidayReason(e.target.value)} style={{ padding: '8px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', borderRadius: '6px', fontSize: '11px' }} />
+                  <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Motivo o descripción:</label>
+                  <input type="text" placeholder="Ej. Vacaciones de verano o Festivo local de Elche" value={newHolidayReason} onChange={(e) => setNewHolidayReason(e.target.value)} style={{ padding: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '11px' }} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <button type="submit" style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#2C2521', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>
+                  <button type="submit" style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>
                     Guardar cierre
                   </button>
                 </div>
               </form>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <h4 style={{ color: '#8F6D24', fontSize: '13px', margin: '5px 0 0 0' }}>Cierres programados</h4>
+                <h4 style={{ color: '#E4C687', fontSize: '13px', margin: '5px 0 0 0' }}>Cierres programados</h4>
                 {holidaysList.length === 0 ? (
-                  <div style={{ backgroundColor: '#EADCC7', padding: '15px', borderRadius: '8px', color: '#5C5248', fontSize: '11px', textAlign: 'center' }}>
+                  <div style={{ backgroundColor: '#322A25', padding: '15px', borderRadius: '8px', color: '#D6CBB8', fontSize: '11px', textAlign: 'center' }}>
                     No hay vacaciones ni festivos bloqueados actualmente.
                   </div>
                 ) : (
                   [...holidaysList].sort((a,b) => a.startDate.localeCompare(b.startDate)).map((h) => (
-                    <div key={h.id} style={{ backgroundColor: '#EADCC7', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                    <div key={h.id} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <span style={{ backgroundColor: h.type === 'vacaciones' ? '#F3E8D7' : '#F2DCD8', color: h.type === 'vacaciones' ? '#8F6D24' : '#C0392B', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>
+                          <span style={{ backgroundColor: h.type === 'vacaciones' ? '#3E342C' : '#F2DCD8', color: h.type === 'vacaciones' ? '#8F6D24' : '#C0392B', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>
                             {h.type === 'vacaciones' ? 'VACACIONES' : 'FESTIVO'}
                           </span>
-                          <span style={{ color: '#2C2521', fontSize: '12px', fontWeight: 'bold' }}>{h.reason}</span>
+                          <span style={{ color: '#FFF8EE', fontSize: '12px', fontWeight: 'bold' }}>{h.reason}</span>
                         </div>
-                        <span style={{ color: '#5C5248', fontSize: '11px' }}>Desde el <strong>{h.startDate.split('-').reverse().join('/')}</strong> hasta el <strong>{h.endDate.split('-').reverse().join('/')}</strong></span>
+                        <span style={{ color: '#D6CBB8', fontSize: '11px' }}>Desde el <strong>{h.startDate.split('-').reverse().join('/')}</strong> hasta el <strong>{h.endDate.split('-').reverse().join('/')}</strong></span>
                       </div>
                       <button onClick={() => {
                         if (window.confirm('¿Eliminar este bloqueo y permitir reservas en estas fechas?')) {
@@ -6051,17 +6051,17 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
         style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 1700 }} />}
       {registeredAppointment && <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'grid', placeItems: 'center', padding: '16px', zIndex: 3000 }}>
         <div role="dialog" aria-modal="true" aria-labelledby="appointment-registered-title" style={{ width: '100%', maxWidth: '440px', boxSizing: 'border-box',
-          background: '#EADCC7', border: '1px solid rgba(228, 198, 135, 0.45)', borderRadius: '14px', padding: '26px', color: '#2C2521' }}>
-          <h3 id="appointment-registered-title" style={{ margin: '0 0 14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '26px', fontWeight: 'normal', color: '#7A5C1E' }}>Cita registrada</h3>
+          background: '#322A25', border: '1px solid rgba(228, 198, 135, 0.45)', borderRadius: '14px', padding: '26px', color: '#FFF8EE' }}>
+          <h3 id="appointment-registered-title" style={{ margin: '0 0 14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '26px', fontWeight: 'normal', color: '#E4C687' }}>Cita registrada</h3>
           <p style={{ lineHeight: 1.7 }}>{registeredAppointment.clientName}<br />
             {registeredAppointment.dateKey.split('-').reverse().join('/')} · {registeredAppointment.time}</p>
-          <p style={{ color: '#5C5248', lineHeight: 1.6, fontSize: '13px' }}>{registeredAppointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
-          <p style={{ color: '#7A5C1E', lineHeight: 1.6 }}>{registeredAppointment.saturdayApproval?.status === 'pending'
+          <p style={{ color: '#D6CBB8', lineHeight: 1.6, fontSize: '13px' }}>{registeredAppointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
+          <p style={{ color: '#E4C687', lineHeight: 1.6 }}>{registeredAppointment.saturdayApproval?.status === 'pending'
             ? 'Tu solicitud está registrada. La cita queda pendiente de la confirmación de Ana.'
             : registeredAppointment.advancePayment?.status === 'pending'
             ? 'Tu solicitud está registrada. La cita queda pendiente de comprobar la reserva anticipada por Bizum.'
             : 'La cita ha quedado guardada en la agenda.'}</p>
-          <p style={{ color: '#5C5248', fontSize: '12px', lineHeight: 1.6 }}>WhatsApp no se envía automáticamente. El botón abre un mensaje preparado; debes pulsar «Enviar» en WhatsApp.</p>
+          <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6 }}>WhatsApp no se envía automáticamente. El botón abre un mensaje preparado; debes pulsar «Enviar» en WhatsApp.</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '18px' }}>
             <button type="button" onClick={() => {
               const admin = currentScreen === 'adminPanel';
@@ -6081,10 +6081,10 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                   ' a las ' + registeredAppointment.time + '. Servicios: ' + registeredAppointment.serviceSubcategory +
                   '. ¿Puedes revisar mi reserva?';
               window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(text), '_blank', 'noopener,noreferrer');
-            }} style={{ padding: '12px', background: '#DFE9DF', color: '#2C5538', border: '1px solid #3E6B47', borderRadius: '7px', cursor: 'pointer' }}>
+            }} style={{ padding: '12px', background: '#8FC98F', color: '#2C5538', border: '1px solid #3E6B47', borderRadius: '7px', cursor: 'pointer' }}>
               {currentScreen === 'adminPanel' ? 'Abrir WhatsApp de la clienta' : 'Enviar solicitud a Ana por WhatsApp'}
             </button>
-            <button autoFocus type="button" onClick={() => setRegisteredAppointment(null)} style={{ padding: '12px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#2C2521',
+            <button autoFocus type="button" onClick={() => setRegisteredAppointment(null)} style={{ padding: '12px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F',
               border: 0, borderRadius: '7px', cursor: 'pointer' }}>Entendido</button>
           </div>
         </div>
@@ -6099,50 +6099,50 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
             display: 'grid', placeItems: 'center', padding: '16px', zIndex: 2200 }}>
           <article role="dialog" aria-modal="true" aria-labelledby="catalog-preview-title" onClick={event => event.stopPropagation()}
             style={{ width: '100%', maxWidth: '590px', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box',
-              background: '#EADCC7', color: '#2C2521', border: '1px solid rgba(228, 198, 135, 0.45)', borderRadius: '16px', boxShadow: '0 20px 60px rgba(60, 50, 40, 0.12)' }}>
-            <div style={{ position: 'sticky', top: 0, zIndex: 2, padding: '14px 22px', background: '#EADCC7',
-              borderBottom: '1px solid rgba(44, 37, 33, 0.2)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
-              <span style={{ color: '#5C5248', fontSize: '11px', letterSpacing: '1px' }}>VISTA PREVIA · CATÁLOGO</span>
+              background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(228, 198, 135, 0.45)', borderRadius: '16px', boxShadow: '0 20px 60px rgba(60, 50, 40, 0.12)' }}>
+            <div style={{ position: 'sticky', top: 0, zIndex: 2, padding: '14px 22px', background: '#322A25',
+              borderBottom: '1px solid rgba(255, 248, 238, 0.16)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+              <span style={{ color: '#D6CBB8', fontSize: '11px', letterSpacing: '1px' }}>VISTA PREVIA · CATÁLOGO</span>
               <button autoFocus type="button" onClick={() => setPreviewServiceId(null)} aria-label="Cerrar vista previa"
-                style={{ minHeight: '40px', padding: '9px 12px', background: '#F3E8D7', color: '#5C5248',
-                  border: '1px solid #E6D5B8', borderRadius: '7px', fontSize: '12px', cursor: 'pointer' }}>Cerrar ×</button>
+                style={{ minHeight: '40px', padding: '9px 12px', background: '#3E342C', color: '#D6CBB8',
+                  border: '1px solid #3A312A', borderRadius: '7px', fontSize: '12px', cursor: 'pointer' }}>Cerrar ×</button>
             </div>
             <div style={{ padding: '20px' }}>
-              <p style={{ color: '#7A5C1E', fontSize: '10px', letterSpacing: '2px', margin: '0 0 12px', lineHeight: 1.7 }}>L’STUDIO ANA · {category?.title || 'HAIR EXPERIENCE'}</p>
+              <p style={{ color: '#E4C687', fontSize: '10px', letterSpacing: '2px', margin: '0 0 12px', lineHeight: 1.7 }}>L’STUDIO ANA · {category?.title || 'HAIR EXPERIENCE'}</p>
               <h2 id="catalog-preview-title" style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '22px', lineHeight: 1.2,
                 margin: '0 0 18px', overflowWrap: 'anywhere' }}>{previewService.name}</h2>
-              {previewService.active === false && <p style={{ color: '#7A5C1E', fontSize: '12px' }}>Servicio desactivado · Oculto para nuevas reservas</p>}
-              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '16px', paddingBottom: '20px', borderBottom: '1px solid rgba(44, 37, 33, 0.2)' }}>
-                <strong style={{ color: '#7A5C1E', fontSize: '18px', fontWeight: 'normal' }}>{variant?.price || previewService.price}</strong>
-                <span style={{ color: '#5C5248', fontSize: '12px' }}>{variant?.duration || previewService.duration}</span>
-                {variant && <span style={{ color: '#5C5248', fontSize: '12px' }}>{variant.name}</span>}
+              {previewService.active === false && <p style={{ color: '#E4C687', fontSize: '12px' }}>Servicio desactivado · Oculto para nuevas reservas</p>}
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '16px', paddingBottom: '20px', borderBottom: '1px solid rgba(255, 248, 238, 0.16)' }}>
+                <strong style={{ color: '#E4C687', fontSize: '18px', fontWeight: 'normal' }}>{variant?.price || previewService.price}</strong>
+                <span style={{ color: '#D6CBB8', fontSize: '12px' }}>{variant?.duration || previewService.duration}</span>
+                {variant && <span style={{ color: '#D6CBB8', fontSize: '12px' }}>{variant.name}</span>}
               </div>
-              {previewService.description && <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: '22px 0' }}>{previewService.description}</p>}
+              {previewService.description && <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: '22px 0' }}>{previewService.description}</p>}
               {!!tags.length && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '7px', margin: '18px 0' }}>
-                {tags.map(tag => <span key={tag} style={{ fontSize: '11px', color: '#7A5C1E', padding: '7px 10px', border: '1px solid #C5A059', borderRadius: '20px', lineHeight: 1.4 }}>{tag}</span>)}
+                {tags.map(tag => <span key={tag} style={{ fontSize: '11px', color: '#E4C687', padding: '7px 10px', border: '1px solid #C5A059', borderRadius: '20px', lineHeight: 1.4 }}>{tag}</span>)}
               </div>}
               {previewService.showAlertBadge && previewService.alertText && <p style={{ fontSize: '13px', lineHeight: 1.7, padding: '12px 14px',
-                borderLeft: '2px solid #C99E52', background: '#F3E8D7', color: '#2C2521', margin: '18px 0', whiteSpace: 'pre-wrap' }}>{previewService.alertText}</p>}
+                borderLeft: '2px solid #C99E52', background: '#3E342C', color: '#FFF8EE', margin: '18px 0', whiteSpace: 'pre-wrap' }}>{previewService.alertText}</p>}
               {previewService.hasVariants && !!previewService.variants?.length && <section style={{ margin: '25px 0' }}>
                 <h3 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '16px', fontWeight: 'normal', margin: '0 0 12px' }}>Elige tu opción</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '9px' }}>
                   {previewService.variants.map(item => <button key={item.id} type="button" aria-pressed={item.id === previewVariantId}
                     onClick={() => setPreviewVariantId(item.id)} style={{ textAlign: 'left', padding: '14px', borderRadius: '9px', cursor: 'pointer',
-                      background: item.id === previewVariantId ? '#F3E8D7' : '#EADCC7', color: '#2C2521',
-                      border: item.id === previewVariantId ? '1px solid #8F6D24' : '1px solid rgba(44, 37, 33, 0.18)' }}>
-                    <strong style={{ display: 'block', color: '#7A5C1E', fontSize: '13px' }}>{item.name}</strong>
-                    {item.description && <span style={{ display: 'block', color: '#5C5248', fontSize: '12px', lineHeight: 1.6, marginTop: '8px' }}>{item.description}</span>}
+                      background: item.id === previewVariantId ? '#3E342C' : '#322A25', color: '#FFF8EE',
+                      border: item.id === previewVariantId ? '1px solid #8F6D24' : '1px solid rgba(255, 248, 238, 0.18)' }}>
+                    <strong style={{ display: 'block', color: '#E4C687', fontSize: '13px' }}>{item.name}</strong>
+                    {item.description && <span style={{ display: 'block', color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, marginTop: '8px' }}>{item.description}</span>}
                     <span style={{ display: 'block', fontSize: '13px', marginTop: '13px' }}>{item.price}</span>
-                    <span style={{ display: 'block', fontSize: '12px', color: '#5C5248', marginTop: '5px' }}>{item.duration}</span>
+                    <span style={{ display: 'block', fontSize: '12px', color: '#D6CBB8', marginTop: '5px' }}>{item.duration}</span>
                   </button>)}
                 </div>
               </section>}
               {([{ title: 'Qué incluye', text: previewService.includesText }, { title: 'Qué consigues', text: previewService.achievedText }]
                 .filter(section => !!section.text?.trim()).map(section => <section key={section.title} style={{ borderTop: '1px solid #C5A059', paddingTop: '20px', marginTop: '22px' }}>
-                  <h3 style={{ color: '#7A5C1E', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '16px', fontWeight: 'normal', margin: '0 0 10px' }}>{section.title}</h3>
-                  <p style={{ color: '#5C5248', fontSize: '12px', lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: 0, overflowWrap: 'anywhere' }}>{section.text}</p>
+                  <h3 style={{ color: '#E4C687', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '16px', fontWeight: 'normal', margin: '0 0 10px' }}>{section.title}</h3>
+                  <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: 0, overflowWrap: 'anywhere' }}>{section.text}</p>
                 </section>))}
-              <footer style={{ marginTop: '26px', borderTop: '1px solid #C5A059', paddingTop: '16px', color: '#5C5248', fontSize: '11px', lineHeight: 1.7 }}>
+              <footer style={{ marginTop: '26px', borderTop: '1px solid #C5A059', paddingTop: '16px', color: '#D6CBB8', fontSize: '11px', lineHeight: 1.7 }}>
                 Esta vista permite revisar el servicio y sus opciones sin crear una cita. Guarda el catálogo para conservar los cambios.
               </footer>
             </div>
@@ -6151,37 +6151,37 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
       })()}
       {clientDetailsDraft && currentScreen === 'adminPanel' && <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'grid', placeItems: 'center', zIndex: 2450, padding: '16px' }}>
         <form role="dialog" aria-modal="true" aria-labelledby="client-details-title" onSubmit={saveClientDetails}
-          style={{ background: '#EADCC7', border: '1px solid #C5A059', borderRadius: '12px', padding: '22px',
+          style={{ background: '#322A25', border: '1px solid #C5A059', borderRadius: '12px', padding: '22px',
             width: '100%', maxWidth: '480px', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
-          <h3 id="client-details-title" style={{ color: '#7A5C1E' }}>Datos y acceso · {clientDetailsDraft.nombre}</h3>
-          {(['nombre', 'apellidos', 'telefono', 'email', 'pinAcceso', 'fechaNacimiento'] as const).map(field => <label key={field} style={{ display: 'block', color: '#5C5248', fontSize: '13px', marginBottom: '12px' }}>
+          <h3 id="client-details-title" style={{ color: '#E4C687' }}>Datos y acceso · {clientDetailsDraft.nombre}</h3>
+          {(['nombre', 'apellidos', 'telefono', 'email', 'pinAcceso', 'fechaNacimiento'] as const).map(field => <label key={field} style={{ display: 'block', color: '#D6CBB8', fontSize: '13px', marginBottom: '12px' }}>
             {({ nombre: 'Nombre', apellidos: 'Apellidos', telefono: 'Teléfono', email: 'Email', pinAcceso: 'PIN de acceso · 4 números', fechaNacimiento: 'Fecha de nacimiento' })[field]}
             <input value={clientDetailsDraft[field]} type={field === 'email' ? 'email' : field === 'pinAcceso' ? 'password' : field === 'telefono' ? 'tel' : 'text'}
               required={field === 'nombre' || field === 'email' || field === 'pinAcceso'}
               maxLength={field === 'pinAcceso' ? 4 : undefined} inputMode={field === 'pinAcceso' ? 'numeric' : undefined}
               onChange={event => setClientDetailsDraft({ ...clientDetailsDraft, [field]: field === 'pinAcceso' ? event.target.value.replace(/[^0-9]/g, '').slice(0, 4) : event.target.value })}
-              style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '11px', marginTop: '6px', background: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '6px', fontSize: '15px' }} />
+              style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '11px', marginTop: '6px', background: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', fontSize: '15px' }} />
           </label>)}
-          <p style={{ color: '#5C5248', fontSize: '12px', lineHeight: 1.6 }}>Al cambiar el email, nombre o teléfono se actualizarán las citas vinculadas a esta ficha.</p>
+          <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6 }}>Al cambiar el email, nombre o teléfono se actualizarán las citas vinculadas a esta ficha.</p>
           <button type="submit" style={{ padding: '12px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', border: 0, borderRadius: '6px', cursor: 'pointer' }}>Guardar datos</button>
-          <button type="button" onClick={() => setClientDetailsDraft(null)} style={{ padding: '12px', marginLeft: '10px', background: 'none', color: '#5C5248', border: '1px solid #E6D5B8', borderRadius: '6px', cursor: 'pointer' }}>Cancelar</button>
+          <button type="button" onClick={() => setClientDetailsDraft(null)} style={{ padding: '12px', marginLeft: '10px', background: 'none', color: '#D6CBB8', border: '1px solid #3A312A', borderRadius: '6px', cursor: 'pointer' }}>Cancelar</button>
         </form>
       </div>}
 
       {passportDraft && currentScreen === 'adminPanel' && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', zIndex: 2400 }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="passport-editor-title" style={{ width: '100%', maxWidth: '660px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#EADCC7', border: '1px solid #C5A059', borderRadius: '14px', padding: '22px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', boxSizing: 'border-box', color: '#2C2521' }}>
-            <h3 id="passport-editor-title" style={{ color: '#7A5C1E', marginTop: 0 }}>Pasaporte · {passportDraft.nombre} {passportDraft.apellidos}</h3>
-            <p style={{ fontSize: '13px', color: '#5C5248', lineHeight: 1.6 }}>Estos datos serán visibles en el portal de la clienta. Incluye solo las notas que quieras compartir con ella.</p>
-            {([['dniCapilar', 'DNI capilar / diagnóstico'], ['prescripcionCasa', 'Cuidado en casa'], ['ultimaVisita', 'Última visita registrada'], ['proximaVisitaSugerida', 'Próxima visita recomendada']] as const).map(([field, label]) => <label key={field} style={{ display: 'block', marginBottom: '16px', fontSize: '13px' }}>{label}<textarea value={passportDraft[field] || ''} onChange={e => setPassportDraft({ ...passportDraft, [field]: e.target.value })} rows={field === 'dniCapilar' || field === 'prescripcionCasa' ? 3 : 1} style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '6px', padding: '10px', marginTop: '7px', fontSize: '14px' }} /></label>)}
-            <h4 style={{ color: '#7A5C1E' }}>Historial de visitas</h4>
-            {(passportDraft.pastVisits || []).map((visit, index) => <div key={index} style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', padding: '14px', borderRadius: '8px', marginBottom: '12px' }}>
-              {(['date', 'service', 'stylist', 'notes'] as const).map(field => <label key={field} style={{ display: 'block', marginBottom: '10px', fontSize: '12px' }}>{({ date: 'Fecha', service: 'Servicio realizado', stylist: 'Profesional', notes: 'Notas para la clienta' })[field]}<input type="text" value={visit[field]} onChange={e => setPassportDraft({ ...passportDraft, pastVisits: (passportDraft.pastVisits || []).map((item, i) => i === index ? { ...item, [field]: e.target.value } : item) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', marginTop: '5px', backgroundColor: '#EADCC7', border: '1px solid #C5A059', borderRadius: '6px', color: '#2C2521' }} /></label>)}
+          <div role="dialog" aria-modal="true" aria-labelledby="passport-editor-title" style={{ width: '100%', maxWidth: '660px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '14px', padding: '22px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', boxSizing: 'border-box', color: '#FFF8EE' }}>
+            <h3 id="passport-editor-title" style={{ color: '#E4C687', marginTop: 0 }}>Pasaporte · {passportDraft.nombre} {passportDraft.apellidos}</h3>
+            <p style={{ fontSize: '13px', color: '#D6CBB8', lineHeight: 1.6 }}>Estos datos serán visibles en el portal de la clienta. Incluye solo las notas que quieras compartir con ella.</p>
+            {([['dniCapilar', 'DNI capilar / diagnóstico'], ['prescripcionCasa', 'Cuidado en casa'], ['ultimaVisita', 'Última visita registrada'], ['proximaVisitaSugerida', 'Próxima visita recomendada']] as const).map(([field, label]) => <label key={field} style={{ display: 'block', marginBottom: '16px', fontSize: '13px' }}>{label}<textarea value={passportDraft[field] || ''} onChange={e => setPassportDraft({ ...passportDraft, [field]: e.target.value })} rows={field === 'dniCapilar' || field === 'prescripcionCasa' ? 3 : 1} style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', padding: '10px', marginTop: '7px', fontSize: '14px' }} /></label>)}
+            <h4 style={{ color: '#E4C687' }}>Historial de visitas</h4>
+            {(passportDraft.pastVisits || []).map((visit, index) => <div key={index} style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', padding: '14px', borderRadius: '8px', marginBottom: '12px' }}>
+              {(['date', 'service', 'stylist', 'notes'] as const).map(field => <label key={field} style={{ display: 'block', marginBottom: '10px', fontSize: '12px' }}>{({ date: 'Fecha', service: 'Servicio realizado', stylist: 'Profesional', notes: 'Notas para la clienta' })[field]}<input type="text" value={visit[field]} onChange={e => setPassportDraft({ ...passportDraft, pastVisits: (passportDraft.pastVisits || []).map((item, i) => i === index ? { ...item, [field]: e.target.value } : item) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', marginTop: '5px', backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '6px', color: '#FFF8EE' }} /></label>)}
               <button type="button" onClick={() => { if (window.confirm('¿Quitar esta visita del historial? Se aplicará al guardar.')) setPassportDraft({ ...passportDraft, pastVisits: (passportDraft.pastVisits || []).filter((_, i) => i !== index) }); }} style={{ color: '#C0392B', background: 'none', border: '1px solid #74433e', padding: '8px', borderRadius: '5px', cursor: 'pointer' }}>Borrar visita</button>
             </div>)}
             <button type="button" onClick={() => setPassportDraft({ ...passportDraft, pastVisits: [...(passportDraft.pastVisits || []), { date: formatDateKey(new Date()), service: '', stylist: 'Ana', notes: '' }] })} style={{ padding: '10px', cursor: 'pointer' }}>+ Añadir visita realizada</button>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '20px' }}>
-              <button type="button" onClick={savePassport} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#2C2521', border: 'none', padding: '12px 16px', borderRadius: '6px', cursor: 'pointer' }}>Guardar pasaporte</button>
+              <button type="button" onClick={savePassport} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '12px 16px', borderRadius: '6px', cursor: 'pointer' }}>Guardar pasaporte</button>
               <button type="button" onClick={() => setPassportDraft(null)} style={{ padding: '12px', cursor: 'pointer' }}>Cancelar</button>
               <button type="button" onClick={() => { if (window.confirm('¿Vaciar diagnóstico, cuidados, fechas recomendadas e historial? La clienta y sus citas se conservan. Debes guardar para aplicar.')) setPassportDraft({ ...passportDraft, dniCapilar: '', prescripcionCasa: '', ultimaVisita: '', proximaVisitaSugerida: '', pastVisits: [] }); }} style={{ background: 'none', border: '1px solid #74433e', color: '#C0392B', padding: '12px', borderRadius: '6px', cursor: 'pointer' }}>Vaciar pasaporte</button>
             </div>
@@ -6190,8 +6190,8 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
       )}
       {saturdayRequestModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 2100 }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="saturday-request-title" style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', maxWidth: '440px', width: '100%', color: '#2C2521' }}>
-            <h3 id="saturday-request-title" style={{ color: '#7A5C1E' }}>{t('reviewTitle')}</h3>
+          <div role="dialog" aria-modal="true" aria-labelledby="saturday-request-title" style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', maxWidth: '440px', width: '100%', color: '#FFF8EE' }}>
+            <h3 id="saturday-request-title" style={{ color: '#E4C687' }}>{t('reviewTitle')}</h3>
             <p>{saturdayRequestModal.saturdayApproval?.reason === 'saturday' || saturdayRequestModal.saturdayApproval?.reason === 'both'
               ? (currentLang === 'es' || currentScreen === 'adminPanel'
                 ? 'Las citas de los sábados necesitan la confirmación de Ana. Puedes registrar tu solicitud, pero la cita solo quedará confirmada cuando Ana la acepte.'
@@ -6200,7 +6200,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
             <p>{saturdayRequestModal.dateKey.split('-').reverse().join('/')} · {saturdayRequestModal.time}</p>
             <p>{saturdayRequestModal.serviceSubcategory.replace(/^PENDIENTE (?:SÁBADO|VALORACIÓN) /, '')}</p>
             {bizConfig.advancePaymentEnabled && (saturdayRequestModal.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes && <p>{tf('reviewDeposit', {amount: bizConfig.depositAmount})}</p>}
-            <p style={{ color: '#5C5248', fontSize: '12px' }}>{t('localRequestNotice')}</p>
+            <p style={{ color: '#D6CBB8', fontSize: '12px' }}>{t('localRequestNotice')}</p>
             <button type="button" onClick={() => setSaturdayRequestModal(null)} style={{ padding: '10px', marginRight: '10px' }}>{t('backAction')}</button>
             <button type="button" onClick={registerSaturdayRequest} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>{t('registerRequest')}</button>
           </div>
@@ -6208,13 +6208,13 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
       )}
       {advancePaymentModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 2000 }}>
-          <div role="dialog" aria-modal="true" aria-labelledby="advance-payment-title" style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', maxWidth: '440px', width: '100%', maxHeight: '85vh', overflowY: 'auto', color: '#2C2521' }}>
-            <h3 id="advance-payment-title" style={{ color: '#7A5C1E', marginTop: 0 }}>{t('depositTitle')} · {advancePaymentModal.advancePayment?.amount} €</h3>
+          <div role="dialog" aria-modal="true" aria-labelledby="advance-payment-title" style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', maxWidth: '440px', width: '100%', maxHeight: '85vh', overflowY: 'auto', color: '#FFF8EE' }}>
+            <h3 id="advance-payment-title" style={{ color: '#E4C687', marginTop: 0 }}>{t('depositTitle')} · {advancePaymentModal.advancePayment?.amount} €</h3>
             <p>{tf('bizumExplanation', {minutes: bizConfig.advancePaymentThresholdMinutes, amount: advancePaymentModal.advancePayment?.amount, phone: bizConfig.bizumNumber})}</p>
             <p>{advancePaymentModal.dateKey.split('-').reverse().join('/')} · {advancePaymentModal.time} · {advancePaymentModal.durationMinutes} min</p>
             <p>{t('paymentConceptHelp')}</p>
             <div dir="ltr" style={{ padding: '12px', border: '1px solid #B98A3E', borderRadius: '6px', overflowWrap: 'anywhere' }}>{advancePaymentConcept(advancePaymentModal)}</div>
-            <p style={{ color: '#5C5248' }}>{t('paymentPendingExplanation')}</p>
+            <p style={{ color: '#D6CBB8' }}>{t('paymentPendingExplanation')}</p>
             <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(advancePaymentConcept(advancePaymentModal)); alert(t('copiedConcept')); } catch { alert(t('copyFailed')); } }} style={{ padding: '10px', marginBottom: '12px', cursor: 'pointer' }}>{t('copyConcept')}</button>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button type="button" onClick={() => setAdvancePaymentModal(null)} style={{ padding: '10px', cursor: 'pointer' }}>{t('backAction')}</button>
@@ -6225,8 +6225,8 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
       )}
 
       {slotAction && currentScreen === 'adminPanel' && <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'grid', placeItems: 'center', zIndex: 2500, padding: '16px' }}>
-        <div role="dialog" aria-modal="true" aria-labelledby="slot-action-title" style={{ background: '#EADCC7', border: '1px solid #C5A059', borderRadius: '12px', padding: '22px', width: '100%', maxWidth: '400px', boxSizing: 'border-box' }}>
-          <h3 id="slot-action-title" style={{ color: '#7A5C1E' }}>{blockMode ? 'Bloquear tiempo' : '¿Qué quieres hacer?'}</h3>
+        <div role="dialog" aria-modal="true" aria-labelledby="slot-action-title" style={{ background: '#322A25', border: '1px solid #C5A059', borderRadius: '12px', padding: '22px', width: '100%', maxWidth: '400px', boxSizing: 'border-box' }}>
+          <h3 id="slot-action-title" style={{ color: '#E4C687' }}>{blockMode ? 'Bloquear tiempo' : '¿Qué quieres hacer?'}</h3>
           <p>{slotAction.date.toLocaleDateString('es-ES')} · {slotAction.time}</p>
           {!blockMode ? <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <button type="button" onClick={() => { handleCellClick(slotAction.date, slotAction.day, slotAction.time); setSlotAction(null); }} style={{ padding: '12px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', border: 0, cursor: 'pointer' }}>Nueva cita</button>
@@ -6243,11 +6243,11 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               time: slotAction.time, durationMinutes: blockDuration, reason: blockReason.trim() || 'Tiempo reservado' }]);
             setSlotAction(null);
           }}>
-            <label style={{ display: 'block', marginBottom: '14px' }}>Motivo<input autoFocus value={blockReason} onChange={event => setBlockReason(event.target.value)} placeholder="Comida, descanso, gestión…" style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', marginTop: '6px', background: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8' }} /></label>
-            <label>Duración (minutos)<input type="number" min="5" max="720" step="5" required value={blockDuration} onChange={event => setBlockDuration(Number(event.target.value))} style={{ display: 'block', padding: '10px', margin: '6px 0 16px', background: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8' }} /></label>
+            <label style={{ display: 'block', marginBottom: '14px' }}>Motivo<input autoFocus value={blockReason} onChange={event => setBlockReason(event.target.value)} placeholder="Comida, descanso, gestión…" style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', marginTop: '6px', background: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A' }} /></label>
+            <label>Duración (minutos)<input type="number" min="5" max="720" step="5" required value={blockDuration} onChange={event => setBlockDuration(Number(event.target.value))} style={{ display: 'block', padding: '10px', margin: '6px 0 16px', background: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A' }} /></label>
             <button type="submit" style={{ padding: '12px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', border: 0, cursor: 'pointer' }}>Guardar bloqueo</button>
           </form>}
-          <button type="button" onClick={() => setSlotAction(null)} style={{ marginTop: '16px', background: 'none', border: 0, color: '#5C5248', cursor: 'pointer', padding: '10px' }}>Cancelar</button>
+          <button type="button" onClick={() => setSlotAction(null)} style={{ marginTop: '16px', background: 'none', border: 0, color: '#D6CBB8', cursor: 'pointer', padding: '10px' }}>Cancelar</button>
         </div>
       </div>}
 
@@ -6255,29 +6255,29 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
         style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', zIndex: 900 }}>
         <aside role="dialog" aria-modal="true" aria-labelledby="agenda-side-title" onClick={event => event.stopPropagation()}
           style={{ position: 'absolute', left: 0, top: 0, bottom: 0, width: 'min(440px, 92vw)', overflowY: 'auto',
-            boxSizing: 'border-box', padding: '20px', background: '#EADCC7', borderRight: '1px solid #B98A3E' }}>
+            boxSizing: 'border-box', padding: '20px', background: '#322A25', borderRight: '1px solid #B98A3E' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-            <h3 id="agenda-side-title" style={{ color: '#7A5C1E', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal' }}>{agendaSidePanel === 'day' ? 'Citas del día' : pendingPanelFilter === 'approval' ? 'Solicitudes por aprobar' : pendingPanelFilter === 'payment' ? 'Bizum por confirmar' : 'Solicitudes y pagos pendientes'}</h3>
-            <button autoFocus type="button" onClick={() => setAgendaSidePanel(null)} style={{ padding: '10px', background: 'none', color: '#5C5248', border: '1px solid #E6D5B8', borderRadius: '5px', cursor: 'pointer' }}>Cerrar</button>
+            <h3 id="agenda-side-title" style={{ color: '#E4C687', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal' }}>{agendaSidePanel === 'day' ? 'Citas del día' : pendingPanelFilter === 'approval' ? 'Solicitudes por aprobar' : pendingPanelFilter === 'payment' ? 'Bizum por confirmar' : 'Solicitudes y pagos pendientes'}</h3>
+            <button autoFocus type="button" onClick={() => setAgendaSidePanel(null)} style={{ padding: '10px', background: 'none', color: '#D6CBB8', border: '1px solid #3A312A', borderRadius: '5px', cursor: 'pointer' }}>Cerrar</button>
           </div>
           {agendaSidePanel === 'day' ? (
-                <details open style={{ marginTop: '12px', padding: '14px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '12px' }}>
-                  <summary style={{ color: '#7A5C1E', fontSize: '13px', cursor: 'pointer' }}>Ver lista de citas del día</summary>
-                  <p style={{ color: '#5C5248', fontSize: '13px', margin: '0 0 16px' }}>{fechaSeleccionada.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                <details open style={{ marginTop: '12px', padding: '14px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '12px' }}>
+                  <summary style={{ color: '#E4C687', fontSize: '13px', cursor: 'pointer' }}>Ver lista de citas del día</summary>
+                  <p style={{ color: '#D6CBB8', fontSize: '13px', margin: '0 0 16px' }}>{fechaSeleccionada.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {appointments.filter(item => item.dateKey === formatDateKey(fechaSeleccionada)).sort((a, b) => a.time.localeCompare(b.time)).map(item => <button type="button" key={item.id} onClick={() => setViewApptModal(item)} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '16px', textAlign: 'left', backgroundColor: adminAppointmentColor(item).background, border: `1px solid ${adminAppointmentColor(item).border}`, borderRadius: '10px', padding: '16px', cursor: 'pointer', color: '#2C2521', width: '100%' }}>
-                      <div style={{ minWidth: '55px' }}><strong style={{ fontSize: '19px' }}>{item.time}</strong><span style={{ display: 'block', color: '#5C5248', fontSize: '12px', marginTop: '6px' }}>{item.durationMinutes || 45} min</span></div>
-                      <div style={{ flex: '1 1 180px', fontSize: '14px', lineHeight: 1.6, overflowWrap: 'anywhere' }}><strong>{item.clientName}</strong><span style={{ display: 'block', color: '#5C5248' }}>{item.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</span><span style={{ display: 'block', fontSize: '12px', color: '#5C5248', marginTop: '8px' }}>{item.lifecycleStatus === 'cancelled' ? 'Cancelada' : item.lifecycleStatus === 'no_show' ? 'No presentada' : item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : item.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Confirmada'} · Ver detalles</span></div>
+                    {appointments.filter(item => item.dateKey === formatDateKey(fechaSeleccionada)).sort((a, b) => a.time.localeCompare(b.time)).map(item => <button type="button" key={item.id} onClick={() => setViewApptModal(item)} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '16px', textAlign: 'left', backgroundColor: adminAppointmentColor(item).background, border: `1px solid ${adminAppointmentColor(item).border}`, borderRadius: '10px', padding: '16px', cursor: 'pointer', color: '#FFF8EE', width: '100%' }}>
+                      <div style={{ minWidth: '55px' }}><strong style={{ fontSize: '19px' }}>{item.time}</strong><span style={{ display: 'block', color: '#D6CBB8', fontSize: '12px', marginTop: '6px' }}>{item.durationMinutes || 45} min</span></div>
+                      <div style={{ flex: '1 1 180px', fontSize: '14px', lineHeight: 1.6, overflowWrap: 'anywhere' }}><strong>{item.clientName}</strong><span style={{ display: 'block', color: '#D6CBB8' }}>{item.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</span><span style={{ display: 'block', fontSize: '12px', color: '#D6CBB8', marginTop: '8px' }}>{item.lifecycleStatus === 'cancelled' ? 'Cancelada' : item.lifecycleStatus === 'no_show' ? 'No presentada' : item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : item.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Confirmada'} · Ver detalles</span></div>
                     </button>)}
-                    {!appointments.some(item => item.dateKey === formatDateKey(fechaSeleccionada)) && <p style={{ color: '#5C5248', fontSize: '14px', lineHeight: 1.6 }}>No hay citas registradas para este día. Puedes crear una con «Nueva cita» o elegir un hueco en el calendario.</p>}
+                    {!appointments.some(item => item.dateKey === formatDateKey(fechaSeleccionada)) && <p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6 }}>No hay citas registradas para este día. Puedes crear una con «Nueva cita» o elegir un hueco en el calendario.</p>}
                   </div>
                 </details>
           ) : (
-                <details open style={{ marginTop: '14px', padding: '16px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '10px' }}>
-                  <summary style={{ color: '#7A5C1E', cursor: 'pointer', fontSize: '14px' }}>Revisar solicitudes y pagos pendientes</summary>
+                <details open style={{ marginTop: '14px', padding: '16px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '10px' }}>
+                  <summary style={{ color: '#E4C687', cursor: 'pointer', fontSize: '14px' }}>Revisar solicitudes y pagos pendientes</summary>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '14px' }}>
-{pendingPanelFilter !== 'payment' && <h4 style={{ color: '#7A5C1E', fontSize: '13px' }}>Solicitudes por aprobar</h4>}                    {appointments.filter(item => pendingPanelFilter !== 'payment' && isActiveAppointment(item) && item.saturdayApproval?.status === 'pending').map(item => <button type="button" key={item.id} onClick={() => setViewApptModal(item)} style={{ textAlign: 'left', padding: '14px', background: '#EADCC7', border: '1px solid #C5A059', borderRadius: '8px', color: '#2C2521', cursor: 'pointer', fontSize: '13px', lineHeight: 1.7 }}><strong>{item.clientName}</strong> · {item.dateKey.split('-').reverse().join('/')} · {item.time}<span style={{ display: 'block', color: item.saturdayApproval?.status === 'pending' ? '#B3823B' : '#4A6FA5' }}>{item.lifecycleStatus === 'cancelled' ? 'Cancelada' : item.lifecycleStatus === 'no_show' ? 'No presentada' : item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : 'Pendiente de Bizum'}</span></button>)}{pendingPanelFilter !== 'approval' && <h4 style={{ color: '#4A6FA5', fontSize: '13px' }}>Bizum por confirmar</h4>}                    {appointments.filter(item => pendingPanelFilter !== 'approval' && isActiveAppointment(item) && item.advancePayment?.status === 'pending' && item.saturdayApproval?.status !== 'pending').map(item => <button type="button" key={item.id} onClick={() => setViewApptModal(item)} style={{ textAlign: 'left', padding: '14px', background: '#EADCC7', border: '1px solid #C5A059', borderRadius: '8px', color: '#2C2521', cursor: 'pointer', fontSize: '13px', lineHeight: 1.7 }}><strong>{item.clientName}</strong> · {item.dateKey.split('-').reverse().join('/')} · {item.time}<span style={{ display: 'block', color: item.saturdayApproval?.status === 'pending' ? '#B3823B' : '#4A6FA5' }}>{item.lifecycleStatus === 'cancelled' ? 'Cancelada' : item.lifecycleStatus === 'no_show' ? 'No presentada' : item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : 'Pendiente de Bizum'}</span></button>)}
-                    {!appointments.some(item => isActiveAppointment(item) && ((pendingPanelFilter !== 'payment' && item.saturdayApproval?.status === 'pending') || (pendingPanelFilter !== 'approval' && item.saturdayApproval?.status !== 'pending' && item.advancePayment?.status === 'pending'))) && <p style={{ color: '#5C5248', fontSize: '13px' }}>No hay solicitudes ni pagos pendientes.</p>}
+{pendingPanelFilter !== 'payment' && <h4 style={{ color: '#E4C687', fontSize: '13px' }}>Solicitudes por aprobar</h4>}                    {appointments.filter(item => pendingPanelFilter !== 'payment' && isActiveAppointment(item) && item.saturdayApproval?.status === 'pending').map(item => <button type="button" key={item.id} onClick={() => setViewApptModal(item)} style={{ textAlign: 'left', padding: '14px', background: '#322A25', border: '1px solid #C5A059', borderRadius: '8px', color: '#FFF8EE', cursor: 'pointer', fontSize: '13px', lineHeight: 1.7 }}><strong>{item.clientName}</strong> · {item.dateKey.split('-').reverse().join('/')} · {item.time}<span style={{ display: 'block', color: item.saturdayApproval?.status === 'pending' ? '#B3823B' : '#4A6FA5' }}>{item.lifecycleStatus === 'cancelled' ? 'Cancelada' : item.lifecycleStatus === 'no_show' ? 'No presentada' : item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : 'Pendiente de Bizum'}</span></button>)}{pendingPanelFilter !== 'approval' && <h4 style={{ color: '#4A6FA5', fontSize: '13px' }}>Bizum por confirmar</h4>}                    {appointments.filter(item => pendingPanelFilter !== 'approval' && isActiveAppointment(item) && item.advancePayment?.status === 'pending' && item.saturdayApproval?.status !== 'pending').map(item => <button type="button" key={item.id} onClick={() => setViewApptModal(item)} style={{ textAlign: 'left', padding: '14px', background: '#322A25', border: '1px solid #C5A059', borderRadius: '8px', color: '#FFF8EE', cursor: 'pointer', fontSize: '13px', lineHeight: 1.7 }}><strong>{item.clientName}</strong> · {item.dateKey.split('-').reverse().join('/')} · {item.time}<span style={{ display: 'block', color: item.saturdayApproval?.status === 'pending' ? '#B3823B' : '#4A6FA5' }}>{item.lifecycleStatus === 'cancelled' ? 'Cancelada' : item.lifecycleStatus === 'no_show' ? 'No presentada' : item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : 'Pendiente de Bizum'}</span></button>)}
+                    {!appointments.some(item => isActiveAppointment(item) && ((pendingPanelFilter !== 'payment' && item.saturdayApproval?.status === 'pending') || (pendingPanelFilter !== 'approval' && item.saturdayApproval?.status !== 'pending' && item.advancePayment?.status === 'pending'))) && <p style={{ color: '#D6CBB8', fontSize: '13px' }}>No hay solicitudes ni pagos pendientes.</p>}
                   </div>
                 </details>
           )}
@@ -6287,16 +6287,16 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
       {/* MODAL NUEVA CITA ADMIN */}
       {isModalOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#EADCC7', border: '1px solid #C5A059', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', maxWidth: '560px', boxSizing: 'border-box', width: '100%', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <h3 style={{ color: '#7A5C1E', fontSize: '16px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>{editingAppointment ? 'Editar servicios · 360studio' : 'Nueva cita · 360studio'}</h3>
-            <p style={{ color: '#7A5C1E', fontSize: '14px', margin: 0 }}>{targetDateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {targetTime}</p>
+          <div style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', maxWidth: '560px', boxSizing: 'border-box', width: '100%', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <h3 style={{ color: '#E4C687', fontSize: '16px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>{editingAppointment ? 'Editar servicios · 360studio' : 'Nueva cita · 360studio'}</h3>
+            <p style={{ color: '#E4C687', fontSize: '14px', margin: 0 }}>{targetDateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {targetTime}</p>
             <form onSubmit={handleSaveModalAppointment} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <h4 style={{ color: '#2C2521', fontSize: '16px', margin: '8px 0' }}>1. Datos de la clienta</h4>
-              {!editingAppointment && <section style={{ background: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '8px', padding: '12px' }}>
-                <label htmlFor="new-appointment-client-search" style={{ color: '#7A5C1E', fontSize: '13px' }}>Buscar clienta registrada</label>
+              <h4 style={{ color: '#FFF8EE', fontSize: '16px', margin: '8px 0' }}>1. Datos de la clienta</h4>
+              {!editingAppointment && <section style={{ background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px', padding: '12px' }}>
+                <label htmlFor="new-appointment-client-search" style={{ color: '#E4C687', fontSize: '13px' }}>Buscar clienta registrada</label>
                 <input id="new-appointment-client-search" type="search" value={modalClientSearch} onChange={event => setModalClientSearch(event.target.value)}
                   placeholder="Nombre, teléfono o email" style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '11px', marginTop: '8px',
-                    background: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '6px', fontSize: '15px' }} />
+                    background: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', fontSize: '15px' }} />
                 {!!modalClientSearch.trim() && <div style={{ maxHeight: '180px', overflowY: 'auto', marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
                   {listaClientes.filter(client => {
                     const query = normalizeCatalogSearch(modalClientSearch);
@@ -6306,42 +6306,42 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                   }).map(client => <button type="button" key={client.idNum} onClick={() => {
                     setModalClientName((client.nombre + ' ' + client.apellidos).trim()); setModalPhone(client.telefono); setModalEmail(client.email);
                     setQuickClientMode(false); setQuickClientPin(''); setQuickClientMessage('Clienta seleccionada: ' + client.registroId); setModalClientSearch('');
-                  }} style={{ textAlign: 'left', padding: '10px', background: '#EADCC7', border: '1px solid #E6D5B8', color: '#2C2521', borderRadius: '5px', cursor: 'pointer' }}>
-                    <strong>{client.nombre} {client.apellidos}</strong><span style={{ display: 'block', color: '#5C5248', fontSize: '11px', marginTop: '4px' }}>{client.telefono} · {client.email}</span>
+                  }} style={{ textAlign: 'left', padding: '10px', background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', borderRadius: '5px', cursor: 'pointer' }}>
+                    <strong>{client.nombre} {client.apellidos}</strong><span style={{ display: 'block', color: '#D6CBB8', fontSize: '11px', marginTop: '4px' }}>{client.telefono} · {client.email}</span>
                   </button>)}
                   {!listaClientes.some(client => {
                     const query = normalizeCatalogSearch(modalClientSearch), digits = modalClientSearch.replace(/[^0-9]/g, '');
                     return normalizeCatalogSearch(client.nombre + ' ' + client.apellidos + ' ' + client.email).includes(query) ||
                       (!!digits && /^[+()\s\d.-]+$/.test(modalClientSearch) && client.telefono.replace(/[^0-9]/g, '').includes(digits));
-                  }) && <p role="status" style={{ color: '#5C5248', fontSize: '12px' }}>No encontramos una ficha. Puedes darla de alta aquí.</p>}
+                  }) && <p role="status" style={{ color: '#D6CBB8', fontSize: '12px' }}>No encontramos una ficha. Puedes darla de alta aquí.</p>}
                 </div>}
                 <button type="button" onClick={() => { setQuickClientMode(previous => !previous); setQuickClientMessage(''); setQuickClientPin(''); }}
-                  style={{ marginTop: '10px', padding: '9px', background: 'transparent', color: '#7A5C1E', border: '1px solid #C5A059', borderRadius: '5px', cursor: 'pointer' }}>
+                  style={{ marginTop: '10px', padding: '9px', background: 'transparent', color: '#E4C687', border: '1px solid #C5A059', borderRadius: '5px', cursor: 'pointer' }}>
                   {quickClientMode ? 'Cancelar alta de ficha' : '+ Dar de alta nueva clienta'}
                 </button>
                 {quickClientMessage && <p role="status" style={{ color: '#2E7D32', fontSize: '12px', lineHeight: 1.5 }}>{quickClientMessage}</p>}
               </section>}
 
-              <label style={{ color: '#5C5248', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '6px' }}>Nombre y apellidos<input type="text" placeholder="Nombre y Apellidos" value={modalClientName} onChange={(e) => setModalClientName(e.target.value)} required style={{ padding: '12px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }} /></label>
-              <label style={{ color: '#5C5248', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '6px' }}>Teléfono<input type="text" placeholder="Teléfono móvil" value={modalPhone} onChange={(e) => setModalPhone(e.target.value)} style={{ padding: '12px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }} /></label>
-              <label style={{ color: '#5C5248', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '6px' }}>Correo electrónico<input type="email" placeholder="Correo electrónico" value={modalEmail} onChange={(e) => setModalEmail(e.target.value)} style={{ padding: '12px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }} /></label>
+              <label style={{ color: '#D6CBB8', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '6px' }}>Nombre y apellidos<input type="text" placeholder="Nombre y Apellidos" value={modalClientName} onChange={(e) => setModalClientName(e.target.value)} required style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} /></label>
+              <label style={{ color: '#D6CBB8', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '6px' }}>Teléfono<input type="text" placeholder="Teléfono móvil" value={modalPhone} onChange={(e) => setModalPhone(e.target.value)} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} /></label>
+              <label style={{ color: '#D6CBB8', fontSize: '13px', display: 'flex', flexDirection: 'column', gap: '6px' }}>Correo electrónico<input type="email" placeholder="Correo electrónico" value={modalEmail} onChange={(e) => setModalEmail(e.target.value)} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} /></label>
               {quickClientMode && <section style={{ padding: '12px', border: '1px solid #C5A059', borderRadius: '8px' }}>
-                <p style={{ color: '#5C5248', fontSize: '12px' }}>Usaremos el nombre, teléfono y correo indicados arriba para crear la ficha.</p>
-                <label style={{ display: 'block', color: '#7A5C1E', fontSize: '12px' }}>Apellidos<input value={quickClientSurname} onChange={event => setQuickClientSurname(event.target.value)}
-                  style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', margin: '6px 0 12px', background: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '5px' }} /></label>
-                <label style={{ display: 'block', color: '#7A5C1E', fontSize: '12px' }}>PIN de clienta · 4 números<input type="password" inputMode="numeric" maxLength={4} value={quickClientPin}
+                <p style={{ color: '#D6CBB8', fontSize: '12px' }}>Usaremos el nombre, teléfono y correo indicados arriba para crear la ficha.</p>
+                <label style={{ display: 'block', color: '#E4C687', fontSize: '12px' }}>Apellidos<input value={quickClientSurname} onChange={event => setQuickClientSurname(event.target.value)}
+                  style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', margin: '6px 0 12px', background: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '5px' }} /></label>
+                <label style={{ display: 'block', color: '#E4C687', fontSize: '12px' }}>PIN de clienta · 4 números<input type="password" inputMode="numeric" maxLength={4} value={quickClientPin}
                   onChange={event => setQuickClientPin(event.target.value.replace(/[^0-9]/g, '').slice(0, 4))}
-                  style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', margin: '6px 0 12px', background: '#EADCC7', color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '5px' }} /></label>
+                  style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', margin: '6px 0 12px', background: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '5px' }} /></label>
                 <button type="button" onClick={saveQuickClient} style={{ padding: '11px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', border: 0, borderRadius: '5px', cursor: 'pointer' }}>Crear ficha y continuar</button>
-                <p style={{ color: '#5C5248', fontSize: '11px' }}>Crear la ficha no reserva la cita. Guarda después los servicios y el horario.</p>
+                <p style={{ color: '#D6CBB8', fontSize: '11px' }}>Crear la ficha no reserva la cita. Guarda después los servicios y el horario.</p>
               </section>}
-              <h4 style={{ color: '#2C2521', fontSize: '16px', margin: '14px 0 4px' }}>2. Servicios de la cita</h4>
+              <h4 style={{ color: '#FFF8EE', fontSize: '16px', margin: '14px 0 4px' }}>2. Servicios de la cita</h4>
               <select aria-label="Categoría del servicio" value={modalCatIndex} onChange={(e) => {
                 setModalCatIndex(Number(e.target.value));
                 setModalSubIndex(0);
                 const sub = catalog[Number(e.target.value)]?.subservices[0];
                 setModalSelectedVariant(sub?.variants?.[0] || null);
-              }} style={{ padding: '12px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }}>
+              }} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }}>
                 {catalog.map((cat, idx) => (<option key={cat.id} value={idx}>{cat.code} &lt; {cat.title}</option>))}
               </select>
               <select aria-label="Servicio" value={modalSubIndex} onChange={(e) => {
@@ -6349,39 +6349,39 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 setModalSubIndex(sIdx);
                 const sub = catalog[modalCatIndex]?.subservices[sIdx];
                 setModalSelectedVariant(sub?.variants?.[0] || null);
-              }} style={{ padding: '12px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }}>
+              }} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }}>
                 {catalog[modalCatIndex]?.subservices.map((sub, idx) => (<option key={sub.id} value={idx} disabled={sub.active === false}>{sub.name}{sub.active === false ? " · Desactivado" : ""}</option>))}
               </select>
               {catalog[modalCatIndex]?.subservices[modalSubIndex]?.hasVariants && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ color: '#7A5C1E', fontSize: '13px', fontWeight: 'bold' }}>Selecciona Variante:</label>
+                  <label style={{ color: '#E4C687', fontSize: '13px', fontWeight: 'bold' }}>Selecciona Variante:</label>
                   <select value={modalSelectedVariant?.id || ""} onChange={(e) => {
                     const v = catalog[modalCatIndex]?.subservices[modalSubIndex]?.variants?.find(item => item.id === e.target.value);
                     setModalSelectedVariant(v || null);
-                  }} style={{ padding: '12px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }}>
+                  }} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }}>
                     {catalog[modalCatIndex]?.subservices[modalSubIndex]?.variants?.map(v => (
                       <option key={v.id} value={v.id}>{v.name} - {v.price} / {v.duration}</option>
                     ))}
                   </select>
                 </div>
               )}
-              <button type="button" onClick={handleAddModalService} style={{ background: 'none', border: '1px solid #C5A059', color: '#7A5C1E', padding: '10px', borderRadius: '6px', cursor: 'pointer' }}>+ Añadir servicio a la cita</button>
+              <button type="button" onClick={handleAddModalService} style={{ background: 'none', border: '1px solid #C5A059', color: '#E4C687', padding: '10px', borderRadius: '6px', cursor: 'pointer' }}>+ Añadir servicio a la cita</button>
               {modalServices.length > 0 && (
-                <div aria-live="polite" style={{ border: '1px solid #E6D5B8', borderRadius: '6px', padding: '10px', color: '#2C2521', fontSize: '14px' }}>
+                <div aria-live="polite" style={{ border: '1px solid #3A312A', borderRadius: '6px', padding: '10px', color: '#FFF8EE', fontSize: '14px' }}>
                   <strong>Servicios de esta cita</strong>
                   {modalServices.map(item => (
                     <div key={item.sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '8px' }}>
                       <span>{item.sub.name}{item.variant ? ` (${item.variant.name})` : ''} · {item.variant?.duration || item.sub.duration}</span>
-                      <button type="button" aria-label={`Quitar ${item.sub.name}`} onClick={() => setModalServices(previous => previous.filter(entry => entry.sub.id !== item.sub.id))} style={{ background: 'none', border: '1px solid #E6D5B8', color: '#5C5248', padding: '6px', borderRadius: '4px', cursor: 'pointer' }}>Quitar</button>
+                      <button type="button" aria-label={`Quitar ${item.sub.name}`} onClick={() => setModalServices(previous => previous.filter(entry => entry.sub.id !== item.sub.id))} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '6px', borderRadius: '4px', cursor: 'pointer' }}>Quitar</button>
                     </div>
                   ))}
-                  <p style={{ color: '#7A5C1E', marginBottom: 0 }}>Duración total: {getModalDuration(modalServices)} min</p>
+                  <p style={{ color: '#E4C687', marginBottom: 0 }}>Duración total: {getModalDuration(modalServices)} min</p>
                 </div>
               )}
-              <small style={{ color: '#5C5248' }}>Selecciona cada servicio y pulsa «Añadir servicio». Si repites uno, se actualiza su variante. Se guardarán los servicios de la lista; sin lista, se guardará el servicio seleccionado.</small>
+              <small style={{ color: '#D6CBB8' }}>Selecciona cada servicio y pulsa «Añadir servicio». Si repites uno, se actualiza su variante. Se guardarán los servicios de la lista; sin lista, se guardará el servicio seleccionado.</small>
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
-                <button type="button" onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: '1px solid #E6D5B8', color: '#5C5248', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
-                <button type="submit" style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#2C2521', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{editingAppointment ? 'Guardar cambios' : 'Guardar Cita'}</button>
+                <button type="button" onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{editingAppointment ? 'Guardar cambios' : 'Guardar Cita'}</button>
               </div>
             </form>
           </div>
@@ -6391,13 +6391,13 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
       {/* MODAL DETALLE CITA */}
       {viewApptModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
-          <div style={{ backgroundColor: '#EADCC7', border: '1px solid #C5A059', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', maxWidth: '560px', width: '100%', boxSizing: 'border-box', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <p style={{ color: '#7A5C1E', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
-            <h3 style={{ color: '#2C2521', fontSize: '26px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{viewApptModal.clientName}</h3>
-            <div style={{ backgroundColor: adminAppointmentColor(viewApptModal).background, border: `1px solid ${adminAppointmentColor(viewApptModal).border}`, borderRadius: '10px', padding: '18px', color: '#2C2521' }}>
+          <div style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', maxWidth: '560px', width: '100%', boxSizing: 'border-box', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <p style={{ color: '#E4C687', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
+            <h3 style={{ color: '#FFF8EE', fontSize: '26px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{viewApptModal.clientName}</h3>
+            <div style={{ backgroundColor: adminAppointmentColor(viewApptModal).background, border: `1px solid ${adminAppointmentColor(viewApptModal).border}`, borderRadius: '10px', padding: '18px', color: '#FFF8EE' }}>
               <strong style={{ fontSize: '14px' }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada · Hueco liberado' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada · Registro conservado' : viewApptModal.completedAt ? 'Realizada · Registrada en el pasaporte' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Cita confirmada'}</strong>
               <p style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '21px', margin: '12px 0 8px' }}>{new Date(`${viewApptModal.dateKey}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {viewApptModal.time}</p>
-              <span style={{ color: '#5C5248', fontSize: '13px' }}>Duración total: {viewApptModal.durationMinutes || 45} min</span>
+              <span style={{ color: '#D6CBB8', fontSize: '13px' }}>Duración total: {viewApptModal.durationMinutes || 45} min</span>
             </div>
             {currentScreen === 'adminPanel' && <button type="button" onClick={() => {
               const email = normalizeEmail(viewApptModal.email);
@@ -6413,7 +6413,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               setEditingClientId(null); setAgendaSidePanel(null); setViewApptModal(null);
               setAdminTab('clients'); setAgendaExpanded(false);
               window.scrollTo({ top: 0, behavior: 'smooth' });
-            }} style={{ padding: '12px', background: '#EADCC7', color: '#2C2521',
+            }} style={{ padding: '12px', background: '#322A25', color: '#FFF8EE',
               border: '1px solid #C5A059', borderRadius: '8px', cursor: 'pointer' }}>Abrir ficha de la clienta · Diagnóstico y fórmulas</button>}
             {currentScreen === 'adminPanel' && <button type="button" onClick={() => {
               if (!viewApptModal.services?.length) { alert('Esta cita antigua no tiene servicios estructurados. Crea una nueva cita y selecciona sus servicios.'); return; }
@@ -6432,7 +6432,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               const next = new Date(); next.setHours(12, 0, 0, 0); next.setDate(next.getDate() + 1);
               setNewRescheduleDate(formatDateKey(next)); setNewRescheduleTime('');
               setViewApptModal(null);
-            }} style={{ padding: '12px', background: '#EADCC7', color: '#2C2521', border: '1px solid #C5A059',
+            }} style={{ padding: '12px', background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059',
               borderRadius: '8px', cursor: 'pointer' }}>Repetir cita · Elegir nueva fecha</button>}
             {!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && <button type="button" onClick={() => {
               setEditingAppointment(viewApptModal);
@@ -6442,20 +6442,20 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               setModalServices(viewApptModal.services || []);
               setModalCatIndex(0); setModalSubIndex(0); setModalSelectedVariant(catalog[0]?.subservices[0]?.variants?.[0] || null);
               setViewApptModal(null); setIsModalOpen(true);
-            }} style={{ background: '#EADCC7', color: '#2C2521', border: '1px solid #C5A059',
+            }} style={{ background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059',
               borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>Editar servicios y duración</button>}
             <section>
-              <h4 style={{ color: '#7A5C1E', fontSize: '14px', margin: '0 0 12px' }}>Servicios reservados</h4>
-              {viewApptModal.services?.length ? viewApptModal.services.map((item, index) => <div key={index} style={{ backgroundColor: '#EADCC7', padding: '14px', border: '1px solid #E6D5B8', borderRadius: '8px', marginBottom: '8px', fontSize: '14px', lineHeight: 1.6, color: '#2C2521' }}><strong>{item.sub.name}</strong>{item.variant && <span style={{ display: 'block', color: '#5C5248' }}>{item.variant.name}</span>}<span style={{ display: 'block', color: '#7A5C1E', fontSize: '13px' }}>{item.variant?.price || item.sub.price} · {item.variant?.duration || item.sub.duration}</span></div>) : <p style={{ color: '#7A5C1E', fontSize: '14px', lineHeight: 1.6, overflowWrap: 'anywhere' }}>{viewApptModal.serviceSubcategory}</p>}
+              <h4 style={{ color: '#E4C687', fontSize: '14px', margin: '0 0 12px' }}>Servicios reservados</h4>
+              {viewApptModal.services?.length ? viewApptModal.services.map((item, index) => <div key={index} style={{ backgroundColor: '#322A25', padding: '14px', border: '1px solid #3A312A', borderRadius: '8px', marginBottom: '8px', fontSize: '14px', lineHeight: 1.6, color: '#FFF8EE' }}><strong>{item.sub.name}</strong>{item.variant && <span style={{ display: 'block', color: '#D6CBB8' }}>{item.variant.name}</span>}<span style={{ display: 'block', color: '#E4C687', fontSize: '13px' }}>{item.variant?.price || item.sub.price} · {item.variant?.duration || item.sub.duration}</span></div>) : <p style={{ color: '#E4C687', fontSize: '14px', lineHeight: 1.6, overflowWrap: 'anywhere' }}>{viewApptModal.serviceSubcategory}</p>}
             </section>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', color: '#5C5248', fontSize: '13px', overflowWrap: 'anywhere' }}>
-              <a href={`tel:${viewApptModal.phone}`} style={{ color: '#7A5C1E', padding: '8px 0' }}>{viewApptModal.phone}</a>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', color: '#D6CBB8', fontSize: '13px', overflowWrap: 'anywhere' }}>
+              <a href={`tel:${viewApptModal.phone}`} style={{ color: '#E4C687', padding: '8px 0' }}>{viewApptModal.phone}</a>
               <span style={{ padding: '8px 0' }}>{viewApptModal.email}</span>
             </div>
-            {viewApptModal.completedAt ? <p style={{ color: '#5C5248', fontSize: '13px', lineHeight: 1.6 }}>Visita registrada en el pasaporte. Puedes editar o borrar esa visita desde Clientes → Editar pasaporte e historial.</p> : <button type="button" onClick={() => markAppointmentCompleted(viewApptModal)} style={{ backgroundColor: '#DFE9DF', border: '1px solid #3E6B47', color: '#2C5538', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Marcar como realizada · Añadir al pasaporte</button>}
-            <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(viewApptModal); setNewRescheduleDate(viewApptModal.dateKey); setNewRescheduleTime(viewApptModal.time); setViewApptModal(null); }} style={{ backgroundColor: '#EADCC7', border: '1px solid #C5A059', color: '#2C2521', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Cambiar fecha u hora</button>
+            {viewApptModal.completedAt ? <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6 }}>Visita registrada en el pasaporte. Puedes editar o borrar esa visita desde Clientes → Editar pasaporte e historial.</p> : <button type="button" onClick={() => markAppointmentCompleted(viewApptModal)} style={{ backgroundColor: '#8FC98F', border: '1px solid #3E6B47', color: '#2C5538', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Marcar como realizada · Añadir al pasaporte</button>}
+            <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(viewApptModal); setNewRescheduleDate(viewApptModal.dateKey); setNewRescheduleTime(viewApptModal.time); setViewApptModal(null); }} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Cambiar fecha u hora</button>
             {viewApptModal.saturdayApproval && isActiveAppointment(viewApptModal) && (
-              <div style={{ border: '1px solid #C5A059', padding: '12px', borderRadius: '8px', color: '#2C2521' }}>
+              <div style={{ border: '1px solid #C5A059', padding: '12px', borderRadius: '8px', color: '#FFF8EE' }}>
                 <strong>{approvalTitle(viewApptModal.saturdayApproval.reason)}: {viewApptModal.saturdayApproval.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.saturdayApproval.status === 'accepted' ? 'Aceptado por Ana' : 'Rechazado'}</strong>
                 <p>{viewApptModal.saturdayApproval.reference}</p>
                 {viewApptModal.saturdayApproval.status === 'pending' && (
@@ -6473,11 +6473,11 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                     }} style={{ padding: '10px', cursor: 'pointer' }}>Rechazar solicitud</button>
                   </div>
                 )}
-                {viewApptModal.saturdayApproval.status === 'accepted' && <a style={{ color: '#7A5C1E' }} target="_blank" rel="noreferrer" href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(viewApptModal.advancePayment?.status === 'pending' ? `Hola ${viewApptModal.clientName}. Ana ha aceptado tu solicitud para el ${viewApptModal.dateKey.split('-').reverse().join('/')} a las ${viewApptModal.time}. Para confirmar, realiza un Bizum de ${viewApptModal.advancePayment?.amount} € al ${bizConfig.bizumNumber}. Concepto: ${advancePaymentConcept(viewApptModal)}. Confirmaremos al comprobar el pago.` : generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time))}`}>Abrir WhatsApp para avisar a la clienta</a>}
+                {viewApptModal.saturdayApproval.status === 'accepted' && <a style={{ color: '#E4C687' }} target="_blank" rel="noreferrer" href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(viewApptModal.advancePayment?.status === 'pending' ? `Hola ${viewApptModal.clientName}. Ana ha aceptado tu solicitud para el ${viewApptModal.dateKey.split('-').reverse().join('/')} a las ${viewApptModal.time}. Para confirmar, realiza un Bizum de ${viewApptModal.advancePayment?.amount} € al ${bizConfig.bizumNumber}. Concepto: ${advancePaymentConcept(viewApptModal)}. Confirmaremos al comprobar el pago.` : generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time))}`}>Abrir WhatsApp para avisar a la clienta</a>}
               </div>
             )}
             {viewApptModal.advancePayment && isActiveAppointment(viewApptModal) && (
-              <div style={{ border: '1px solid #C5A059', borderRadius: '8px', padding: '12px', color: '#2C2521', fontSize: '14px' }}>
+              <div style={{ border: '1px solid #C5A059', borderRadius: '8px', padding: '12px', color: '#FFF8EE', fontSize: '14px' }}>
                 <strong>Reserva anticipada: {viewApptModal.advancePayment.amount} € · {viewApptModal.advancePayment.status === 'confirmed' ? 'Pago confirmado' : 'Pendiente de pago'}</strong>
                 <p>Código: {viewApptModal.advancePayment.reference}</p>
                 {viewApptModal.advancePayment.status === 'pending' && (
@@ -6490,41 +6490,41 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 )}
               </div>
             )}
-            <section style={{ padding: '14px', background: '#EADCC7', border: '1px solid #E6D5B8', borderRadius: '8px' }}>
-              <label htmlFor="appointment-internal-notes" style={{ color: '#7A5C1E', fontSize: '13px' }}>Notas internas · Solo 360studio</label>
+            <section style={{ padding: '14px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px' }}>
+              <label htmlFor="appointment-internal-notes" style={{ color: '#E4C687', fontSize: '13px' }}>Notas internas · Solo 360studio</label>
               <textarea id="appointment-internal-notes" value={appointmentNoteDraft} onChange={event => setAppointmentNoteDraft(event.target.value)}
                 rows={3} placeholder="Detalles para preparar o hacer seguimiento de esta cita"
-                style={{ width: '100%', boxSizing: 'border-box', margin: '10px 0', padding: '10px', background: '#EADCC7',
-                  color: '#2C2521', border: '1px solid #E6D5B8', borderRadius: '6px', fontSize: '14px', resize: 'vertical' }} />
+                style={{ width: '100%', boxSizing: 'border-box', margin: '10px 0', padding: '10px', background: '#322A25',
+                  color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', fontSize: '14px', resize: 'vertical' }} />
               <button type="button" onClick={() => {
                 const updated = { ...viewApptModal, internalNotes: appointmentNoteDraft };
                 setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
                 setViewApptModal(updated); alert('Notas internas guardadas.');
-              }} style={{ padding: '10px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#2C2521', border: 0, borderRadius: '6px', cursor: 'pointer' }}>Guardar notas</button>
+              }} style={{ padding: '10px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 0, borderRadius: '6px', cursor: 'pointer' }}>Guardar notas</button>
             </section>
             {!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-              <button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'cancelled')} style={{ padding: '10px', border: '1px solid #E6D5B8', color: '#C0392B', background: '#EADCC7', borderRadius: '6px', cursor: 'pointer' }}>Marcar cancelada</button>
-              <button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'no_show')} style={{ padding: '10px', border: '1px solid #C5A059', color: '#5C5248', background: '#EADCC7', borderRadius: '6px', cursor: 'pointer' }}>No presentada</button>
+              <button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'cancelled')} style={{ padding: '10px', border: '1px solid #3A312A', color: '#C0392B', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>Marcar cancelada</button>
+              <button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'no_show')} style={{ padding: '10px', border: '1px solid #C5A059', color: '#D6CBB8', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>No presentada</button>
             </div>}
-            {!isActiveAppointment(viewApptModal) && <p style={{ color: '#5C5248', fontSize: '12px' }}>El registro se conserva en «Citas del día» y en el buscador. No ocupa un hueco ni se añade como visita realizada al pasaporte.</p>}
+            {!isActiveAppointment(viewApptModal) && <p style={{ color: '#D6CBB8', fontSize: '12px' }}>El registro se conserva en «Citas del día» y en el buscador. No ocupa un hueco ni se añade como visita realizada al pasaporte.</p>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px', borderTop: '1px solid rgba(212, 175, 55, 0.2)', paddingTop: '12px' }}>
-              <span style={{ color: '#7A5C1E', fontSize: '13px', fontWeight: 'bold' }}>Abrir mensaje de WhatsApp o copiar texto:</span>
+              <span style={{ color: '#E4C687', fontSize: '13px', fontWeight: 'bold' }}>Abrir mensaje de WhatsApp o copiar texto:</span>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <a href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, "")}?text=${encodeURIComponent(generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time))}`} target="_blank" rel="noreferrer" style={{ backgroundColor: '#DFE9DF', color: '#2C5538', padding: '10px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                <a href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, "")}?text=${encodeURIComponent(generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time))}`} target="_blank" rel="noreferrer" style={{ backgroundColor: '#8FC98F', color: '#2C5538', padding: '10px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                   WhatsApp
                 </a>
                 <button type="button" onClick={() => {
                   const textoEmail = generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time);
                   navigator.clipboard.writeText(textoEmail);
                   alert('¡Texto del recordatorio copiado al portapapeletas!');
-                }} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#2C2521', padding: '10px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', textAlign: 'center', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                }} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', padding: '10px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', textAlign: 'center', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
                   Copiar Mensaje
                 </button>
               </div>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'space-between', marginTop: '10px' }}>
               <button onClick={(e) => handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#F2DCD8', border: '1px solid #C0392B', color: '#8A2F23', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar Cita</button>
-              <button onClick={() => setViewApptModal(null)} style={{ background: '#EADCC7', border: '1px solid #E6D5B8', color: '#2C2521', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Cerrar</button>
+              <button onClick={() => setViewApptModal(null)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Cerrar</button>
             </div>
           </div>
         </div>
@@ -6533,20 +6533,20 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
       {/* MODAL MODIFICAR HORA DE CITA */}
       {rescheduleModalAppt && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1100 }}>
-          <div style={{ backgroundColor: '#EADCC7', border: '1px solid #C5A059', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(60, 50, 40, 0.05)', maxWidth: '500px', width: '100%', boxSizing: 'border-box', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <h3 style={{ color: '#7A5C1E', fontSize: '24px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>{repeatAppointmentMode ? 'Repetir cita' : 'Cambiar fecha u hora'}</h3>
-            <p style={{ color: '#5C5248', fontSize: '14px', margin: 0 }}>Clienta: <strong style={{ color: '#2C2521' }}>{rescheduleModalAppt.clientName}</strong></p>
-            <div style={{ backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '9px', padding: '14px', color: '#5C5248', fontSize: '13px', lineHeight: 1.7 }}>
+          <div style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', maxWidth: '500px', width: '100%', boxSizing: 'border-box', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <h3 style={{ color: '#E4C687', fontSize: '24px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>{repeatAppointmentMode ? 'Repetir cita' : 'Cambiar fecha u hora'}</h3>
+            <p style={{ color: '#D6CBB8', fontSize: '14px', margin: 0 }}>Clienta: <strong style={{ color: '#FFF8EE' }}>{rescheduleModalAppt.clientName}</strong></p>
+            <div style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '9px', padding: '14px', color: '#D6CBB8', fontSize: '13px', lineHeight: 1.7 }}>
               {repeatAppointmentMode ? 'Cita de origen:' : 'Cita actual:'} {rescheduleModalAppt.dateKey.split('-').reverse().join('/')} · {rescheduleModalAppt.time}<br />
               Duración: {rescheduleModalAppt.durationMinutes || 45} min. {repeatAppointmentMode ? 'Se creará una nueva cita con estos servicios y variantes. La cita original se conserva.' : 'Los servicios se mantienen al cambiar la fecha.'}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ color: '#7A5C1E', fontSize: '14px', fontWeight: 'bold' }}>Nueva Fecha:</label>
-              <input type="date" value={newRescheduleDate} onChange={(e) => setNewRescheduleDate(e.target.value)} style={{ padding: '12px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }} />
+              <label style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold' }}>Nueva Fecha:</label>
+              <input type="date" value={newRescheduleDate} onChange={(e) => setNewRescheduleDate(e.target.value)} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ color: '#7A5C1E', fontSize: '14px', fontWeight: 'bold' }}>Nueva Hora:</label>
-              <select value={newRescheduleTime} onChange={(e) => setNewRescheduleTime(e.target.value)} style={{ padding: '12px', backgroundColor: '#EADCC7', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#2C2521', borderRadius: '6px', fontSize: '14px' }}>
+              <label style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold' }}>Nueva Hora:</label>
+              <select value={newRescheduleTime} onChange={(e) => setNewRescheduleTime(e.target.value)} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }}>
                 <option value="" disabled>Selecciona una hora</option>
                 {Array.from({ length: Math.ceil(1440 / agendaStep) }, (_, index) => minuteTime(index * agendaStep))
                   .filter(time => enableOutOfHours || isAgendaTimeWorking(new Date(newRescheduleDate + 'T12:00:00'), time, rescheduleModalAppt.durationMinutes || 45))
@@ -6554,7 +6554,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               </select>
             </div>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
-              <button type="button" onClick={() => setRescheduleModalAppt(null)} style={{ background: 'none', border: '1px solid #E6D5B8', color: '#5C5248', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
+              <button type="button" onClick={() => setRescheduleModalAppt(null)} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
               <button type="button" onClick={() => {
                 if (!repeatAppointmentMode && !isActiveAppointment(rescheduleModalAppt)) { alert('Esta cita está cancelada o no presentada. Crea una nueva reserva.'); return; }
                 if (!/^\d{4}-\d{2}-\d{2}$/.test(newRescheduleDate) || !/^\d{2}:\d{2}$/.test(newRescheduleTime)) { alert('Elige una fecha y una hora válidas.'); return; }
@@ -6598,7 +6598,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 setAppointments(previous => previous.map(a => a.id === rescheduleModalAppt.id ? { ...a, dateKey: newRescheduleDate, time: newRescheduleTime, dayName: date.toLocaleDateString('es-ES', { weekday: 'long' }) } : a));
                 setRescheduleModalAppt(null);
                 alert('¡Cita modificada con éxito!');
-              }} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#2C2521', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{repeatAppointmentMode ? 'Crear nueva cita' : 'Guardar Cambios'}</button>
+              }} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{repeatAppointmentMode ? 'Crear nueva cita' : 'Guardar Cambios'}</button>
             </div>
           </div>
         </div>

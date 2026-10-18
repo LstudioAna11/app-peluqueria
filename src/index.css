@@ -11,27 +11,27 @@
     --bg-studio: #29231F;
     --bg-studio-deep: #221D19;
     --surface-panel: #322A25;
-    --card-cream: #EADCC7;
-    --card-cream-hover: #F0E4D1;
-    --card-cream-soft: #F3E8D7;
+    --card-cream: #322A25;
+    --card-cream-hover: #3A312A;
+    --card-cream-soft: #3E342C;
     --border-cream: rgba(255, 248, 238, 0.08);
     --border-input: rgba(212, 175, 55, 0.25);
     --text-cream: #FFF8EE;
     --text-cream-secondary: #D6CBB8;
     --text-cream-muted: #C9BCA9;
     --ink: #29231F;
-    --text-dark: #2C2521;
-    --text-dark-secondary: #5C5248;
-    --text-dark-muted: #4E443B;
+    --text-dark: #FFF8EE;
+    --text-dark-secondary: #D6CBB8;
+    --text-dark-muted: #C9BCA9;
     --gold: #C49A58;
     --gold-light: #E4C687;
     --gold-deep: #B3823B;
-    --gold-text-dark: #8F6D24;
+    --gold-text-dark: #E4C687;
     --gold-gradient: linear-gradient(135deg, #C99E52 0%, #B3823B 100%);
     --gold-border: #C5A059;
     --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
     --success: #2E7D32;
-    --success-bg: #DFE9DF;
+    --success-bg: #1F2E1F;
     --error: #C0392B;
     --error-bg: #F2DCD8;
     --info: #33517E;
@@ -103,7 +103,7 @@
     transition: all 0.3s ease;
   }
   .btn-outline-gold:hover:not(:disabled) {
-    background: rgba(201, 158, 82, 0.08);
+    background: rgba(196, 154, 88, 0.08);
     border-color: var(--gold);
   }
   .border-gold-soft {

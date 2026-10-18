@@ -1,7 +1,7 @@
 /* L'Studio Ana — catálogo con el tema de 360Studio (intranet) */
 
 .studio-service-card {
-  background: var(--card-cream, #EADCC7);
+  background: var(--card-cream, #322A25);
   border: 1px solid rgba(255, 248, 238, 0.08);
   border-radius: 16px;
   overflow: hidden;
@@ -26,7 +26,7 @@
 .studio-service-media-photo {
   width: 100%;
   height: 210px;
-  background: var(--card-cream-soft, #F3E8D7);
+  background: var(--card-cream-soft, #3E342C);
 }
 
 .studio-service-media-photo img {
@@ -52,7 +52,7 @@
   background:
     radial-gradient(circle at 20% 15%, rgba(196, 154, 88, 0.18), transparent 55%),
     radial-gradient(circle at 85% 85%, rgba(196, 154, 88, 0.12), transparent 50%),
-    linear-gradient(140deg, #EADCC7 0%, #E0CFB2 55%, #D6C29E 100%);
+    linear-gradient(140deg, #322A25 0%, #2A241F 55%, #241F1B 100%);
 }
 
 .studio-service-media-empty span {
@@ -135,7 +135,7 @@
 
 .studio-service-chip {
   color: var(--gold-text-dark, #8F6D24);
-  background: var(--card-cream-soft, #F3E8D7);
+  background: var(--card-cream-soft, #3E342C);
   border: 1px solid rgba(44, 37, 33, 0.12);
   border-radius: 999px;
   padding: 4px 11px;
@@ -146,7 +146,7 @@
 .studio-service-note {
   margin: 0;
   color: var(--text-dark, #2C2521);
-  background: var(--card-cream-soft, #F3E8D7);
+  background: var(--card-cream-soft, #3E342C);
   border: 1px solid rgba(44, 37, 33, 0.12);
   border-radius: 9px;
   padding: 10px 12px;
@@ -176,7 +176,7 @@
   text-align: left;
   padding: 12px;
   border-radius: 10px;
-  background: var(--card-cream, #EADCC7);
+  background: var(--card-cream, #322A25);
   border: 1px solid rgba(44, 37, 33, 0.12);
   color: var(--text-dark, #2C2521);
   cursor: pointer;
@@ -202,7 +202,7 @@
 }
 
 .studio-variant-chip-active {
-  background: var(--card-cream-soft, #F3E8D7);
+  background: var(--card-cream-soft, #3E342C);
   border-color: var(--gold, #C49A58);
   border-width: 2px;
   padding: 11px;
@@ -238,7 +238,7 @@
 }
 
 .studio-btn-gold-active {
-  background: var(--card-cream-soft, #F3E8D7);
+  background: var(--card-cream-soft, #3E342C);
   color: var(--gold-text-dark, #8F6D24);
   border: 1px solid var(--gold, #C49A58);
 }
@@ -276,7 +276,7 @@
 /* Ficha de servicio */
 
 .studio-ficha-section {
-  background: var(--card-cream, #EADCC7);
+  background: var(--card-cream, #322A25);
   border: 1px solid rgba(255, 248, 238, 0.08);
   border-radius: 14px;
   padding: 18px;
@@ -324,7 +324,7 @@
   flex-direction: column;
   gap: 2px;
   padding: 10px 12px;
-  background: var(--card-cream-soft, #F3E8D7);
+  background: var(--card-cream-soft, #3E342C);
   border: 1px solid rgba(44, 37, 33, 0.12);
   border-radius: 9px;
 }
