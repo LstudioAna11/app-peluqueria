@@ -2,6 +2,21 @@
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 
+// Navegaciones siempre en red primero, para que la app instalada no quede
+// anclada a una versión antigua en la caché del navegador.
+self.addEventListener('fetch', (event) => {
+  if (event.request.mode !== 'navigate') return;
+  event.respondWith((async () => {
+    try {
+      return await fetch(new Request(event.request, { cache: 'reload' }));
+    } catch {
+      const cached = await caches.match(event.request);
+      if (cached) return cached;
+      throw new Error('Sin conexión y sin copia guardada de la app');
+    }
+  })());
+});
+
 self.addEventListener('push', (event) => {
   let payload = {};
   try { payload = event.data ? event.data.json() : {}; } catch { payload = { body: event.data ? event.data.text() : '' }; }
