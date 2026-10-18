@@ -2776,16 +2776,29 @@ function StudioApp() {
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapid.publicKey) as unknown as ArrayBuffer,
       });
+      // 1) Permiso concedido; 2) suscripción registrada en el servidor;
+      // 3) envío de prueba aceptado. Solo se marca "subscribed" tras el paso 2.
       await persistPushSubscription(subscription);
       setPushStatus('subscribed');
-      const test = await studioApi.sendTestPush(studioApi.currentToken()!);
-      setPushTestResult(test.sent > 0
-        ? 'Avisos activados. Acabas de recibir una notificación de prueba en este dispositivo.'
-        : (test.errors?.[0] || 'Avisos activados en este dispositivo.'));
+      try {
+        const test = await studioApi.sendTestPush(studioApi.currentToken()!);
+        setPushTestResult(test.sent > 0
+          ? 'Avisos activados. Acabas de recibir una notificación de prueba en este dispositivo.'
+          : (test.errors?.[0] || 'Avisos activados en este dispositivo.'));
+      } catch (testError) {
+        const testMessage = testError instanceof Error ? testError.message : '';
+        setPushTestResult(testMessage.includes('VAPID')
+          ? 'Avisos activados en este dispositivo. Falta configurar el envío en el servidor del Studio.'
+          : 'Avisos activados en este dispositivo. La notificación de prueba no se pudo enviar.');
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudieron activar las notificaciones.';
-      if (message.includes('Inicia sesión')) { setPushStatus('config-pending'); }
-      setPushError(message);
+      if (message.includes('Falta autenticación') || message.includes('Sesión caducada') || message.includes('Inicia sesión')) {
+        setPushStatus('default');
+        setPushError('Tu sesión ha caducado. Inicia sesión de nuevo con tu PIN y vuelve a pulsar «Activar notificaciones de mi cita»; no perderás los servicios seleccionados.');
+      } else {
+        setPushError(message);
+      }
     } finally { setPushBusy(false); }
   };
   const pushStatusLabel = () => ({
@@ -2838,18 +2851,35 @@ function StudioApp() {
             return;
           }
           if (clientMatch || pin === bizConfig.masterPin) {
+            const enteredPin = pin;
+            const matched = clientMatch;
             setPinError(false);
             setPin("");
             setAppVisitsCount(prev => prev + 1);
             setFeedbackSubmitted(false);
-            if (clientMatch) {
-              setCurrentClientRecord(clientMatch);
-              trackTraffic('login');
-              setCurrentScreen('clientPortal');
-            } else if (pin === bizConfig.masterPin) {
-              setAdminPin("");
-              setAdminError(false);
-              setCurrentScreen('adminPanel');
+            const finishLocalLogin = () => {
+              if (matched) {
+                setCurrentClientRecord(matched);
+                trackTraffic('login');
+                setCurrentScreen('clientPortal');
+              } else {
+                setAdminPin("");
+                setAdminError(false);
+                setCurrentScreen('adminPanel');
+              }
+            };
+            if (studioApi.serverConfigured) {
+              // Entrar con PIN también crea una sesión válida en el servidor,
+              // necesaria para registrar la suscripción push.
+              (async () => {
+                try {
+                  await studioApi.authenticate(enteredPin);
+                  await syncFromServer();
+                } catch { /* el portal sigue funcionando con los datos locales */ }
+                finishLocalLogin();
+              })();
+            } else {
+              finishLocalLogin();
             }
           } else {
             setPinError(true);
