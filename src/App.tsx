@@ -1859,7 +1859,23 @@ function StudioApp() {
     return saved ? { ...INITIAL_BUSINESS_CONFIG, ...readStoredValue('lst_business_config', saved) } : INITIAL_BUSINESS_CONFIG;
   });
   const [bookingDate, setBookingDate] = useState<Date>(() => { const date = new Date(); date.setHours(12, 0, 0, 0); date.setDate(date.getDate() + bizConfig.minAdvanceDays); return date; });
-  const [tempConfig, setTempConfig] = useState<BusinessConfig>(bizConfig);
+  const [tempConfig, setTempConfigState] = useState<BusinessConfig>(() => structuredClone(bizConfig));
+  const configDraftRef = useRef(tempConfig);
+  const configBaselineRef = useRef(structuredClone(bizConfig));
+  const configSavingRef = useRef(false);
+  const configEqual = (left: unknown, right: unknown): boolean => {
+    const canonical = (value: any): any => Array.isArray(value) ? value.map(canonical)
+      : value && typeof value === 'object' ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
+    return JSON.stringify(canonical(left)) === JSON.stringify(canonical(right));
+  };
+  const setTempConfig: React.Dispatch<React.SetStateAction<BusinessConfig>> = update => {
+    const next = typeof update === 'function' ? update(configDraftRef.current) : update;
+    configDraftRef.current = structuredClone(next);
+    setTempConfigState(configDraftRef.current);
+    setSaveState('idle');
+    setSaveErrorMsg(null);
+    setSavedMsg(null);
+  };
   const [savedMsg, setSavedMsg] = useState<string | null>(null);
   const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [saveErrorMsg, setSaveErrorMsg] = useState<string | null>(null);
@@ -3007,14 +3023,16 @@ function StudioApp() {
       }
     }
     if (data.settings && typeof data.settings === 'object') {
-      setBizConfig(previous => {
-        const merged = { ...previous, ...data.settings } as BusinessConfig;
-        return JSON.stringify(merged) === JSON.stringify(previous) ? previous : merged;
-      });
-      setTempConfig(previous => {
-        if (JSON.stringify(previous) !== JSON.stringify(bizConfigRef.current)) return previous;
-        return { ...previous, ...data.settings } as BusinessConfig;
-      });
+      const merged = { ...bizConfigRef.current, ...data.settings } as BusinessConfig;
+      // Preserve the draft when a background sync completes during editing or saving.
+      const pristine = configEqual(configDraftRef.current, configBaselineRef.current);
+      setBizConfig(merged);
+      bizConfigRef.current = merged;
+      if (pristine && !configSavingRef.current) {
+        configBaselineRef.current = structuredClone(merged);
+        configDraftRef.current = structuredClone(merged);
+        setTempConfigState(configDraftRef.current);
+      }
     }
     if (Array.isArray(data.closures)) {
       setHolidaysList(data.closures.map((c: Record<string, any>) => ({
@@ -3141,9 +3159,21 @@ function StudioApp() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const configHasPendingChanges = JSON.stringify(tempConfig) !== JSON.stringify(bizConfig);
+  const configHasPendingChanges = !configEqual(tempConfig, configBaselineRef.current);
+
+  useEffect(() => {
+    const warn = (event: BeforeUnloadEvent) => {
+      if (!configEqual(configDraftRef.current, configBaselineRef.current)) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, []);
 
   const handleSaveSection = async (sectionName: string) => {
+    if (configSavingRef.current) return;
     if (configSubTab === 'backup') {
       if (!/^\d{4}$/.test(tempConfig.masterPin)) { alert('El PIN maestro debe tener exactamente 4 números.'); return; }
       if (listaClientes.some(client => String(client.pinAcceso).trim() === tempConfig.masterPin)) {
@@ -3151,31 +3181,51 @@ function StudioApp() {
       }
     }
     if (configSubTab === 'reservas' && (!Number.isFinite(tempConfig.advancePaymentThresholdMinutes) || tempConfig.advancePaymentThresholdMinutes < 0 || !Number.isFinite(parseFloat(tempConfig.depositAmount.replace(',', '.'))) || parseFloat(tempConfig.depositAmount.replace(',', '.')) <= 0)) { alert('Revisa el importe y la duración de la reserva anticipada.'); return; }
-    const normalizedConfig = normalizeOpeningHours(tempConfig);
-    const shouldSync = studioApi.serverConfigured && studioApi.storedRole() === 'admin' && studioApi.currentToken();
+    const submittedDraft = structuredClone(configDraftRef.current);
+    const normalizedConfig = normalizeOpeningHours(submittedDraft);
+    const changedKeys = (Object.keys(normalizedConfig) as (keyof BusinessConfig)[])
+      .filter(key => !configEqual(normalizedConfig[key], configBaselineRef.current[key]));
+    configSavingRef.current = true;
     setSavedMsg(null);
     setSaveErrorMsg(null);
     setSaveState('saving');
     try {
-      if (shouldSync) {
-        await studioApi.pushSettings(studioApi.currentToken()!, normalizedConfig);
-        // Verificación real de persistencia: releer del servidor y comparar lo guardado.
-        const verify = await studioApi.syncAll<Record<string, any>>(studioApi.currentToken()!);
-        const reloaded = verify?.settings as Record<string, unknown> | null | undefined;
-        if (!reloaded || typeof reloaded !== 'object') throw new Error('El servidor no devolvió la configuración guardada. Lo editado se conserva para reintentar.');
-        if (String(reloaded.whatsappTemplate ?? '') !== String(normalizedConfig.whatsappTemplate ?? '')) {
-          throw new Error('La plantilla de WhatsApp no se conservó en el servidor.');
-        }
+      const token = studioApi.currentToken();
+      if (!studioApi.serverConfigured) throw new Error('Servidor no configurado. No se han guardado los cambios.');
+      if (!token || studioApi.storedRole() !== 'admin') throw new Error('Se necesita una sesión de administración válida. Vuelve a iniciar sesión con el PIN maestro.');
+      // Read the latest settings before merging to preserve unrelated server values.
+      const before = await studioApi.syncAll<Record<string, any>>(token);
+      if (!before?.settings || typeof before.settings !== 'object') throw new Error('No se pudo leer la configuración del servidor.');
+      const toSave = { ...bizConfigRef.current, ...before.settings } as BusinessConfig;
+      for (const key of changedKeys) (toSave as any)[key] = normalizedConfig[key];
+      await studioApi.pushSettings(token, toSave);
+      const verify = await studioApi.syncAll<Record<string, any>>(token);
+      const reloaded = verify?.settings;
+      if (!reloaded || typeof reloaded !== 'object') throw new Error('El servidor no devolvió la configuración guardada.');
+      if (changedKeys.some(key => !configEqual(reloaded[key], normalizedConfig[key]))) {
+        throw new Error('El servidor no conservó todos los ajustes modificados. Lo editado se conserva para reintentar.');
       }
-      setBizConfig(normalizedConfig);
-      setTempConfig(normalizedConfig);
-      localStorage.setItem('lst_business_config', JSON.stringify(normalizedConfig));
+      const confirmed = { ...toSave, ...reloaded } as BusinessConfig;
+      bizConfigRef.current = confirmed;
+      configBaselineRef.current = structuredClone(confirmed);
+      setBizConfig(confirmed);
+      // Keep any new edits typed while the request was in flight.
+      const latest = configDraftRef.current;
+      const nextDraft = structuredClone(confirmed);
+      for (const key of Object.keys(latest) as (keyof BusinessConfig)[]) {
+        if (!configEqual(latest[key], submittedDraft[key])) (nextDraft as any)[key] = latest[key];
+      }
+      configDraftRef.current = nextDraft;
+      setTempConfigState(nextDraft);
+      try { localStorage.setItem('lst_business_config', JSON.stringify(confirmed)); } catch { /* Server persistence succeeded; browser cache is optional. */ }
       setSaveState('saved');
       setSavedMsg(`¡${sectionName} guardados correctamente!`);
       setTimeout(() => setSavedMsg(null), 3000);
     } catch (error) {
       setSaveState('error');
       setSaveErrorMsg(error instanceof Error && error.message ? error.message : 'No se pudo guardar en el servidor. Tus cambios se conservan aquí para reintentar.');
+    } finally {
+      configSavingRef.current = false;
     }
   };
 
@@ -5267,8 +5317,8 @@ style={{ padding: '8px', background: '#322A25', color: '#FFF8EE', border: '1px s
               </nav>
               <div className="studio-settings-content">
                 <div className="studio-settings-savebar">
-                  <span role="status">{saveState === 'saving' ? 'Guardando…' : saveState === 'saved' && !configHasPendingChanges ? 'Cambios guardados' : saveState === 'error' && !configHasPendingChanges ? 'No se pudo guardar. Reintenta.' : configHasPendingChanges ? 'Cambios pendientes' : 'Todo guardado'}</span>
-                  <button type="button" disabled={!configHasPendingChanges || saveState === 'saving'} onClick={() => handleSaveSection('Ajustes del Studio')}>Guardar cambios</button>
+                  <span role="status">{saveState === 'saving' ? 'Guardando…' : saveState === 'saved' && !configHasPendingChanges ? 'Cambios guardados' : saveState === 'error' ? 'No se pudo guardar. Reintenta.' : configHasPendingChanges ? 'Cambios pendientes' : 'Todo guardado'}</span>
+                  <button type="button" disabled={(!configHasPendingChanges && saveState !== 'error') || saveState === 'saving'} onClick={() => handleSaveSection('Ajustes del Studio')}>Guardar cambios</button>
                 </div>
                 {saveState === 'error' && saveErrorMsg && (
                   <div style={{ padding: '10px', backgroundColor: '#F2DCD8', border: '1px solid #C0392B', color: '#8A2F23', borderRadius: '6px', fontSize: '12px', textAlign: 'center' }}>
@@ -5280,9 +5330,9 @@ style={{ padding: '8px', background: '#322A25', color: '#FFF8EE', border: '1px s
                   {savedMsg}
                 </div>
               )}
-{configSubTab === 'reservas' && <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Reservas y cancelaciones</h3><label>Antelación mínima (días)<input type="number" min="0" value={tempConfig.minAdvanceDays} onChange={(e) => setTempConfig({ ...tempConfig, minAdvanceDays: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Hasta cuántos meses se puede reservar<input type="number" min="0" value={tempConfig.maxBookingMonths} onChange={(e) => setTempConfig({ ...tempConfig, maxBookingMonths: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Intervalo entre horas disponibles (minutos)<input type="number" min="0" value={tempConfig.slotIntervalMinutes} onChange={(e) => setTempConfig({ ...tempConfig, slotIntervalMinutes: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Antelación para solicitar cambios o cancelaciones (horas)<input type="number" min="0" value={tempConfig.cancellationHours} onChange={(e) => setTempConfig({ ...tempConfig, cancellationHours: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><p>La antelación para cancelar es una preferencia guardada. Su aplicación automática queda pendiente. El intervalo organiza las horas disponibles; no añade tiempo de preparación entre citas.</p></div>}{configSubTab === 'reservas' && <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Reserva anticipada y sábados</h3><label><input type="checkbox" checked={tempConfig.advancePaymentEnabled} onChange={(e) => setTempConfig({ ...tempConfig, advancePaymentEnabled: e.target.checked })} /> Solicitar reserva anticipada</label><label>Importe de la reserva anticipada (€)<input type="text"  value={tempConfig.depositAmount} onChange={(e) => setTempConfig({ ...tempConfig, depositAmount: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Solicitarla cuando la cita supere estos minutos<input type="number" min="0" value={tempConfig.advancePaymentThresholdMinutes} onChange={(e) => setTempConfig({ ...tempConfig, advancePaymentThresholdMinutes: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Número de Bizum<input type="tel"  value={tempConfig.bizumNumber} onChange={(e) => setTempConfig({ ...tempConfig, bizumNumber: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><p>Las citas de los sábados requieren siempre la confirmación de Ana.</p><p>Los sábados se aprueban antes de solicitar el pago. El plazo de pago se acuerda con la clienta; no hay caducidad automática.</p></div>}{configSubTab === 'avisos' && <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Avisos y recordatorios</h3><label>WhatsApp del Studio<input type="tel"  value={tempConfig.studioWhatsapp} onChange={(e) => setTempConfig({ ...tempConfig, studioWhatsapp: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Correo del Studio<input type="email"  value={tempConfig.studioEmail} onChange={(e) => setTempConfig({ ...tempConfig, studioEmail: e.target.value })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Recordatorio antes de la cita (horas)<input type="number" min="0" value={tempConfig.reminderHours} onChange={(e) => setTempConfig({ ...tempConfig, reminderHours: Number(e.target.value) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><p style={{ color: '#E4C687' }}>Envío automático pendiente de configurar.</p><p>Estos datos guardan tus preferencias. No envían mensajes ni programan recordatorios hasta conectar un servicio de envío. El registro de entregas y errores estará disponible con esa conexión.</p></div>}{configSubTab === 'backup' && <section className="studio-security-pin"><h3>PIN de administración</h3>                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+{configSubTab === 'reservas' && <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Reservas y cancelaciones</h3><label>Antelación mínima (días)<input type="number" min="0" value={tempConfig.minAdvanceDays} onChange={(e) => setTempConfig(previous => ({ ...previous, minAdvanceDays: Number(e.target.value) }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Hasta cuántos meses se puede reservar<input type="number" min="0" value={tempConfig.maxBookingMonths} onChange={(e) => setTempConfig(previous => ({ ...previous, maxBookingMonths: Number(e.target.value) }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Intervalo entre horas disponibles (minutos)<input type="number" min="0" value={tempConfig.slotIntervalMinutes} onChange={(e) => setTempConfig(previous => ({ ...previous, slotIntervalMinutes: Number(e.target.value) }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Antelación para solicitar cambios o cancelaciones (horas)<input type="number" min="0" value={tempConfig.cancellationHours} onChange={(e) => setTempConfig(previous => ({ ...previous, cancellationHours: Number(e.target.value) }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><p>La antelación para cancelar es una preferencia guardada. Su aplicación automática queda pendiente. El intervalo organiza las horas disponibles; no añade tiempo de preparación entre citas.</p></div>}{configSubTab === 'reservas' && <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Reserva anticipada y sábados</h3><label><input type="checkbox" checked={tempConfig.advancePaymentEnabled} onChange={(e) => setTempConfig(previous => ({ ...previous, advancePaymentEnabled: e.target.checked }))} /> Solicitar reserva anticipada</label><label>Importe de la reserva anticipada (€)<input type="text"  value={tempConfig.depositAmount} onChange={(e) => setTempConfig(previous => ({ ...previous, depositAmount: e.target.value }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Solicitarla cuando la cita supere estos minutos<input type="number" min="0" value={tempConfig.advancePaymentThresholdMinutes} onChange={(e) => setTempConfig(previous => ({ ...previous, advancePaymentThresholdMinutes: Number(e.target.value) }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Número de Bizum<input type="tel"  value={tempConfig.bizumNumber} onChange={(e) => setTempConfig(previous => ({ ...previous, bizumNumber: e.target.value }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><p>Las citas de los sábados requieren siempre la confirmación de Ana.</p><p>Los sábados se aprueban antes de solicitar el pago. El plazo de pago se acuerda con la clienta; no hay caducidad automática.</p></div>}{configSubTab === 'avisos' && <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Avisos y recordatorios</h3><label>WhatsApp del Studio<input type="tel"  value={tempConfig.studioWhatsapp} onChange={(e) => setTempConfig(previous => ({ ...previous, studioWhatsapp: e.target.value }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Correo del Studio<input type="email"  value={tempConfig.studioEmail} onChange={(e) => setTempConfig(previous => ({ ...previous, studioEmail: e.target.value }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Recordatorio antes de la cita (horas)<input type="number" min="0" value={tempConfig.reminderHours} onChange={(e) => setTempConfig(previous => ({ ...previous, reminderHours: Number(e.target.value) }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><p style={{ color: '#E4C687' }}>Envío automático pendiente de configurar.</p><p>Estos datos guardan tus preferencias. No envían mensajes ni programan recordatorios hasta conectar un servicio de envío. El registro de entregas y errores estará disponible con esa conexión.</p></div>}{configSubTab === 'backup' && <section className="studio-security-pin"><h3>PIN de administración</h3>                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold' }}>PIN Maestro de Administración (4 dígitos):</label>
-                    <input type="password" maxLength={4} value={tempConfig.masterPin} onChange={(e) => setTempConfig({ ...tempConfig, masterPin: e.target.value })} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px', textAlign: 'center', letterSpacing: '4px' }} />
+                    <input type="password" maxLength={4} value={tempConfig.masterPin} onChange={(e) => setTempConfig(previous => ({ ...previous, masterPin: e.target.value }))} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px', textAlign: 'center', letterSpacing: '4px' }} />
                   </div></section>}{configSubTab === 'backup' && <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Copia de seguridad</h3><p>Descarga el catálogo, las citas, la configuración y los registros locales. Guarda el archivo en un lugar privado: puede contener datos personales y PIN.</p><button type="button" onClick={() => {
 const data: Record<string, string | null> = {}; for (let index = 0; index < localStorage.length; index++) { const key = localStorage.key(index); if (key?.startsWith('lst_')) data[key] = localStorage.getItem(key); }
 data.lst_master_catalog = JSON.stringify(catalog); data.lst_business_config = JSON.stringify(bizConfig);
@@ -5318,7 +5368,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                     <p style={{ color: '#D6CBB8', fontSize: '14px', margin: 0 }}>Puedes editar la plantilla para los mensajes manuales de WhatsApp. El envío automático al agendar usa la plantilla aprobada en WhatsApp Business Platform y se configura en «Acceso y seguridad».</p>
                     <textarea 
                       value={tempConfig.whatsappTemplate} 
-                      onChange={(e) => setTempConfig({ ...tempConfig, whatsappTemplate: e.target.value })}
+                      onChange={(e) => setTempConfig(previous => ({ ...previous, whatsappTemplate: e.target.value }))}
                       rows={3} 
                       style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} 
                     />
@@ -5353,20 +5403,20 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                         <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Nombre oficial</label>
-                        <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig({ ...tempConfig, name: e.target.value })} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
+                        <input type="text" value={tempConfig.name} onChange={(e) => setTempConfig(previous => ({ ...previous, name: e.target.value }))} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                         <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Teléfono del Salón</label>
-                        <input type="text" value={tempConfig.phone} onChange={(e) => setTempConfig({ ...tempConfig, phone: e.target.value })} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
+                        <input type="text" value={tempConfig.phone} onChange={(e) => setTempConfig(previous => ({ ...previous, phone: e.target.value }))} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                       </div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                       <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Dirección del Studio</label>
-                      <input type="text" value={tempConfig.location} onChange={(e) => setTempConfig({ ...tempConfig, location: e.target.value })} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
+                      <input type="text" value={tempConfig.location} onChange={(e) => setTempConfig(previous => ({ ...previous, location: e.target.value }))} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                       <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Descripción Corporativa</label>
-                      <textarea value={tempConfig.description} onChange={(e) => setTempConfig({ ...tempConfig, description: e.target.value })} rows={3} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} />
+                      <textarea value={tempConfig.description} onChange={(e) => setTempConfig(previous => ({ ...previous, description: e.target.value }))} rows={3} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} />
                     </div>
                   </div>
 
@@ -5403,10 +5453,10 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                           }} style={{ display: 'none' }} />
                         </label>
                         <label style={{ color: '#D6CBB8', fontSize: '12px' }}>Encuadre horizontal
-                          <input type="range" min={0} max={100} value={tempConfig.homeHeroImagePosition?.x ?? 50} onChange={(e) => setTempConfig({ ...tempConfig, homeHeroImagePosition: { x: Number(e.target.value), y: tempConfig.homeHeroImagePosition?.y ?? 62 } })} style={{ width: '100%', accentColor: '#C49A58' }} />
+                          <input type="range" min={0} max={100} value={tempConfig.homeHeroImagePosition?.x ?? 50} onChange={(e) => setTempConfig(previous => ({ ...previous, homeHeroImagePosition: { x: Number(e.target.value), y: tempConfig.homeHeroImagePosition?.y ?? 62 } }))} style={{ width: '100%', accentColor: '#C49A58' }} />
                         </label>
                         <label style={{ color: '#D6CBB8', fontSize: '12px' }}>Encuadre vertical (menos = más butacas, recorta techo)
-                          <input type="range" min={0} max={100} value={tempConfig.homeHeroImagePosition?.y ?? 62} onChange={(e) => setTempConfig({ ...tempConfig, homeHeroImagePosition: { x: tempConfig.homeHeroImagePosition?.x ?? 50, y: Number(e.target.value) } })} style={{ width: '100%', accentColor: '#C49A58' }} />
+                          <input type="range" min={0} max={100} value={tempConfig.homeHeroImagePosition?.y ?? 62} onChange={(e) => setTempConfig(previous => ({ ...previous, homeHeroImagePosition: { x: tempConfig.homeHeroImagePosition?.x ?? 50, y: Number(e.target.value) } }))} style={{ width: '100%', accentColor: '#C49A58' }} />
                         </label>
                         {tempConfig.homeHeroImage && tempConfig.homeHeroImage !== `/Salon_elegante_con_luz_calida.png` && !tempConfig.homeHeroImage.startsWith('/') && (
                           <button type="button" onClick={async () => {
@@ -5430,24 +5480,24 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                     <h4 style={{ color: '#E4C687', fontSize: '13px', margin: 0, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em' }}>Redes Sociales del Salón</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                       <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Instagram URL:</label>
-                      <input type="text" value={tempConfig.instagramUrl} onChange={(e) => setTempConfig({ ...tempConfig, instagramUrl: e.target.value })} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
+                      <input type="text" value={tempConfig.instagramUrl} onChange={(e) => setTempConfig(previous => ({ ...previous, instagramUrl: e.target.value }))} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                       <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Facebook URL:</label>
-                      <input type="text" value={tempConfig.facebookUrl} onChange={(e) => setTempConfig({ ...tempConfig, facebookUrl: e.target.value })} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
+                      <input type="text" value={tempConfig.facebookUrl} onChange={(e) => setTempConfig(previous => ({ ...previous, facebookUrl: e.target.value }))} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                       <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Tik Tok URL:</label>
-                      <input type="text" value={tempConfig.tiktokUrl} onChange={(e) => setTempConfig({ ...tempConfig, tiktokUrl: e.target.value })} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
+                      <input type="text" value={tempConfig.tiktokUrl} onChange={(e) => setTempConfig(previous => ({ ...previous, tiktokUrl: e.target.value }))} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Enlace Google Maps:</label>
-                    <input type="text" value={tempConfig.googleMapsUrl} onChange={(e) => setTempConfig({ ...tempConfig, googleMapsUrl: e.target.value })} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
+                    <input type="text" value={tempConfig.googleMapsUrl} onChange={(e) => setTempConfig(previous => ({ ...previous, googleMapsUrl: e.target.value }))} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Enlace Reseñas Google My Business:</label>
-                    <input type="text" value={tempConfig.googleReviewUrl} onChange={(e) => setTempConfig({ ...tempConfig, googleReviewUrl: e.target.value })} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
+                    <input type="text" value={tempConfig.googleReviewUrl} onChange={(e) => setTempConfig(previous => ({ ...previous, googleReviewUrl: e.target.value }))} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   
                 </div>
@@ -5456,19 +5506,19 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Horario Lunes:</label>
-                    <input type="text" value={tempConfig.scheduleMonday} onChange={(e) => setTempConfig({ ...tempConfig, scheduleMonday: e.target.value })} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
+                    <input type="text" value={tempConfig.scheduleMonday} onChange={(e) => setTempConfig(previous => ({ ...previous, scheduleMonday: e.target.value }))} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Horario Martes y Miércoles:</label>
-                    <input type="text" value={tempConfig.scheduleTueWed} onChange={(e) => setTempConfig({ ...tempConfig, scheduleTueWed: e.target.value })} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
+                    <input type="text" value={tempConfig.scheduleTueWed} onChange={(e) => setTempConfig(previous => ({ ...previous, scheduleTueWed: e.target.value }))} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Horario Jueves y Viernes:</label>
-                    <input type="text" value={tempConfig.scheduleThuFri} onChange={(e) => setTempConfig({ ...tempConfig, scheduleThuFri: e.target.value })} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
+                    <input type="text" value={tempConfig.scheduleThuFri} onChange={(e) => setTempConfig(previous => ({ ...previous, scheduleThuFri: e.target.value }))} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Horario Sábados:</label>
-                    <input type="text" value={tempConfig.scheduleSaturday} onChange={(e) => setTempConfig({ ...tempConfig, scheduleSaturday: e.target.value })} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
+                    <input type="text" value={tempConfig.scheduleSaturday} onChange={(e) => setTempConfig(previous => ({ ...previous, scheduleSaturday: e.target.value }))} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
                   
                 </div>
