@@ -3040,6 +3040,12 @@ function StudioApp() {
     const styling = current.filter(sub => sub.isStylingService);
     if (required.length && !styling.length) return `Añade un servicio de secado y peinado y selecciona su largo o variante para completar: ${required.map(sub => sub.name).join(', ')}.`;
     if (styling.length && !required.length && current.some(sub => sub.stylingPolicy === 'included' && !sub.isStylingService)) return 'El pack seleccionado ya incluye peinado. Retira el peinado adicional para evitar duplicarlo.';
+    if (styling.length && !required.length && current.some(sub => sub.stylingPolicy === 'not_applicable' && !sub.isStylingService)) return 'El corte seleccionado no necesita secado. Retira el peinado adicional para evitar duplicarlo.';
+    const stylingMissingVariant = items.filter(item => {
+      const sub = current.find(sub => sub.id === item.sub.id);
+      return sub?.isStylingService && sub.hasVariants && sub.variants?.length && !item.variant;
+    });
+    if (stylingMissingVariant.length) return `Selecciona el largo o variante del peinado: ${stylingMissingVariant.map(item => item.sub.name).join(', ')}.`;
     return null;
   };
   const previewService = catalog.flatMap(category => category.subservices).find(sub => sub.id === previewServiceId);

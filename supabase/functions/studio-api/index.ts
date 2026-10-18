@@ -652,6 +652,32 @@ Deno.serve(async (req: Request) => {
       const startsAt = `${body.dateKey}T${body.time}:00`;
       const duration = Number(body.durationMinutes) || 45;
 
+      // Server-side styling policy validation using catalog identifiers.
+      if (Array.isArray(body.services) && body.services.length) {
+        const { data: catalogRows } = await admin.from("studio_catalog").select("category");
+        const catalogServices = (catalogRows ?? []).flatMap((row: any) =>
+          Array.isArray(row?.category?.subservices) ? row.category.subservices : []);
+        const byId = new Map(catalogServices.map((sub: any) => [String(sub?.id ?? ""), sub]));
+        const selected = body.services
+          .map((item: any) => byId.get(String(item?.sub?.id ?? "")) ?? item?.sub)
+          .filter(Boolean);
+        const required = selected.filter((sub: any) => sub.stylingPolicy === "required" && !sub.isStylingService);
+        const styling = selected.filter((sub: any) => sub.isStylingService);
+        if (required.length && !styling.length) {
+          return json({ error: `Añade un servicio de secado y peinado para completar: ${required.map((sub: any) => sub.name).join(", ")}.` }, 422);
+        }
+        if (styling.length && !required.length && selected.some((sub: any) => (sub.stylingPolicy === "included" || sub.stylingPolicy === "not_applicable") && !sub.isStylingService)) {
+          return json({ error: "El servicio seleccionado ya incluye peinado o no lo necesita. Retira el peinado adicional." }, 422);
+        }
+        const missingVariant = body.services.filter((item: any) => {
+          const sub = byId.get(String(item?.sub?.id ?? "")) ?? item?.sub;
+          return sub?.isStylingService && sub?.hasVariants && Array.isArray(sub?.variants) && sub.variants.length > 0 && !item?.variant;
+        });
+        if (missingVariant.length) {
+          return json({ error: "Selecciona el largo o variante del peinado antes de continuar." }, 422);
+        }
+      }
+
       // Server-side conflict validation (source of truth)
       const rpc = admin.rpc("studio_appointment_conflict" as never, {} as never);
       const conflicts = typeof rpc?.catch === "function" ? await rpc.catch(() => ({ data: null })) : { data: null };
