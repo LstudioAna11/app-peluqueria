@@ -3698,20 +3698,22 @@ function StudioApp() {
           const row = hoursList.indexOf(item.time);
           if (row < 0) return null;
           const span = Math.max(1, hoursList.filter(time => minutes(time) >= start && minutes(time) < end).length);
+          const serviceLabel = item.services?.length
+            ? item.services.map(service => service.sub.name).join(' + ')
+            : item.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '');
           return <button type="button" className="studio-agenda-appointment" key={item.id} draggable onDragStart={event => handleDragStart(event, item.id)}
             onClick={() => setViewApptModal(item)} onDragOver={handleDragOver}
             onDrop={event => { event.stopPropagation(); handleDrop(event, day.dateObj, day.name, item.time); }}
-            title={item.clientName + ' · ' + item.time + '–' + minuteTime(end) + ' · ' + item.serviceSubcategory}
+            title={item.clientName + ' · ' + item.time + '–' + minuteTime(end) + ' · ' + serviceLabel}
             style={{ gridRow: (row + 2) + ' / span ' + span, gridColumn: column + 2, zIndex: 2,
               marginLeft: (lane * 100 / lanes) + '%', width: (100 / lanes) + '%', boxSizing: 'border-box',
-              alignSelf: 'stretch', minWidth: 0, textAlign: 'left', padding: '6px',
+              alignSelf: 'stretch', minWidth: 0, textAlign: 'left', padding: '7px 8px',
               background: adminAppointmentColor(item).background, border: '1px solid #3A312A', borderLeft: '3px solid ' + adminAppointmentColor(item).border,
               color: '#FFF8EE', borderRadius: '5px', cursor: 'pointer', overflow: 'hidden',
-              display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: '4px' }}>
-            <strong style={{ fontSize: '11px' }}>{item.time}–{minuteTime(end)}</strong>
-            <strong style={{ color: '#FFF8EE', fontSize: '13px', overflowWrap: 'anywhere' }}>{item.clientName}</strong>
-            <span style={{ fontSize: '11px', lineHeight: 1.35, overflowWrap: 'anywhere' }}>{item.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</span>
-            <span style={{ fontSize: '10px', color: '#D6CBB8' }}>{item.durationMinutes || 45} min · {item.lifecycleStatus === 'cancelled' ? 'Cancelada' : item.lifecycleStatus === 'no_show' ? 'No presentada' : item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Por aprobar' : item.advancePayment?.status === 'pending' ? 'Bizum pendiente' : 'Confirmada'}</span>
+              display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: '3px' }}>
+            <strong style={{ fontSize: '10px', letterSpacing: '0.3px', color: '#D6CBB8' }}>{item.time}–{minuteTime(end)}</strong>
+            <strong style={{ color: '#FFF8EE', fontSize: '13px', lineHeight: 1.25, overflowWrap: 'anywhere' }}>{item.clientName}</strong>
+            <span style={{ fontSize: '11px', lineHeight: 1.3, color: '#EFE5D4', overflowWrap: 'anywhere' }}>{serviceLabel}</span>
           </button>;
         });
       })}
