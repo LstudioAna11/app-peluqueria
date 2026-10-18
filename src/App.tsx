@@ -1282,6 +1282,7 @@ interface Appointment {
   internalNotes?: string;
   completedAt?: string;
   id: string;
+  serverId?: string | null;
   dateKey: string;
   dayName: string;
   time: string;
@@ -2522,11 +2523,38 @@ function StudioApp() {
     if (!viewApptModal || !studioApi.serverConfigured || studioApi.storedRole() !== 'admin') return;
     setAppointmentEmailsLoading(true); setAppointmentEmailsError(null);
     try {
-      const result = await studioApi.fetchAppointmentEmails(studioApi.currentToken()!, viewApptModal.id);
+      let appointmentId = viewApptModal.serverId;
+      // A local-only appointment has no UUID yet: save it first so its
+      // notifications can be consulted, without inventing an identifier.
+      if (!appointmentId && viewApptModal.dateKey && viewApptModal.time) {
+        const created = await studioApi.createAppointmentOnServer(studioApi.currentToken()!, {
+          id: viewApptModal.id,
+          dateKey: viewApptModal.dateKey,
+          time: viewApptModal.time,
+          dayName: viewApptModal.dayName,
+          durationMinutes: viewApptModal.durationMinutes,
+          bookingChannel: viewApptModal.bookingChannel || 'admin',
+          services: viewApptModal.services ?? [],
+          clientName: viewApptModal.clientName,
+          phone: viewApptModal.phone,
+          email: viewApptModal.email,
+          serviceCategory: viewApptModal.serviceCategory,
+          serviceSubcategory: viewApptModal.serviceSubcategory,
+          selectedVariant: viewApptModal.selectedVariant ?? null,
+          remindersStatus: viewApptModal.remindersStatus,
+        });
+        appointmentId = created.id;
+        const synced: Appointment = { ...viewApptModal, serverId: created.id };
+        setViewApptModal(synced);
+        setAppointments(previous => previous.map(item => item.id === synced.id ? synced : item));
+      }
+      if (!appointmentId) { setAppointmentEmails([]); return; }
+      const result = await studioApi.fetchAppointmentEmails(studioApi.currentToken()!, appointmentId);
       setAppointmentEmails(Array.isArray(result.emails) ? result.emails : []);
     } catch (error) {
       setAppointmentEmails([]);
-      setAppointmentEmailsError(error instanceof Error ? error.message : 'No se pudo consultar el estado de los emails.');
+      setAppointmentEmailsError('No se pudo consultar el estado de los emails. Inténtalo de nuevo en unos segundos.');
+      console.error('email-status failed:', error);
     } finally {
       setAppointmentEmailsLoading(false);
     }
@@ -2552,7 +2580,7 @@ function StudioApp() {
     setViewApptModal(updated);
     if (studioApi.serverConfigured && studioApi.storedRole() === 'admin') {
       studioApi.updateAppointmentOnServer(studioApi.currentToken()!, {
-        id: updated.id, lifecycleStatus: updated.lifecycleStatus ?? null,
+        id: updated.serverId || updated.id, lifecycleStatus: updated.lifecycleStatus ?? null,
       }).catch(() => undefined);
     }
   };
@@ -2565,7 +2593,7 @@ function StudioApp() {
     setCancelApptModal(null);
     if (studioApi.serverConfigured && studioApi.currentToken()) {
       studioApi.updateAppointmentOnServer(studioApi.currentToken()!, {
-        id: updated.id,
+        id: updated.serverId || updated.id,
         lifecycleStatus: 'cancelled',
         clientSnapshot: {
           clientName: appointment.clientName, phone: appointment.phone, email: appointment.email,
@@ -2683,6 +2711,7 @@ function StudioApp() {
     const snap = (row.client_snapshot || {}) as Record<string, any>;
     const appointment: Appointment = {
       id: row.source_legacy_id || row.id,
+      serverId: row.id,
       dateKey: iso.slice(0, 10),
       dayName: snap.dayName || '',
       time: iso.slice(11, 16),
@@ -3125,6 +3154,35 @@ function StudioApp() {
         serviceSubcategory: newApp.serviceSubcategory.replace(/^RESERVADO/, prefix) };
       setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
       setIsModalOpen(false); setEditingAppointment(null); setViewApptModal(updated);
+      if (studioApi.serverConfigured && studioApi.storedRole() === 'admin') {
+        const serverId = updated.serverId || undefined;
+        studioApi.updateAppointmentOnServer(studioApi.currentToken()!, {
+          id: serverId || updated.id,
+          dateKey: updated.dateKey,
+          time: updated.time,
+          dayName: updated.dayName,
+          durationMinutes: updated.durationMinutes,
+          services: updated.services,
+          clientSnapshot: {
+            clientName: updated.clientName, phone: updated.phone, email: updated.email,
+            serviceCategory: updated.serviceCategory, serviceSubcategory: updated.serviceSubcategory,
+            dayName: updated.dayName, selectedVariant: updated.selectedVariant ?? null,
+            remindersStatus: updated.remindersStatus,
+          },
+        }).then(() => {
+          if (!serverId) {
+            return studioApi.syncAll<Record<string, any>>(studioApi.currentToken()!).then(data => {
+              const row = Array.isArray(data?.appointments) ? data.appointments.find((r: Record<string, any>) => r.source_legacy_id === updated.id) : null;
+              if (row) {
+                const synced: Appointment = { ...updated, serverId: row.id };
+                setAppointments(previous => previous.map(item => item.id === synced.id ? synced : item));
+                setViewApptModal(current => current?.id === synced.id ? synced : current);
+              }
+            });
+          }
+          return undefined;
+        }).catch(() => undefined);
+      }
       return;
     }
     const approvalReason = getApprovalReason(services, newApp.dateKey);
@@ -3160,6 +3218,10 @@ function StudioApp() {
         serviceSubcategory: newApp.serviceSubcategory,
         selectedVariant: newApp.selectedVariant,
         remindersStatus: newApp.remindersStatus,
+      }).then(serverResult => {
+        const synced: Appointment = { ...newApp, serverId: serverResult.id };
+        setAppointments(previous => previous.map(item => item.id === synced.id ? synced : item));
+        if (viewApptModal?.id === synced.id) setViewApptModal(synced);
       }).catch(() => undefined);
     }
     const cleanPhone = (modalPhone || '600000000').replace(/\s+/g, "");
@@ -3265,6 +3327,9 @@ function StudioApp() {
         serviceSubcategory: newApp.serviceSubcategory,
         selectedVariant: newApp.selectedVariant,
         remindersStatus: newApp.remindersStatus,
+      }).then(serverResult => {
+        const synced: Appointment = { ...newApp, serverId: serverResult.id };
+        setAppointments(previous => previous.map(item => item.id === synced.id ? synced : item));
       }).catch(() => {
         setBookingSuccessMsg('Cita registrada en este dispositivo, pero no se pudo confirmar en el servidor. Contacta con el estudio si no la ves reflejada.');
       });
@@ -3280,10 +3345,11 @@ function StudioApp() {
   const handleDeleteAppointment = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
     if (window.confirm('¿Deseas cancelar esta cita de la agenda?')) {
+      const target = appointments.find(a => a.id === id);
       setAppointments(appointments.filter(a => a.id !== id));
       if (viewApptModal?.id === id) setViewApptModal(null);
-      if (studioApi.serverConfigured) {
-        studioApi.deleteAppointmentOnServer(studioApi.currentToken()!, id).catch(() => undefined);
+      if (studioApi.serverConfigured && (target?.serverId || studioApi.storedRole() === 'admin')) {
+        studioApi.deleteAppointmentOnServer(studioApi.currentToken()!, target?.serverId || id).catch(() => undefined);
       }
     }
   };
