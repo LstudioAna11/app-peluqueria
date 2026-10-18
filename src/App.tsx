@@ -2507,6 +2507,12 @@ function StudioApp() {
   };
 
   const [viewApptModal, setViewApptModal] = useState<Appointment | null>(null);
+  useEffect(() => {
+    const target = new URLSearchParams(window.location.search).get('cita');
+    if (!target) return;
+    const appt = appointments.find(item => item.id === target || item.serverId === target);
+    if (appt) setViewApptModal(appt);
+  }, [appointments.length]);
   const [appointmentNoteDraft, setAppointmentNoteDraft] = useState('');
   useEffect(() => { setAppointmentNoteDraft(viewApptModal?.internalNotes || ''); }, [viewApptModal?.id]);
   const [appointmentEmails, setAppointmentEmails] = useState<studioApi.AppointmentEmailRow[]>([]);
@@ -2515,6 +2521,9 @@ function StudioApp() {
   const [appointmentWhatsApp, setAppointmentWhatsApp] = useState<studioApi.AppointmentWhatsAppRow[]>([]);
   const [appointmentWhatsAppLoading, setAppointmentWhatsAppLoading] = useState(false);
   const [appointmentWhatsAppError, setAppointmentWhatsAppError] = useState<string | null>(null);
+  const [appointmentPushes, setAppointmentPushes] = useState<studioApi.PushStatusRow[]>([]);
+  const [appointmentPushesLoading, setAppointmentPushesLoading] = useState(false);
+  const [appointmentPushesError, setAppointmentPushesError] = useState<string | null>(null);
   useEffect(() => { setAppointmentEmails([]); setAppointmentEmailsError(null); }, [viewApptModal?.id]);
   useEffect(() => { setAppointmentWhatsApp([]); setAppointmentWhatsAppError(null); }, [viewApptModal?.id]);
   const validRecipientEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').toLowerCase().trim());
@@ -2566,6 +2575,37 @@ function StudioApp() {
       setAppointmentWhatsAppLoading(false);
     }
   };
+  const loadAppointmentPushes = async () => {
+    if (!viewApptModal || !studioApi.serverConfigured || studioApi.storedRole() !== 'admin') return;
+    setAppointmentPushesLoading(true); setAppointmentPushesError(null);
+    try {
+      let appointmentId = viewApptModal.serverId;
+      if (!appointmentId) { setAppointmentPushes([]); return; }
+      const result = await studioApi.fetchAppointmentPushes(studioApi.currentToken()!, appointmentId);
+      setAppointmentPushes(Array.isArray(result.pushes) ? result.pushes : []);
+    } catch (error) {
+      setAppointmentPushes([]);
+      setAppointmentPushesError('No se pudo consultar el estado de las notificaciones push.');
+      console.error('push-status failed:', error);
+    } finally {
+      setAppointmentPushesLoading(false);
+    }
+  };
+  const pushKindLabel = (kind: string) => ({
+    confirmation: 'Confirmación',
+    pending: 'Solicitud pendiente',
+    update: 'Modificación',
+  } as Record<string, string>)[kind] || kind;
+  const pushStatusLabelAdmin = (status: string) => ({
+    accepted: 'Aceptado por el servicio',
+    delivered: 'Entregado en el dispositivo',
+    failed: 'Error',
+    expired: 'Suscripción caducada',
+    sending: 'Enviando',
+  } as Record<string, string>)[status] || status;
+  const pushStatusColorAdmin = (status: string) => ({
+    accepted: '#8FC98F', delivered: '#8FC98F', failed: '#C0392B', expired: '#8A7E6E', sending: '#E4C687',
+  } as Record<string, string>)[status] || '#D6CBB8';
   const emailKindLabel = (kind: string) => ({
     confirmation: 'Confirmación de reserva',
     request_received: 'Solicitud recibida',
@@ -2686,6 +2726,69 @@ function StudioApp() {
       studioApi.saveWhatsAppConsent(studioApi.currentToken()!, whatsappConsent).catch(() => undefined);
     }
   }, [whatsappConsent]);
+
+  // ---------- Notificaciones push ----------
+  const urlBase64ToUint8Array = (base64: string): Uint8Array => {
+    const padding = '='.repeat((4 - base64.length % 4) % 4);
+    const decoded = atob((base64 + padding).replace(/-/g, '+').replace(/_/g, '/'));
+    const bytes = new Uint8Array(decoded.length);
+    for (let i = 0; i < decoded.length; i++) bytes[i] = decoded.charCodeAt(i);
+    return bytes;
+  };
+  const [pushStatus, setPushStatus] = useState<'unsupported' | 'config-pending' | 'denied' | 'subscribed' | 'default'>('default');
+  const [pushBusy, setPushBusy] = useState(false);
+  const [pushError, setPushError] = useState<string | null>(null);
+  const refreshPushStatus = async () => {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) { setPushStatus('unsupported'); return; }
+    if (Notification.permission === 'denied') { setPushStatus('denied'); return; }
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      const existing = await registration.pushManager.getSubscription();
+      if (existing && Notification.permission === 'granted') { setPushStatus('subscribed'); return; }
+    } catch { /* el service worker aún no está listo */ }
+    setPushStatus(Notification.permission === 'granted' ? 'default' : 'default');
+  };
+  useEffect(() => { refreshPushStatus(); }, []);
+  const persistPushSubscription = async (subscription: PushSubscription) => {
+    if (!studioApi.serverConfigured || !studioApi.currentToken()) throw new Error('Inicia sesión en el portal para activar las notificaciones.');
+    const json = subscription.toJSON();
+    await studioApi.subscribePush(studioApi.currentToken()!, {
+      endpoint: String(json.endpoint || ''),
+      keys: { p256dh: String(json.keys?.p256dh || ''), auth: String(json.keys?.auth || '') },
+      userAgent: navigator.userAgent,
+    });
+  };
+  const handleEnablePush = async () => {
+    setPushBusy(true); setPushError(null);
+    try {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
+        setPushStatus('unsupported'); setPushError('Este navegador no admite notificaciones push. Prueba en Chrome, Edge o Safari actualizado.'); return;
+      }
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') { setPushStatus(permission === 'denied' ? 'denied' : 'default'); setPushError('Para recibir avisos debes conceder permiso en tu dispositivo.'); return; }
+      const registration = await navigator.serviceWorker.register('/sw.js');
+      await navigator.serviceWorker.ready;
+      const existing = await registration.pushManager.getSubscription();
+      const vapid = await studioApi.fetchPushPublicKey(studioApi.currentToken()!);
+      const subscription = existing ?? await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapid.publicKey) as unknown as ArrayBuffer,
+      });
+      await persistPushSubscription(subscription);
+      setPushStatus('subscribed');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'No se pudieron activar las notificaciones.';
+      if (message.includes('Inicia sesión')) { setPushStatus('config-pending'); }
+      setPushError(message);
+    } finally { setPushBusy(false); }
+  };
+  const pushStatusLabel = () => ({
+    unsupported: 'No disponibles en este navegador',
+    'config-pending': 'Pendiente de configuración del Studio',
+    denied: 'Permiso bloqueado · Actívalas en los ajustes del navegador',
+    subscribed: 'Activadas en este dispositivo',
+    default: 'Desactivadas en este dispositivo',
+  } as Record<string, string>)[pushStatus];
 
   useEffect(() => {
     const checkPWA = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
@@ -4586,6 +4689,13 @@ function StudioApp() {
               <input type="checkbox" checked={whatsappConsent} onChange={e => setWhatsappConsent(e.target.checked)} style={{ width: 18, height: 18, marginTop: 2, accentColor: '#C49A58', flexShrink: 0 }} />
               <span style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6 }}>Autorizo a L'Studio Ana a enviarme avisos de mi cita por WhatsApp al teléfono de mi ficha (confirmaciones y cambios). Puedo retirar el consentimiento cuando quiera en el portal.</span>
             </label>
+            <section style={{ padding: '12px', background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px' }}>
+              <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: '0 0 10px' }}>Notificaciones push: <strong style={{ color: pushStatus === 'subscribed' ? '#8FC98F' : '#E4C687' }}>{pushStatusLabel()}</strong></p>
+              {pushStatus === 'default' && <button type="button" onClick={handleEnablePush} disabled={pushBusy} style={{ width: '100%', minHeight: '46px', padding: '12px', background: 'transparent', color: '#E4C687', border: '1px solid #C49A58', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: pushBusy ? 'wait' : 'pointer' }}>{pushBusy ? 'Activando…' : 'Activar notificaciones de mi cita'}</button>}
+              {pushStatus === 'config-pending' && <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>El Studio todavía no tiene activas las notificaciones. Prueba de nuevo más tarde.</p>}
+              {pushStatus === 'denied' && <p style={{ color: '#F2B8AC', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>Tienes las notificaciones bloqueadas para este sitio. Para recibirlas, toca el icono de información junto a la dirección en tu navegador y permite las notificaciones{showInstallBanner ? ', o instala primero la app del Studio desde el aviso de instalación' : ''}.</p>}
+              {pushError && <p role="alert" style={{ color: '#F2B8AC', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>{pushError}</p>}
+            </section>
             <button type="button" onClick={handleConfirmarCitaVisual} disabled={!portalTimes.includes(selectedVisualTime)} style={{ width: '100%', minHeight: '54px', padding: '14px', backgroundColor: portalTimes.includes(selectedVisualTime) ? '#C49A58' : '#322A25', color: portalTimes.includes(selectedVisualTime) ? '#29231F' : '#C9BCA9', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>{!selectedVisualTime ? t('chooseHour') : getApprovalReason(selectedServicesToBook, formatDateKey(bookingDate)) ? t('requestAppointment') : t('continueBooking')}</button>
           </div>
         </div>

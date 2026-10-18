@@ -214,3 +214,29 @@ export const saveWhatsAppConsent = (token: string, consent: boolean) =>
 
 export const retryWhatsAppConfirmation = (token: string, appointmentId: string) =>
   call<{ ok: true; retried: number }>('whatsapp-retry', { token, body: { appointmentId } });
+
+export interface PushStatusRow {
+  id: string;
+  kind: string;
+  status: 'accepted' | 'delivered' | 'failed' | 'expired' | 'sending';
+  provider: string | null;
+  provider_message_id: string | null;
+  delivered_at: string | null;
+  last_error: string | null;
+  attempts: number;
+  created_at: string;
+  subscription_id: string | null;
+  studio_push_subscriptions: { user_agent: string } | null;
+}
+
+export const fetchPushPublicKey = (token: string) =>
+  call<{ publicKey: string }>('push-public-key', { token, body: {} });
+
+export const subscribePush = (token: string, subscription: { endpoint: string; keys: { p256dh: string; auth: string }; userAgent: string }) =>
+  call<{ ok: true; id: string }>('push-subscribe', { token, body: subscription });
+
+export const unsubscribePush = (token: string, endpoint: string) =>
+  call<{ ok: true }>('push-unsubscribe', { token, body: { endpoint } });
+
+export const fetchAppointmentPushes = (token: string, appointmentId: string) =>
+  call<{ pushes: PushStatusRow[] }>('push-status', { token, body: { appointmentId } });

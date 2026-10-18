@@ -313,6 +313,164 @@ const sendViaWhatsAppCloud = async (accessToken: string, phoneNumberId: string, 
   }
 };
 
+// ---------- Web Push (RFC 8291 / RFC 8292) ----------
+
+const b64uToBytes = (value: string): Uint8Array => {
+  const padding = 4 - (value.length % 4 || 4);
+  const base64 = (value + "=".repeat(padding % 4)).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const bytes = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+  return bytes;
+};
+
+const bytesToB64u = (bytes: Uint8Array): string => {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+};
+
+const concatBytes = (...parts: Uint8Array[]): Uint8Array => {
+  const total = parts.reduce((sum, part) => sum + part.length, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const part of parts) { out.set(part, offset); offset += part.length; }
+  return out;
+};
+
+const hkdfBits = async (input: Uint8Array, info: Uint8Array, lengthBytes: number): Promise<Uint8Array> => {
+  const key = await crypto.subtle.importKey("raw", input as unknown as ArrayBuffer, "HKDF", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info: info as unknown as ArrayBuffer }, key, lengthBytes * 8);
+  return new Uint8Array(bits);
+};
+
+// aes128gcm content encoding (RFC 8188) with ECDH P-256 key agreement (RFC 8291).
+const encryptAes128Gcm = async (p256dh: string, auth: string, plaintext: Uint8Array): Promise<Uint8Array> => {
+  const clientPubRaw = b64uToBytes(p256dh);
+  const authSecret = b64uToBytes(auth);
+  const serverKeys = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+  const clientPubKey = await crypto.subtle.importKey("raw", clientPubRaw as unknown as ArrayBuffer, { name: "ECDH", namedCurve: "P-256" }, false, []);
+  const sharedBits = new Uint8Array(await crypto.subtle.deriveBits({ name: "ECDH", public: clientPubKey }, serverKeys.privateKey, 256));
+  const serverPubRaw = new Uint8Array(await crypto.subtle.exportKey("raw", serverKeys.publicKey));
+
+  const context = concatBytes(new Uint8Array([0]), clientPubRaw, new Uint8Array([0]), serverPubRaw);
+  const ikm = await hkdfBits(concatBytes(sharedBits, authSecret), concatBytes(new TextEncoder().encode("WebPush: info\x00"), context), 32);
+  const cek = await hkdfBits(ikm, concatBytes(new TextEncoder().encode("Content-Encoding: aes128gcm\x00"), new Uint8Array([0, 1])), 16);
+  const nonce = await hkdfBits(ikm, concatBytes(new TextEncoder().encode("Content-Encoding: nonce\x00"), new Uint8Array([0, 1])), 12);
+
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const recordPlaintext = concatBytes(plaintext, new Uint8Array([2]));
+  const aesKey = await crypto.subtle.importKey("raw", cek as unknown as ArrayBuffer, "AES-GCM", false, ["encrypt"]);
+  const ciphertext = new Uint8Array(await crypto.subtle.encrypt({
+    name: "AES-GCM", iv: nonce as unknown as ArrayBuffer, additionalData: new Uint8Array(0), tagLength: 128,
+  }, aesKey, recordPlaintext as unknown as ArrayBuffer));
+
+  const header = concatBytes(
+    new Uint8Array([salt.length]),
+    salt,
+    new Uint8Array([serverPubRaw.length]),
+    serverPubRaw,
+    new Uint8Array([0, 0, 0, 1]),
+  );
+  return concatBytes(header, ciphertext);
+};
+
+// Signs the VAPID JWT (ES256) and posts the encrypted message to the push service.
+const sendWebPush = async (admin: ReturnType<typeof createClient>, endpoint: string, p256dh: string, auth: string, payload: Record<string, unknown>): Promise<{ ok: true; messageId: string | null } | { ok: false; error: string; expired: boolean }> => {
+  try {
+    const { data: cfg } = await admin.from("studio_push_config").select("public_key, private_key, subject").eq("id", true).maybeSingle();
+    const row = (cfg ?? {}) as Record<string, unknown>;
+    if (!row.private_key || !row.public_key || !row.subject) return { ok: false, error: "Configuración push del servidor incompleta (claves VAPID)", expired: false };
+
+    const audience = new URL(endpoint).origin;
+    const header = bytesToB64u(new TextEncoder().encode(JSON.stringify({ typ: "JWT", alg: "ES256" })));
+    const claims = bytesToB64u(new TextEncoder().encode(JSON.stringify({
+      aud: audience,
+      exp: Math.floor(Date.now() / 1000) + 12 * 3600,
+      sub: String(row.subject),
+    })));
+    const privRaw = b64uToBytes(String(row.private_key));
+    let vapidKey: CryptoKey;
+    if (privRaw.length === 32) {
+      vapidKey = await crypto.subtle.importKey("jwk", {
+        kty: "EC", crv: "P-256",
+        x: bytesToB64u(privRaw.slice(1, 33)), y: bytesToB64u(privRaw.slice(33, 65)), d: bytesToB64u(privRaw),
+      } as JsonWebKey, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+    } else {
+      vapidKey = await crypto.subtle.importKey("pkcs8", privRaw as unknown as ArrayBuffer, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+    }
+    const signature = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, vapidKey, new TextEncoder().encode(`${header}.${claims}`));
+    const vapidToken = `${header}.${claims}.${bytesToB64u(new Uint8Array(signature))}`;
+
+    const encrypted = await encryptAes128Gcm(p256dh, auth, new TextEncoder().encode(JSON.stringify(payload)));
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        Authorization: `vapid t=${vapidToken}, k=${String(row.public_key)}`,
+        "Content-Type": "application/octet-stream",
+        "Content-Encoding": "aes128gcm",
+        TTL: "86400",
+        Urgency: "high",
+      },
+      body: encrypted as unknown as ArrayBuffer,
+    });
+
+    if (response.status === 404 || response.status === 410) {
+      return { ok: false, error: `Suscripción caducada (${response.status})`, expired: true };
+    }
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      return { ok: false, error: `Error ${response.status} del servicio push: ${text.slice(0, 200)}`, expired: false };
+    }
+    return { ok: true, messageId: response.headers.get("location") || null };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Error de red", expired: false };
+  }
+};
+
+// Sends a push to every device of a clienta and records each attempt in the
+// outbox. Idempotent per appointment+kind, cleans up expired subscriptions.
+const sendAppointmentPush = async (admin: ReturnType<typeof createClient>, ctx: { apptId: string; clientId: string | null; clientName: string; startsAt: string; servicesText: string; confirmed: boolean; isUpdate?: boolean }) => {
+  if (!ctx.clientId) return;
+  const kind = !ctx.confirmed ? "pending" : ctx.isUpdate ? "update" : "confirmation";
+  const title = kind === "pending" ? "Solicitud recibida" : kind === "update" ? "Cita modificada" : "Cita confirmada";
+  const body = kind === "pending"
+    ? "Hemos recibido tu solicitud. Está pendiente de aprobación o anticipo."
+    : `Tu cita está ${kind === "update" ? "modificada" : "confirmada"}. ¡Te esperamos!`;
+
+  const { data: subs } = await admin.from("studio_push_subscriptions")
+    .select("id, endpoint, p256dh, auth")
+    .eq("client_id", ctx.clientId);
+  if (!subs?.length) return;
+
+  for (const sub of subs as { id: string; endpoint: string; p256dh: string; auth: string }[]) {
+    const result = await sendWebPush(admin, sub.endpoint, sub.p256dh, sub.auth, {
+      title, body,
+      url: `/?cita=${ctx.apptId}`,
+      tag: `appt-${ctx.apptId}-${kind}`,
+    });
+    await admin.from("studio_push_outbox").upsert({
+      idempotency_key: `${kind}:${ctx.apptId}:${sub.id}`,
+      appointment_id: ctx.apptId,
+      subscription_id: sub.id,
+      kind,
+      status: result.ok ? "accepted" : result.expired ? "expired" : "failed",
+      provider: sub.endpoint.includes("fcm.googleapis.com") ? "fcm" : sub.endpoint.includes("mozilla") ? "mozilla" : "push-service",
+      provider_message_id: result.ok ? result.messageId : null,
+      delivered_at: null,
+      last_error: result.ok ? null : result.error,
+      attempts: 1,
+    }, { onConflict: "idempotency_key", ignoreDuplicates: false });
+    if (result.expired) {
+      await admin.from("studio_push_subscriptions").delete().eq("id", sub.id);
+    }
+  }
+};
+
+
+
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
 
@@ -756,6 +914,14 @@ Deno.serve(async (req: Request) => {
         servicesText,
         confirmed: !approvalPending && !depositPending,
       }).catch(() => undefined);
+      await sendAppointmentPush(admin, {
+        apptId: created.id,
+        clientId: body.clientId ?? null,
+        clientName: String(body.clientName ?? ""),
+        startsAt: new Date(`${body.dateKey}T${body.time}:00Z`).toISOString(),
+        servicesText,
+        confirmed: !approvalPending && !depositPending,
+      }).catch(() => undefined);
       return json({ ok: true, id: created.id });
     }
 
@@ -803,7 +969,7 @@ Deno.serve(async (req: Request) => {
       const scheduleKey = crypto.randomUUID();
       void scheduleKey;
       const { data: updatedAppt } = await admin.from("studio_appointments")
-        .select("id, starts_at, lifecycle_status, approval_status, deposit_status, services, client_snapshot")
+        .select("id, starts_at, lifecycle_status, approval_status, deposit_status, services, client_snapshot, client_id")
         .or(`id.eq.${body.id},source_legacy_id.eq.${body.id}`).maybeSingle();
       if (updatedAppt) {
         if (updatedAppt.lifecycle_status === "cancelled" || updatedAppt.lifecycle_status === "no_show") {
@@ -850,6 +1016,17 @@ Deno.serve(async (req: Request) => {
               confirmed,
             }).catch(() => undefined);
             await scheduleAppointmentWhatsApp(admin, waCtx).catch(() => undefined);
+            // Confirmation after approval accepted or deposit received.
+            if ((patch.approval_status !== undefined || patch.deposit_status !== undefined) && confirmed) {
+              await sendAppointmentPush(admin, {
+                apptId: updatedAppt.id,
+                clientId: updatedAppt.client_id ?? null,
+                clientName: String(snap.clientName ?? ""),
+                startsAt: updatedAppt.starts_at,
+                servicesText,
+                confirmed: true,
+              }).catch(() => undefined);
+            }
           }
         }
       }
@@ -869,6 +1046,50 @@ Deno.serve(async (req: Request) => {
       await cancelAppointmentEmails(admin, body.id).catch(() => undefined);
       await cancelAppointmentWhatsApp(admin, body.id).catch(() => undefined);
       return json({ ok: true });
+    }
+
+    // ---------- push notifications ----------
+    if (action === "push-public-key") {
+      const { data: cfg } = await admin.from("studio_push_config").select("public_key").eq("id", true).maybeSingle();
+      if (!cfg?.public_key) return json({ error: "El Studio aún no tiene configuradas las notificaciones push" }, 503);
+      return json({ publicKey: cfg.public_key });
+    }
+
+    if (action === "push-subscribe" && req.method === "POST") {
+      const endpoint = String(body.endpoint ?? "");
+      const keys = body.keys ?? {};
+      if (!/^https:\/\//.test(endpoint) || !keys.p256dh || !keys.auth) return json({ error: "Suscripción no válida" }, 400);
+      // Link to the signed-in clienta; admin devices record role admin without client link.
+      const { data: sub, error } = await admin.from("studio_push_subscriptions").upsert({
+        endpoint,
+        p256dh: String(keys.p256dh),
+        auth: String(keys.auth),
+        client_id: (isAdmin ? null : tokenRow.client_id) ?? null,
+        user_agent: String(body.userAgent ?? "").slice(0, 200),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "endpoint" }).select("id").single();
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true, id: sub.id });
+    }
+
+    if (action === "push-unsubscribe" && req.method === "POST") {
+      const endpoint = String(body.endpoint ?? "");
+      if (!endpoint) return json({ error: "Falta la suscripción" }, 400);
+      await admin.from("studio_push_subscriptions").delete().eq("endpoint", endpoint);
+      return json({ ok: true });
+    }
+
+    if (action === "push-status" && req.method === "POST") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const appointmentId = String(body.appointmentId ?? "");
+      if (!appointmentId) return json({ error: "Falta la cita" }, 400);
+      const { data: pushes, error } = await admin
+        .from("studio_push_outbox")
+        .select("id, kind, status, provider, provider_message_id, delivered_at, last_error, attempts, created_at, subscription_id, studio_push_subscriptions(user_agent)")
+        .eq("appointment_id", appointmentId)
+        .order("created_at");
+      if (error) return json({ error: error.message }, 500);
+      return json({ pushes: pushes ?? [] });
     }
 
     return json({ error: "Acción no reconocida" }, 404);
