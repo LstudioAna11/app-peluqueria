@@ -1079,6 +1079,27 @@ Deno.serve(async (req: Request) => {
       return json({ ok: true });
     }
 
+    if (action === "push-test" && req.method === "POST") {
+      // Client scope: sends a test notification to the signed-in clienta's own devices only.
+      if (isAdmin || !tokenRow.client_id) return json({ error: "La prueba de avisos se realiza desde el portal de una clienta con sesión iniciada" }, 403);
+      const { data: subs } = await admin.from("studio_push_subscriptions")
+        .select("id, endpoint, p256dh, auth")
+        .eq("client_id", tokenRow.client_id);
+      if (!subs?.length) return json({ ok: true, sent: 0, errors: ["Este dispositivo todavía no aparece registrado. Vuelve a pulsar «Activar notificaciones»."] });
+      let sent = 0; const errors: string[] = [];
+      for (const sub of subs as { id: string; endpoint: string; p256dh: string; auth: string }[]) {
+        const result = await sendWebPush(admin, sub.endpoint, sub.p256dh, sub.auth, {
+          title: "Avisos activados",
+          body: "Recibirás aquí la confirmación de tus citas de L'Studio Ana.",
+          url: "/",
+          tag: "push-test",
+        });
+        if (result.ok) sent++; else errors.push(result.error);
+        if (result.expired) await admin.from("studio_push_subscriptions").delete().eq("id", sub.id);
+      }
+      return json({ ok: true, sent, errors });
+    }
+
     if (action === "push-status" && req.method === "POST") {
       if (!isAdmin) return json({ error: "Solo administración" }, 403);
       const appointmentId = String(body.appointmentId ?? "");

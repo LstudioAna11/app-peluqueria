@@ -2739,6 +2739,7 @@ function StudioApp() {
   const [pushStatus, setPushStatus] = useState<'unsupported' | 'config-pending' | 'denied' | 'subscribed' | 'default'>('default');
   const [pushBusy, setPushBusy] = useState(false);
   const [pushError, setPushError] = useState<string | null>(null);
+  const [pushTestResult, setPushTestResult] = useState<string | null>(null);
   const refreshPushStatus = async () => {
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) { setPushStatus('unsupported'); return; }
     if (Notification.permission === 'denied') { setPushStatus('denied'); return; }
@@ -2777,6 +2778,10 @@ function StudioApp() {
       });
       await persistPushSubscription(subscription);
       setPushStatus('subscribed');
+      const test = await studioApi.sendTestPush(studioApi.currentToken()!);
+      setPushTestResult(test.sent > 0
+        ? 'Avisos activados. Acabas de recibir una notificación de prueba en este dispositivo.'
+        : (test.errors?.[0] || 'Avisos activados en este dispositivo.'));
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudieron activar las notificaciones.';
       if (message.includes('Inicia sesión')) { setPushStatus('config-pending'); }
@@ -2809,35 +2814,35 @@ function StudioApp() {
   const handleClientPinSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!/^\d{4}$/.test(pin)) return;
-          const clientMatch = listaClientes.find(c => String(c.pinAcceso ?? '').trim() === pin);
-          if (studioApi.serverConfigured && !clientMatch && pin !== bizConfig.masterPin) {
-            const enteredPin = pin;
-            (async () => {
-              try {
-                await studioApi.authenticate(enteredPin);
-                await syncFromServer();
-                setPinError(false);
-                setPin("");
-                setAppVisitsCount(prev => prev + 1);
-                setFeedbackSubmitted(false);
-                if (studioApi.storedRole() === 'admin') {
-                  setCurrentScreen('adminPanel');
-                } else {
-                  const record = listaClientes.find(client => String(client.pinAcceso).trim() === enteredPin)
-                    || currentClientRecord;
-                  if (record) { setCurrentClientRecord(record); trackTraffic('login'); }
-                  setCurrentScreen('clientPortal');
-                }
-              } catch { setPinError(true); setPin(""); setTimeout(() => setPinError(false), 2000); }
-            })();
-            return;
+    const clientMatch = listaClientes.find(c => String(c.pinAcceso ?? '').trim() === pin);
+    if (studioApi.serverConfigured) {
+      const enteredPin = pin;
+      (async () => {
+        try {
+          await studioApi.authenticate(enteredPin);
+          await syncFromServer();
+          setPinError(false);
+          setPin("");
+          setAppVisitsCount(prev => prev + 1);
+          setFeedbackSubmitted(false);
+          if (studioApi.storedRole() === 'admin') {
+            setCurrentScreen('adminPanel');
+          } else {
+            const record = listaClientes.find(client => String(client.pinAcceso).trim() === enteredPin)
+              || currentClientRecord;
+            if (record) { setCurrentClientRecord(record); trackTraffic('login'); }
+            setCurrentScreen('clientPortal');
           }
-          if (clientMatch || pin === bizConfig.masterPin) {
+        } catch { setPinError(true); setPin(""); setTimeout(() => setPinError(false), 2000); }
+      })();
+      return;
+    }
+    if (clientMatch || pin === bizConfig.masterPin) {
             setPinError(false);
             setPin("");
             setAppVisitsCount(prev => prev + 1);
             setFeedbackSubmitted(false);
-            if (clientMatch) {
+              if (clientMatch) {
               setCurrentClientRecord(clientMatch);
               trackTraffic('login');
               setCurrentScreen('clientPortal');
@@ -2846,7 +2851,7 @@ function StudioApp() {
               setAdminError(false);
               setCurrentScreen('adminPanel');
             }
-          } else {
+            } else {
             setPinError(true);
             setPin("");
             setTimeout(() => setPinError(false), 2000);
@@ -4697,6 +4702,44 @@ function StudioApp() {
               {pushStatus === 'default' && <button type="button" onClick={handleEnablePush} disabled={pushBusy} style={{ width: '100%', minHeight: '46px', padding: '12px', background: 'transparent', color: '#E4C687', border: '1px solid #C49A58', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: pushBusy ? 'wait' : 'pointer' }}>{pushBusy ? 'Activando…' : 'Activar notificaciones de mi cita'}</button>}
               {pushStatus === 'config-pending' && <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>El Studio todavía no tiene activas las notificaciones. Prueba de nuevo más tarde.</p>}
               {pushStatus === 'denied' && <p style={{ color: '#F2B8AC', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>Tienes las notificaciones bloqueadas para este sitio. Para recibirlas, toca el icono de información junto a la dirección en tu navegador y permite las notificaciones{showInstallBanner ? ', o instala primero la app del Studio desde el aviso de instalación' : ''}.</p>}
+              {(() => {
+                const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                const isAndroid = /Android/.test(navigator.userAgent);
+                if (isIos) return (
+                  <details style={{ marginTop: '10px' }}>
+                    <summary style={{ color: '#D8C29A', fontSize: '12px', cursor: 'pointer' }}>Instrucciones para iPhone o iPad</summary>
+                    <ol style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0', paddingLeft: '18px' }}>
+                      <li>Abre esta página con Safari.</li>
+                      <li>Toca el botón Compartir (el cuadrado con una flecha hacia arriba).</li>
+                      <li>Elige «Añadir a pantalla de inicio» y confirma con «Añadir».</li>
+                      <li>Abre la app del Studio desde el icono nuevo de tu pantalla de inicio.</li>
+                      <li>Inicia sesión con tu PIN y vuelve a pulsar «Activar notificaciones».</li>
+                    </ol>
+                  </details>
+                );
+                if (isAndroid) return (
+                  <details style={{ marginTop: '10px' }}>
+                    <summary style={{ color: '#D8C29A', fontSize: '12px', cursor: 'pointer' }}>Instrucciones para Android</summary>
+                    <ol style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0', paddingLeft: '18px' }}>
+                      <li>Abre esta página con Chrome.</li>
+                      <li>Toca el aviso de instalación que aparece abajo, o el menú ⋮ y luego «Añadir a pantalla de inicio».</li>
+                      <li>Abre la app del Studio desde el icono nuevo de tu pantalla de inicio.</li>
+                      <li>Inicia sesión con tu PIN y vuelve a pulsar «Activar notificaciones».</li>
+                    </ol>
+                  </details>
+                );
+                return (
+                  <details style={{ marginTop: '10px' }}>
+                    <summary style={{ color: '#D8C29A', fontSize: '12px', cursor: 'pointer' }}>Instrucciones para ordenador</summary>
+                    <ol style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0', paddingLeft: '18px' }}>
+                      <li>Haz clic en el icono de la candado o de información junto a la dirección.</li>
+                      <li>Permite las notificaciones para este sitio.</li>
+                      <li>Vuelve a pulsar «Activar notificaciones».</li>
+                    </ol>
+                  </details>
+                );
+              })()}
+              {pushTestResult && <p role="status" style={{ color: '#8FC98F', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>{pushTestResult}</p>}
               {pushError && <p role="alert" style={{ color: '#F2B8AC', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>{pushError}</p>}
             </section>
             <button type="button" onClick={handleConfirmarCitaVisual} disabled={!portalTimes.includes(selectedVisualTime)} style={{ width: '100%', minHeight: '54px', padding: '14px', backgroundColor: portalTimes.includes(selectedVisualTime) ? '#C49A58' : '#322A25', color: portalTimes.includes(selectedVisualTime) ? '#29231F' : '#C9BCA9', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>{!selectedVisualTime ? t('chooseHour') : getApprovalReason(selectedServicesToBook, formatDateKey(bookingDate)) ? t('requestAppointment') : t('continueBooking')}</button>

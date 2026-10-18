@@ -248,5 +248,8 @@ export const subscribePush = (token: string, subscription: { endpoint: string; k
 export const unsubscribePush = (token: string, endpoint: string) =>
   call<{ ok: true }>('push-unsubscribe', { token, body: { endpoint } });
 
+export const sendTestPush = (token: string) =>
+  call<{ ok: true; sent: number; errors: string[] }>('push-test', { token, body: {} });
+
 export const fetchAppointmentPushes = (token: string, appointmentId: string) =>
   call<{ pushes: PushStatusRow[] }>('push-status', { token, body: { appointmentId } });
