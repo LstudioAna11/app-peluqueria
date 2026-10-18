@@ -1,11 +1,18 @@
 /* Service worker de L'Studio Ana: recepción de notificaciones push. */
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
+const CACHE_VERSION = 'lstudio-v2';
 
-// Navegaciones siempre en red primero, para que la app instalada no quede
-// anclada a una versión antigua en la caché del navegador.
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', (event) => event.waitUntil((async () => {
+  const names = await caches.keys();
+  await Promise.all(names.filter((name) => name !== CACHE_VERSION).map((name) => caches.delete(name)));
+  await self.clients.claim();
+})()));
+
+// Navegaciones y assets siempre en red primero, para que el enlace publicado
+// no sirva una versión antigua en la caché del navegador.
 self.addEventListener('fetch', (event) => {
-  if (event.request.mode !== 'navigate') return;
+  const navigates = event.request.mode === 'navigate';
+  if (!navigates && !/\.(?:js|css|webp|png|jpeg|jpg|svg|json)$/.test(new URL(event.request.url).pathname)) return;
   event.respondWith((async () => {
     try {
       return await fetch(new Request(event.request, { cache: 'reload' }));

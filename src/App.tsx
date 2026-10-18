@@ -3050,6 +3050,24 @@ function StudioApp() {
   useEffect(() => {
     if (studioApi.serverConfigured && studioApi.currentToken() && studioApi.storedRole()) {
       syncFromServer().catch(() => undefined);
+    } else if (studioApi.serverConfigured) {
+      studioApi.fetchPublicCatalog<{ catalog: { category?: CatalogCategory }[] }>().then(data => {
+        if (!Array.isArray(data?.catalog) || !data.catalog.length) return;
+        const serverCatalog = (data.catalog
+          .map(row => row?.category)
+          .filter(Boolean) as CatalogCategory[])
+          .map(category => ({
+            ...category,
+            subservices: (category.subservices || []).map((sub: SubService) => {
+              const seed = SERVICE_AI_IMAGES[sub.id];
+              return seed ? { ...seed, ...sub } : sub;
+            }),
+          }));
+        if (!serverCatalog.length) return;
+        setCatalog(serverCatalog);
+        localStorage.setItem('lst_master_catalog', JSON.stringify(serverCatalog));
+        setSavedCatalogSnapshot(JSON.stringify(serverCatalog));
+      }).catch(() => undefined);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

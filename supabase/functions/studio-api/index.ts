@@ -510,6 +510,13 @@ Deno.serve(async (req: Request) => {
       return json({ error: "PIN incorrecto" }, 401);
     }
 
+    // ---------- public catalog (read-only, sin datos de clientas ni citas) ----------
+    if (action === "public-catalog") {
+      const { data: catalog, error } = await admin.from("studio_catalog").select("id, category").order("sort_order");
+      if (error) return json({ error: error.message }, 500);
+      return json({ catalog: catalog ?? [] });
+    }
+
     // ---------- token check ----------
     const authHeader = req.headers.get("Authorization") ?? "";
     const token = authHeader.replace(/^Bearer\s+/i, "").trim();

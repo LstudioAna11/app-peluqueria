@@ -78,6 +78,9 @@ export const currentToken = getStoredToken;
 
 export const syncAll = <T>(token: string) => call<T>('sync', { token });
 
+export const fetchPublicCatalog = <T = { catalog: { id: string; category: unknown }[] }>() =>
+  call<T>('public-catalog', { method: 'GET' });
+
 export const pushCatalog = (token: string, catalog: unknown) =>
   call<{ ok: true }>('catalog', { method: 'PUT', token, body: { catalog } });
 
