@@ -338,9 +338,9 @@ const concatBytes = (...parts: Uint8Array[]): Uint8Array => {
   return out;
 };
 
-const hkdfBits = async (input: Uint8Array, info: Uint8Array, lengthBytes: number): Promise<Uint8Array> => {
-  const key = await crypto.subtle.importKey("raw", input as unknown as ArrayBuffer, "HKDF", false, ["deriveBits"]);
-  const bits = await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt: new Uint8Array(0), info: info as unknown as ArrayBuffer }, key, lengthBytes * 8);
+const hkdfBits = async (salt: Uint8Array, ikm: Uint8Array, info: Uint8Array, lengthBytes: number): Promise<Uint8Array> => {
+  const key = await crypto.subtle.importKey("raw", ikm as unknown as ArrayBuffer, "HKDF", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt: salt as unknown as ArrayBuffer, info: info as unknown as ArrayBuffer }, key, lengthBytes * 8);
   return new Uint8Array(bits);
 };
 
@@ -353,12 +353,16 @@ const encryptAes128Gcm = async (p256dh: string, auth: string, plaintext: Uint8Ar
   const sharedBits = new Uint8Array(await crypto.subtle.deriveBits({ name: "ECDH", public: clientPubKey }, serverKeys.privateKey, 256));
   const serverPubRaw = new Uint8Array(await crypto.subtle.exportKey("raw", serverKeys.publicKey));
 
-  const context = concatBytes(new Uint8Array([0]), clientPubRaw, new Uint8Array([0]), serverPubRaw);
-  const ikm = await hkdfBits(concatBytes(sharedBits, authSecret), concatBytes(new TextEncoder().encode("WebPush: info\x00"), context), 32);
-  const cek = await hkdfBits(ikm, concatBytes(new TextEncoder().encode("Content-Encoding: aes128gcm\x00"), new Uint8Array([0, 1])), 16);
-  const nonce = await hkdfBits(ikm, concatBytes(new TextEncoder().encode("Content-Encoding: nonce\x00"), new Uint8Array([0, 1])), 12);
-
+  const ikm = await hkdfBits(
+    authSecret,
+    sharedBits,
+    concatBytes(new TextEncoder().encode("WebPush: info\x00"), clientPubRaw, new Uint8Array([0]), serverPubRaw),
+    32,
+  );
   const salt = crypto.getRandomValues(new Uint8Array(16));
+  const cek = await hkdfBits(salt, ikm, new TextEncoder().encode("Content-Encoding: aes128gcm\x00"), 16);
+  const nonce = await hkdfBits(salt, ikm, new TextEncoder().encode("Content-Encoding: nonce\x00"), 12);
+
   const recordPlaintext = concatBytes(plaintext, new Uint8Array([2]));
   const aesKey = await crypto.subtle.importKey("raw", cek as unknown as ArrayBuffer, "AES-GCM", false, ["encrypt"]);
   const ciphertext = new Uint8Array(await crypto.subtle.encrypt({
@@ -366,11 +370,10 @@ const encryptAes128Gcm = async (p256dh: string, auth: string, plaintext: Uint8Ar
   }, aesKey, recordPlaintext as unknown as ArrayBuffer));
 
   const header = concatBytes(
-    new Uint8Array([salt.length]),
     salt,
+    new Uint8Array([0x00, 0x00, 0x10, 0x00]),
     new Uint8Array([serverPubRaw.length]),
     serverPubRaw,
-    new Uint8Array([0, 0, 0, 1]),
   );
   return concatBytes(header, ciphertext);
 };
