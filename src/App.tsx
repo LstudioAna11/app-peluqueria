@@ -1941,9 +1941,9 @@ function StudioApp() {
   const storagePathFromUrl = (url: string | undefined) =>
     (/^https:\/\/.+\/storage\/v1\/object\/public\/service-images\/(.+)$/.exec(url || '') || [])[1];
   const handleCategoryPhotoSelect = async (catId: string, file: File | undefined) => {
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { alert('Elige un archivo de imagen.'); return; }
-    if (file.size > 8 * 1024 * 1024) { alert('La imagen supera 8 MB. Elige una más ligera.'); return; }
+    if (!file || photoUploadBusy) return;
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) { alert('Elige una foto PNG, JPG o WebP. Convierte otros formatos antes de subirlos.'); return; }
+    if (file.size > 4 * 1024 * 1024) { alert('La imagen supera 4 MB. Elige una más ligera.'); return; }
     if (!studioApi.serverConfigured || studioApi.storedRole() !== 'admin' || !studioApi.currentToken()) {
       alert('Para gestionar fotografías necesitas entrar en 360studio con el PIN maestro.'); return;
     }
@@ -1956,10 +1956,16 @@ function StudioApp() {
         reader.readAsDataURL(file);
       });
       const uploaded = await studioApi.uploadServiceImage(studioApi.currentToken()!, dataUrl);
-      setCatalog(catalog.map(c => c.id !== catId ? c : { ...c, imageUrl: uploaded.url, imageIsAiPlaceholder: false }));
+      if (!uploaded?.ok || typeof uploaded.url !== 'string' || !uploaded.url.startsWith('https://')) {
+        throw new Error('El servidor no devolvió una dirección válida para la foto. La imagen anterior se conserva.');
+      }
+      setCatalog(previous => previous.map(c => c.id !== catId ? c : { ...c, imageUrl: uploaded.url, imageIsAiPlaceholder: false }));
       alert('Foto de la categoría subida. Pulsa "Guardar catálogo" para hacerla visible en el portal de clientas.');
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'No se pudo subir la foto.');
+      const message = error instanceof Error ? error.message : 'No se pudo subir la foto.';
+      alert(message.includes('publicUrl')
+        ? 'La función de subida del servidor necesita la corrección de publicUrl. La foto anterior se conserva. Actualiza y despliega studio-api antes de reintentar.'
+        : message);
     } finally {
       setPhotoUploadBusy(false);
     }
@@ -2020,15 +2026,31 @@ function StudioApp() {
     }
   };
 
-  const handleSaveCatalogMaster = () => {
-    localStorage.setItem('lst_master_catalog', JSON.stringify(catalog));
-    setSavedCatalogSnapshot(JSON.stringify(catalog));
-    setCatalogSavedMsg('¡Catálogo, avisos y descripciones guardados y sincronizados con éxito con el portal de clientas!');
-    setTimeout(() => setCatalogSavedMsg(null), 3500);
-    if (studioApi.serverConfigured && studioApi.storedRole() === 'admin') {
-      studioApi.pushCatalog(studioApi.currentToken()!, catalog).catch(() => {
-        setCatalogSavedMsg('Guardado en este dispositivo. No se pudo sincronizar con el servidor: revisa tu conexión e inténtalo de nuevo.');
-      });
+  const catalogSavingRef = useRef(false);
+  const handleSaveCatalogMaster = async () => {
+    if (catalogSavingRef.current || photoUploadBusy) return;
+    catalogSavingRef.current = true;
+    const submitted = structuredClone(catalog);
+    setCatalogSavedMsg('Guardando catálogo…');
+    try {
+      const token = studioApi.currentToken();
+      if (!studioApi.serverConfigured || !token || studioApi.storedRole() !== 'admin') {
+        throw new Error('Necesitas una sesión de administración y conexión con el servidor para guardar el catálogo.');
+      }
+      await studioApi.pushCatalog(token, submitted);
+      const verify = await studioApi.syncAll<{ catalog?: { category?: CatalogCategory }[] }>(token);
+      const categories = verify?.catalog?.map(row => row.category).filter(Boolean) as CatalogCategory[] | undefined;
+      if (!categories || submitted.some(category => {
+        const stored = categories.find(item => item.id === category.id);
+        return !stored || (stored.imageUrl || '') !== (category.imageUrl || '');
+      })) throw new Error('No se pudo verificar la foto de cada categoría en el servidor. Los cambios siguen pendientes.');
+      setSavedCatalogSnapshot(JSON.stringify(submitted));
+      try { localStorage.setItem('lst_master_catalog', JSON.stringify(submitted)); } catch { /* optional cache */ }
+      setCatalogSavedMsg('Catálogo guardado. Las fotos de categorías se han comprobado en el servidor.');
+    } catch (error) {
+      setCatalogSavedMsg(error instanceof Error ? error.message : 'No se pudo guardar. Los cambios se conservan para reintentar.');
+    } finally {
+      catalogSavingRef.current = false;
     }
   };
 
@@ -5699,7 +5721,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                 <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', minHeight: '44px', padding: '10px 14px', background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: photoUploadBusy ? 'wait' : 'pointer' }}>
                                   <ImagePlus size={16} strokeWidth={1.8} aria-hidden="true" />
                                   {photoUploadBusy ? 'Subiendo…' : (cat.imageUrl ? 'Sustituir foto de la categoría' : 'Subir foto de la categoría')}
-                                  <input type="file" accept="image/*" disabled={photoUploadBusy} onChange={(e) => { handleCategoryPhotoSelect(cat.id, e.target.files?.[0]); e.target.value = ''; }} style={{ display: 'none' }} />
+                                  <input type="file" accept="image/png,image/jpeg,image/webp" disabled={photoUploadBusy} onChange={(e) => { handleCategoryPhotoSelect(cat.id, e.target.files?.[0]); e.target.value = ''; }} style={{ display: 'none' }} />
                                 </label>
                                 {cat.imageUrl && <button type="button" disabled={photoUploadBusy} onClick={() => handleCategoryPhotoDelete(cat.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 14px', background: '#322A25', color: '#C0392B', border: '1px solid #dfaaa3', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>
                                   <Trash2 size={16} strokeWidth={1.8} aria-hidden="true" /> Eliminar foto
