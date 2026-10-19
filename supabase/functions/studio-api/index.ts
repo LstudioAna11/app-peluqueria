@@ -707,7 +707,11 @@ Deno.serve(async (req: Request) => {
       });
       if (upErr) return json({ error: upErr.message }, 500);
       const { data: pub } = admin.storage.from("service-images").getPublicUrl(path);
-      return json({ ok: true, url: pub.data.publicUrl, path });
+      const publicUrl = pub?.publicUrl;
+      if (typeof publicUrl !== "string" || !publicUrl.trim()) {
+        return json({ error: "La foto se ha subido, pero no se pudo obtener su dirección pública." }, 500);
+      }
+      return json({ ok: true, url: publicUrl, path });
     }
 
     if (action === "service-image" && req.method === "DELETE") {
