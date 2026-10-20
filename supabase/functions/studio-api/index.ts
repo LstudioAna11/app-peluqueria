@@ -79,6 +79,70 @@ const validEmail = (value: unknown): string | null => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
 };
 
+// starts_at del proyecto conserva la hora de agenda como texto ISO UTC.
+// Convertir SOLO al programar avisos, sin cambiar las citas existentes ni el portal.
+function notificationInstant(wallIso: string): string {
+  const wall = wallIso.slice(0, 19);
+  const target = Date.parse(wall + 'Z');
+  if (!Number.isFinite(target)) throw new Error('Fecha de cita no válida');
+  let guess = target;
+  for (let i = 0; i < 4; i++) {
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h23' }).formatToParts(new Date(guess));
+    const values = Object.fromEntries(parts.map(p => [p.type,p.value]));
+    const represented = Date.parse(`${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}:${values.second}Z`);
+    const adjustment = target - represented;
+    if (!adjustment) return new Date(guess).toISOString();
+    guess += adjustment;
+  }
+  throw new Error('La hora de cita coincide con un cambio horario no válido');
+}
+const notificationConfirmed = (appt: any) => !!appt && !appt.completed_at &&
+  !['cancelled','no_show'].includes(appt.lifecycle_status) &&
+  ['accepted','not_required'].includes(appt.approval_status || 'not_required') &&
+  ['received','paid','confirmed','not_required'].includes(appt.deposit_status || 'not_required');
+
+async function enqueueReminderJobs(admin: ReturnType<typeof createClient>, ctx: any, channel: 'push'|'whatsapp') {
+  if (!ctx.confirmed) return;
+  const start = Date.parse(notificationInstant(ctx.startsAt));
+  const now = Date.now();
+  if (start <= now) return;
+  const recipients = channel === 'push'
+    ? (await admin.from('studio_push_subscriptions').select('id').eq('client_id',ctx.clientId || '00000000-0000-0000-0000-000000000000')).data || []
+    : ctx.clientPhone ? [{id:null}] : [];
+  const moments: {kind:string;at:number}[] = [
+    ...(channel === 'push' ? [{kind:ctx.isUpdate ? 'update':'confirmation',at:now}] : []),
+    ...[24,2].map(hours => ({kind:`reminder_${hours}h`,at:start-hours*3600000})).filter(m => m.at > now)
+  ];
+  for (const recipient of recipients) for (const moment of moments) {
+    const key = `${channel}:${moment.kind}:${ctx.apptId}:${ctx.startsAt}:${recipient.id || ctx.clientPhone}`;
+    const {error} = await admin.from('studio_notification_jobs').upsert({
+      idempotency_key:key, appointment_id:ctx.apptId, channel, kind:moment.kind,
+      subscription_id:recipient.id, client_id:ctx.clientId || null, to_phone:ctx.clientPhone || null,
+      expected_starts_at:ctx.startsAt, scheduled_at:new Date(moment.at).toISOString(),
+      payload:{clientName:ctx.clientName,servicesText:ctx.servicesText},status:'scheduled'
+    },{onConflict:'idempotency_key',ignoreDuplicates:true});
+    if (error) throw new Error(`No se pudo programar ${channel}: ${error.message}`);
+    // Reactivar únicamente pendientes anulados, nunca mensajes ya enviados.
+    await admin.from('studio_notification_jobs').update({status:'scheduled',scheduled_at:new Date(moment.at).toISOString(),last_error:null})
+      .eq('idempotency_key',key).eq('status','skipped');
+  }
+}
+async function cancelNotificationJobs(admin: ReturnType<typeof createClient>, id:string) {
+  const {error}=await admin.from('studio_notification_jobs').update({status:'skipped',last_error:'Cita cancelada, modificada o pendiente'})
+    .eq('appointment_id',id).in('status',['scheduled','failed']);
+  if(error) console.error('Cancelar recordatorios:',error.message);
+}
+async function kickDispatcher(admin: ReturnType<typeof createClient>) {
+  const {data}=await admin.from('studio_email_config').select('worker_secret').eq('id',true).maybeSingle();
+  if(!data?.worker_secret) { console.error('Falta worker_secret; no se inicia envío inmediato');return; }
+  const task=fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/email-dispatch`,{
+    method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`},
+    body:JSON.stringify({workerSecret:data.worker_secret}),signal:AbortSignal.timeout(25000)
+  }).then(async r=>{if(!r.ok)console.error('email-dispatch:',r.status,await r.text());}).catch(e=>console.error('email-dispatch:',e.message));
+  const runtime=(globalThis as any).EdgeRuntime;
+  if(runtime?.waitUntil) runtime.waitUntil(task); else await task;
+}
+
 // E.164 normalisation for Spanish/international numbers: digits only, Spain
 // assumed when the client saved a 9-digit local number.
 const validPhoneE164 = (value: unknown): string | null => {
@@ -128,6 +192,9 @@ interface WhatsAppSchedulingContext {
 // Schedule the WhatsApp booking confirmation. Idempotent via unique
 // idempotency_key, mirroring the email outbox. Emails and push are unaffected.
 const scheduleAppointmentWhatsApp = async (admin: ReturnType<typeof createClient>, ctx: WhatsAppSchedulingContext) => {
+  if (!ctx.confirmed && ctx.kindOverride !== 'cancellation') return;
+  await enqueueReminderJobs(admin, ctx, 'whatsapp').catch(error => console.error('Programar WhatsApp:',error));
+  ctx = { ...ctx, startsAt: notificationInstant(ctx.startsAt) };
   const { data: cfg } = await admin.from("studio_whatsapp_config").select("portal_url").eq("id", true).maybeSingle();
   const portalUrl = ((cfg as { portal_url?: string | null } | null)?.portal_url || DEFAULT_PORTAL_URL).replace(/\/+$/, "");
   if (!ctx.clientPhone) return;
@@ -172,7 +239,7 @@ const cancelAppointmentWhatsApp = async (admin: ReturnType<typeof createClient>,
       const text = whatsAppMessageText({
         kind: "cancellation",
         clientName: String(snap.clientName ?? ""),
-        startsAt: appt.starts_at,
+        startsAt: notificationInstant(appt.starts_at),
         servicesText: String(snap.serviceSubcategory ?? "Servicios del Studio"),
         portalUrl,
         apptIdToken: apptId,
@@ -206,6 +273,7 @@ interface SchedulingContext {
 // appointment. Idempotent: unique idempotency keys prevent duplicates when an
 // operation is retried.
 const scheduleAppointmentEmails = async (admin: ReturnType<typeof createClient>, ctx: SchedulingContext) => {
+  ctx = { ...ctx, startsAt: notificationInstant(ctx.startsAt) };
   const { data: cfg } = await admin.from("studio_email_config").select("portal_url").eq("id", true).maybeSingle();
   const portalUrl = ((cfg as { portal_url?: string | null } | null)?.portal_url || DEFAULT_PORTAL_URL).replace(/\/+$/, "");
   const now = Date.now();
@@ -297,7 +365,7 @@ const cancelAppointmentEmails = async (admin: ReturnType<typeof createClient>, a
         body_html: emailLayout("Tu cita ha sido cancelada",
           `<p style="margin:0 0 12px;color:#FFF8EE;">Hola <strong>${escHtml(String(snap.clientName ?? ""))}</strong>,</p>
            <p style="margin:0 0 12px;color:#FFF8EE;">Tu cita ha quedado cancelada y el hueco liberado en la agenda del Studio. Los recordatorios pendientes han sido anulados.</p>
-           ${detailsTable(appt.starts_at, String(snap.serviceSubcategory ?? "Servicios del Studio"))}
+           ${detailsTable(notificationInstant(appt.starts_at), String(snap.serviceSubcategory ?? "Servicios del Studio"))}
            <p style="margin:12px 0 0;color:#D6CBB8;">Si quieres reservar otro día, puedes hacerlo desde el portal.</p>`),
         scheduled_at: new Date().toISOString(),
         status: "scheduled",
@@ -364,7 +432,7 @@ const encryptAes128Gcm = async (p256dh: string, auth: string, plaintext: Uint8Ar
   const ikm = await hkdfBits(
     authSecret,
     sharedBits,
-    concatBytes(new TextEncoder().encode("WebPush: info\x00"), clientPubRaw, new Uint8Array([0]), serverPubRaw),
+    concatBytes(new TextEncoder().encode("WebPush: info\x00"), clientPubRaw, serverPubRaw),
     32,
   );
   const salt = crypto.getRandomValues(new Uint8Array(16));
@@ -405,7 +473,7 @@ const sendWebPush = async (admin: ReturnType<typeof createClient>, endpoint: str
     if (privRaw.length === 32) {
       vapidKey = await crypto.subtle.importKey("jwk", {
         kty: "EC", crv: "P-256",
-        x: bytesToB64u(privRaw.slice(1, 33)), y: bytesToB64u(privRaw.slice(33, 65)), d: bytesToB64u(privRaw),
+        x: bytesToB64u(b64uToBytes(String(row.public_key)).slice(1, 33)), y: bytesToB64u(b64uToBytes(String(row.public_key)).slice(33, 65)), d: bytesToB64u(privRaw),
       } as JsonWebKey, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
     } else {
       vapidKey = await crypto.subtle.importKey("pkcs8", privRaw as unknown as ArrayBuffer, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
@@ -416,12 +484,13 @@ const sendWebPush = async (admin: ReturnType<typeof createClient>, endpoint: str
     const encrypted = await encryptAes128Gcm(p256dh, auth, new TextEncoder().encode(JSON.stringify(payload)));
 
     const response = await fetch(endpoint, {
+      signal: AbortSignal.timeout(12000),
       method: "POST",
       headers: {
         Authorization: `vapid t=${vapidToken}, k=${String(row.public_key)}`,
         "Content-Type": "application/octet-stream",
         "Content-Encoding": "aes128gcm",
-        TTL: "86400",
+        TTL: String(Math.min(86400, Math.max(1, Number(payload.ttlSeconds) || 86400))),
         Urgency: "high",
       },
       body: encrypted as unknown as ArrayBuffer,
@@ -443,44 +512,8 @@ const sendWebPush = async (admin: ReturnType<typeof createClient>, endpoint: str
 // Sends a push to every device of a clienta and records each attempt in the
 // outbox. Idempotent per appointment+kind, cleans up expired subscriptions.
 const sendAppointmentPush = async (admin: ReturnType<typeof createClient>, ctx: { apptId: string; clientId: string | null; clientName: string; startsAt: string; servicesText: string; confirmed: boolean; isUpdate?: boolean }) => {
-  if (!ctx.clientId) return;
-  const kind = !ctx.confirmed ? "pending" : ctx.isUpdate ? "update" : "confirmation";
-  const title = kind === "pending" ? "Solicitud recibida" : kind === "update" ? "Cita modificada" : "Cita confirmada";
-  const body = kind === "pending"
-    ? "Hemos recibido tu solicitud. Está pendiente de aprobación o anticipo."
-    : `Tu cita está ${kind === "update" ? "modificada" : "confirmada"}. ¡Te esperamos!`;
-
-  const { data: subs } = await admin.from("studio_push_subscriptions")
-    .select("id, endpoint, p256dh, auth")
-    .eq("client_id", ctx.clientId);
-  if (!subs?.length) return;
-
-  for (const sub of subs as { id: string; endpoint: string; p256dh: string; auth: string }[]) {
-    const result = await sendWebPush(admin, sub.endpoint, sub.p256dh, sub.auth, {
-      title, body,
-      url: `/?cita=${ctx.apptId}`,
-      tag: `appt-${ctx.apptId}-${kind}`,
-    });
-    await admin.from("studio_push_outbox").upsert({
-      idempotency_key: `${kind}:${ctx.apptId}:${sub.id}`,
-      appointment_id: ctx.apptId,
-      subscription_id: sub.id,
-      kind,
-      status: result.ok ? "accepted" : result.expired ? "expired" : "failed",
-      provider: sub.endpoint.includes("fcm.googleapis.com") ? "fcm" : sub.endpoint.includes("mozilla") ? "mozilla" : "push-service",
-      provider_message_id: result.ok ? result.messageId : null,
-      delivered_at: null,
-      last_error: result.ok ? null : result.error,
-      attempts: 1,
-    }, { onConflict: "idempotency_key", ignoreDuplicates: false });
-    if (result.expired) {
-      await admin.from("studio_push_subscriptions").delete().eq("id", sub.id);
-    }
-  }
+  if (ctx.confirmed && ctx.clientId) await enqueueReminderJobs(admin,ctx,'push');
 };
-
-
-
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
@@ -635,28 +668,7 @@ Deno.serve(async (req: Request) => {
       }
       const { data: retried, error } = await admin.rpc("studio_reenqueue_whatsapp_confirmation" as never, { p_appointment_id: appointmentId } as never);
       if (error) return json({ error: error.message }, 500);
-      // Send immediately so the retry is visible without waiting for the cron.
-      const { data: cfgSend } = await admin.from("studio_whatsapp_config").select("access_token, phone_number_id, template_name").eq("id", true).maybeSingle();
-      const cfgS = (cfgSend ?? {}) as Record<string, unknown>;
-      if (cfgS.access_token && cfgS.phone_number_id && cfgS.template_name) {
-        const { data: pendingRows } = await admin.from("studio_whatsapp_outbox")
-          .select("id, to_phone, template_name")
-          .eq("appointment_id", appointmentId)
-          .eq("kind", "confirmation")
-          .eq("status", "scheduled")
-          .lte("scheduled_at", new Date().toISOString());
-        for (const row of (pendingRows ?? []) as { id: string; to_phone: string; template_name: string }[]) {
-          const { data: cur } = await admin.from("studio_whatsapp_outbox").select("attempts").eq("id", row.id).maybeSingle();
-          await admin.from("studio_whatsapp_outbox").update({ status: "sending" }).eq("id", row.id);
-          const result = await sendViaWhatsAppCloud(cfgS.access_token as string, cfgS.phone_number_id as string, row.to_phone, row.template_name);
-          await admin.from("studio_whatsapp_outbox").update(result.ok ? {
-            status: "sent", sent_at: new Date().toISOString(), provider: "meta_cloud_api",
-            provider_message_id: result.id, last_error: null, attempts: ((cur as { attempts?: number } | null)?.attempts ?? 0) + 1,
-          } : {
-            status: "failed", provider: "meta_cloud_api", last_error: result.error, attempts: ((cur as { attempts?: number } | null)?.attempts ?? 0) + 1,
-          }).eq("id", row.id);
-        }
-      }
+      await kickDispatcher(admin);
       return json({ ok: true, retried: Number(retried) || 0 });
     }
 
@@ -670,12 +682,14 @@ Deno.serve(async (req: Request) => {
         .eq("appointment_id", appointmentId)
         .order("created_at");
       if (error) return json({ error: error.message }, 500);
-      return json({ messages: messages ?? [] });
+      const {data:jobs,error:jobError}=await admin.from('studio_notification_jobs').select('*').eq('appointment_id',appointmentId).eq('channel','whatsapp').order('scheduled_at');
+      if(jobError)return json({error:jobError.message},500);
+      return json({messages:[...(messages||[]),...(jobs||[]).map((j:any)=>({...j,status:['delivered','read'].includes(j.provider_delivery_status) ? j.provider_delivery_status:j.status,body_text:`Recordatorio de cita ${j.kind === 'reminder_24h' ? '24 horas' : '2 horas'} antes`,sent_at:j.sent_at,provider:j.provider,provider_message_id:j.provider_message_id,delivered_at:null,read_at:null}))]});
     }
 
     if (action === "whatsapp-config") {
       if (!isAdmin) return json({ error: "Solo administración" }, 403);
-      const { data: cfg, error } = await admin.from("studio_whatsapp_config").select("provider, phone_number_id, template_name, studio_phone, portal_url").eq("id", true).maybeSingle();
+      const { data: cfg, error } = await admin.from("studio_whatsapp_config").select("provider, access_token, phone_number_id, template_name, studio_phone, portal_url, notification_templates").eq("id", true).maybeSingle();
       if (error) return json({ error: error.message }, 500);
       const row = (cfg ?? {}) as Record<string, unknown>;
       const missing: string[] = [];
@@ -832,29 +846,25 @@ Deno.serve(async (req: Request) => {
       const startsAt = `${body.dateKey}T${body.time}:00`;
       const duration = Number(body.durationMinutes) || 45;
 
-      // Server-side styling policy validation using catalog identifiers.
+      // Aplicar las mismas condiciones editables del catálogo en el servidor.
       if (Array.isArray(body.services) && body.services.length) {
-        const { data: catalogRows } = await admin.from("studio_catalog").select("category");
-        const catalogServices = (catalogRows ?? []).flatMap((row: any) =>
-          Array.isArray(row?.category?.subservices) ? row.category.subservices : []);
-        const byId = new Map(catalogServices.map((sub: any) => [String(sub?.id ?? ""), sub]));
-        const selected = body.services
-          .map((item: any) => byId.get(String(item?.sub?.id ?? "")) ?? item?.sub)
-          .filter(Boolean);
-        const required = selected.filter((sub: any) => sub.stylingPolicy === "required" && !sub.isStylingService);
-        const styling = selected.filter((sub: any) => sub.isStylingService);
-        if (required.length && !styling.length) {
-          return json({ error: `Añade un servicio de secado y peinado para completar: ${required.map((sub: any) => sub.name).join(", ")}.` }, 422);
+        const {data:rows,error:catalogError}=await admin.from('studio_catalog').select('category');
+        if(catalogError)return json({error:catalogError.message},500);
+        const catalog=(rows || []).flatMap((r:any)=>r.category?.subservices || []);
+        const selected=body.services.map((item:any)=>({sub:catalog.find((sub:any)=>sub.id === item?.sub?.id),variant:item.variant}));
+        if(selected.some((item:any)=>!item.sub || item.sub.active === false))return json({error:'Hay servicios no disponibles en la reserva'},422);
+        if(selected.some((i:any)=>i.sub.isCutGoService) && selected.some((i:any)=>i.sub.isStylingService && !i.sub.isCutGoService))return json({error:'Elige peinado o Cut & Go, no ambas modalidades'},422);
+        for(const kind of ['styling','toner']) {
+          const flag=kind === 'styling' ? 'isStylingService':'isTonerService';
+          const policy=kind+'Policy'; const ids=kind+'AllowedIds';
+          const compatible=(owner:any,candidate:any)=>candidate.id !== owner.id && candidate[flag] && candidate.active !== false && (!candidate.isCutGoService || kind === 'styling' && owner.allowCutGo) && (!Array.isArray(owner[ids]) || owner[ids].includes(candidate.id));
+          for(const item of selected) {
+            if(!item.sub[flag] && item.sub[policy] === 'required' && !selected.some((i:any)=>compatible(item.sub,i.sub)))return json({error:`Completa ${item.sub.name} con un complemento compatible de ${kind === 'styling' ? 'peinado':'matiz'}`},422);
+            if(item.sub[flag] && item.sub.hasVariants && item.sub.variants?.length && !item.sub.variants.some((v:any)=>v.id === item.variant?.id))return json({error:`Selecciona una variante válida de ${item.sub.name}`},422);
+          }
         }
-        if (styling.length && !required.length && selected.some((sub: any) => (sub.stylingPolicy === "included" || sub.stylingPolicy === "not_applicable") && !sub.isStylingService)) {
-          return json({ error: "El servicio seleccionado ya incluye peinado o no lo necesita. Retira el peinado adicional." }, 422);
-        }
-        const missingVariant = body.services.filter((item: any) => {
-          const sub = byId.get(String(item?.sub?.id ?? "")) ?? item?.sub;
-          return sub?.isStylingService && sub?.hasVariants && Array.isArray(sub?.variants) && sub.variants.length > 0 && !item?.variant;
-        });
-        if (missingVariant.length) {
-          return json({ error: "Selecciona el largo o variante del peinado antes de continuar." }, 422);
+        for(const item of selected.filter((i:any)=>i.sub.isCutGoService)) {
+          if(!selected.some((i:any)=>!i.sub.isStylingService && i.sub.allowCutGo && (!Array.isArray(i.sub.stylingAllowedIds) || i.sub.stylingAllowedIds.includes(item.sub.id))))return json({error:'Cut & Go no está permitido para estos servicios'},422);
         }
       }
 
@@ -926,24 +936,25 @@ Deno.serve(async (req: Request) => {
         clientName: String(body.clientName ?? ""),
         clientEmail: validEmail(body.email),
         servicesText,
-        confirmed: !approvalPending && !depositPending,
-      }).catch(() => undefined);
+        confirmed: notificationConfirmed({lifecycle_status:body.lifecycleStatus || 'active',approval_status:body.approval?.status || 'not_required',deposit_status:body.advancePayment?.status || 'not_required'}),
+      }).catch(error => console.error("Notificaciones:",error));
       await scheduleAppointmentWhatsApp(admin, {
         apptId: created.id,
         startsAt: new Date(`${body.dateKey}T${body.time}:00Z`).toISOString(),
         clientName: String(body.clientName ?? ""),
         clientPhone: validPhoneE164(body.phone),
         servicesText,
-        confirmed: !approvalPending && !depositPending,
-      }).catch(() => undefined);
+        confirmed: notificationConfirmed({lifecycle_status:body.lifecycleStatus || 'active',approval_status:body.approval?.status || 'not_required',deposit_status:body.advancePayment?.status || 'not_required'}),
+      }).catch(error => console.error("Notificaciones:",error));
       await sendAppointmentPush(admin, {
         apptId: created.id,
         clientId: body.clientId ?? null,
         clientName: String(body.clientName ?? ""),
         startsAt: new Date(`${body.dateKey}T${body.time}:00Z`).toISOString(),
         servicesText,
-        confirmed: !approvalPending && !depositPending,
-      }).catch(() => undefined);
+        confirmed: notificationConfirmed({lifecycle_status:body.lifecycleStatus || 'active',approval_status:body.approval?.status || 'not_required',deposit_status:body.advancePayment?.status || 'not_required'}),
+      }).catch(error => console.error("Notificaciones:",error));
+      await kickDispatcher(admin);
       return json({ ok: true, id: created.id });
     }
 
@@ -994,14 +1005,15 @@ Deno.serve(async (req: Request) => {
         .select("id, starts_at, lifecycle_status, approval_status, deposit_status, services, client_snapshot, client_id")
         .or(`id.eq.${body.id},source_legacy_id.eq.${body.id}`).maybeSingle();
       if (updatedAppt) {
-        if (updatedAppt.lifecycle_status === "cancelled" || updatedAppt.lifecycle_status === "no_show") {
-          await cancelAppointmentEmails(admin, updatedAppt.id, { cancelled: updatedAppt.lifecycle_status === "cancelled" }).catch(() => undefined);
-          await cancelAppointmentWhatsApp(admin, updatedAppt.id, { cancelled: updatedAppt.lifecycle_status === "cancelled" }).catch(() => undefined);
+        if (updatedAppt.lifecycle_status === "cancelled" || updatedAppt.lifecycle_status === "no_show" || updatedAppt.approval_status === "rejected") {
+          await cancelNotificationJobs(admin,updatedAppt.id);
+          await cancelAppointmentEmails(admin, updatedAppt.id, { cancelled: updatedAppt.lifecycle_status === "cancelled" }).catch(error => console.error("Notificaciones:",error));
+          await cancelAppointmentWhatsApp(admin, updatedAppt.id, { cancelled: updatedAppt.lifecycle_status === "cancelled" }).catch(error => console.error("Notificaciones:",error));
         } else {
           const snap = (updatedAppt.client_snapshot || {}) as Record<string, unknown>;
           const approvalPending = updatedAppt.approval_status === "pending";
           const depositPending = updatedAppt.deposit_status === "pending";
-          const confirmed = !approvalPending && !depositPending;
+          const confirmed = notificationConfirmed(updatedAppt);
           const servicesText = (Array.isArray(updatedAppt.services) && updatedAppt.services.length
             ? updatedAppt.services.map((s: any) => [s?.sub?.name || "", s?.variant?.name].filter(Boolean).join(" (") + (s?.variant ? ")" : "")).join(" + ")
             : String(snap.serviceSubcategory ?? "")) || "Servicios del Studio";
@@ -1013,11 +1025,12 @@ Deno.serve(async (req: Request) => {
             servicesText,
             confirmed,
           };
+          if (!confirmed || patch.starts_at) await cancelNotificationJobs(admin,updatedAppt.id);
           if (patch.starts_at) {
             // Rescheduled: annul the previous reminders, send the update and
             // schedule the new ones.
-            await cancelAppointmentEmails(admin, updatedAppt.id).catch(() => undefined);
-            await cancelAppointmentWhatsApp(admin, updatedAppt.id).catch(() => undefined);
+            await cancelAppointmentEmails(admin, updatedAppt.id).catch(error => console.error("Notificaciones:",error));
+            await cancelAppointmentWhatsApp(admin, updatedAppt.id).catch(error => console.error("Notificaciones:",error));
             await scheduleAppointmentEmails(admin, {
               apptId: updatedAppt.id,
               startsAt: updatedAppt.starts_at,
@@ -1026,8 +1039,9 @@ Deno.serve(async (req: Request) => {
               servicesText,
               confirmed,
               isUpdate: true,
-            }).catch(() => undefined);
-            await scheduleAppointmentWhatsApp(admin, { ...waCtx, isUpdate: true }).catch(() => undefined);
+            }).catch(error => console.error("Notificaciones:",error));
+            await scheduleAppointmentWhatsApp(admin, { ...waCtx, isUpdate: true }).catch(e => console.error(e));
+            await sendAppointmentPush(admin,{...waCtx,clientId:updatedAppt.client_id || null,isUpdate:true}).catch(e=>console.error(e));
           } else {
             await scheduleAppointmentEmails(admin, {
               apptId: updatedAppt.id,
@@ -1036,10 +1050,10 @@ Deno.serve(async (req: Request) => {
               clientEmail: validEmail(snap.email),
               servicesText,
               confirmed,
-            }).catch(() => undefined);
-            await scheduleAppointmentWhatsApp(admin, waCtx).catch(() => undefined);
+            }).catch(error => console.error("Notificaciones:",error));
+            await scheduleAppointmentWhatsApp(admin, waCtx).catch(error => console.error("Notificaciones:",error));
             // Confirmation after approval accepted or deposit received.
-            if ((patch.approval_status !== undefined || patch.deposit_status !== undefined) && confirmed) {
+            if (confirmed) {
               await sendAppointmentPush(admin, {
                 apptId: updatedAppt.id,
                 clientId: updatedAppt.client_id ?? null,
@@ -1047,11 +1061,12 @@ Deno.serve(async (req: Request) => {
                 startsAt: updatedAppt.starts_at,
                 servicesText,
                 confirmed: true,
-              }).catch(() => undefined);
+              }).catch(error => console.error("Notificaciones:",error));
             }
           }
         }
       }
+      await kickDispatcher(admin);
       return json({ ok: true });
     }
 
@@ -1065,8 +1080,8 @@ Deno.serve(async (req: Request) => {
       }
       const { error } = await query;
       if (error) return json({ error: error.message }, 500);
-      await cancelAppointmentEmails(admin, body.id).catch(() => undefined);
-      await cancelAppointmentWhatsApp(admin, body.id).catch(() => undefined);
+      await cancelAppointmentEmails(admin, body.id).catch(error => console.error("Notificaciones:",error));
+      await cancelAppointmentWhatsApp(admin, body.id).catch(error => console.error("Notificaciones:",error));
       return json({ ok: true });
     }
 
@@ -1132,7 +1147,9 @@ Deno.serve(async (req: Request) => {
         .eq("appointment_id", appointmentId)
         .order("created_at");
       if (error) return json({ error: error.message }, 500);
-      return json({ pushes: pushes ?? [] });
+      const {data:jobs,error:jobError}=await admin.from('studio_notification_jobs').select('*').eq('appointment_id',appointmentId).eq('channel','push').order('scheduled_at');
+      if(jobError)return json({error:jobError.message},500);
+      return json({pushes:[...(pushes||[]),...(jobs||[]).map((j:any)=>({...j,status:j.status === 'sent' ? 'accepted':j.status,studio_push_subscriptions:null,delivered_at:null}))]});
     }
 
     return json({ error: "Acción no reconocida" }, 404);
