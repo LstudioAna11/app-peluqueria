@@ -5985,7 +5985,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                         </div>
                                       </fieldset>
                                       <fieldset>
-                                        <legend>Este servicio es</legend>
+                                        <legend>¿Cómo se puede reservar este servicio?</legend>
                                         <div className="studio-condition-choices">
                                           {([{ value: 'main', label: 'Principal' }, { value: 'toner', label: 'Complemento de matiz' }, { value: 'styling', label: 'Complemento de peinado' }] as const).map(option => <button type="button" key={option.value} aria-pressed={option.value === 'main' ? !sub.isTonerService && !sub.isStylingService : option.value === 'toner' ? !!sub.isTonerService : !!sub.isStylingService} onClick={() => setCatalog(previous => previous.map(category => category.id !== cat.id ? category : { ...category, subservices: category.subservices.map(service => service.id !== sub.id ? service : { ...service, isTonerService: option.value === 'toner', isStylingService: option.value === 'styling', tonerPolicy: option.value === 'toner' ? undefined : service.tonerPolicy, stylingPolicy: option.value === 'styling' ? undefined : service.stylingPolicy }) }))}>{option.label}</button>)}
                                         </div>
