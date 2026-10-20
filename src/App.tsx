@@ -1308,7 +1308,14 @@ interface Appointment {
 const isActiveAppointment = (appointment: Appointment) =>
   appointment.lifecycleStatus !== 'cancelled' && appointment.lifecycleStatus !== 'no_show';
 
-type StylingPolicy = 'included' | 'required' | 'not_applicable';
+type StylingPolicy = 'included' | 'required' | 'optional' | 'not_applicable';
+type FinishKind = 'styling' | 'toner';
+const FINISH_COPY: Record<StylingPolicy, string> = {
+  included: 'Forma parte del precio y del tiempo del servicio. No se cobra de nuevo.',
+  required: 'La clienta debe elegir un complemento compatible. Se suman su precio y duración.',
+  optional: 'La clienta puede añadirlo o continuar sin él. Si lo añade, se suman precio y duración.',
+  not_applicable: 'Este servicio no necesita este complemento. No impide reservarlo con otros servicios.'
+};
 
 type ServiceTranslation = Partial<Pick<SubService, 'name' | 'description' | 'includesText' | 'achievedText' | 'alertText'>>;
 
@@ -1322,6 +1329,12 @@ interface SubService {
   tonerPolicy?: StylingPolicy;
   isTonerService?: boolean;
   stylingPolicy?: StylingPolicy;
+  stylingAllowedIds?: string[];
+  tonerAllowedIds?: string[];
+  stylingMessage?: string;
+  tonerMessage?: string;
+  allowCutGo?: boolean;
+  isCutGoService?: boolean;
   isStylingService?: boolean;
   id: string;
   name: string;
@@ -2042,11 +2055,15 @@ function StudioApp() {
       const categories = verify?.catalog?.map(row => row.category).filter(Boolean) as CatalogCategory[] | undefined;
       if (!categories || submitted.some(category => {
         const stored = categories.find(item => item.id === category.id);
-        return !stored || (stored.imageUrl || '') !== (category.imageUrl || '');
-      })) throw new Error('No se pudo verificar la foto de cada categoría en el servidor. Los cambios siguen pendientes.');
+        const keys = ['tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
+        return !stored || (stored.imageUrl || '') !== (category.imageUrl || '') || category.subservices.some(service => {
+          const saved = stored.subservices?.find(s => s.id === service.id);
+          return !saved || keys.some(key => JSON.stringify(saved[key] ?? null) !== JSON.stringify(service[key] ?? null));
+        });
+      })) throw new Error('El servidor no ha conservado todas las fotos o condiciones de reserva. Los cambios siguen pendientes; revisa la API antes de continuar.');
       setSavedCatalogSnapshot(JSON.stringify(submitted));
       try { localStorage.setItem('lst_master_catalog', JSON.stringify(submitted)); } catch { /* optional cache */ }
-      setCatalogSavedMsg('Catálogo guardado. Las fotos de categorías se han comprobado en el servidor.');
+      setCatalogSavedMsg('Catálogo guardado. Fotos y condiciones de reserva comprobadas en el servidor.');
     } catch (error) {
       setCatalogSavedMsg(error instanceof Error ? error.message : 'No se pudo guardar. Los cambios se conservan para reintentar.');
     } finally {
@@ -3323,20 +3340,46 @@ function StudioApp() {
   };
 
   // Reglas explícitas del catálogo: no se deducen por nombres ni descripciones.
-  const getStylingError = (items: { sub: SubService; variant: ServiceVariant | null }[]) => {
-    const current = items.map(item => catalog.flatMap(category => category.subservices).find(sub => sub.id === item.sub.id) || item.sub);
-    const required = current.filter(sub => sub.stylingPolicy === 'required' && !sub.isStylingService);
-    const styling = current.filter(sub => sub.isStylingService);
-    if (required.length && !styling.length) return `Añade un servicio de secado y peinado y selecciona su largo o variante para completar: ${required.map(sub => sub.name).join(', ')}.`;
-    if (styling.length && !required.length && current.some(sub => sub.stylingPolicy === 'included' && !sub.isStylingService)) return 'El pack seleccionado ya incluye peinado. Retira el peinado adicional para evitar duplicarlo.';
-    if (styling.length && !required.length && current.some(sub => sub.stylingPolicy === 'not_applicable' && !sub.isStylingService)) return 'El corte seleccionado no necesita secado. Retira el peinado adicional para evitar duplicarlo.';
-    const stylingMissingVariant = items.filter(item => {
-      const sub = current.find(sub => sub.id === item.sub.id);
-      return sub?.isStylingService && sub.hasVariants && sub.variants?.length && !item.variant;
-    });
-    if (stylingMissingVariant.length) return `Selecciona el largo o variante del peinado: ${stylingMissingVariant.map(item => item.sub.name).join(', ')}.`;
+  const latestSub = (sub: SubService) => catalog.flatMap(c => c.subservices).find(s => s.id === sub.id) || sub;
+  const finishPolicy = (sub: SubService, kind: FinishKind) => kind === 'styling' ? sub.stylingPolicy : sub.tonerPolicy;
+  const isFinish = (sub: SubService, kind: FinishKind) => kind === 'styling' ? !!sub.isStylingService : !!sub.isTonerService;
+  const finishCandidates = (owner: SubService, kind: FinishKind) => {
+    const ids = kind === 'styling' ? owner.stylingAllowedIds : owner.tonerAllowedIds;
+    return catalog.flatMap(c => c.subservices).filter(candidate =>
+      candidate.id !== owner.id && candidate.active !== false && isFinish(candidate, kind) &&
+      (!candidate.isCutGoService || kind === 'styling' && owner.allowCutGo) &&
+      (ids === undefined || ids.includes(candidate.id))
+    );
+  };
+  const getFinishError = (items: { sub: SubService; variant: ServiceVariant | null }[], kind: FinishKind): string | null => {
+    const label = kind === 'styling' ? 'peinado' : 'matiz';
+    const current = items.map(item => ({ ...item, sub: latestSub(item.sub) }));
+    if (kind === 'styling' && current.some(i => i.sub.isCutGoService) && current.some(i => i.sub.isStylingService && !i.sub.isCutGoService)) return 'Elige peinado o Cut & Go. No se pueden cobrar ambas modalidades en la misma reserva.';
+    // Cada complemento puede cubrir varios servicios únicamente si está permitido en todos ellos.
+    for (const item of current) {
+      if (isFinish(item.sub, kind) || finishPolicy(item.sub, kind) !== 'required') continue;
+      const candidates = finishCandidates(item.sub, kind);
+      if (!candidates.length) return `Ana debe configurar las opciones de ${label} para «${item.sub.name}». Contacta con el estudio antes de reservar.`;
+      if (!current.some(selected => candidates.some(c => c.id === selected.sub.id)))
+        return `Completa «${item.sub.name}»: selecciona ${label === 'peinado' && item.sub.allowCutGo ? 'peinado o Cut & Go compatible' : 'un ' + label + ' compatible'} antes de elegir fecha y hora.`;
+    }
+    for (const item of current.filter(i => isFinish(i.sub, kind))) {
+      const duration = item.variant?.duration || item.sub.duration;
+      if (!/\d/.test(duration || '') || parseFloat(duration) <= 0) return `Ana debe configurar una duración válida para «${item.sub.name}» antes de reservar.`;
+      if (item.sub.hasVariants && item.sub.variants?.length && (!item.variant || !item.sub.variants.some(v => v.id === item.variant?.id)))
+        return `Selecciona el largo o variante de «${item.sub.name}».`;
+      if (item.sub.isCutGoService && !current.some(parent => !parent.sub.isStylingService && parent.sub.allowCutGo && finishCandidates(parent.sub, 'styling').some(c => c.id === item.sub.id)))
+        return 'Cut & Go debe acompañar a un servicio que permita esta modalidad.';
+      const owners = current.filter(i => !isFinish(i.sub, kind));
+      const relevant = owners.filter(i => finishPolicy(i.sub, kind) === 'required' || finishPolicy(i.sub, kind) === 'optional');
+      if (relevant.length && !relevant.some(owner => finishCandidates(owner.sub, kind).some(c => c.id === item.sub.id)))
+        return `«${item.sub.name}» no es un complemento compatible con los servicios elegidos.`;
+      if (owners.length && !relevant.length && owners.every(i => finishPolicy(i.sub, kind) === 'included'))
+        return `El ${label} ya está incluido en los servicios elegidos. Retira el complemento adicional para evitar duplicarlo.`;
+    }
     return null;
   };
+  const getStylingError = (items: { sub: SubService; variant: ServiceVariant | null }[]) => getFinishError(items, 'styling');
   const previewService = catalog.flatMap(category => category.subservices).find(sub => sub.id === previewServiceId);
   const getInactiveServiceError = (items: { sub: SubService }[]) => {
     const unavailable = items.filter(item => {
@@ -3352,17 +3395,57 @@ function StudioApp() {
   };
   const approvalTitle = (reason?: 'saturday' | 'assessment' | 'both') => reason === 'assessment' ? 'Valoración previa' : reason === 'both' ? 'Valoración previa y sábado' : 'Sábado';
 
-  const getTonerError = (items: { sub: SubService; variant: ServiceVariant | null }[]) => {
-    const current = items.map(item => catalog.flatMap(category => category.subservices).find(sub => sub.id === item.sub.id) || item.sub);
-    const required = current.filter(sub => sub.tonerPolicy === 'required' && !sub.isTonerService);
-    const toner = current.filter(sub => sub.isTonerService);
-    if (required.length && !toner.length) return `Añade un servicio de matiz o tonalización y selecciona su variante para completar: ${required.map(sub => sub.name).join(', ')}.`;
-    if (toner.length && !required.length && current.some(sub => sub.tonerPolicy === 'included' && !sub.isTonerService)) return 'El pack seleccionado ya incluye matiz. Retira el matiz adicional para evitar duplicarlo.';
-    return null;
+  const getTonerError = (items: { sub: SubService; variant: ServiceVariant | null }[]) => getFinishError(items, 'toner');
+  const finishLabel = (sub: SubService, kind: FinishKind) => {
+    const label = kind === 'styling' ? 'Peinado' : 'Matiz';
+    if (isFinish(sub, kind)) return sub.isCutGoService ? 'Cut & Go · Sin secado' : 'Complemento de ' + label.toLowerCase();
+    const policy = finishPolicy(sub, kind);
+    if (policy === 'included') return label + ' incluido en precio y duración';
+    if (policy === 'required') return label + (kind === 'styling' && sub.allowCutGo ? ' o Cut & Go obligatorio · Se cobra aparte' : ' obligatorio · Se cobra aparte');
+    if (policy === 'optional') return label + ' opcional · Se cobra aparte';
+    if (policy === 'not_applicable') return label + ' no necesario para este servicio';
+    return '';
   };
-  const tonerLabel = (sub: SubService) => sub.isTonerService ? 'Servicio de matiz / tonalización' : sub.tonerPolicy === 'included' ? 'Matiz incluido' : sub.tonerPolicy === 'required' ? 'Debes añadir matiz / tonalización' : '';
-
-  const stylingLabel = (sub: SubService) => sub.isStylingService ? 'Servicio de secado y peinado' : sub.stylingPolicy === 'included' ? 'Peinado incluido' : sub.stylingPolicy === 'required' ? 'Debes añadir secado y peinado' : sub.stylingPolicy === 'not_applicable' ? 'Sin peinado · No necesitas añadirlo' : '';
+  const tonerLabel = (sub: SubService) => finishLabel(sub, 'toner');
+  const stylingLabel = (sub: SubService) => finishLabel(sub, 'styling');
+  const selectFinish = (owner: SubService, kind: FinishKind, sub: SubService, variant: ServiceVariant | null) => {
+    setSelectedServicesToBook(previous => {
+      const allowed = finishCandidates(owner, kind).map(s => s.id);
+      // Sustituye la opción del mismo requisito; conserva complementos necesarios para otros servicios.
+      const next = previous.filter(item => item.sub.id !== sub.id && (!allowed.includes(item.sub.id) || previous.some(other =>
+        other.sub.id !== owner.id && !isFinish(latestSub(other.sub), kind) && finishPolicy(latestSub(other.sub), kind) === 'required' &&
+        finishCandidates(latestSub(other.sub), kind).some(c => c.id === item.sub.id) &&
+        !finishCandidates(latestSub(other.sub), kind).some(c => c.id === sub.id)
+      )));
+      return [...next, { sub, variant }];
+    });
+  };
+  const renderFinishChoices = (items: { sub: SubService; variant: ServiceVariant | null }[]) => <>
+    {items.map(item => latestSub(item.sub)).map(owner => (['styling', 'toner'] as const).map(kind => {
+      const policy = finishPolicy(owner, kind);
+      if (isFinish(owner, kind) || policy !== 'required' && policy !== 'optional') return null;
+      const candidates = finishCandidates(owner, kind);
+      const message = kind === 'styling' ? owner.stylingMessage : owner.tonerMessage;
+      const label = kind === 'styling' ? 'peinado' : 'matiz';
+      return <section key={owner.id + kind} style={{ marginTop: 16, padding: 14, border: '1px solid #C5A059', borderRadius: 10 }}>
+        <h3 style={{ fontSize: 15, color: '#FFF8EE', margin: '0 0 8px' }}>{owner.name} · {label === 'peinado' ? 'Peinado y acabado' : 'Matiz'}</h3>
+        <p style={{ fontSize: 13, color: '#E4C687', lineHeight: 1.5 }}>{message?.trim() || (policy === 'required' ? 'Selecciona una opción para completar tu servicio. Su precio y tiempo se suman a la reserva.' : 'Puedes añadir este acabado o continuar sin él.')}</p>
+        {!candidates.length && <p role="alert" style={{ color: '#FFF8EE', fontSize: 13 }}>No hay opciones disponibles. Contacta con el estudio{policy === 'required' ? ' para completar la reserva' : ''}.</p>}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
+          {candidates.map(sub => <div key={sub.id} style={{ padding: 10, background: '#29231F', borderRadius: 8 }}>
+            <strong style={{ color: '#FFF8EE', fontSize: 14 }}>{sub.name}</strong>
+            <p style={{ fontSize: 12, color: '#D6CBB8' }}>{sub.description}</p>
+            {(sub.hasVariants && sub.variants?.length ? sub.variants : [null]).map(variant => {
+              const selected = items.some(i => i.sub.id === sub.id && (i.variant?.id || '') === (variant?.id || ''));
+              return <button key={variant?.id || sub.id} type="button" aria-pressed={selected} onClick={() => selectFinish(owner, kind, sub, variant)} style={{ display: 'block', width: '100%', minHeight: 48, padding: 10, marginTop: 6, borderRadius: 8, border: '1px solid #C5A059', background: selected ? '#C5A059' : '#322A25', color: selected ? '#121212' : '#FFF8EE', cursor: 'pointer' }}>
+                {selected ? '✓ ' : ''}{variant?.name || 'Seleccionar'} · {variant?.price || sub.price} · {variant?.duration || sub.duration}
+              </button>;
+            })}
+          </div>)}
+        </div>
+      </section>;
+    }))}
+  </>;
 
   const [catalogTranslationLang, setCatalogTranslationLang] = useState('en');
   const serviceText = (sub: SubService, field: keyof ServiceTranslation) => {
@@ -4661,12 +4744,15 @@ function StudioApp() {
               return <p style={{ color: '#E4C687', fontSize: '12px', margin: '6px 0 0' }}>El importe se confirma en el estudio: algún servicio requiere diagnóstico.</p>;
             })()}
             {selectedServicesToBook.some(item => (catalog.flatMap(c => c.subservices).find(sub => sub.id === item.sub.id) || item.sub).requiresAssessment) && <p style={{ color: '#E4C687', fontSize: '12px', margin: 0 }}>Tu selección requiere valoración previa. Elegir fecha y hora registra una solicitud; Ana debe aprobarla antes de confirmar la cita.</p>}
+            {renderFinishChoices(selectedServicesToBook)}
             {getTonerError(selectedServicesToBook) && <p role="alert" style={{ color: '#E4C687', fontSize: '12px', margin: 0 }}>{getTonerError(selectedServicesToBook)}</p>}
             {getStylingError(selectedServicesToBook) && <p role="alert" style={{ color: '#E4C687', fontSize: '12px', margin: 0 }}>{getStylingError(selectedServicesToBook)}</p>}
             <button type="button" onClick={() => {
               const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant);
               if (missing) { alert(tf('requiredVariant', { service: missing.sub.name })); return; }
-              setCurrentScreen('visualAgenda');
+              const conditionError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook);
+              if (conditionError) { alert(conditionError); return; }
+              const finishError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook); if (finishError) { alert(finishError); setCurrentScreen('catalogBooking'); return; } setCurrentScreen('visualAgenda');
             }} style={{ background: '#C49A58', color: '#29231F', border: 'none', padding: '14px', borderRadius: 8, fontSize: '13px', fontWeight: '600', cursor: 'pointer', textAlign: 'center', minHeight: '48px' }}>
               {t('chooseDateTime')}
             </button>
@@ -4756,7 +4842,7 @@ function StudioApp() {
               <button type="button" onClick={() => {
                 const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant);
                 if (missing) { alert(tf('requiredVariant', { service: missing.sub.name })); return; }
-                setCurrentScreen('visualAgenda');
+                const finishError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook); if (finishError) { alert(finishError); setCurrentScreen('catalogBooking'); return; } setCurrentScreen('visualAgenda');
               }} style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, minHeight: '54px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#E4C687', cursor: 'pointer' }}>
                 {t('reviewSelection')} ({selectedServicesToBook.length}) → {t('chooseDateTime')}
               </button>
@@ -4821,6 +4907,7 @@ function StudioApp() {
               </div>
             </section>
           )}
+          {detailSelection && renderFinishChoices(selectedServicesToBook)}
           {detailSelection ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 10, padding: '12px 14px' }}>
@@ -4829,7 +4916,7 @@ function StudioApp() {
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button type="button" onClick={() => { setViewServiceDetail(null); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="lst-cta-full" style={{ flex: 1, background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.16)' }}>Añadir otro servicio</button>
-                <button type="button" onClick={() => { const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant); if (missing) { alert(tf('requiredVariant', { service: missing.sub.name })); return; } setCurrentScreen('visualAgenda'); }} className="lst-cta-full" style={{ flex: 1 }}>{t('chooseDateTime')} <ArrowRight size={18} strokeWidth={2} aria-hidden="true" /></button>
+                <button type="button" onClick={() => { const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant); if (missing) { alert(tf('requiredVariant', { service: missing.sub.name })); return; } const finishError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook); if (finishError) { alert(finishError); setCurrentScreen('catalogBooking'); return; } setCurrentScreen('visualAgenda'); }} className="lst-cta-full" style={{ flex: 1 }}>{t('chooseDateTime')} <ArrowRight size={18} strokeWidth={2} aria-hidden="true" /></button>
               </div>
             </div>
           ) : (
@@ -5908,16 +5995,45 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                         {([{ field: 'tonerPolicy', label: 'Matiz', hidden: !!sub.isTonerService }, { field: 'stylingPolicy', label: 'Peinado', hidden: !!sub.isStylingService }] as const).filter(row => !row.hidden).map(row => <fieldset key={row.field}>
                                           <legend>{row.label}</legend>
                                           <div className="studio-condition-choices">
-                                            {([{ value: 'included', label: 'Incluido' }, { value: 'required', label: 'Añadir' }, { value: 'not_applicable', label: 'No aplica' }] as const).map(option => <button type="button" key={option.value} aria-pressed={sub[row.field] === option.value} onClick={() => setCatalog(previous => previous.map(category => category.id !== cat.id ? category : { ...category, subservices: category.subservices.map(service => service.id !== sub.id ? service : { ...service, [row.field]: option.value }) }))}>{option.label}</button>)}
+                                            {([{ value: 'included', label: 'Incluido' }, { value: 'required', label: 'Obligatorio · Aparte' }, { value: 'optional', label: 'Opcional · Aparte' }, { value: 'not_applicable', label: 'No necesario' }] as const).map(option => <button type="button" key={option.value} aria-pressed={sub[row.field] === option.value} onClick={() => setCatalog(previous => previous.map(category => category.id !== cat.id ? category : { ...category, subservices: category.subservices.map(service => service.id !== sub.id ? service : { ...service, [row.field]: option.value }) }))}>{option.label}</button>)}
                                           </div>
+                                          {sub[row.field] && <p style={{ fontSize: 12, color: '#E4C687', lineHeight: 1.5 }}>{FINISH_COPY[sub[row.field]!]}</p>}
+                                          {(sub[row.field] === 'required' || sub[row.field] === 'optional') && (() => {
+                                            const kind: FinishKind = row.field === 'stylingPolicy' ? 'styling' : 'toner';
+                                            const idsField = kind === 'styling' ? 'stylingAllowedIds' : 'tonerAllowedIds';
+                                            const messageField = kind === 'styling' ? 'stylingMessage' : 'tonerMessage';
+                                            const options = catalog.flatMap(c => c.subservices).filter(s => s.id !== sub.id && isFinish(s, kind) && s.active !== false && (!s.isCutGoService || sub.allowCutGo));
+                                            const patch = (changes: Partial<SubService>) => setCatalog(previous => previous.map(c => c.id !== cat.id ? c : { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, ...changes } : s) }));
+                                            return <div style={{ padding: 12, border: '1px solid #5A5248', borderRadius: 8, marginTop: 10 }}>
+                                              {kind === 'styling' && <label style={{ display: 'block', fontSize: 13, marginBottom: 12 }}><input type="checkbox" checked={!!sub.allowCutGo} onChange={e => patch({ allowCutGo: e.target.checked })} /> Permitir Cut & Go como alternativa sin secado</label>}
+                                              <strong style={{ fontSize: 12 }}>Complementos permitidos</strong>
+                                              <p style={{ fontSize: 12, color: '#D6CBB8' }}>Selecciona los servicios compatibles. Cada uno conserva su precio y duración del catálogo.</p>
+                                              <label style={{ display: 'block', fontSize: 12, marginBottom: 8 }}><input type="checkbox" checked={sub[idsField] === undefined} onChange={e => patch({ [idsField]: e.target.checked ? undefined : options.map(o => o.id) })} /> Todos los complementos compatibles, incluidos los futuros</label>
+                                              {options.map(option => <label key={option.id} style={{ display: 'block', fontSize: 13, padding: '6px 0' }}><input type="checkbox" checked={sub[idsField] === undefined || sub[idsField]!.includes(option.id)} onChange={e => {
+                                                const ids = sub[idsField] ?? options.map(o => o.id);
+                                                patch({ [idsField]: e.target.checked ? Array.from(new Set([...ids, option.id])) : ids.filter(id => id !== option.id) });
+                                              }} /> {option.name} · {option.price} · {option.duration}</label>)}
+                                              {!options.length && <p role="alert" style={{ fontSize: 12 }}>Configura primero un servicio del catálogo como complemento de {row.label.toLowerCase()}.</p>}
+                                              <label style={{ display: 'block', fontSize: 12, marginTop: 12 }}>Mensaje para la clienta
+                                                <textarea rows={3} value={sub[messageField] || ''} placeholder="Selecciona el acabado para completar tu servicio. Consulta aquí sus opciones, precios y duración." onChange={e => patch({ [messageField]: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', background: '#29231F', color: '#FFF8EE', padding: 10, marginTop: 6, borderRadius: 8 }} />
+                                              </label>
+                                            </div>;
+                                          })()}
                                           {!sub[row.field] && <span className="studio-condition-unset">Sin configurar · Conserva la reserva actual</span>}
                                           {!!sub[row.field] && <button type="button" className="studio-condition-reset" onClick={() => setCatalog(previous => previous.map(category => category.id !== cat.id ? category : { ...category, subservices: category.subservices.map(service => service.id !== sub.id ? service : { ...service, [row.field]: undefined }) }))}>Restablecer</button>}
                                         </fieldset>)}
                                       </div>}
+                                      {sub.isStylingService && <div style={{ padding: 12, border: '1px solid #5A5248', borderRadius: 8 }}>
+                                        <label style={{ fontSize: 13 }}><input type="checkbox" checked={!!sub.isCutGoService} onChange={e => {
+                                          const checked = e.target.checked;
+                                          setCatalog(previous => previous.map(c => c.id !== cat.id ? c : { ...c, subservices: c.subservices.map(s => s.id !== sub.id ? s : { ...s, isCutGoService: checked, price: checked ? '3 €' : s.price }) }));
+                                        }} /> Este complemento es Cut & Go · Sin secado</label>
+                                        <p style={{ fontSize: 12, color: '#E4C687' }}>Al activarlo se propone 3 € de producto. Revisa su nombre, precio, duración y variantes en Datos y Opciones. Se cobra como alternativa al peinado y solo puede acompañar servicios que lo permitan. No incluye secado.</p>
+                                      </div>}
                                       <details className="studio-booking-help">
                                         <summary>Ayuda</summary>
                                         <p>Aprobación de Ana deja la solicitud pendiente. El Bizum se pide después de aceptar.</p>
-                                        <p>Los complementos suman su precio y duración. Incluido significa que el acabado ya forma parte del servicio; Añadir pide elegirlo por separado.</p>
+                                        <p>Configura cada servicio según su protocolo real. Incluido no suma cargos ni tiempo extra. Obligatorio impide continuar sin un complemento compatible. Opcional permite omitirlo. No necesario solo afecta a este servicio. Los ajustes anteriores de Añadir se conservan como obligatorios: revísalos antes de publicar.</p>
                                       </details>
                                     </section>
                                     <div className="studio-editor-data" style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px' }}>
