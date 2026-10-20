@@ -39,6 +39,7 @@ interface BusinessConfig {
   bizumNumber: string;
   depositAmount: string;
   saturdayNoticeMessage: string;
+  saturdayPolicyEnabled?: boolean;
   whatsappTemplate: string;
   homeHeroImage: string;
   homeHeroImagePosition: { x: number; y: number };
@@ -73,7 +74,8 @@ const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
   slotIntervalMinutes: 15,
   bizumNumber: "672163485",
   depositAmount: "60 €",
-  saturdayNoticeMessage: "SÁBADOS: El Studio abrirá los sábados únicamente para atender servicios de larga duración y eventos agendados con antelación bajo demanda de Ana.",
+  saturdayPolicyEnabled: true,
+  saturdayNoticeMessage: "En L’Studio Ana abrimos los sábados exclusivamente bajo demanda anticipada para servicios de eventos y trabajos técnicos de larga duración.\n\nCada solicitud está sujeta a disponibilidad y confirmación de Ana. Si no hay reservas previamente confirmadas, el Studio permanecerá cerrado.",
   whatsappTemplate: "Hola {nombre}. Te recordamos tu cita en L’Studio Ana el {fecha} a las {hora}. ¡Te esperamos en el Studio!",
   homeHeroImage: '/Salon_elegante_con_luz_calida.png',
   homeHeroImagePosition: { x: 50, y: 62 }
@@ -1871,6 +1873,10 @@ function StudioApp() {
     const saved = localStorage.getItem('lst_business_config');
     return saved ? { ...INITIAL_BUSINESS_CONFIG, ...readStoredValue('lst_business_config', saved) } : INITIAL_BUSINESS_CONFIG;
   });
+  const [reservationPolicyOpen, setReservationPolicyOpen] = useState(false);
+  const [reservationPolicyChecked, setReservationPolicyChecked] = useState(false);
+  const [acceptedSaturdayPolicy, setAcceptedSaturdayPolicy] = useState('');
+  const reservationPolicyDialog = useRef<HTMLDialogElement>(null);
   const [bookingDate, setBookingDate] = useState<Date>(() => { const date = new Date(); date.setHours(12, 0, 0, 0); date.setDate(date.getDate() + bizConfig.minAdvanceDays); return date; });
   const [tempConfig, setTempConfigState] = useState<BusinessConfig>(() => structuredClone(bizConfig));
   const configDraftRef = useRef(tempConfig);
@@ -3687,6 +3693,9 @@ function StudioApp() {
   };
 
   const handleConfirmarCitaVisual = () => {
+    if (saturdayNeedsAcceptance && acceptedSaturdayPolicy !== saturdayPolicyKey) {
+      setReservationPolicyChecked(false); setReservationPolicyOpen(true); return;
+    }
     if (selectedServicesToBook.length === 0) {
       alert(t('selectOneService'));
       return;
@@ -4065,6 +4074,25 @@ function StudioApp() {
     return Array.from(new Set(times));
   };
   const choosePortalDate = (date: Date) => { setBookingDate(date); setSelectedVisualTime(''); };
+  const saturdayPolicyText = bizConfig.saturdayNoticeMessage?.trim() || INITIAL_BUSINESS_CONFIG.saturdayNoticeMessage;
+  const saturdayPolicyKey = formatDateKey(bookingDate) + '|' + saturdayPolicyText;
+  const saturdayNeedsAcceptance = bookingDate.getDay() === 6 && bizConfig.saturdayPolicyEnabled !== false;
+  useEffect(() => {
+    if (currentScreen === 'visualAgenda' && saturdayNeedsAcceptance && acceptedSaturdayPolicy !== saturdayPolicyKey) {
+      setReservationPolicyChecked(false);
+      setReservationPolicyOpen(true);
+    }
+  }, [currentScreen, saturdayNeedsAcceptance, saturdayPolicyKey, acceptedSaturdayPolicy]);
+  useEffect(() => {
+    if (reservationPolicyOpen && reservationPolicyDialog.current && !reservationPolicyDialog.current.open) reservationPolicyDialog.current.showModal();
+  }, [reservationPolicyOpen]);
+  const leaveReservationPolicy = () => {
+    setReservationPolicyOpen(false);
+    setReservationPolicyChecked(false);
+    setSelectedVisualTime('');
+    setCurrentScreen('catalogBooking');
+  };
+
   const portalWeekStart = new Date(bookingDate);
   portalWeekStart.setDate(bookingDate.getDate() - ((bookingDate.getDay() + 6) % 7));
   const portalWeekDays = Array.from({ length: 7 }, (_, index) => { const day = new Date(portalWeekStart); day.setDate(day.getDate() + index); return day; });
@@ -4935,6 +4963,7 @@ function StudioApp() {
       {/* AGENDA CLIENTAS · SEMANA Y HORAS DISPONIBLES */}
       {currentScreen === 'visualAgenda' && (
         <div style={{ maxWidth: '520px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+          <button type="button" onClick={() => { setReservationPolicyChecked(saturdayNeedsAcceptance && acceptedSaturdayPolicy === saturdayPolicyKey); setReservationPolicyOpen(true); }} style={{ alignSelf: 'flex-end', color: '#E4C687', background: 'none', border: 'none', textDecoration: 'underline', padding: 10, minHeight: 44, cursor: 'pointer' }}>Políticas de reserva · Sábados</button>
           <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#D8C29A', padding: '10px 0', cursor: 'pointer' }}>{t('backServices')}</button>
           <div><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', color: '#FFF8EE', fontSize: '28px', fontWeight: 'normal', margin: '0 0 8px' }}>{t('chooseMoment')}</h2><p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('fullSlots')} · {getModalDuration(selectedServicesToBook)} min.</p></div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
@@ -5641,6 +5670,14 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                     <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Horario Jueves y Viernes:</label>
                     <input type="text" value={tempConfig.scheduleThuFri} onChange={(e) => setTempConfig(previous => ({ ...previous, scheduleThuFri: e.target.value }))} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
                   </div>
+                  <section style={{ border: '1px solid #C5A059', borderRadius: 10, padding: 16 }}>
+                    <h4 style={{ color: '#E4C687', marginTop: 0 }}>Política de reservas de los sábados</h4>
+                    <label style={{ display: 'block', color: '#FFF8EE', fontSize: 13 }}><input type="checkbox" checked={tempConfig.saturdayPolicyEnabled !== false} onChange={e => setTempConfig(previous => ({ ...previous, saturdayPolicyEnabled: e.target.checked }))} /> Mostrar aviso y solicitar aceptación al reservar un sábado</label>
+                    <label style={{ display: 'block', fontSize: 13, color: '#D6CBB8', marginTop: 12 }}>Texto para la clienta
+                      <textarea rows={6} value={tempConfig.saturdayNoticeMessage} onChange={e => setTempConfig(previous => ({ ...previous, saturdayNoticeMessage: e.target.value }))} style={{ display: 'block', boxSizing: 'border-box', width: '100%', padding: 12, marginTop: 6, background: '#29231F', color: '#FFF8EE', border: '1px solid #C5A059', borderRadius: 8 }} />
+                    </label>
+                    <p style={{ fontSize: 12, color: '#D6CBB8' }}>Guarda los cambios de Configuración para publicar el texto. Desactivar el aviso no elimina la aprobación previa de las solicitudes del sábado.</p>
+                  </section>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Horario Sábados:</label>
                     <input type="text" value={tempConfig.scheduleSaturday} onChange={(e) => setTempConfig(previous => ({ ...previous, scheduleSaturday: e.target.value }))} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
@@ -6911,6 +6948,19 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
           </div>
         </div>
       )}
+      {reservationPolicyOpen && <dialog ref={reservationPolicyDialog} aria-labelledby="reservation-policy-title" onCancel={e => { e.preventDefault(); leaveReservationPolicy(); }} style={{ width: 'min(480px, calc(100% - 32px))', maxHeight: '85dvh', overflowY: 'auto', boxSizing: 'border-box', padding: 24, border: '1px solid #C5A059', borderRadius: 16, background: '#29231F', color: '#FFF8EE', boxShadow: '0 20px 80px #0008' }}>
+        <style>{`dialog::backdrop { background: rgba(0,0,0,.72); }`}</style>
+        <p style={{ fontSize: 11, letterSpacing: 2, color: '#E4C687' }}>L’STUDIO ANA · POLÍTICAS DE RESERVA</p>
+        <h2 id="reservation-policy-title" style={{ fontFamily: 'Georgia, serif', fontSize: 24, fontWeight: 400 }}>Los sábados, con reserva anticipada</h2>
+        <p style={{ whiteSpace: 'pre-line', fontSize: 14, lineHeight: 1.7 }}>{saturdayPolicyText}</p>
+        <p style={{ background: '#3A312A', padding: 12, borderRadius: 8, fontSize: 14, lineHeight: 1.6 }}><strong>Solicitar una cita no garantiza su confirmación.</strong> Te avisaremos cuando Ana la haya aceptado. Si corresponde un anticipo, se solicitará después de la aprobación.</p>
+        {saturdayNeedsAcceptance && <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '14px 0', fontSize: 14, lineHeight: 1.5 }}><input autoFocus type="checkbox" checked={reservationPolicyChecked} onChange={e => setReservationPolicyChecked(e.target.checked)} style={{ width: 22, height: 22, flexShrink: 0 }} /> He leído y entiendo las condiciones de reserva de los sábados.</label>}
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
+          <button type="button" onClick={leaveReservationPolicy} style={{ flex: 1, minHeight: 48, padding: 12, border: '1px solid #C5A059', borderRadius: 8, background: 'transparent', color: '#FFF8EE', cursor: 'pointer' }}>Elegir otro día</button>
+          <button type="button" disabled={saturdayNeedsAcceptance && !reservationPolicyChecked} onClick={() => { if (saturdayNeedsAcceptance) setAcceptedSaturdayPolicy(saturdayPolicyKey); setReservationPolicyOpen(false); }} style={{ flex: 1, minHeight: 48, padding: 12, border: 'none', borderRadius: 8, background: '#C5A059', color: '#121212', opacity: saturdayNeedsAcceptance && !reservationPolicyChecked ? .45 : 1, cursor: 'pointer' }}>{saturdayNeedsAcceptance ? 'Continuar con la solicitud' : 'Entendido'}</button>
+        </div>
+      </dialog>}
+
       {saturdayRequestModal && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 2100 }}>
           <div role="dialog" aria-modal="true" aria-labelledby="saturday-request-title" style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', maxWidth: '440px', width: '100%', color: '#FFF8EE' }}>
