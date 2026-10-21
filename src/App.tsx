@@ -17,7 +17,11 @@ function statusWithTimeout<T>(request: Promise<T>, milliseconds = 15000): Promis
 // ======
 // CONFIGURACIÓN DE L'STUDIO ANA
 // ======
+type StudioEmployee = { id: string; name: string; role: string; photo: string; status: 'active' | 'future' | 'inactive' };
+
 interface BusinessConfig {
+  showPrices?: boolean;
+  employees?: StudioEmployee[];
   advancePaymentEnabled: boolean;
   advancePaymentThresholdMinutes: number;
   saturdayApprovalEnabled: boolean;
@@ -54,6 +58,8 @@ interface BusinessConfig {
 }
 
 const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
+  showPrices: true,
+  employees: [],
   advancePaymentEnabled: true,
   advancePaymentThresholdMinutes: 120,
   saturdayApprovalEnabled: true,
@@ -1815,7 +1821,7 @@ function StudioApp() {
   const [adminPin, setAdminPin] = useState<string>("");
   const [adminError, setAdminError] = useState<boolean>(false);
   const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'demands' | 'holidays'>('agenda');
-  const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule' | 'reservas' | 'anticipada' | 'avisos' | 'backup'>('marca');
+  const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule' | 'reservas' | 'anticipada' | 'avisos' | 'backup' | 'precios' | 'empleados'>('marca');
   const [adminCatalogStatus, setAdminCatalogStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [adminCatalogSearch, setAdminCatalogSearch] = useState('');
   const normalizeCatalogSearch = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -1890,6 +1896,24 @@ function StudioApp() {
   const reservationPolicyDialog = useRef<HTMLDialogElement>(null);
   const [bookingDate, setBookingDate] = useState<Date>(() => { const date = new Date(); date.setHours(12, 0, 0, 0); date.setDate(date.getDate() + bizConfig.minAdvanceDays); return date; });
   const [tempConfig, setTempConfigState] = useState<BusinessConfig>(() => structuredClone(bizConfig));
+  const [employeePhotoBusy, setEmployeePhotoBusy] = useState<string | null>(null);
+  const employeePhotoBusyRef = useRef(false);
+  const portalShowsPrices = bizConfig.showPrices !== false;
+  const clientPrice = (price: string | undefined) => portalShowsPrices ? (price || '') : '';
+  const updateEmployee = (id: string, patch: Partial<StudioEmployee>) => setTempConfig(previous => ({ ...previous, employees: (previous.employees || []).map(employee => employee.id === id ? { ...employee, ...patch } : employee) }));
+  const uploadEmployeePhoto = async (id: string, file?: File) => {
+    if (!file || employeePhotoBusyRef.current) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type) || file.size > 8 * 1024 * 1024) { alert('Elige una foto JPG, PNG o WebP de hasta 8 MB.'); return; }
+    const token = studioApi.currentToken();
+    if (!token || studioApi.storedRole() !== 'admin') { alert('Inicia sesión como administradora para subir la foto.'); return; }
+    employeePhotoBusyRef.current = true; setEmployeePhotoBusy(id);
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(new Error('No se pudo leer la imagen.')); reader.readAsDataURL(file); });
+      const uploaded = await studioApi.uploadServiceImage(token, dataUrl);
+      updateEmployee(id, { photo: uploaded.url });
+    } catch (error) { alert(error instanceof Error ? error.message : 'No se pudo subir la foto.'); }
+    finally { employeePhotoBusyRef.current = false; setEmployeePhotoBusy(null); }
+  };
   const configDraftRef = useRef(tempConfig);
   const configBaselineRef = useRef(structuredClone(bizConfig));
   const configSavingRef = useRef(false);
@@ -3221,6 +3245,8 @@ function StudioApp() {
 
   const handleSaveSection = async (sectionName: string) => {
     if (configSavingRef.current) return;
+    if (employeePhotoBusyRef.current) { alert('Espera a que termine de subir la foto.'); return; }
+    if ((configDraftRef.current.employees || []).some(employee => !employee.name.trim())) { alert('Escribe el nombre de cada empleado antes de guardar.'); return; }
     if (configSubTab === 'backup') {
       if (!/^\d{4}$/.test(tempConfig.masterPin)) { alert('El PIN maestro debe tener exactamente 4 números.'); return; }
       if (listaClientes.some(client => String(client.pinAcceso).trim() === tempConfig.masterPin)) {
@@ -3446,7 +3472,7 @@ function StudioApp() {
             {(sub.hasVariants && sub.variants?.length ? sub.variants : [null]).map(variant => {
               const selected = items.some(i => i.sub.id === sub.id && (i.variant?.id || '') === (variant?.id || ''));
               return <button key={variant?.id || sub.id} type="button" aria-pressed={selected} onClick={() => selectFinish(owner, kind, sub, variant)} style={{ display: 'block', width: '100%', minHeight: 48, padding: 10, marginTop: 6, borderRadius: 8, border: '1px solid #C5A059', background: selected ? '#C5A059' : '#322A25', color: selected ? '#121212' : '#FFF8EE', cursor: 'pointer' }}>
-                {selected ? '✓ ' : ''}{variant?.name || 'Seleccionar'} · {variant?.price || sub.price} · {variant?.duration || sub.duration}
+                {selected ? '✓ ' : ''}{variant?.name || 'Seleccionar'}{portalShowsPrices ? ' · ' + clientPrice(variant?.price || sub.price) : ''} · {variant?.duration || sub.duration}
               </button>;
             })}
           </div>)}
@@ -3523,7 +3549,7 @@ function StudioApp() {
           <div className="studio-service-card-body">
             <div className="studio-service-card-head">
               <h3 className="studio-service-card-title">{serviceText(sub, 'name') || sub.name}</h3>
-              <p className="studio-service-card-meta"><span>{sub.duration}</span><strong>{sub.price}</strong></p>
+              <p className="studio-service-card-meta"><span>{sub.duration}</span>{portalShowsPrices && <strong>{sub.price}</strong>}</p>
             </div>
             <div className="studio-service-card-actions">
               <button type="button" aria-pressed={isSelected} onClick={() => {
@@ -4764,14 +4790,14 @@ function StudioApp() {
           {selectedServicesToBook.length > 0 && <section aria-label="Resumen de tu selección" style={{ backgroundColor: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', padding: '20px', borderRadius: 12 }}>
             <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '20px', margin: '0 0 14px', fontWeight: 400 }}>Tu selección</h2>
             {selectedServicesToBook.map(item => <div key={item.sub.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid #E4DCCF' }}>
-              <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#E4C687' }}>{serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#E4C687' }}>{item.sub.hasVariants && !item.variant ? t('chooseOption') : (item.variant?.price || item.sub.price) + ' · ' + (item.variant?.duration || item.sub.duration)}</span></div>
+              <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#E4C687' }}>{serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#E4C687' }}>{item.sub.hasVariants && !item.variant ? t('chooseOption') : (portalShowsPrices ? (item.variant?.price || item.sub.price) + ' · ' : '') + (item.variant?.duration || item.sub.duration)}</span></div>
               <button type="button" aria-label={'Quitar ' + serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')} onClick={() => setSelectedServicesToBook(previous => previous.filter(selected => selected.sub.id !== item.sub.id))} style={{ background: 'none', border: 'none', color: '#D6CBB8', cursor: 'pointer', padding: '10px', minHeight: '44px', minWidth: '44px', fontSize: '12px' }}>{t('remove')}</button>
             </div>)}
             <p style={{ color: '#D6CBB8', fontSize: '13px', margin: '14px 0 0' }}>Duración total: {getModalDuration(selectedServicesToBook)} min</p>
             {(() => {
               const totalSel = getSelectionTotal(selectedServicesToBook);
-              if (totalSel.total > 0 && !totalSel.orientative) return <p style={{ color: '#FFF8EE', fontSize: '14px', margin: '6px 0 0' }}>Importe total: {totalSel.total.toFixed(2).replace('.', ',')} €</p>;
-              if (totalSel.total > 0) return <p style={{ color: '#E4C687', fontSize: '12px', margin: '6px 0 0' }}>Importe orientativo: {totalSel.total.toFixed(2).replace('.', ',')} € · algún servicio tiene precio orientativo o requiere diagnóstico; el importe final se confirma en el estudio.</p>;
+              if (portalShowsPrices && totalSel.total > 0 && !totalSel.orientative) return <p style={{ color: '#FFF8EE', fontSize: '14px', margin: '6px 0 0' }}>Importe total: {totalSel.total.toFixed(2).replace('.', ',')} €</p>;
+              if (portalShowsPrices && totalSel.total > 0) return <p style={{ color: '#E4C687', fontSize: '12px', margin: '6px 0 0' }}>Importe orientativo: {totalSel.total.toFixed(2).replace('.', ',')} € · algún servicio tiene precio orientativo o requiere diagnóstico; el importe final se confirma en el estudio.</p>;
               return <p style={{ color: '#E4C687', fontSize: '12px', margin: '6px 0 0' }}>El importe se confirma en el estudio: algún servicio requiere diagnóstico.</p>;
             })()}
             {selectedServicesToBook.some(item => (catalog.flatMap(c => c.subservices).find(sub => sub.id === item.sub.id) || item.sub).requiresAssessment) && <p style={{ color: '#E4C687', fontSize: '12px', margin: 0 }}>Tu selección requiere valoración previa. Elegir fecha y hora registra una solicitud; Ana debe aprobarla antes de confirmar la cita.</p>}
@@ -4850,7 +4876,7 @@ function StudioApp() {
                       <div className="lst-c-body">
                         <button type="button" className="lst-c-name" onClick={() => openDetail(sub)}>{name}</button>
                         {!!serviceText(sub, 'slogan').trim() && <p className="lst-c-desc" style={{ color: '#E5D7BF', lineHeight: 1.5 }}>{serviceText(sub, 'slogan')}</p>}
-                        <p className="lst-c-meta">{sub.price}{sub.duration ? ' · ' + sub.duration : ''}</p>
+                        <p className="lst-c-meta">{portalShowsPrices ? sub.price : ''}{sub.duration ? (portalShowsPrices ? ' · ' : '') + sub.duration : ''}</p>
                         <div className="lst-c-cta">
                           <button type="button" className="lst-btn-ver" onClick={() => openDetail(sub)}>{t('viewService')} <ArrowRight size={15} strokeWidth={2} aria-hidden="true" /></button>
                           <button type="button" className="lst-btn-ver" aria-pressed={carouselSelected} aria-label={carouselSelected ? t('selectedRemove') : t('addShort') + ' · ' + name} onClick={() => setSelectedServicesToBook(previous => previous.some(item => item.sub.id === sub.id) ? previous.filter(item => item.sub.id !== sub.id) : [...previous, { sub, variant: null }])} style={carouselSelected ? { background: '#C99E52', borderColor: '#C99E52', color: '#29231F' } : undefined}>{carouselSelected ? '✓ ' + t('addShort') : t('addShort')}</button>
@@ -4928,7 +4954,7 @@ function StudioApp() {
               {detailSub.showAlertBadge && <div className="studio-ficha-condition"><strong>Aviso</strong><span>{detailSub.alertText || 'Recuerda añadir tu peinado para asegurar el tiempo en agenda.'}</span></div>}
             </section>
           )}
-          <div className="lst-price-box"><Info size={17} strokeWidth={1.7} aria-hidden="true" /> {detailSelection?.variant?.price || detailSub.price} · {detailSelection?.variant?.duration || detailSub.duration}</div>
+          <div className="lst-price-box"><Info size={17} strokeWidth={1.7} aria-hidden="true" /> {portalShowsPrices ? (detailSelection?.variant?.price || detailSub.price) + ' · ' : ''} {detailSelection?.variant?.duration || detailSub.duration}</div>
           {detailSub.hasVariants && detailSub.variants && detailSub.variants.length > 0 && (
             <section className="studio-ficha-section">
               <h2>{t('serviceOptionsTitle')}</h2>
@@ -4939,7 +4965,7 @@ function StudioApp() {
                     className={detailSelection?.variant?.id === variant.id ? 'studio-variant-chip studio-variant-chip-active' : 'studio-variant-chip'}>
                     <strong>{variantText(variant, detailSub)}</strong>
                     {variant.description && <span>{variant.description}</span>}
-                    <span>{variant.price} · {variant.duration}</span>
+                    <span>{portalShowsPrices ? variant.price + ' · ' : ''}{variant.duration}</span>
                   </button>
                 ))}
               </div>
@@ -4997,7 +5023,7 @@ function StudioApp() {
           </section>
           <div style={{ borderTop: '1px solid #3A312A', paddingTop: '18px' }}>
             <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6 }}>{selectedServicesToBook.map(item => serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name') + (item.variant ? ` · ${variantText(item.variant, item.sub)}` : '')).join(' + ')}</p>
-            {(() => { const totalSel = getSelectionTotal(selectedServicesToBook); if (totalSel.total <= 0) return null; return <p style={{ color: totalSel.orientative ? '#E4C687' : '#FFF8EE', fontSize: '13px', margin: '6px 0 0' }}>{totalSel.orientative ? 'Importe orientativo' : 'Importe total'}: {totalSel.total.toFixed(2).replace('.', ',')} €{totalSel.orientative ? ' · se confirma en el estudio' : ''}</p>; })()}
+            {(() => { const totalSel = getSelectionTotal(selectedServicesToBook); if (!portalShowsPrices || totalSel.total <= 0) return null; return <p style={{ color: totalSel.orientative ? '#E4C687' : '#FFF8EE', fontSize: '13px', margin: '6px 0 0' }}>{totalSel.orientative ? 'Importe orientativo' : 'Importe total'}: {totalSel.total.toFixed(2).replace('.', ',')} €{totalSel.orientative ? ' · se confirma en el estudio' : ''}</p>; })()}
             {selectedVisualTime && <p style={{ color: '#FFF8EE', fontSize: '15px' }}>{bookingDate.toLocaleDateString(portalLocale, { day: 'numeric', month: 'long' })} · {selectedVisualTime}</p>}
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px', background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', cursor: 'pointer' }}>
               <input type="checkbox" checked={whatsappConsent} onChange={e => setWhatsappConsent(e.target.checked)} style={{ width: 18, height: 18, marginTop: 2, accentColor: '#C49A58', flexShrink: 0 }} />
@@ -5461,7 +5487,7 @@ style={{ padding: '8px', background: '#322A25', color: '#FFF8EE', border: '1px s
               <header><p style={{ color: '#E4C687', fontSize: '14px', letterSpacing: '2px', margin: '0 0 8px' }}>360studio · AJUSTES DEL STUDIO</p><h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '28px', fontWeight: 'normal', margin: '0 0 10px' }}>Configuración</h2><p style={{ color: '#FFF8EE', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>Elige un apartado, revisa sus opciones y guarda los cambios.</p></header>
               <div className="studio-settings-layout">
               <nav className="studio-settings-nav" aria-label="Apartados de configuración">
-                {([['marca', 'Datos del Studio'], ['schedule', 'Horarios'], ['reservas', 'Reservas'], ['avisos', 'Avisos'], ['backup', 'Acceso y seguridad']] as const).map(([tab, label]) => <button type="button" key={tab} aria-current={configSubTab === tab ? 'page' : undefined} onClick={() => setConfigSubTab(tab)}>{label}</button>)}
+                {([['marca', 'Datos del Studio'], ['precios', 'Precios'], ['empleados', 'Empleados'], ['schedule', 'Horarios'], ['reservas', 'Reservas'], ['avisos', 'Avisos'], ['backup', 'Acceso y seguridad']] as const).map(([tab, label]) => <button type="button" key={tab} aria-current={configSubTab === tab ? 'page' : undefined} onClick={() => setConfigSubTab(tab)}>{label}</button>)}
               </nav>
               <div className="studio-settings-content"><style>{`
 .studio-settings-content :is(.studio-security-pin,.studio-security-compact) { padding:14px 16px !important; max-width:860px; box-sizing:border-box; font-size:13px; line-height:1.5; gap:12px !important; }
@@ -5494,6 +5520,34 @@ style={{ padding: '8px', background: '#322A25', color: '#FFF8EE', border: '1px s
                   {savedMsg}
                 </div>
               )}
+{configSubTab === 'precios' && <section style={{ background: '#322A25', padding: 20, borderRadius: 12, color: '#FFF8EE' }}>
+  <h3 style={{ color: '#E4C687', marginTop: 0 }}>Visibilidad de precios</h3>
+  <label style={{ display: 'flex', gap: 12, alignItems: 'center', minHeight: 48 }}><input type="checkbox" checked={tempConfig.showPrices !== false} onChange={e => setTempConfig(previous => ({ ...previous, showPrices: e.target.checked }))} style={{ width: 22, height: 22, accentColor: '#C5A059' }} />Mostrar precios en el portal de clientas</label>
+  <p style={{ color: '#E5D7BF', fontSize: 13, lineHeight: 1.6 }}>Controla los precios de servicios, opciones, complementos y totales de la reserva. Los precios siguen disponibles en administración. Los anticipos necesarios para confirmar una cita se siguen mostrando.</p>
+  <p style={{ fontSize: 13 }}>Pulsa «Guardar cambios» para aplicar la selección.</p>
+</section>}
+{configSubTab === 'empleados' && <section style={{ background: '#322A25', padding: 20, borderRadius: 12, color: '#FFF8EE' }}>
+  <h3 style={{ color: '#E4C687', marginTop: 0 }}>Empleados</h3>
+  <p style={{ color: '#E5D7BF', fontSize: 13 }}>Guarda las fichas de tu equipo actual y de futuras incorporaciones. Estas fichas se gestionan en administración; todavía no asignan citas ni crean cuentas de acceso.</p>
+  <button type="button" className="studio-btn-ghost" disabled={!!employeePhotoBusy} onClick={() => setTempConfig(previous => ({ ...previous, employees: [...(previous.employees || []), { id: crypto.randomUUID(), name: '', role: '', photo: '', status: 'future' }] }))}>+ Añadir empleado</button>
+  <div style={{ display: 'grid', gap: 14, marginTop: 16 }}>
+    {(tempConfig.employees || []).map(employee => <article key={employee.id} style={{ border: '1px solid #655039', borderRadius: 12, padding: 16, display: 'flex', flexWrap: 'wrap', gap: 16 }}>
+      <div style={{ width: 100 }}>
+        {employee.photo ? <img src={employee.photo} alt={employee.name || 'Foto del empleado'} style={{ width: 92, height: 92, objectFit: 'cover', borderRadius: 12 }} /> : <div style={{ width: 92, height: 92, border: '1px dashed #C5A059', borderRadius: 12, display: 'grid', placeItems: 'center', fontSize: 13 }}>Sin foto</div>}
+        <label style={{ display: 'block', cursor: 'pointer', color: '#E4C687', padding: '12px 0', fontSize: 12 }}>{employeePhotoBusy === employee.id ? 'Subiendo…' : 'Subir foto'}<input type="file" accept="image/jpeg,image/png,image/webp" disabled={!!employeePhotoBusy} onChange={e => { void uploadEmployeePhoto(employee.id, e.target.files?.[0]); e.target.value = ''; }} style={{ display: 'none' }} /></label>
+        {employee.photo && <button type="button" disabled={!!employeePhotoBusy} onClick={() => updateEmployee(employee.id, { photo: '' })} style={{ background: 'none', border: 0, color: '#F1C4BD', cursor: 'pointer' }}>Quitar foto</button>}
+      </div>
+      <div style={{ flex: '1 1 200px', display: 'grid', gap: 12 }}>
+        <label>Nombre<input style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: 12, marginTop: 6, background: '#29231F', color: '#FFF8EE', border: '1px solid #C5A059', borderRadius: 7, fontSize: 14 }} maxLength={100} value={employee.name} onChange={e => updateEmployee(employee.id, { name: e.target.value })} /></label>
+        <label>Puesto o especialidad<input style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: 12, marginTop: 6, background: '#29231F', color: '#FFF8EE', border: '1px solid #C5A059', borderRadius: 7, fontSize: 14 }} maxLength={160} value={employee.role} onChange={e => updateEmployee(employee.id, { role: e.target.value })} placeholder="Estilista · Colorista…" /></label>
+        <label>Estado<select style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: 12, marginTop: 6, background: '#29231F', color: '#FFF8EE', border: '1px solid #C5A059', borderRadius: 7, fontSize: 14 }} value={employee.status} onChange={e => updateEmployee(employee.id, { status: e.target.value as StudioEmployee['status'] })}><option value="active">En activo</option><option value="future">Futura incorporación</option><option value="inactive">Inactivo</option></select></label>
+        <button type="button" className="studio-btn-ghost" disabled={!!employeePhotoBusy} onClick={() => { if (confirm('¿Eliminar esta ficha de empleado?')) setTempConfig(previous => ({ ...previous, employees: (previous.employees || []).filter(item => item.id !== employee.id) })); }}>Eliminar ficha</button>
+      </div>
+    </article>)}
+  </div>
+  {!tempConfig.employees?.length && <p style={{ color: '#E5D7BF' }}>Aún no hay empleados añadidos.</p>}
+  <p style={{ color: '#E5D7BF', fontSize: 12 }}>Pulsa «Guardar cambios» para conservar las fichas y las fotos.</p>
+</section>}
 {configSubTab === 'reservas' && <div className="studio-reservas-compact" style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Reservas y cancelaciones</h3><label>Antelación mínima (días)<input type="number" min="0" value={tempConfig.minAdvanceDays} onChange={(e) => setTempConfig(previous => ({ ...previous, minAdvanceDays: Number(e.target.value) }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Hasta cuántos meses se puede reservar<input type="number" min="0" value={tempConfig.maxBookingMonths} onChange={(e) => setTempConfig(previous => ({ ...previous, maxBookingMonths: Number(e.target.value) }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Intervalo entre horas disponibles (minutos)<input type="number" min="0" value={tempConfig.slotIntervalMinutes} onChange={(e) => setTempConfig(previous => ({ ...previous, slotIntervalMinutes: Number(e.target.value) }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Antelación para solicitar cambios o cancelaciones (horas)<input type="number" min="0" value={tempConfig.cancellationHours} onChange={(e) => setTempConfig(previous => ({ ...previous, cancellationHours: Number(e.target.value) }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><p>La antelación para cancelar es una preferencia guardada. Su aplicación automática queda pendiente. El intervalo organiza las horas disponibles; no añade tiempo de preparación entre citas.</p></div>}{configSubTab === 'reservas' && <div className="studio-reservas-compact" style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Reserva anticipada y sábados</h3><label><input type="checkbox" checked={tempConfig.advancePaymentEnabled} onChange={(e) => setTempConfig(previous => ({ ...previous, advancePaymentEnabled: e.target.checked }))} /> Solicitar reserva anticipada</label><label>Importe de la reserva anticipada (€)<input type="text"  value={tempConfig.depositAmount} onChange={(e) => setTempConfig(previous => ({ ...previous, depositAmount: e.target.value }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Solicitarla cuando la cita supere estos minutos<input type="number" min="0" value={tempConfig.advancePaymentThresholdMinutes} onChange={(e) => setTempConfig(previous => ({ ...previous, advancePaymentThresholdMinutes: Number(e.target.value) }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Número de Bizum<input type="tel"  value={tempConfig.bizumNumber} onChange={(e) => setTempConfig(previous => ({ ...previous, bizumNumber: e.target.value }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><p>Las citas de los sábados requieren siempre la confirmación de Ana.</p><p>Los sábados se aprueban antes de solicitar el pago. El plazo de pago se acuerda con la clienta; no hay caducidad automática.</p></div>}{configSubTab === 'avisos' && <div className="studio-avisos-compact" style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Avisos y recordatorios</h3><label>WhatsApp del Studio<input type="tel"  value={tempConfig.studioWhatsapp} onChange={(e) => setTempConfig(previous => ({ ...previous, studioWhatsapp: e.target.value }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Correo del Studio<input type="email"  value={tempConfig.studioEmail} onChange={(e) => setTempConfig(previous => ({ ...previous, studioEmail: e.target.value }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Recordatorio antes de la cita (horas)<input type="number" min="0" value={tempConfig.reminderHours} onChange={(e) => setTempConfig(previous => ({ ...previous, reminderHours: Number(e.target.value) }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><p style={{ color: '#E4C687' }}>Envío automático pendiente de configurar.</p><p>Estos datos guardan tus preferencias. No envían mensajes ni programan recordatorios hasta conectar un servicio de envío. El registro de entregas y errores estará disponible con esa conexión.</p></div>}{configSubTab === 'backup' && <section className="studio-security-pin"><h3>PIN de administración</h3>                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold' }}>PIN Maestro de Administración (4 dígitos):</label>
                     <input type="password" maxLength={4} value={tempConfig.masterPin} onChange={(e) => setTempConfig(previous => ({ ...previous, masterPin: e.target.value }))} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px', textAlign: 'center', letterSpacing: '4px' }} />
