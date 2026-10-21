@@ -1327,9 +1327,10 @@ const FINISH_COPY: Record<StylingPolicy, string> = {
   not_applicable: 'Este servicio no necesita este complemento. No impide reservarlo con otros servicios.'
 };
 
-type ServiceTranslation = Partial<Pick<SubService, 'name' | 'description' | 'includesText' | 'achievedText' | 'alertText'>>;
+type ServiceTranslation = Partial<Pick<SubService, 'name' | 'slogan' | 'description' | 'includesText' | 'achievedText' | 'alertText'>>;
 
 interface SubService {
+  slogan?: string;
   translations?: Record<string, ServiceTranslation>;
   imageUrl?: string;
   imageIsAiPlaceholder?: boolean;
@@ -1362,6 +1363,7 @@ interface SubService {
 }
 
 interface CatalogCategory {
+  slogan?: string;
   translations?: Record<string, { title?: string }>; 
   id: string;
   code: string;
@@ -1716,11 +1718,11 @@ function readStoredValue(key: string, raw: string): any {
   }));
   if (key === 'lst_master_catalog') return records.map(category => ({
     ...category, id: safeText(category.id), code: safeText(category.code),
-    title: safeText(category.title),
+    title: safeText(category.title), slogan: safeText(category.slogan),
     subservices: (Array.isArray(category.subservices) ? category.subservices : [])
       .filter((sub: any) => sub && typeof sub === 'object').map((sub: any) => ({
         ...sub, id: safeText(sub.id), name: safeText(sub.name),
-        description: safeText(sub.description), duration: safeText(sub.duration),
+        slogan: safeText(sub.slogan), description: safeText(sub.description), duration: safeText(sub.duration),
         price: safeText(sub.price),
         variants: (Array.isArray(sub.variants) ? sub.variants : [])
           .filter((variant: any) => variant && typeof variant === 'object')
@@ -2069,8 +2071,8 @@ function StudioApp() {
       const categories = verify?.catalog?.map(row => row.category).filter(Boolean) as CatalogCategory[] | undefined;
       if (!categories || submitted.some(category => {
         const stored = categories.find(item => item.id === category.id);
-        const keys = ['tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
-        return !stored || (stored.imageUrl || '') !== (category.imageUrl || '') || category.subservices.some(service => {
+        const keys = ['slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
+        return !stored || (stored.slogan || '') !== (category.slogan || '') || (stored.imageUrl || '') !== (category.imageUrl || '') || category.subservices.some(service => {
           const saved = stored.subservices?.find(s => s.id === service.id);
           return !saved || keys.some(key => JSON.stringify(saved[key] ?? null) !== JSON.stringify(service[key] ?? null));
         });
@@ -3540,7 +3542,7 @@ function StudioApp() {
         <div className="lst-card-footer">
           <div style={{ minWidth: 0 }}>
             <strong>{serviceText(sub, 'name') || sub.name}</strong>
-            <span>{serviceText(sub, 'description') || (sub.duration + ' · ' + sub.price)}</span>
+            {!!serviceText(sub, 'slogan').trim() && <span>{serviceText(sub, 'slogan')}</span>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button type="button" onClick={() => { setViewServiceDetail({ cat, sub }); setCurrentScreen('serviceDetail'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="lst-btn-ver">
@@ -4749,6 +4751,7 @@ function StudioApp() {
                     </span>
                     <span className="lst-cat-info">
                       <strong>{categoryText(cat)}</strong>
+                      {!!cat.slogan?.trim() && <span style={{ display: 'block', color: '#E5D7BF', fontSize: 12, lineHeight: 1.5, marginTop: 5, whiteSpace: 'normal' }}>{cat.slogan}</span>}
                       <small>{count === 1 ? '1 servicio' : count + ' servicios'}</small>
                     </span>
                     <ChevronRight size={20} strokeWidth={1.7} aria-hidden="true" />
@@ -4806,6 +4809,7 @@ function StudioApp() {
             <header style={{ padding: '2px 0 0' }}>
               <p style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1.5px', margin: '0 0 4px' }}>{t('experienceTitle')}</p>
               <h1 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', color: '#FFF8EE', fontSize: '27px', fontWeight: 400, lineHeight: 1.2, margin: 0 }}>{categoryText(activeCategory)}</h1>
+              {!!activeCategory.slogan?.trim() && <p style={{ color: '#E5D7BF', fontSize: 14, lineHeight: 1.5, margin: '8px 0 0' }}>{activeCategory.slogan}</p>}
             </header>
             {activeServices.length === 0 ? <p style={{ color: '#F0E6D2', fontSize: '13px', margin: 0 }}>Actualmente no hay servicios activos en esta categoría.</p> : <>
             <p style={{ color: '#D6CBB8', fontSize: '13px', margin: 0, textAlign: 'center' }}><span id="lst-carousel-count" role="status">1 de {activeServices.length}</span></p>
@@ -4844,7 +4848,7 @@ function StudioApp() {
                       </button>
                       <div className="lst-c-body">
                         <button type="button" className="lst-c-name" onClick={() => openDetail(sub)}>{name}</button>
-                        {!!serviceText(sub, 'description') && <p className="lst-c-desc">{serviceText(sub, 'description')}</p>}
+                        {!!serviceText(sub, 'slogan').trim() && <p className="lst-c-desc" style={{ color: '#E5D7BF', lineHeight: 1.5 }}>{serviceText(sub, 'slogan')}</p>}
                         <p className="lst-c-meta">{sub.price}{sub.duration ? ' · ' + sub.duration : ''}</p>
                         <div className="lst-c-cta">
                           <button type="button" className="lst-btn-ver" onClick={() => openDetail(sub)}>{t('viewService')} <ArrowRight size={15} strokeWidth={2} aria-hidden="true" /></button>
@@ -5856,6 +5860,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                           </div>
                           <label style={{ color: '#D6CBB8', fontSize: '13px' }}>Código<input type="text" value={cat.code} onChange={e => handleUpdateCategoryCode(cat.id, e.target.value)} style={{ display: 'block', width: '90px', padding: '12px', boxSizing: 'border-box', marginTop: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '7px' }} /></label>
                           <label style={{ flex: '1 1 220px', color: '#D6CBB8', fontSize: '13px' }}>Nombre de la categoría<input type="text" value={cat.title} onChange={e => handleUpdateCategoryTitle(cat.id, e.target.value)} style={{ display: 'block', width: '100%', padding: '12px', boxSizing: 'border-box', marginTop: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '7px', fontSize: '14px' }} /></label>
+                          <label style={{ flex: '1 1 100%', color: '#E5D7BF', fontSize: 13 }}>Eslogan de la categoría · texto corto<input type="text" maxLength={140} value={cat.slogan || ''} placeholder="Conocemos tu cabello. Diseñamos tu camino." onChange={e => { const value = e.target.value; setCatalog(previous => previous.map(category => category.id === cat.id ? { ...category, slogan: value } : category)); }} style={{ display: 'block', width: '100%', padding: 12, boxSizing: 'border-box', marginTop: 6, backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: 7 }} /><small>Se muestra debajo del título. Máximo 140 caracteres.</small></label>
                           <button type="button" disabled={catIdx === 0} onClick={() => handleMoveCategory(catIdx, -1)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Subir ↑</button>
                           <button type="button" disabled={catIdx === catalog.length - 1} onClick={() => handleMoveCategory(catIdx, 1)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Bajar ↓</button>
                           <button type="button" onClick={() => handleDeleteCategory(cat.id)} style={{ background: '#322A25', border: '1px solid #74433e', color: '#C0392B', padding: '12px', borderRadius: '7px', cursor: 'pointer' }}>Eliminar categoría</button>
@@ -5903,7 +5908,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                     <label>Idioma de la traducción<select value={catalogTranslationLang} onChange={event => setCatalogTranslationLang(event.target.value)} style={{ display: 'block', width: '100%', margin: '8px 0 16px' }}>
                                       {Object.keys(TRANSLATIONS).filter(language => language !== 'es').map(language => <option key={language} value={language}>{({ en: 'English', fr: 'Français', it: 'Italiano', pt: 'Português', de: 'Deutsch', nl: 'Nederlands', pl: 'Polski', cs: 'Čeština', nb: 'Norsk', sv: 'Svenska', ar: 'العربية' } as Record<string, string>)[language]}</option>)}
                                     </select></label>
-                                    {([{ field: 'name', label: 'Nombre del servicio' }, { field: 'description', label: 'Descripción' }, { field: 'includesText', label: 'Qué incluye' }, { field: 'achievedText', label: 'Qué consigues' }, { field: 'alertText', label: 'Aviso del servicio' }] as { field: keyof ServiceTranslation; label: string }[]).map(({field, label}) => <label key={field} style={{ display: 'block', marginBottom: '14px' }}>{label}<span style={{ display: 'block', color: '#D6CBB8', fontSize: '12px', margin: '6px 0', whiteSpace: 'pre-wrap' }}>Original: {sub[field] || 'Sin contenido'}</span><textarea dir={catalogTranslationLang === 'ar' ? 'rtl' : 'ltr'} lang={catalogTranslationLang} value={sub.translations?.[catalogTranslationLang]?.[field] || ''} onChange={event => updateServiceTranslation(cat.id, sub.id, field, event.target.value)} placeholder="Añade aquí la traducción" style={{ width: '100%' }} /></label>)}
+                                    {([{ field: 'name', label: 'Nombre del servicio' }, { field: 'slogan', label: 'Eslogan corto' }, { field: 'description', label: 'Descripción' }, { field: 'includesText', label: 'Qué incluye' }, { field: 'achievedText', label: 'Qué consigues' }, { field: 'alertText', label: 'Aviso del servicio' }] as { field: keyof ServiceTranslation; label: string }[]).map(({field, label}) => <label key={field} style={{ display: 'block', marginBottom: '14px' }}>{label}<span style={{ display: 'block', color: '#D6CBB8', fontSize: '12px', margin: '6px 0', whiteSpace: 'pre-wrap' }}>Original: {sub[field] || 'Sin contenido'}</span><textarea dir={catalogTranslationLang === 'ar' ? 'rtl' : 'ltr'} lang={catalogTranslationLang} value={sub.translations?.[catalogTranslationLang]?.[field] || ''} onChange={event => updateServiceTranslation(cat.id, sub.id, field, event.target.value)} placeholder="Añade aquí la traducción" style={{ width: '100%' }} /></label>)}
 
                                     {!!sub.variants?.length && <section style={{ borderTop: '1px solid #3A312A', paddingTop: '14px' }}>
                                       <h4 style={{ color: '#E4C687', margin: '0 0 12px' }}>Nombres de variantes · {catalogTranslationLang.toUpperCase()}</h4>
@@ -6006,6 +6011,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                   <div style={{ backgroundColor: '#322A25', padding: '10px', borderRadius: '6px', fontSize: '14px', color: '#D6CBB8', display: 'flex', flexDirection: 'column', gap: '6px', borderLeft: '2px solid #B98A3E', marginTop: '4px' }}>
                                     <div className="studio-editor-data" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                                       <h4 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '20px', margin: '8px 0 12px' }}>Contenido para la clienta</h4>
+                                      <label style={{ color: '#E4C687', fontSize: 12 }}>Eslogan del servicio · texto corto<input type="text" maxLength={140} value={sub.slogan || ''} placeholder="Deja de adivinar qué necesita tu pelo." onChange={e => { const value = e.target.value; setCatalog(previous => previous.map(category => category.id === cat.id ? { ...category, subservices: category.subservices.map(service => service.id === sub.id ? { ...service, slogan: value } : service) } : category)); }} style={{ display: 'block', width: '100%', boxSizing: 'border-box', marginTop: 6, marginBottom: 8, padding: 10, backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: 5 }} /><span>Visible en la tarjeta. La descripción completa aparece al pulsar «Ver servicio».</span></label>
                                       <label style={{ color: '#E4C687', fontSize: '12px' }}>Descripción:</label>
                                       <textarea value={sub.description} onChange={(e) => {
                                         const val = e.target.value;
