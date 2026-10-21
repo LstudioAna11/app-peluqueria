@@ -1161,7 +1161,7 @@ Object.assign(TRANSLATIONS["ar"], {"reviewTitle": "طلب موعد بانتظا�
 
 
 // Portal, passport and catalogue labels
-Object.assign(TRANSLATIONS["es"], {"hello": "Hola", "welcome": "bienvenida", "myDetails": "Mis datos", "nextVisit": "Tu próxima visita", "changeDate": "Modificar fecha u hora", "askAppointment": "Consultar mi cita", "guidance": "Te orientamos", "callStudio": "Llamar al Studio", "studioHours": "Horarios del Studio", "directions": "Cómo llegar", "passportTitle": "Mi pasaporte capilar", "hairDna": "Tu ADN capilar", "homeRitual": "Tu ritual en casa", "visitHistory": "Historial de visitas", "recommendedVisit": "Próxima visita recomendada", "pendingRecommendation": "Pendiente de recomendación", "bookNext": "Reservar mi próxima visita", "closeDetails": "Cerrar detalles", "viewIncludes": "Ver qué incluye", "choosePack": "Elige tu largo o pack", "remove": "Quitar", "descriptionLabel": "Descripción", "includesLabel": "Qué incluye", "resultsLabel": "Qué consigues"});
+Object.assign(TRANSLATIONS["es"], {"hello": "Hola", "welcome": "bienvenida", "myDetails": "Mis datos", "nextVisit": "Tu próxima visita", "changeDate": "Modificar fecha u hora", "askAppointment": "Consultar mi cita", "guidance": "Te orientamos", "callStudio": "Llamar al Studio", "studioHours": "Horarios del Studio", "directions": "Cómo llegar", "passportTitle": "Mi pasaporte capilar", "hairDna": "Tu ADN capilar", "homeRitual": "Tu ritual en casa", "visitHistory": "Historial de visitas", "recommendedVisit": "Próxima visita recomendada", "pendingRecommendation": "Pendiente de recomendación", "bookNext": "Reservar mi próxima visita", "closeDetails": "Cerrar detalles", "viewIncludes": "Ver qué incluye", "choosePack": "Elige tu largo o pack", "remove": "Quitar", "descriptionLabel": "Descripción", "includesLabel": "Qué incluye", "resultsLabel": "¿Qué te llevas?"});
 Object.assign(TRANSLATIONS["en"], {"hello": "Hello", "welcome": "welcome", "myDetails": "My details", "nextVisit": "Your next visit", "changeDate": "Change date or time", "askAppointment": "Ask about my appointment", "guidance": "We can help", "callStudio": "Call the Studio", "studioHours": "Studio opening hours", "directions": "Directions", "passportTitle": "My hair passport", "hairDna": "Your hair DNA", "homeRitual": "Your home routine", "visitHistory": "Visit history", "recommendedVisit": "Recommended next visit", "pendingRecommendation": "Awaiting recommendation", "bookNext": "Book my next visit", "closeDetails": "Close details", "viewIncludes": "See what is included", "choosePack": "Choose your length or package", "remove": "Remove", "descriptionLabel": "Description", "includesLabel": "What is included", "resultsLabel": "Your results"});
 Object.assign(TRANSLATIONS["fr"], {"hello": "Bonjour", "welcome": "bienvenue", "myDetails": "Mes informations", "nextVisit": "Votre prochaine visite", "changeDate": "Modifier la date ou l’heure", "askAppointment": "Question sur mon rendez-vous", "guidance": "Nous vous conseillons", "callStudio": "Appeler le Studio", "studioHours": "Horaires du Studio", "directions": "Itinéraire", "passportTitle": "Mon passeport capillaire", "hairDna": "Votre ADN capillaire", "homeRitual": "Votre rituel à la maison", "visitHistory": "Historique des visites", "recommendedVisit": "Prochaine visite recommandée", "pendingRecommendation": "En attente de recommandation", "bookNext": "Réserver ma prochaine visite", "closeDetails": "Fermer les détails", "viewIncludes": "Voir ce qui est inclus", "choosePack": "Choisissez votre longueur ou forfait", "remove": "Retirer", "descriptionLabel": "Description", "includesLabel": "Ce qui est inclus", "resultsLabel": "Les résultats"});
 Object.assign(TRANSLATIONS["it"], {"hello": "Ciao", "welcome": "benvenuta", "myDetails": "I miei dati", "nextVisit": "La tua prossima visita", "changeDate": "Modifica data o ora", "askAppointment": "Informazioni sul mio appuntamento", "guidance": "Ti aiutiamo a scegliere", "callStudio": "Chiama lo Studio", "studioHours": "Orari dello Studio", "directions": "Come arrivare", "passportTitle": "Il mio passaporto capelli", "hairDna": "Il tuo DNA dei capelli", "homeRitual": "Il tuo rituale a casa", "visitHistory": "Storico delle visite", "recommendedVisit": "Prossima visita consigliata", "pendingRecommendation": "In attesa di consiglio", "bookNext": "Prenota la prossima visita", "closeDetails": "Chiudi dettagli", "viewIncludes": "Scopri cosa include", "choosePack": "Scegli lunghezza o pacchetto", "remove": "Rimuovi", "descriptionLabel": "Descrizione", "includesLabel": "Cosa include", "resultsLabel": "Risultati"});
@@ -1327,7 +1327,7 @@ const FINISH_COPY: Record<StylingPolicy, string> = {
   not_applicable: 'Este servicio no necesita este complemento. No impide reservarlo con otros servicios.'
 };
 
-type ServiceTranslation = Partial<Pick<SubService, 'name' | 'slogan' | 'description' | 'includesText' | 'achievedText' | 'alertText'>>;
+type ServiceTranslation = Partial<Pick<SubService, 'name' | 'slogan' | 'description' | 'includesText' | 'achievedText' | 'forWhomText' | 'alertText'>>;
 
 interface SubService {
   slogan?: string;
@@ -1355,6 +1355,7 @@ interface SubService {
   bufferTime?: string;
   includesText?: string;
   achievedText?: string;
+  forWhomText?: string;
   priceType?: 'desde' | 'aprox' | 'fijo' | 'consultar';
   hasVariants?: boolean;
   variants?: ServiceVariant[];
@@ -2071,7 +2072,7 @@ function StudioApp() {
       const categories = verify?.catalog?.map(row => row.category).filter(Boolean) as CatalogCategory[] | undefined;
       if (!categories || submitted.some(category => {
         const stored = categories.find(item => item.id === category.id);
-        const keys = ['slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
+        const keys = ['includesText', 'achievedText', 'forWhomText', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
         return !stored || (stored.slogan || '') !== (category.slogan || '') || (stored.imageUrl || '') !== (category.imageUrl || '') || category.subservices.some(service => {
           const saved = stored.subservices?.find(s => s.id === service.id);
           return !saved || keys.some(key => JSON.stringify(saved[key] ?? null) !== JSON.stringify(service[key] ?? null));
@@ -4906,12 +4907,18 @@ function StudioApp() {
             <h1 className="lst-detail-title">{serviceText(detailSub, 'name') || detailSub.name}</h1>
             {!!serviceText(detailSub, 'description') && <p className="lst-detail-desc">{serviceText(detailSub, 'description')}</p>}
           </header>
-          <section style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 14, padding: '6px 16px' }}>
-            <h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", fontWeight: 400, fontSize: 19, color: '#FFF8EE', margin: '12px 0 4px', letterSpacing: '0.02em' }}>{t('serviceIncludesTitle')}</h2>
-            <div className="lst-include-row"><span className="lst-include-icon"><UserRoundSearch size={17} strokeWidth={1.7} aria-hidden="true" /></span><span className="lst-include-label">{serviceText(detailSub, 'description') || detailSub.name}</span></div>
-            {!!serviceText(detailSub, 'includesText') && <div className="lst-include-row"><span className="lst-include-icon"><Scissors size={17} strokeWidth={1.7} aria-hidden="true" /></span><span className="lst-include-label">{serviceText(detailSub, 'includesText')}</span></div>}
-            {!!serviceText(detailSub, 'achievedText') && <div className="lst-include-row"><span className="lst-include-icon"><Sparkles size={17} strokeWidth={1.7} aria-hidden="true" /></span><span className="lst-include-label">{serviceText(detailSub, 'achievedText')}</span></div>}
-          </section>
+          {([
+            { field: 'includesText', title: '¿Qué incluye?', icon: Scissors },
+            { field: 'achievedText', title: '¿Qué te llevas?', icon: Sparkles },
+            { field: 'forWhomText', title: '¿Es para ti?', icon: UserRoundSearch },
+          ] as const).map(({ field, title, icon: Icon }) => {
+            const text = serviceText(detailSub, field).trim();
+            if (!text) return null;
+            return <section key={field} style={{ background: '#322A25', border: '1px solid rgba(255,248,238,0.08)', borderRadius: 12, padding: '14px 16px' }}>
+              <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 15, fontWeight: 500, color: '#E4C687', margin: '0 0 7px' }}><Icon size={17} aria-hidden="true" />{title}</h2>
+              <p style={{ color: '#F0E6D2', fontSize: 13, lineHeight: 1.65, margin: 0, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{text}</p>
+            </section>;
+          })}
           {(detailSub.requiresAssessment || tonerLabel(detailSub) || stylingLabel(detailSub) || detailSub.showAlertBadge) && (
             <section className="studio-ficha-section">
               <h2>{t('serviceConditionsTitle')}</h2>
@@ -5908,7 +5915,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                     <label>Idioma de la traducción<select value={catalogTranslationLang} onChange={event => setCatalogTranslationLang(event.target.value)} style={{ display: 'block', width: '100%', margin: '8px 0 16px' }}>
                                       {Object.keys(TRANSLATIONS).filter(language => language !== 'es').map(language => <option key={language} value={language}>{({ en: 'English', fr: 'Français', it: 'Italiano', pt: 'Português', de: 'Deutsch', nl: 'Nederlands', pl: 'Polski', cs: 'Čeština', nb: 'Norsk', sv: 'Svenska', ar: 'العربية' } as Record<string, string>)[language]}</option>)}
                                     </select></label>
-                                    {([{ field: 'name', label: 'Nombre del servicio' }, { field: 'slogan', label: 'Eslogan corto' }, { field: 'description', label: 'Descripción' }, { field: 'includesText', label: 'Qué incluye' }, { field: 'achievedText', label: 'Qué consigues' }, { field: 'alertText', label: 'Aviso del servicio' }] as { field: keyof ServiceTranslation; label: string }[]).map(({field, label}) => <label key={field} style={{ display: 'block', marginBottom: '14px' }}>{label}<span style={{ display: 'block', color: '#D6CBB8', fontSize: '12px', margin: '6px 0', whiteSpace: 'pre-wrap' }}>Original: {sub[field] || 'Sin contenido'}</span><textarea dir={catalogTranslationLang === 'ar' ? 'rtl' : 'ltr'} lang={catalogTranslationLang} value={sub.translations?.[catalogTranslationLang]?.[field] || ''} onChange={event => updateServiceTranslation(cat.id, sub.id, field, event.target.value)} placeholder="Añade aquí la traducción" style={{ width: '100%' }} /></label>)}
+                                    {([{ field: 'name', label: 'Nombre del servicio' }, { field: 'slogan', label: 'Eslogan corto' }, { field: 'description', label: 'Descripción' }, { field: 'includesText', label: 'Qué incluye' }, { field: 'achievedText', label: '¿Qué te llevas?' }, { field: 'forWhomText', label: '¿Es para ti?' }, { field: 'alertText', label: 'Aviso del servicio' }] as { field: keyof ServiceTranslation; label: string }[]).map(({field, label}) => <label key={field} style={{ display: 'block', marginBottom: '14px' }}>{label}<span style={{ display: 'block', color: '#D6CBB8', fontSize: '12px', margin: '6px 0', whiteSpace: 'pre-wrap' }}>Original: {sub[field] || 'Sin contenido'}</span><textarea dir={catalogTranslationLang === 'ar' ? 'rtl' : 'ltr'} lang={catalogTranslationLang} value={sub.translations?.[catalogTranslationLang]?.[field] || ''} onChange={event => updateServiceTranslation(cat.id, sub.id, field, event.target.value)} placeholder="Añade aquí la traducción" style={{ width: '100%' }} /></label>)}
 
                                     {!!sub.variants?.length && <section style={{ borderTop: '1px solid #3A312A', paddingTop: '14px' }}>
                                       <h4 style={{ color: '#E4C687', margin: '0 0 12px' }}>Nombres de variantes · {catalogTranslationLang.toUpperCase()}</h4>
@@ -6107,18 +6114,23 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                       <input type="url" value={sub.imageUrl || ''} onChange={(e) => updateSubserviceField(cat.id, sub.id, { imageUrl: e.target.value, imageIsAiPlaceholder: e.target.value ? false : sub.imageIsAiPlaceholder })} placeholder="O pega la URL de una foto (https://...)" style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '6px', borderRadius: '4px', fontSize: '13px' }} />
                                     </div>
                                     <div className="studio-editor-data" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                      <label style={{ color: '#E4C687', fontSize: '12px' }}>Qué incluye:</label>
+                                      <label style={{ color: '#E4C687', fontSize: '12px' }}>¿Qué incluye?</label>
                                       <input type="text" value={sub.includesText || ''} onChange={(e) => {
                                         const val = e.target.value;
                                         setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, includesText: val } : s) } : c));
                                       }} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
                                     </div>
                                     <div className="studio-editor-data" style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                      <label style={{ color: '#E4C687', fontSize: '12px' }}>Qué se consigue:</label>
+                                      <label style={{ color: '#E4C687', fontSize: '12px' }}>¿Qué te llevas?:</label>
                                       <input type="text" value={sub.achievedText || ''} onChange={(e) => {
                                         const val = e.target.value;
                                         setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, achievedText: val } : s) } : c));
                                       }} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
+                                    </div>
+                                    <div className="studio-editor-data" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                      <label style={{ color: '#E4C687', fontSize: 12 }}>¿Es para ti?
+                                        <textarea value={sub.forWhomText || ''} onChange={e => { const value = e.target.value; setCatalog(previous => previous.map(category => category.id === cat.id ? { ...category, subservices: category.subservices.map(service => service.id === sub.id ? { ...service, forWhomText: value } : service) } : category)); }} rows={3} placeholder="Si notas cambios en tu cabello o quieres saber cómo cuidarlo…" style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: 10, borderRadius: 5, marginTop: 6 }} />
+                                      </label>
                                     </div>
                                   </div>
                                 )}
@@ -6145,11 +6157,11 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                 <label className="studio-new-field">Precio<input type="text" placeholder="Precio (ej. 45 €)" value={newSubPrice} onChange={(e) => setNewSubPrice(e.target.value)} onFocus={(e) => e.target.select()} style={{ flex: 1, padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} /></label>
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <label style={{ color: '#E4C687', fontSize: '12px' }}>Qué incluye:</label>
+                                <label style={{ color: '#E4C687', fontSize: '12px' }}>¿Qué incluye?</label>
                                 <input type="text" placeholder="Ej. Lavado sensorial y protector térmico" value={newSubIncludes} onChange={(e) => setNewSubIncludes(e.target.value)} style={{ padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} />
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                <label style={{ color: '#E4C687', fontSize: '12px' }}>Qué se consigue:</label>
+                                <label style={{ color: '#E4C687', fontSize: '12px' }}>¿Qué te llevas?:</label>
                                 <input type="text" placeholder="Ej. Brillo extremo y duración prolongada" value={newSubAchieved} onChange={(e) => setNewSubAchieved(e.target.value)} style={{ padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} />
                               </div>
                               <div style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', padding: '8px', borderRadius: '4px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -6902,7 +6914,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                   </button>)}
                 </div>
               </section>}
-              {([{ title: 'Qué incluye', text: previewService.includesText }, { title: 'Qué consigues', text: previewService.achievedText }]
+              {([{ title: '¿Qué incluye?', text: previewService.includesText }, { title: '¿Qué te llevas?', text: previewService.achievedText }, { title: '¿Es para ti?', text: previewService.forWhomText }]
                 .filter(section => !!section.text?.trim()).map(section => <section key={section.title} style={{ borderTop: '1px solid #C5A059', paddingTop: '20px', marginTop: '22px' }}>
                   <h3 style={{ color: '#E4C687', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '16px', fontWeight: 'normal', margin: '0 0 10px' }}>{section.title}</h3>
                   <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: 0, overflowWrap: 'anywhere' }}>{section.text}</p>
