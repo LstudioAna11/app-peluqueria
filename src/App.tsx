@@ -1445,7 +1445,7 @@ function withConsultationPhoto(sub: SubService): SubService {
 
   const name = sub.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   const exactTechnicalTest = name.replace(/\s+/g, ' ').trim() === 'test de viabilidad tecnica & resistencia';
-  const strand = exactTechnicalTest || /viabilidad|test.*mechon|prueba.*mechon|antes del gran cambio/.test(name);
+  const strand = exactTechnicalTest || /hasta\s+donde.*(?:cabello|pelo)/.test(name) || /viabilidad|test.*mechon|prueba.*mechon|antes del gran cambio/.test(name);
   const visagism = !/corte|dni|microcamara/.test(name) && (/visagismo/.test(name) && /consulta|estudio|asesor/.test(name) || /tu look,? con sentido/.test(name));
   if (!strand && !visagism) return sub;
   const photoVersion = strand ? 3 : 1;
