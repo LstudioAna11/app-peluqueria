@@ -1442,12 +1442,15 @@ const CONSULTATION_PHOTOS = {"strand": "data:image/jpeg;base64,/9j/4QCuRXhpZgAAS
 
 // Apply once per matched service. Later manual uploads keep the version marker.
 function withConsultationPhoto(sub: SubService): SubService {
-  if (sub.consultationPhotoVersion === 1) return sub;
+
   const name = sub.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  const strand = /viabilidad|test.*mechon|prueba.*mechon|antes del gran cambio/.test(name);
+  const exactTechnicalTest = name.replace(/\s+/g, ' ').trim() === 'test de viabilidad tecnica & resistencia';
+  const strand = exactTechnicalTest || /viabilidad|test.*mechon|prueba.*mechon|antes del gran cambio/.test(name);
   const visagism = !/corte|dni|microcamara/.test(name) && (/visagismo/.test(name) && /consulta|estudio|asesor/.test(name) || /tu look,? con sentido/.test(name));
   if (!strand && !visagism) return sub;
-  return { ...sub, consultationPhotoVersion: 1, imageUrl: strand ? CONSULTATION_PHOTOS.strand : CONSULTATION_PHOTOS.visagism, imageIsAiPlaceholder: false, imagePosition: { x: 50, y: 45 }, imageCredit: strand ? 'Imagen de referencia: Rizondulada · https://rizondulada.cl' : 'Imagen de referencia: Salon CHRIS · https://www.chris.ma/post/coupe-sur-mesure-marrakech' };
+  const photoVersion = strand ? 3 : 1;
+  if (sub.consultationPhotoVersion === photoVersion && sub.imageUrl) return sub;
+  return { ...sub, consultationPhotoVersion: photoVersion, imageUrl: strand ? CONSULTATION_PHOTOS.strand : CONSULTATION_PHOTOS.visagism, imageIsAiPlaceholder: false, imagePosition: { x: 50, y: 45 }, imageCredit: strand ? 'Imagen de referencia: Rizondulada · https://rizondulada.cl' : 'Imagen de referencia: Salon CHRIS · https://www.chris.ma/post/coupe-sur-mesure-marrakech' };
 }
 
 const INITIAL_CATALOG: CatalogCategory[] = [
