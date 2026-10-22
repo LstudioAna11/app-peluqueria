@@ -1,6 +1,6 @@
 // Cliente del servidor 360studio: autenticación por PIN, sincronización y reservas.
 const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string | undefined) ?? '';
-const anonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined) ?? '';
+const anonKey = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string | undefined) ?? '';
 
 export const serverConfigured = Boolean(supabaseUrl && anonKey);
 
