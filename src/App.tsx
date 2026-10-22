@@ -1319,6 +1319,8 @@ interface Appointment {
     whatsapp24h: boolean;
     whatsapp2h: boolean;
   };
+  professionalId?: string | null;
+  professionalName?: string | null;
 }
 
 const isActiveAppointment = (appointment: Appointment) =>
@@ -1823,6 +1825,7 @@ function StudioApp() {
   const [previewServiceId, setPreviewServiceId] = useState<string | null>(null);
   const [previewVariantId, setPreviewVariantId] = useState<string>('');
   const [selectedServicesToBook, setSelectedServicesToBook] = useState<{ sub: SubService; variant: ServiceVariant | null }[]>([]);
+  const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(null);
   const [viewServiceDetail, setViewServiceDetail] = useState<{ cat: CatalogCategory; sub: SubService } | null>(null);
   const [activeCatalogTab, setActiveCatalogTab] = useState<string>('');
   const carouselScrollerRef = useRef<HTMLDivElement | null>(null);
@@ -1928,6 +1931,11 @@ function StudioApp() {
   const [employeePhotoBusy, setEmployeePhotoBusy] = useState<string | null>(null);
   const employeePhotoBusyRef = useRef(false);
   const portalShowsPrices = bizConfig.showPrices !== false;
+  const activeEmployees = (bizConfig.employees || []).filter(e => e.status === 'active' && e.name.trim());
+  useEffect(() => {
+    if (activeEmployees.length === 1) setSelectedProfessionalId(activeEmployees[0].id);
+    else if (activeEmployees.length === 0) setSelectedProfessionalId(null);
+  }, [activeEmployees.length]);
   const clientPrice = (price: string | undefined) => portalShowsPrices ? (price || '') : '';
   const updateEmployee = (id: string, patch: Partial<StudioEmployee>) => setTempConfig(previous => ({ ...previous, employees: (previous.employees || []).map(employee => employee.id === id ? { ...employee, ...patch } : employee) }));
   const uploadEmployeePhoto = async (id: string, file?: File) => {
@@ -3100,6 +3108,8 @@ function StudioApp() {
       selectedVariant: snap.selectedVariant ?? null,
       services: Array.isArray(row.services) ? row.services : undefined,
       remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false, ...(snap.remindersStatus || {}) },
+      professionalId: row.professional_id ?? null,
+      professionalName: row.professional_name ?? null,
     };
     if (row.lifecycle_status) appointment.lifecycleStatus = row.lifecycle_status as Appointment['lifecycleStatus'];
     if (row.approval_status) appointment.saturdayApproval = { status: row.approval_status, reason: row.approval_reason, reference: row.approval_reference || '' } as Appointment['saturdayApproval'];
@@ -3745,6 +3755,8 @@ function StudioApp() {
         serviceSubcategory: newApp.serviceSubcategory,
         selectedVariant: newApp.selectedVariant,
         remindersStatus: newApp.remindersStatus,
+        professionalId: newApp.professionalId ?? null,
+        professionalName: newApp.professionalName ?? null,
       }).then(serverResult => {
         const synced: Appointment = { ...newApp, serverId: serverResult.id };
         setAppointments(previous => previous.map(item => item.id === synced.id ? synced : item));
@@ -3821,6 +3833,9 @@ function StudioApp() {
       remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
     };
     const approvalReason = getApprovalReason(selectedServicesToBook, newApp.dateKey);
+    const profEmp = activeEmployees.find(e => e.id === selectedProfessionalId);
+    newApp.professionalId = selectedProfessionalId;
+    newApp.professionalName = profEmp?.name.trim() || null;
     if (approvalReason) {
       newApp.saturdayApproval = { status: 'pending', reason: approvalReason, reference: `REV-${crypto.randomUUID().slice(0, 8).toUpperCase()}` };
       newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, approvalReason === 'saturday' ? 'PENDIENTE SÁBADO' : 'PENDIENTE VALORACIÓN');
@@ -3857,6 +3872,8 @@ function StudioApp() {
         serviceSubcategory: newApp.serviceSubcategory,
         selectedVariant: newApp.selectedVariant,
         remindersStatus: newApp.remindersStatus,
+        professionalId: newApp.professionalId,
+        professionalName: newApp.professionalName,
       }).then(serverResult => {
         const synced: Appointment = { ...newApp, serverId: serverResult.id };
         setAppointments(previous => previous.map(item => item.id === synced.id ? synced : item));
@@ -5040,6 +5057,21 @@ function StudioApp() {
           <button type="button" onClick={() => { setReservationPolicyChecked(saturdayNeedsAcceptance && acceptedSaturdayPolicy === saturdayPolicyKey); setReservationPolicyOpen(true); }} style={{ alignSelf: 'flex-end', color: '#E4C687', background: 'none', border: 'none', textDecoration: 'underline', padding: 10, minHeight: 44, cursor: 'pointer' }}>Políticas de reserva · Sábados</button>
           <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#D8C29A', padding: '10px 0', cursor: 'pointer' }}>{t('backServices')}</button>
           <div><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', color: '#FFF8EE', fontSize: '28px', fontWeight: 'normal', margin: '0 0 8px' }}>{t('chooseMoment')}</h2><p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('fullSlots')} · {getModalDuration(selectedServicesToBook)} min.</p></div>
+          {activeEmployees.length > 1 && <section aria-label="Selecciona profesional" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <h3 style={{ color: '#FFF8EE', fontSize: '15px', margin: 0 }}>Elige profesional</h3>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              {activeEmployees.map(emp => (
+                <button key={emp.id} type="button" aria-pressed={selectedProfessionalId === emp.id} onClick={() => setSelectedProfessionalId(prev => prev === emp.id ? null : emp.id)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 14px', background: selectedProfessionalId === emp.id ? '#C49A58' : '#322A25', color: selectedProfessionalId === emp.id ? '#29231F' : '#FFF8EE', border: '1px solid rgba(255,248,238,0.12)', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', minHeight: '48px' }}>
+                  {emp.photo ? <img src={emp.photo} alt={emp.name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} /> : <span style={{ width: 36, height: 36, borderRadius: '50%', background: '#3E342C', display: 'grid', placeItems: 'center', fontSize: 14, color: '#E4C687' }}>{emp.name.charAt(0).toUpperCase()}</span>}
+                  <span>{emp.name.trim()}</span>
+                </button>
+              ))}
+              <button type="button" aria-pressed={selectedProfessionalId === null} onClick={() => setSelectedProfessionalId(null)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 14px', background: selectedProfessionalId === null ? '#C49A58' : '#322A25', color: selectedProfessionalId === null ? '#29231F' : '#FFF8EE', border: '1px solid rgba(255,248,238,0.12)', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', minHeight: '48px' }}>
+                <span style={{ width: 36, height: 36, borderRadius: '50%', background: '#3E342C', display: 'grid', placeItems: 'center', fontSize: 13, color: '#E4C687' }}>—</span>
+                <span>Sin preferencia</span>
+              </button>
+            </div>
+          </section>}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
             <button type="button" aria-label={t('previousWeek')} onClick={() => { const day = new Date(bookingDate); day.setDate(day.getDate() - 7); choosePortalDate(day); }} style={{ padding: '12px', background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', cursor: 'pointer' }}>←</button>
             <span style={{ color: '#FFF8EE', fontSize: '14px', textAlign: 'center' }}>{portalWeekStart.toLocaleDateString(portalLocale, { month: 'long', year: 'numeric' })}</span>
@@ -7280,6 +7312,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               <strong style={{ fontSize: '14px' }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada · Hueco liberado' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada · Registro conservado' : viewApptModal.completedAt ? 'Realizada · Registrada en el pasaporte' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Cita confirmada'}</strong>
               <p style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '21px', margin: '12px 0 8px' }}>{new Date(`${viewApptModal.dateKey}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {viewApptModal.time}</p>
               <span style={{ color: '#D6CBB8', fontSize: '13px' }}>Duración total: {viewApptModal.durationMinutes || 45} min</span>
+              {viewApptModal.professionalName && <span style={{ color: '#D6CBB8', fontSize: '13px', display: 'block', marginTop: '4px' }}>Profesional: {viewApptModal.professionalName}</span>}
             </div>
             {currentScreen === 'adminPanel' && <button type="button" onClick={() => {
               const email = normalizeEmail(viewApptModal.email);

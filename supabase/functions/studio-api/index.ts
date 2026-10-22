@@ -919,6 +919,18 @@ Deno.serve(async (req: Request) => {
           ? String(body.advancePayment.reference).slice(0, 64)
           : null;
       }
+      // Validate professional: if provided, must match an active employee.
+      let validatedProfId: string | null = null;
+      let validatedProfName: string | null = null;
+      if (typeof body.professionalId === 'string' && body.professionalId) {
+        const { data: profCfg } = await admin.from('studio_settings').select('configuration').eq('id', true).maybeSingle();
+        const employees = ((profCfg?.configuration ?? {}) as Record<string, any>)?.employees as { id: string; name: string; status: string }[] | undefined;
+        const match = (employees || []).find((e) => e.id === body.professionalId && e.status === 'active');
+        if (!match) return json({ error: 'Profesional no disponible' }, 422);
+        validatedProfId = match.id;
+        validatedProfName = match.name.trim();
+      }
+
       const lifecycleStatus = isAdmin ? (body.lifecycleStatus ?? "active") : "active";
       const bookingClientId = isAdmin ? (body.clientId ?? null) : (tokenRow.client_id ?? null);
 
@@ -974,6 +986,8 @@ Deno.serve(async (req: Request) => {
           selectedVariant: body.selectedVariant ?? null,
         },
         legacy_service_text: body.serviceSubcategory ?? "",
+        professional_id: validatedProfId,
+        professional_name: validatedProfName,
       }).select("id").single();
       if (error) {
         if ((error as any).code === "23505") return json({ error: "Reserva duplicada" }, 409);
@@ -990,6 +1004,7 @@ Deno.serve(async (req: Request) => {
         clientName: String(body.clientName ?? ""),
         clientEmail: validEmail(body.email),
         servicesText,
+        professional: validatedProfName,
         confirmed: notificationConfirmed({lifecycle_status:lifecycleStatus || 'active',approval_status:approvalStatus,deposit_status:depositStatus}),
       }).catch(error => console.error("Notificaciones:",error));
       await scheduleAppointmentWhatsApp(admin, {
@@ -1060,7 +1075,7 @@ Deno.serve(async (req: Request) => {
       const scheduleKey = crypto.randomUUID();
       void scheduleKey;
       let reread = admin.from("studio_appointments")
-        .select("id, starts_at, lifecycle_status, approval_status, deposit_status, services, client_snapshot, client_id")
+        .select("id, starts_at, lifecycle_status, approval_status, deposit_status, services, client_snapshot, client_id, professional_id, professional_name")
         .or(`id.eq.${apptRef},source_legacy_id.eq.${apptRef}`);
       if (!isAdmin) reread = reread.eq("client_id", tokenRow.client_id);
       const { data: updatedAppt } = await reread.maybeSingle();
@@ -1097,6 +1112,7 @@ Deno.serve(async (req: Request) => {
               clientName: String(snap.clientName ?? ""),
               clientEmail: validEmail(snap.email),
               servicesText,
+              professional: (updatedAppt as any).professional_name ?? null,
               confirmed,
               isUpdate: true,
             }).catch(error => console.error("Notificaciones:",error));
@@ -1109,6 +1125,7 @@ Deno.serve(async (req: Request) => {
               clientName: String(snap.clientName ?? ""),
               clientEmail: validEmail(snap.email),
               servicesText,
+              professional: (updatedAppt as any).professional_name ?? null,
               confirmed,
             }).catch(error => console.error("Notificaciones:",error));
             await scheduleAppointmentWhatsApp(admin, waCtx).catch(error => console.error("Notificaciones:",error));

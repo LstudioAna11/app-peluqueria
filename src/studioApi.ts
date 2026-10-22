@@ -124,6 +124,8 @@ export interface ServerAppointmentInput {
   serviceSubcategory?: string;
   selectedVariant?: unknown;
   remindersStatus?: unknown;
+  professionalId?: string | null;
+  professionalName?: string | null;
 }
 
 export const createAppointmentOnServer = (token: string, appointment: ServerAppointmentInput) =>
