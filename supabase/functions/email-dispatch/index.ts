@@ -334,7 +334,7 @@ async function finish(admin:any,table:string,row:any,result:any,provider:string)
   // Token/auth errors are not transient: park the row so it won't auto-retry
   // until an admin fixes the credential and requeues it.
   const tokenError=/HTTP 401|Código 190|Invalid OAuth|access token/i.test(result.error || '');
-  const attempts=tokenError ? MAX_ATTEMPTS : (row.attempts || 0);
+  const attempts=tokenError ? MAX_ATTEMPTS : (row.attempts || 0) + 1;
   const patch=result.expired ? {status:'skipped',last_error:result.error || 'Proveedor no confirmó el envío'}
     : {status:'failed',last_error:result.error || 'Proveedor no confirmó el envío',provider,attempts,scheduled_at:new Date(Date.now()+RETRY_DELAY_MINUTES*60000).toISOString()};
   const {error}=await admin.from(table).update(patch).eq('id',row.id).eq('status','sending');if(error)throw error;
@@ -403,10 +403,6 @@ Deno.serve(async(req:Request)=>{
     const {data:waCfg,error:waConfigError}=await admin.from('studio_whatsapp_config').select('*').eq('id',true).maybeSingle();
     const report:any={email:{sent:0,failed:0,skipped:0},whatsapp:{sent:0,failed:0,skipped:0},push:{sent:0,failed:0,skipped:0},errors:[]};
     if(waConfigError)report.errors.push('WhatsApp: '+waConfigError.message);
-    // Recover rows stuck in "sending" (previous invocation crashed mid-send).
-    await admin.from('studio_whatsapp_outbox').update({status:'failed',last_error:'Recuperado de envío atascado'}).eq('status','sending');
-    await admin.from('studio_email_outbox').update({status:'failed',last_error:'Recuperado de envío atascado'}).eq('status','sending');
-    await admin.from('studio_notification_jobs').update({status:'failed',last_error:'Recuperado de envío atascado'}).eq('status','sending');
     const deadline=Date.now()+45000;
     for(const table of ['studio_email_outbox','studio_whatsapp_outbox','studio_notification_jobs']) {
       const {data:due,error}=await admin.from(table).select('*').in('status',['scheduled','failed']).lt('attempts',MAX_ATTEMPTS).lte('scheduled_at',new Date().toISOString()).order('scheduled_at').limit(30);
