@@ -47,14 +47,32 @@ interface AppointmentRow {
   lifecycle_status: string;
   approval_status: string;
   deposit_status: string;
+  completed_at?: string | null;
 }
 
-function appointmentIsConfirmed(appt: AppointmentRow): boolean {
-  if (!appt || appt.lifecycle_status === "cancelled" || appt.lifecycle_status === "no_show") return false;
-  if (appt.approval_status === "pending") return false;
-  if (appt.deposit_status === "pending") return false;
-  return true;
+// starts_at del proyecto conserva la hora de agenda como texto ISO UTC.
+// Convertir SOLO al programar avisos, sin cambiar las citas existentes ni el portal.
+function notificationInstant(wallIso: string): string {
+  const wall = wallIso.slice(0, 19);
+  const target = Date.parse(wall + 'Z');
+  if (!Number.isFinite(target)) throw new Error('Fecha de cita no válida');
+  let guess = target;
+  for (let i = 0; i < 4; i++) {
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit', second:'2-digit', hourCycle:'h23' }).formatToParts(new Date(guess));
+    const values = Object.fromEntries(parts.map(p => [p.type,p.value]));
+    const represented = Date.parse(`${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}:${values.second}Z`);
+    const adjustment = target - represented;
+    if (!adjustment) return new Date(guess).toISOString();
+    guess += adjustment;
+  }
+  throw new Error('La hora de cita coincide con un cambio horario no válido');
 }
+const notificationConfirmed = (appt: any) => !!appt && !appt.completed_at &&
+  !['cancelled','no_show'].includes(appt.lifecycle_status) &&
+  ['accepted','not_required'].includes(appt.approval_status || 'not_required') &&
+  ['received','paid','confirmed','not_required'].includes(appt.deposit_status || 'not_required');
+
+function appointmentIsConfirmed(appt: AppointmentRow): boolean { return notificationConfirmed(appt); }
 
 function emailLayout(title: string, bodyHtml: string): string {
   return `<!DOCTYPE html>
@@ -116,11 +134,13 @@ async function sendViaResend(
   to: string,
   subject: string,
   html: string,
+  idempotencyKey?: string,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
   try {
     const response = await fetch("https://api.resend.com/emails", {
       method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      signal: AbortSignal.timeout(12000),
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", ...(idempotencyKey ? {"Idempotency-Key":idempotencyKey}: {}) },
       body: JSON.stringify({ from: fromEmail, to: [to], subject, html }),
     });
     const payload = await response.json().catch(() => ({}));
@@ -135,324 +155,300 @@ async function sendViaResend(
   }
 }
 
+const b64uToBytes = (value: string): Uint8Array => {
+  const padding = 4 - (value.length % 4 || 4);
+  const base64 = (value + "=".repeat(padding % 4)).replace(/-/g, "+").replace(/_/g, "/");
+  const raw = atob(base64);
+  const bytes = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+  return bytes;
+};
+
+const bytesToB64u = (bytes: Uint8Array): string => {
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+};
+
+const concatBytes = (...parts: Uint8Array[]): Uint8Array => {
+  const total = parts.reduce((sum, part) => sum + part.length, 0);
+  const out = new Uint8Array(total);
+  let offset = 0;
+  for (const part of parts) { out.set(part, offset); offset += part.length; }
+  return out;
+};
+
+const hkdfBits = async (salt: Uint8Array, ikm: Uint8Array, info: Uint8Array, lengthBytes: number): Promise<Uint8Array> => {
+  const key = await crypto.subtle.importKey("raw", ikm as unknown as ArrayBuffer, "HKDF", false, ["deriveBits"]);
+  const bits = await crypto.subtle.deriveBits({ name: "HKDF", hash: "SHA-256", salt: salt as unknown as ArrayBuffer, info: info as unknown as ArrayBuffer }, key, lengthBytes * 8);
+  return new Uint8Array(bits);
+};
+
+// aes128gcm content encoding (RFC 8188) with ECDH P-256 key agreement (RFC 8291).
+const encryptAes128Gcm = async (p256dh: string, auth: string, plaintext: Uint8Array): Promise<Uint8Array> => {
+  const clientPubRaw = b64uToBytes(p256dh);
+  const authSecret = b64uToBytes(auth);
+  const serverKeys = await crypto.subtle.generateKey({ name: "ECDH", namedCurve: "P-256" }, true, ["deriveBits"]);
+  const clientPubKey = await crypto.subtle.importKey("raw", clientPubRaw as unknown as ArrayBuffer, { name: "ECDH", namedCurve: "P-256" }, false, []);
+  const sharedBits = new Uint8Array(await crypto.subtle.deriveBits({ name: "ECDH", public: clientPubKey }, serverKeys.privateKey, 256));
+  const serverPubRaw = new Uint8Array(await crypto.subtle.exportKey("raw", serverKeys.publicKey));
+
+  const ikm = await hkdfBits(
+    authSecret,
+    sharedBits,
+    concatBytes(new TextEncoder().encode("WebPush: info\x00"), clientPubRaw, serverPubRaw),
+    32,
+  );
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const cek = await hkdfBits(salt, ikm, new TextEncoder().encode("Content-Encoding: aes128gcm\x00"), 16);
+  const nonce = await hkdfBits(salt, ikm, new TextEncoder().encode("Content-Encoding: nonce\x00"), 12);
+
+  const recordPlaintext = concatBytes(plaintext, new Uint8Array([2]));
+  const aesKey = await crypto.subtle.importKey("raw", cek as unknown as ArrayBuffer, "AES-GCM", false, ["encrypt"]);
+  const ciphertext = new Uint8Array(await crypto.subtle.encrypt({
+    name: "AES-GCM", iv: nonce as unknown as ArrayBuffer, additionalData: new Uint8Array(0), tagLength: 128,
+  }, aesKey, recordPlaintext as unknown as ArrayBuffer));
+
+  const header = concatBytes(
+    salt,
+    new Uint8Array([0x00, 0x00, 0x10, 0x00]),
+    new Uint8Array([serverPubRaw.length]),
+    serverPubRaw,
+  );
+  return concatBytes(header, ciphertext);
+};
+
+// Signs the VAPID JWT (ES256) and posts the encrypted message to the push service.
+const sendWebPush = async (admin: ReturnType<typeof createClient>, endpoint: string, p256dh: string, auth: string, payload: Record<string, unknown>): Promise<{ ok: true; messageId: string | null } | { ok: false; error: string; expired: boolean }> => {
+  try {
+    const { data: cfg } = await admin.from("studio_push_config").select("public_key, private_key, subject").eq("id", true).maybeSingle();
+    const row = (cfg ?? {}) as Record<string, unknown>;
+    if (!row.private_key || !row.public_key || !row.subject) return { ok: false, error: "Configuración push del servidor incompleta (claves VAPID)", expired: false };
+
+    const audience = new URL(endpoint).origin;
+    const header = bytesToB64u(new TextEncoder().encode(JSON.stringify({ typ: "JWT", alg: "ES256" })));
+    const claims = bytesToB64u(new TextEncoder().encode(JSON.stringify({
+      aud: audience,
+      exp: Math.floor(Date.now() / 1000) + 12 * 3600,
+      sub: String(row.subject),
+    })));
+    const privRaw = b64uToBytes(String(row.private_key));
+    let vapidKey: CryptoKey;
+    if (privRaw.length === 32) {
+      vapidKey = await crypto.subtle.importKey("jwk", {
+        kty: "EC", crv: "P-256",
+        x: bytesToB64u(b64uToBytes(String(row.public_key)).slice(1, 33)), y: bytesToB64u(b64uToBytes(String(row.public_key)).slice(33, 65)), d: bytesToB64u(privRaw),
+      } as JsonWebKey, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+    } else {
+      vapidKey = await crypto.subtle.importKey("pkcs8", privRaw as unknown as ArrayBuffer, { name: "ECDSA", namedCurve: "P-256" }, false, ["sign"]);
+    }
+    const signature = await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, vapidKey, new TextEncoder().encode(`${header}.${claims}`));
+    const vapidToken = `${header}.${claims}.${bytesToB64u(new Uint8Array(signature))}`;
+
+    const encrypted = await encryptAes128Gcm(p256dh, auth, new TextEncoder().encode(JSON.stringify(payload)));
+
+    const response = await fetch(endpoint, {
+      signal: AbortSignal.timeout(12000),
+      method: "POST",
+      headers: {
+        Authorization: `vapid t=${vapidToken}, k=${String(row.public_key)}`,
+        "Content-Type": "application/octet-stream",
+        "Content-Encoding": "aes128gcm",
+        TTL: String(Math.min(86400, Math.max(1, Number(payload.ttlSeconds) || 86400))),
+        Urgency: "high",
+      },
+      body: encrypted as unknown as ArrayBuffer,
+    });
+
+    if (response.status === 404 || response.status === 410) {
+      return { ok: false, error: `Suscripción caducada (${response.status})`, expired: true };
+    }
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      return { ok: false, error: `Error ${response.status} del servicio push: ${text.slice(0, 200)}`, expired: false };
+    }
+    return { ok: true, messageId: response.headers.get("location") || null };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Error de red", expired: false };
+  }
+};
+
+
+function templateData(appt:any,portalUrl:string) {
+  const snap=appt.client_snapshot || {};
+  const instant=notificationInstant(appt.starts_at);
+  const services=(appt.services || []).map((s:any)=>[s?.sub?.name,s?.variant?.name].filter(Boolean).join(' · ')).filter(Boolean).join(' + ') || snap.serviceSubcategory || 'Servicios del Studio';
+  return {client_name:String(snap.clientName || ''),date:fmtDate(instant),time:fmtTime(instant),services,portal_url:`${portalUrl.replace(/\/+$/,'')}?cita=${encodeURIComponent(appt.id)}`};
+}
 const cleanCredential = (value: unknown): string =>
   String(value ?? "").trim().replace(/^["'\s]+|["'\s]+$/g, "");
 
-async function sendViaWhatsAppCloud(
-  accessToken: string,
-  phoneNumberId: string,
-  to: string,
-  templateName: string,
-): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  const token = cleanCredential(accessToken);
-  const phoneId = cleanCredential(phoneNumberId);
-  if (!token) return { ok: false, error: "Falta el token de acceso de WhatsApp (vacío o no configurado)" };
-  if (!phoneId) return { ok: false, error: "Falta el phone_number_id de WhatsApp" };
+async function sendApprovedWhatsApp(config:any,kind:string,to:string,appt:any) {
+  const token = cleanCredential(config.access_token);
+  const phoneId = cleanCredential(config.phone_number_id);
+  if (!token) return {ok:false,error:'Falta el token de acceso de WhatsApp (vacío o no configurado)'};
+  if (!phoneId) return {ok:false,error:'Falta el phone_number_id de WhatsApp'};
+  const configured=config.notification_templates?.[kind];
+  const template=configured || (kind === 'confirmation' && config.template_name ? {name:config.template_name,language:'es',parameters:[]}:null);
+  if(!template?.name) return {ok:false,error:`Falta la plantilla aprobada y configurada para ${kind}. No se enviará una plantilla de confirmación como recordatorio.`};
+  const values=templateData(appt,String(config.portal_url || DEFAULT_PORTAL_URL));
+  const parameters=Array.isArray(template.parameters) ? template.parameters : [];
+  if(parameters.some((key:string)=>!(key in values)))return {ok:false,error:'La plantilla tiene parámetros desconocidos'};
+  const payload={messaging_product:'whatsapp',to:to.replace(/^\+/,''),type:'template',template:{name:template.name,language:{code:template.language || 'es'},...(parameters.length ? {components:[{type:'body',parameters:parameters.map((key:keyof typeof values)=>({type:'text',text:values[key]}))}]}:{})}};
   try {
-    const response = await fetch(`https://graph.facebook.com/v22.0/${phoneId}/messages`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to: to.replace(/^\+/, ""),
-        type: "template",
-        template: { name: templateName, language: { code: "es" } },
-      }),
-      signal: AbortSignal.timeout(15000),
-    });
-    const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const err = (payload as { error?: { message?: string; code?: number; error_subcode?: number; fbtrace_id?: string; type?: string } }).error;
-      const parts = [`HTTP ${response.status}`];
-      if (err?.type) parts.push(err.type);
-      if (err?.code) parts.push(`Código ${err.code}`);
-      if (err?.error_subcode) parts.push(`Subcódigo ${err.error_subcode}`);
-      if (err?.message) parts.push(err.message);
-      if (err?.fbtrace_id) parts.push(`Ref ${err.fbtrace_id}`);
-      return { ok: false, error: parts.join(" · ") };
+    const response=await fetch(`https://graph.facebook.com/v22.0/${phoneId}/messages`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(15000)});
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok || !data.messages?.[0]?.id){
+      const err=data.error || {};
+      const parts=[`HTTP ${response.status}`];
+      if(err.type)parts.push(err.type);
+      if(err.code)parts.push(`Código ${err.code}`);
+      if(err.error_subcode)parts.push(`Subcódigo ${err.error_subcode}`);
+      if(err.message)parts.push(err.message);
+      if(err.fbtrace_id)parts.push(`Ref ${err.fbtrace_id}`);
+      return {ok:false,error:parts.join(' · ') || `Meta no confirmó el envío (${response.status})`};
     }
-    const id = (payload as { messages?: { id?: string }[] }).messages?.[0]?.id || "";
-    if (!id) return { ok: false, error: "Meta aceptó la petición pero no devolvió un identificador de mensaje" };
-    return { ok: true, id };
-  } catch (error) {
-    return { ok: false, error: error instanceof Error ? error.message : "Error de red" };
+    return {ok:true,id:String(data.messages[0].id)};
+  }catch(error){return {ok:false,error:error instanceof Error ? error.message:'Error de red'};}
+}
+async function whatsappConsent(admin:any,appt:any) {
+  const {data,error}=appt.client_id ? await admin.from('studio_clients').select('whatsapp_consent').eq('id',appt.client_id).maybeSingle():{data:null,error:null};
+  if(error)throw error;
+  const old=appt.client_snapshot?.remindersStatus || {};
+  return !!data?.whatsapp_consent || (appt.booking_channel === 'portal' && (old.whatsapp48h === true || old.whatsapp24h === true || old.whatsapp2h === true));
+}
+async function readAppointment(admin:any,id:string) {
+  const {data,error}=await admin.from('studio_appointments').select('*').eq('id',id).maybeSingle();
+  if(error)throw error;return data;
+}
+async function claim(admin:any,table:string,row:any) {
+  const {data,error}=await admin.from(table).update({status:'sending',attempts:(row.attempts || 0)+1}).eq('id',row.id).eq('status',row.status).eq('attempts',row.attempts || 0).select('id').maybeSingle();
+  if(error)throw error;return !!data;
+}
+async function finish(admin:any,table:string,row:any,result:any,provider:string) {
+  if(result.ok){
+    const patch={status:'sent',sent_at:new Date().toISOString(),provider,provider_message_id:result.id || result.messageId || null,last_error:null};
+    const {error}=await admin.from(table).update(patch).eq('id',row.id).eq('status','sending');if(error)throw error;
+    return;
   }
+  // Token/auth errors are not transient: park the row so it won't auto-retry
+  // until an admin fixes the credential and requeues it.
+  const tokenError=/HTTP 401|Código 190|Invalid OAuth|access token/i.test(result.error || '');
+  const attempts=tokenError ? MAX_ATTEMPTS : (row.attempts || 0);
+  const patch=result.expired ? {status:'skipped',last_error:result.error || 'Proveedor no confirmó el envío'}
+    : {status:'failed',last_error:result.error || 'Proveedor no confirmó el envío',provider,attempts,scheduled_at:new Date(Date.now()+RETRY_DELAY_MINUTES*60000).toISOString()};
+  const {error}=await admin.from(table).update(patch).eq('id',row.id).eq('status','sending');if(error)throw error;
+}
+async function skip(admin:any,table:string,id:string,reason:string) {
+  const {error}=await admin.from(table).update({status:'skipped',last_error:reason}).eq('id',id).eq('status','sending');if(error)throw error;
+}
+function invalidMessage(row:any,appt:any):string|null {
+  if(!appt)return 'Cita eliminada';
+  if(row.kind === 'cancellation')return appt.lifecycle_status === 'cancelled' ? null:'La cita no está cancelada';
+  if(row.kind === 'request_received')return ['cancelled','no_show'].includes(appt.lifecycle_status) || appt.approval_status === 'rejected' || appointmentIsConfirmed(appt) ? 'La solicitud ya no está pendiente':null;
+  if(!appointmentIsConfirmed(appt))return 'Cita pendiente, rechazada, cancelada o finalizada';
+  const start=Date.parse(notificationInstant(appt.starts_at));
+  if(start <= Date.now())return 'La cita ya ha comenzado';
+  if(row.expected_starts_at && Date.parse(row.expected_starts_at) !== Date.parse(appt.starts_at))return 'La cita ha cambiado de fecha';
+  if(row.idempotency_key && !row.expected_starts_at) {
+    const match=String(row.idempotency_key).match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z)$/);
+    if(match && Date.parse(match[1]) !== start)return 'Aviso de una fecha anterior';
+  }
+  if(row.kind === 'reminder_24h' && start-Date.now() <= 2*3600000)return 'El recordatorio de 24 horas ya está fuera de plazo';
+  return null;
 }
 
-Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
-
-  const admin = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
-  );
-
+Deno.serve(async(req:Request)=>{
+  if(req.method === 'OPTIONS')return new Response(null,{headers:corsHeaders});
+  const admin=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
   try {
-    const url = new URL(req.url);
-    const body = req.method === "GET" ? {} : await req.json().catch(() => ({})) as Record<string, unknown>;
-
-    // ---------- status (called by studio-api on behalf of 360Studio) ----------
-    if (url.pathname.endsWith("/email-status")) {
-      const { data: cfgStatus } = await admin.from("studio_email_config").select("worker_secret").eq("id", true).maybeSingle();
-      const statusSecret = (cfgStatus as { worker_secret?: string | null } | null)?.worker_secret ?? "";
-      if (statusSecret && String(body.workerSecret ?? "") !== statusSecret) return json({ error: "No autorizado" }, 401);
-      const appointmentId = String(body.appointmentId ?? "");
-      if (!appointmentId) return json({ error: "Falta la cita" }, 400);
-      const { data, error } = await admin
-        .from("studio_email_outbox")
-        .select("id, kind, to_email, subject, status, scheduled_at, sent_at, provider, provider_message_id, last_error, attempts, created_at")
-        .eq("appointment_id", appointmentId)
-        .order("created_at");
-      if (error) return json({ error: error.message }, 500);
-      return json({ emails: data ?? [] });
-    }
-
-    // ---------- dispatch ----------
-    const { data: cfg } = await admin.from("studio_email_config").select("worker_secret").eq("id", true).maybeSingle();
-    const configSecret = (cfg as { worker_secret?: string | null } | null)?.worker_secret ?? "";
-    const providedSecret = String(body.workerSecret ?? "");
-    const urlSecret = url.searchParams.get("workerSecret") ?? "";
-    if (configSecret && providedSecret !== configSecret && urlSecret !== configSecret) {
-      return json({ error: "No autorizado" }, 401);
-    }
-
-    const { data: config } = await admin.from("studio_email_config").select("*").eq("id", true).maybeSingle();
-    const serviceKey = (config as { service_key?: string | null } | null)?.service_key ?? null;
-    const fromEmail = (config as { from_email?: string | null } | null)?.from_email ?? null;
-    const portalUrl = (((config as { portal_url?: string | null } | null)?.portal_url) || DEFAULT_PORTAL_URL).replace(/\/+$/, "");
-    const providerConfigured = Boolean(serviceKey && fromEmail);
-
-    const nowIso = new Date().toISOString();
-    const { data: due, error } = await admin
-      .from("studio_email_outbox")
-      .select("id, appointment_id, kind, to_email, subject, body_html, status, scheduled_at, attempts")
-      .in("status", ["scheduled", "failed"])
-      .lte("scheduled_at", nowIso)
-      .order("scheduled_at")
-      .limit(50);
-    if (error) return json({ error: error.message }, 500);
-
-    let sent = 0;
-    let failed = 0;
-    let skipped = 0;
-    const errors: string[] = [];
-
-    for (const row of (due ?? []) as OutboxRow[]) {
-      if (row.status === "failed" && (row.attempts ?? 0) >= MAX_ATTEMPTS) continue;
-
-      // Reminders only send while the appointment is still confirmed and its
-      // schedule has not changed since the reminder was created.
-      if (row.kind === "reminder_48h" || row.kind === "reminder_24h") {
-        const { data: appt } = await admin
-          .from("studio_appointments")
-          .select("id, starts_at, lifecycle_status, approval_status, deposit_status")
-          .eq("id", row.appointment_id ?? "")
-          .maybeSingle();
-        if (!appt) {
-          await admin.from("studio_email_outbox").update({ status: "skipped", last_error: "Cita eliminada" }).eq("id", row.id);
-          skipped++;
-          continue;
-        }
-        if (!appointmentIsConfirmed(appt as unknown as AppointmentRow)) {
-          await admin.from("studio_email_outbox").update({ status: "skipped", last_error: "La cita ya no está confirmada" }).eq("id", row.id);
-          skipped++;
-          continue;
-        }
+    const url=new URL(req.url);
+    const raw=req.method === 'GET' ? '':await req.text();
+    let body:any={};try{body=raw ? JSON.parse(raw):{};}catch{return json({error:'JSON no válido'},400);}
+    // Meta callbacks have separate verification; do not execute the dispatch loop.
+    if(url.pathname.endsWith('/whatsapp') || url.searchParams.has('hub.mode')) {
+      const {data:cfg}=await admin.from('studio_whatsapp_config').select('*').eq('id',true).maybeSingle();
+      if(req.method === 'GET')return cfg?.verify_token && url.searchParams.get('hub.mode') === 'subscribe' && url.searchParams.get('hub.verify_token') === cfg.verify_token ? new Response(url.searchParams.get('hub.challenge') || '',{status:200}):json({error:'No autorizado'},403);
+      const secret=Deno.env.get('META_APP_SECRET');
+      if(!secret)return json({error:'Falta META_APP_SECRET para verificar el webhook'},503);
+      const sig=req.headers.get('x-hub-signature-256') || '';
+      if(!/^sha256=[a-f0-9]{64}$/i.test(sig))return json({error:'Firma no válida'},401);
+      const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'HMAC',hash:'SHA-256'},false,['verify']);
+      const signature=Uint8Array.from(sig.slice(7).match(/../g)!,h=>parseInt(h,16));
+      if(!await crypto.subtle.verify('HMAC',key,signature,new TextEncoder().encode(raw)))return json({error:'Firma no válida'},401);
+      for(const entry of body.entry || [])for(const change of entry.changes || [])for(const st of change.value?.statuses || []) {
+        if(!st.id || !['sent','delivered','read','failed'].includes(st.status))continue;
+        const instant=st.timestamp ? new Date(Number(st.timestamp)*1000).toISOString():new Date().toISOString();
+        const patch:any={};
+        if(st.status === 'delivered')patch.delivered_at=instant;
+        if(st.status === 'read'){patch.read_at=instant;patch.delivered_at=instant;}
+        if(st.status === 'failed')patch.last_error=st.errors?.[0]?.title || 'Meta informó de un fallo de entrega';
+        // Never downgrade read to delivered on an out-of-order callback.
+        if(st.status === 'read')await admin.from('studio_whatsapp_outbox').update({...patch,status:'read'}).eq('provider_message_id',st.id);
+        if(st.status === 'delivered')await admin.from('studio_whatsapp_outbox').update({...patch,status:'delivered'}).eq('provider_message_id',st.id).neq('status','read');
+        if(st.status === 'failed')await admin.from('studio_whatsapp_outbox').update(patch).eq('provider_message_id',st.id);
+        await admin.from('studio_notification_jobs').update({...(st.status === 'failed' ? {last_error:patch.last_error}:{}),provider_delivery_status:st.status}).eq('provider_message_id',st.id);
       }
-
-      if (!providerConfigured) {
-        await admin.from("studio_email_outbox").update({
-          status: "failed",
-          attempts: (row.attempts ?? 0) + 1,
-          last_error: "Proveedor de email no configurado: falta la API key y un remitente verificado",
-          provider: null,
-        }).eq("id", row.id);
-        failed++;
-        errors.push(`${row.kind}: proveedor no configurado`);
-        continue;
-      }
-
-      await admin.from("studio_email_outbox").update({ status: "sending" }).eq("id", row.id);
-      const result = await sendViaResend(serviceKey!, fromEmail!, row.to_email, row.subject, row.body_html);
-      if (result.ok) {
-        await admin.from("studio_email_outbox").update({
-          status: "sent",
-          sent_at: new Date().toISOString(),
-          provider: "resend",
-          provider_message_id: result.id,
-          last_error: null,
-          attempts: (row.attempts ?? 0) + 1,
-        }).eq("id", row.id);
-        sent++;
-      } else {
-        const nextAttempts = (row.attempts ?? 0) + 1;
-        const retryAt = nextAttempts >= MAX_ATTEMPTS ? row.scheduled_at : new Date(Date.now() + RETRY_DELAY_MINUTES * 60_000).toISOString();
-        await admin.from("studio_email_outbox").update({
-          status: "failed",
-          attempts: nextAttempts,
-          last_error: result.error,
-          provider: "resend",
-          scheduled_at: retryAt,
-        }).eq("id", row.id);
-        failed++;
-        errors.push(`${row.kind}: ${result.error}`);
-      }
+      return json({ok:true});
     }
-
-    // ---------- WhatsApp status webhook (Meta) + worker ----------
-    const { data: waCfgRow } = await admin.from("studio_whatsapp_config").select("*").eq("id", true).maybeSingle();
-    const waCfg = (waCfgRow ?? {}) as Record<string, unknown>;
-
-    if (url.searchParams.has("hub.mode") || (req.method === "GET" && url.pathname.endsWith("/whatsapp"))) {
-      const mode = url.searchParams.get("hub.mode");
-      const token = url.searchParams.get("hub.verify_token");
-      const challenge = url.searchParams.get("hub.challenge");
-      if (mode === "subscribe" && token && String(token) === String(waCfg.verify_token ?? "")) {
-        return new Response(challenge ?? "", { status: 200, headers: corsHeaders });
-      }
-      return json({ error: "Verificación de webhook no válida" }, 403);
+    const {data:cfg,error:configError}=await admin.from('studio_email_config').select('*').eq('id',true).maybeSingle();
+    if(configError)throw configError;
+    const secret=String(cfg?.worker_secret || '');
+    if(!secret || (String(body.workerSecret || '') !== secret && url.searchParams.get('workerSecret') !== secret))return json({error:'No autorizado: falta secreto de worker válido'},401);
+    if(url.pathname.endsWith('/email-status')) {
+      const {data,error}=await admin.from('studio_email_outbox').select('id,kind,to_email,subject,status,scheduled_at,sent_at,provider,provider_message_id,last_error,attempts,created_at').eq('appointment_id',String(body.appointmentId || '')).order('created_at');
+      if(error)throw error;return json({emails:data || []});
     }
-
-    if (req.method === "POST" && url.pathname.endsWith("/whatsapp")) {
-      // Meta status updates: delivered / read. Failed sends are already
-      // handled in the dispatch loop below.
-      try {
-        const payload = await req.json();
-        const entries = (payload as { entry?: { changes?: { value?: { statuses?: { id: string; status: string; timestamp?: string }[] }[] }[] }[] }).entry ?? [];
-        for (const entry of entries) {
-          for (const change of entry.changes ?? []) {
-            for (const st of change.value?.statuses ?? []) {
-              if (!st?.id) continue;
-              const patch: Record<string, unknown> = {};
-              if (st.status === "delivered") patch.delivered_at = st.timestamp ? new Date(Number(st.timestamp) * 1000).toISOString() : new Date().toISOString();
-              if (st.status === "read") patch.read_at = st.timestamp ? new Date(Number(st.timestamp) * 1000).toISOString() : new Date().toISOString();
-              if (st.status === "failed") patch.last_error = "Meta informó de un fallo de entrega";
-              if (Object.keys(patch).length) {
-                await admin.from("studio_whatsapp_outbox").update(patch).eq("provider_message_id", st.id);
-              }
-            }
+    if(req.method !== 'POST' && req.method !== 'GET')return json({error:'Método no permitido'},405);
+    const {data:waCfg,error:waConfigError}=await admin.from('studio_whatsapp_config').select('*').eq('id',true).maybeSingle();
+    const report:any={email:{sent:0,failed:0,skipped:0},whatsapp:{sent:0,failed:0,skipped:0},push:{sent:0,failed:0,skipped:0},errors:[]};
+    if(waConfigError)report.errors.push('WhatsApp: '+waConfigError.message);
+    // Recover rows stuck in "sending" (previous invocation crashed mid-send).
+    await admin.from('studio_whatsapp_outbox').update({status:'failed',last_error:'Recuperado de envío atascado'}).eq('status','sending');
+    await admin.from('studio_email_outbox').update({status:'failed',last_error:'Recuperado de envío atascado'}).eq('status','sending');
+    await admin.from('studio_notification_jobs').update({status:'failed',last_error:'Recuperado de envío atascado'}).eq('status','sending');
+    const deadline=Date.now()+45000;
+    for(const table of ['studio_email_outbox','studio_whatsapp_outbox','studio_notification_jobs']) {
+      const {data:due,error}=await admin.from(table).select('*').in('status',['scheduled','failed']).lt('attempts',MAX_ATTEMPTS).lte('scheduled_at',new Date().toISOString()).order('scheduled_at').limit(30);
+      if(error){report.errors.push(`${table}: ${error.message}`);continue;}
+      for(const row of due || []) {
+        if(Date.now()>deadline)break;
+        const channel=table === 'studio_email_outbox' ? 'email':table === 'studio_whatsapp_outbox' ? 'whatsapp':row.channel;
+        let claimed=false;
+        try {
+          if(!await claim(admin,table,row))continue;
+          claimed=true;
+          const appt=await readAppointment(admin,row.appointment_id);
+          const invalid=invalidMessage(row,appt);
+          if(invalid){await skip(admin,table,row.id,invalid);report[channel].skipped++;continue;}
+          if(channel === 'email') {
+            const result=cfg?.service_key && cfg?.from_email ? await sendViaResend(cfg.service_key,cfg.from_email,row.to_email,row.subject,row.body_html,row.id):{ok:false,error:'Falta API key de email o remitente verificado'};
+            await finish(admin,table,row,result,'resend');report.email[result.ok?'sent':'failed']++;
+            if(!result.ok)report.errors.push(result.error);
+          } else if(channel === 'whatsapp') {
+            if(!await whatsappConsent(admin,appt)){await skip(admin,table,row.id,'Sin autorización de WhatsApp de la clienta');report.whatsapp.skipped++;continue;}
+            const result=await sendApprovedWhatsApp(waCfg || {},row.kind,row.to_phone,appt);
+            await finish(admin,table,row,result,'meta_cloud_api');report.whatsapp[result.ok?'sent':'failed']++;
+            if(!result.ok)report.errors.push(result.error);
+          } else {
+            const {data:sub,error:subError}=await admin.from('studio_push_subscriptions').select('*').eq('id',row.subscription_id).maybeSingle();
+            if(subError)throw subError;
+            if(!sub || sub.client_id !== appt.client_id){await skip(admin,table,row.id,'Dispositivo desactivado o de otra clienta');report.push.skipped++;continue;}
+            const instant=notificationInstant(appt.starts_at);
+            const kind=row.kind;
+            const title=kind === 'reminder_24h' ? 'Mañana te esperamos':kind === 'reminder_2h' ? 'Tu cita es dentro de 2 horas':kind === 'update' ? 'Cita modificada':'Cita confirmada';
+            const result=await sendWebPush(admin,sub.endpoint,sub.p256dh,sub.auth,{title,body:`${fmtDate(instant)} · ${fmtTime(instant)} h. ${templateData(appt,DEFAULT_PORTAL_URL).services}`,url:`/?cita=${appt.id}`,tag:`appt-${appt.id}-${kind}-${appt.starts_at}`,ttlSeconds:Math.max(1,Math.floor((Date.parse(instant)-Date.now())/1000))});
+            await finish(admin,table,row,result,'web_push');report.push[result.ok?'sent':'failed']++;
+            if(!result.ok){report.errors.push(result.error);if(result.expired)await admin.from('studio_push_subscriptions').delete().eq('id',sub.id);}
           }
-        }
-      } catch { /* malformed webhook payloads are ignored */ }
-      return json({ ok: true });
-    }
-
-    // ---------- WhatsApp dispatch (same cron trigger) ----------
-    const waWorkerSecret = String(waCfg.worker_secret ?? "");
-    const waBodySecret = String((body as { workerSecret?: string }).workerSecret ?? "");
-    const waUrlSecret = url.searchParams.get("workerSecret") ?? "";
-    const secretOk = !waWorkerSecret || waBodySecret === waWorkerSecret || waUrlSecret === waWorkerSecret
-      || (!!configSecret && (waBodySecret === configSecret || waUrlSecret === configSecret));
-
-    let waSent = 0;
-    let waFailed = 0;
-    let waSkipped = 0;
-    const waErrors: string[] = [];
-    if (secretOk) {
-      // Recover rows stuck in "sending" (previous invocation crashed mid-send).
-      await admin.from("studio_whatsapp_outbox")
-        .update({ status: "failed", last_error: "Recuperado de envío atascado" })
-        .eq("status", "sending");
-      await admin.from("studio_email_outbox")
-        .update({ status: "failed", last_error: "Recuperado de envío atascado" })
-        .eq("status", "sending");
-
-      const waConfigured = Boolean(cleanCredential(waCfg.access_token) && cleanCredential(waCfg.phone_number_id) && waCfg.template_name);
-      const { data: waDue, error: waErr } = await admin
-        .from("studio_whatsapp_outbox")
-        .select("id, appointment_id, kind, to_phone, template_name, status, attempts")
-        .in("status", ["scheduled", "failed"])
-        .lte("scheduled_at", nowIso)
-        .order("scheduled_at")
-        .limit(50);
-      if (waErr) return json({ error: waErr.message }, 500);
-
-      for (const row of (waDue ?? []) as { id: string; appointment_id: string | null; kind: string; to_phone: string; template_name: string; attempts: number }[]) {
-        if (row.status === "failed" && (row.attempts ?? 0) >= MAX_ATTEMPTS) continue;
-
-        // Confirmations only go out while the appointment is still confirmed.
-        if (row.appointment_id) {
-          const { data: appt } = await admin
-            .from("studio_appointments")
-            .select("id, starts_at, lifecycle_status, approval_status, deposit_status, client_id, booking_channel, client_snapshot")
-            .eq("id", row.appointment_id)
-            .maybeSingle();
-          if (!appt) {
-            await admin.from("studio_whatsapp_outbox").update({ status: "skipped", last_error: "Cita eliminada" }).eq("id", row.id);
-            waSkipped++;
-            continue;
-          }
-          if (!appointmentIsConfirmed(appt as unknown as AppointmentRow)) {
-            await admin.from("studio_whatsapp_outbox").update({ status: "skipped", last_error: "La cita ya no está confirmada" }).eq("id", row.id);
-            waSkipped++;
-            continue;
-          }
-          // Consent gate: appointment notices only go to clients who authorised
-          // WhatsApp. Cancellations inform regardless, since they annul the booking.
-          if (row.kind !== "cancellation") {
-            const { data: consentRow } = appt.client_id
-              ? await admin.from("studio_clients").select("whatsapp_consent").eq("id", appt.client_id).maybeSingle()
-              : { data: null };
-            const consented = Boolean((consentRow as { whatsapp_consent?: boolean } | null)?.whatsapp_consent);
-            const snapshot = (appt.client_snapshot || {}) as Record<string, unknown>;
-            const reminders = (snapshot.remindersStatus || {}) as Record<string, unknown>;
-            const allowed = consented || (appt.booking_channel === "portal" && reminders.whatsapp48h === true);
-            if (!allowed) {
-              await admin.from("studio_whatsapp_outbox").update({ status: "skipped", last_error: "Sin autorización de WhatsApp de la clienta" }).eq("id", row.id);
-              waSkipped++;
-              continue;
-            }
-          }
-        }
-
-        if (!waConfigured) {
-          await admin.from("studio_whatsapp_outbox").update({
-            status: "failed",
-            attempts: (row.attempts ?? 0) + 1,
-            last_error: "WhatsApp no configurado: faltan credenciales, número habilitado o plantilla aprobada",
-            provider: null,
-          }).eq("id", row.id);
-          waFailed++;
-          waErrors.push(`${row.kind}: WhatsApp no configurado`);
-          continue;
-        }
-
-        await admin.from("studio_whatsapp_outbox").update({ status: "sending" }).eq("id", row.id);
-        const result = await sendViaWhatsAppCloud(waCfg.access_token as string, waCfg.phone_number_id as string, row.to_phone, row.template_name || (waCfg.template_name as string));
-        // 401/token errors are not transient — don't waste the retry budget.
-        const tokenError = /HTTP 401|Código 190|Invalid OAuth|access token/i.test(result.error || "");
-        if (result.ok) {
-          await admin.from("studio_whatsapp_outbox").update({
-            status: "sent",
-            sent_at: new Date().toISOString(),
-            provider: "meta_cloud_api",
-            provider_message_id: result.id,
-            last_error: null,
-            attempts: (row.attempts ?? 0) + 1,
-          }).eq("id", row.id);
-          waSent++;
-        } else {
-          const nextAttempts = (row.attempts ?? 0) + 1;
-          const terminal = nextAttempts >= MAX_ATTEMPTS || tokenError;
-          const retryAt = terminal ? row.scheduled_at : new Date(Date.now() + RETRY_DELAY_MINUTES * 60_000).toISOString();
-          await admin.from("studio_whatsapp_outbox").update({
-            status: "failed",
-            attempts: terminal ? nextAttempts : nextAttempts,
-            last_error: result.error,
-            provider: "meta_cloud_api",
-            scheduled_at: retryAt,
-          }).eq("id", row.id);
-          waFailed++;
-          waErrors.push(`${row.kind}: ${result.error}`);
+        }catch(error){
+          const message=error instanceof Error ? error.message:String((error as any)?.message || error);
+          report.errors.push(message);
+          if(claimed)await finish(admin,table,row,{ok:false,error:message},channel === 'email'?'resend':channel === 'push'?'web_push':'meta_cloud_api');
+          report[channel].failed++;
         }
       }
     }
-
-    return json({
-      ok: true, due: (due ?? []).length, sent, failed, skipped, providerConfigured, errors: errors.slice(0, 10),
-      whatsapp: { sent: waSent, failed: waFailed, skipped: waSkipped, providerConfigured: Boolean(cleanCredential(waCfg.access_token) && cleanCredential(waCfg.phone_number_id) && waCfg.template_name), errors: waErrors.slice(0, 10) },
-    });
-  } catch (error) {
-    return json({ error: error instanceof Error ? error.message : "Error interno" }, 500);
-  }
+    return json({ok:report.errors.length === 0,...report,errors:report.errors.slice(0,20)});
+  }catch(error){return json({error:error instanceof Error ? error.message:String((error as any)?.message || error)},500);}
 });
