@@ -5057,7 +5057,7 @@ function StudioApp() {
           <button type="button" onClick={() => { setReservationPolicyChecked(saturdayNeedsAcceptance && acceptedSaturdayPolicy === saturdayPolicyKey); setReservationPolicyOpen(true); }} style={{ alignSelf: 'flex-end', color: '#E4C687', background: 'none', border: 'none', textDecoration: 'underline', padding: 10, minHeight: 44, cursor: 'pointer' }}>Políticas de reserva · Sábados</button>
           <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#D8C29A', padding: '10px 0', cursor: 'pointer' }}>{t('backServices')}</button>
           <div><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', color: '#FFF8EE', fontSize: '28px', fontWeight: 'normal', margin: '0 0 8px' }}>{t('chooseMoment')}</h2><p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('fullSlots')} · {getModalDuration(selectedServicesToBook)} min.</p></div>
-          {activeEmployees.length > 1 && <section aria-label="Selecciona profesional" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {activeEmployees.length >= 1 && <section aria-label="Selecciona profesional" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <h3 style={{ color: '#FFF8EE', fontSize: '15px', margin: 0 }}>Elige profesional</h3>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               {activeEmployees.map(emp => (
@@ -5350,6 +5350,11 @@ function StudioApp() {
             {([['agenda', 'Agenda Maestra'], ['clients', 'Clientas'], ['catalog', 'Catálogo'], ['config', 'Configuración'], ['detractors', `Buzón (${feedbackList.filter(f => !f.resolvedAt).length})`], ['crm', 'CRM e informes'], ['demands', 'Demandas · Oportunidades de cita'], ['holidays', 'Vacaciones y festivos']] as const).map(([tab, label]) => <React.Fragment key={tab}><button type="button" key={tab} aria-current={adminTab === tab ? 'page' : undefined} onClick={() => setAdminTab(tab)} style={{ width: '100%', textAlign: 'left', minHeight: '48px', padding: '14px', backgroundColor: adminTab === tab ? 'rgba(201, 158, 82, 0.16)' : 'transparent', color: adminTab === tab ? '#F3D994' : '#FFF8EE', border: adminTab === tab ? '1px solid rgba(228, 198, 135, 0.45)' : '1px solid transparent', borderRadius: '9px', fontSize: '14px', cursor: 'pointer' }}>{label}</button>{tab === 'agenda' && renderAgendaLinks()}</React.Fragment>)}
           </nav>
           <main className="studio-admin-content">
+          {activeEmployees.length === 0 && (
+            <div style={{ padding: '12px 16px', backgroundColor: '#F2DCD8', border: '1px solid #C0392B', borderRadius: '8px', color: '#8A2F23', fontSize: '13px', lineHeight: 1.6, marginBottom: '4px' }}>
+              No hay profesionales configurados. Ve a Configuración → Empleados y añade al menos una persona en activo para que las clientas puedan elegir profesional al reservar.
+            </div>
+          )}
           {/* TAB 1: AGENDA MAESTRA */}
           {adminTab === 'agenda' && (
             <div ref={agendaLayoutRef} className="studio-agenda-layout" style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
