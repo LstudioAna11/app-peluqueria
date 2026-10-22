@@ -1,5 +1,5 @@
 /* Service worker de L'Studio Ana: recepción de notificaciones push. */
-const CACHE_VERSION = 'lstudio-v2';
+const CACHE_VERSION = 'lstudio-v3';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil((async () => {
@@ -32,8 +32,8 @@ self.addEventListener('push', (event) => {
   const url = payload.url || '/?notificacion=1';
   event.waitUntil(self.registration.showNotification(title, {
     body,
-    icon: payload.icon || '/favicon.svg',
-    badge: '/favicon.svg',
+    icon: payload.icon || '/icon-192.png',
+    badge: '/icon-192.png',
     tag: payload.tag || undefined,
     data: { url },
   }));
