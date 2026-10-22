@@ -109,7 +109,7 @@ async function enqueueReminderJobs(admin: ReturnType<typeof createClient>, ctx: 
   const recipients = channel === 'push'
     ? (await admin.from('studio_push_subscriptions').select('id').eq('client_id',ctx.clientId || '00000000-0000-0000-0000-000000000000')).data || []
     : ctx.clientPhone ? [{id:null}] : [];
-  const reminderHours = channel === 'whatsapp' ? [2] : [24,2];
+  const reminderHours = channel === 'whatsapp' ? [1] : [24,2];
   const moments: {kind:string;at:number}[] = [
     ...(channel === 'push' ? [{kind:ctx.isUpdate ? 'update':'confirmation',at:now}] : []),
     ...reminderHours.map(hours => ({kind:`reminder_${hours}h`,at:start-hours*3600000})).filter(m => m.at > now)
@@ -663,7 +663,7 @@ Deno.serve(async (req: Request) => {
       if (error) return json({ error: error.message }, 500);
       const {data:jobs,error:jobError}=await admin.from('studio_notification_jobs').select('*').eq('appointment_id',appointmentId).eq('channel','whatsapp').order('scheduled_at');
       if(jobError)return json({error:jobError.message},500);
-      return json({messages:[...(messages||[]),...(jobs||[]).map((j:any)=>({...j,status:['delivered','read'].includes(j.provider_delivery_status) ? j.provider_delivery_status:j.status,body_text:`Recordatorio de cita ${j.kind === 'reminder_24h' ? '24 horas' : '2 horas'} antes`,sent_at:j.sent_at,provider:j.provider,provider_message_id:j.provider_message_id,delivered_at:null,read_at:null}))]});
+      return json({messages:[...(messages||[]),...(jobs||[]).map((j:any)=>({...j,status:['delivered','read'].includes(j.provider_delivery_status) ? j.provider_delivery_status:j.status,body_text:`Recordatorio de cita ${j.kind === 'reminder_24h' ? '24 horas' : j.kind === 'reminder_1h' ? '1 hora' : '2 horas'} antes`,sent_at:j.sent_at,provider:j.provider,provider_message_id:j.provider_message_id,delivered_at:null,read_at:null}))]});
     }
 
     if (action === "whatsapp-config") {

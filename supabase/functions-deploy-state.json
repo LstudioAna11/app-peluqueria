@@ -3,11 +3,11 @@
   "functions": {
     "email-dispatch": {
       "hasChanged": false,
-      "hash": "40bda969f7edc4553cca4fd683550861a26066286f3c29e62e52510d64499071"
+      "hash": "eec95257de2692f3e3144afdf27ead67a3772ea2dad4e0e6b4e537642dc5408a"
     },
     "studio-api": {
       "hasChanged": false,
-      "hash": "7041b2be8a9e195d7f0e2d3da1d67a2dc66ee7522f90875764b3e4dbeb5101ad"
+      "hash": "466330c3be5a62ee6be0d8d53cb8c4689a7e51789c1d76e6a88b1a28c04f7d25"
     }
   }
 }
