@@ -568,7 +568,11 @@ Deno.serve(async (req: Request) => {
     if (action === "public-catalog") {
       const { data: catalog, error } = await admin.from("studio_catalog").select("id, category").order("sort_order");
       if (error) return json(failed(error), 500);
-      return json({ catalog: catalog ?? [] });
+      const { data: settings } = await admin.from("studio_settings").select("configuration").eq("id", true).maybeSingle();
+      const employees = ((settings?.configuration as Record<string, unknown> | null)?.employees ?? []) as { id?: string; name?: string; role?: string; photo?: string; status?: string }[];
+      const activeEmployees = employees.filter((e) => e.status === "active" && e.name?.trim())
+        .map((e) => ({ id: e.id || "", name: e.name || "", role: e.role || "", photo: e.photo || "", status: "active" }));
+      return json({ catalog: catalog ?? [], employees: activeEmployees });
     }
 
     // ---------- token check ----------

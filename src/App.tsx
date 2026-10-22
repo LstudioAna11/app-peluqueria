@@ -3256,7 +3256,14 @@ function StudioApp() {
     if (studioApi.serverConfigured && studioApi.currentToken() && studioApi.storedRole()) {
       syncFromServer().catch(() => undefined);
     } else if (studioApi.serverConfigured) {
-      studioApi.fetchPublicCatalog<{ catalog: { category?: CatalogCategory }[] }>().then(data => {
+      studioApi.fetchPublicCatalog<{ catalog: { category?: CatalogCategory }[]; employees?: { id: string; name: string; role: string; photo: string; status: string }[] }>().then(data => {
+        if (Array.isArray(data?.employees) && data.employees.length) {
+          setBizConfig(prev => {
+            const merged = { ...prev, employees: data.employees as any };
+            bizConfigRef.current = merged;
+            return merged;
+          });
+        }
         if (!Array.isArray(data?.catalog) || !data.catalog.length) return;
         const serverCatalog = (data.catalog
           .map(row => row?.category)
