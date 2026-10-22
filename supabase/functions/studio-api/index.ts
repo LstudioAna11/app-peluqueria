@@ -767,6 +767,14 @@ Deno.serve(async (req: Request) => {
       if (!isAdmin) return json({ error: "Solo administración" }, 403);
       const { error } = await admin.from("studio_settings").upsert({ id: true, configuration: body.settings }, { onConflict: "id" });
       if (error) return json(failed(error), 500);
+      // Si se cambió el PIN maestro, invalidar todas las demás sesiones admin.
+      const incomingPin = (body.settings as Record<string, unknown>)?.masterPin;
+      if (typeof incomingPin === "string" && /^\d{4}$/.test(incomingPin) && incomingPin !== "0000") {
+        await admin.from("api_tokens")
+          .delete()
+          .eq("role", "admin")
+          .neq("token", token);
+      }
       return json({ ok: true });
     }
 
@@ -1231,6 +1239,16 @@ Deno.serve(async (req: Request) => {
       const {data:jobs,error:jobError}=await admin.from('studio_notification_jobs').select('*').eq('appointment_id',appointmentId).eq('channel','push').order('scheduled_at');
       if(jobError)return json(failed(jobError), 500);
       return json({pushes:[...(pushes||[]),...(jobs||[]).map((j:any)=>({...j,status:j.status === 'sent' ? 'accepted':j.status,studio_push_subscriptions:null,delivered_at:null}))]});
+    }
+
+    if (action === "invalidate-admin-sessions" && req.method === "POST") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const { count, error: delError } = await admin.from("api_tokens")
+        .delete({ count: "exact" })
+        .eq("role", "admin")
+        .neq("token", token);
+      if (delError) return json(failed(delError), 500);
+      return json({ ok: true, invalidated: count ?? 0 });
     }
 
     return json({ error: "Acción no reconocida" }, 404);
