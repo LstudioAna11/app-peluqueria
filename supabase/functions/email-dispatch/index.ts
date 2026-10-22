@@ -128,6 +128,8 @@ function viewButton(portalUrl: string, appointmentId: string): string {
 </table>`;
 }
 
+const EMAIL_FROM_NAME = "L’Studio Ana · Reservas";
+
 async function sendViaResend(
   apiKey: string,
   fromEmail: string,
@@ -141,7 +143,7 @@ async function sendViaResend(
       method: "POST",
       signal: AbortSignal.timeout(12000),
       headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", ...(idempotencyKey ? {"Idempotency-Key":idempotencyKey}: {}) },
-      body: JSON.stringify({ from: fromEmail, to: [to], subject, html }),
+      body: JSON.stringify({ from: `${EMAIL_FROM_NAME} <${fromEmail}>`, to: [to], subject, html }),
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
