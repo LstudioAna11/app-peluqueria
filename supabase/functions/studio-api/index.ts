@@ -280,19 +280,34 @@ function templateData(appt:any,portalUrl:string) {
   const services=(appt.services || []).map((s:any)=>[s?.sub?.name,s?.variant?.name].filter(Boolean).join(' · ')).filter(Boolean).join(' + ') || snap.serviceSubcategory || 'Servicios del Studio';
   return {client_name:String(snap.clientName || ''),date:fmtDate(instant),time:fmtTime(instant),services,portal_url:`${portalUrl.replace(/\/+$/,'')}?cita=${encodeURIComponent(appt.id)}`};
 }
+const cleanCredential = (value: unknown): string =>
+  String(value ?? "").trim().replace(/^["'\s]+|["'\s]+$/g, "");
+
 async function sendApprovedWhatsApp(config:any,kind:string,to:string,appt:any) {
+  const token = cleanCredential(config.access_token);
+  const phoneId = cleanCredential(config.phone_number_id);
+  if (!token) return {ok:false,error:'Falta el token de acceso de WhatsApp (vacío o no configurado)'};
+  if (!phoneId) return {ok:false,error:'Falta el phone_number_id de WhatsApp'};
   const configured=config.notification_templates?.[kind];
   const template=configured || (kind === 'confirmation' && config.template_name ? {name:config.template_name,language:'es',parameters:[]}:null);
-  if(!config.access_token || !config.phone_number_id) return {ok:false,error:'Faltan credenciales de WhatsApp Business Platform'};
   if(!template?.name) return {ok:false,error:`Falta la plantilla aprobada y configurada para ${kind}. No se enviará una plantilla de confirmación como recordatorio.`};
   const values=templateData(appt,String(config.portal_url || DEFAULT_PORTAL_URL));
   const parameters=Array.isArray(template.parameters) ? template.parameters : [];
   if(parameters.some((key:string)=>!(key in values)))return {ok:false,error:'La plantilla tiene parámetros desconocidos'};
   const payload={messaging_product:'whatsapp',to:to.replace(/^\+/,''),type:'template',template:{name:template.name,language:{code:template.language || 'es'},...(parameters.length ? {components:[{type:'body',parameters:parameters.map((key:keyof typeof values)=>({type:'text',text:values[key]}))}]}:{})}};
   try {
-    const response=await fetch(`https://graph.facebook.com/v21.0/${config.phone_number_id}/messages`,{method:'POST',headers:{Authorization:`Bearer ${config.access_token}`,'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(12000)});
+    const response=await fetch(`https://graph.facebook.com/v22.0/${phoneId}/messages`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(15000)});
     const data=await response.json().catch(()=>({}));
-    if(!response.ok || !data.messages?.[0]?.id)return {ok:false,error:data.error?.message || `Meta no confirmó el envío (${response.status})`};
+    if(!response.ok || !data.messages?.[0]?.id){
+      const err=data.error || {};
+      const parts=[`HTTP ${response.status}`];
+      if(err.type)parts.push(err.type);
+      if(err.code)parts.push(`Código ${err.code}`);
+      if(err.error_subcode)parts.push(`Subcódigo ${err.error_subcode}`);
+      if(err.message)parts.push(err.message);
+      if(err.fbtrace_id)parts.push(`Ref ${err.fbtrace_id}`);
+      return {ok:false,error:parts.join(' · ') || `Meta no confirmó el envío (${response.status})`};
+    }
     return {ok:true,id:String(data.messages[0].id)};
   }catch(error){return {ok:false,error:error instanceof Error ? error.message:'Error de red'};}
 }
@@ -311,8 +326,17 @@ async function claim(admin:any,table:string,row:any) {
   if(error)throw error;return !!data;
 }
 async function finish(admin:any,table:string,row:any,result:any,provider:string) {
-  const patch=result.ok ? {status:'sent',sent_at:new Date().toISOString(),provider,provider_message_id:result.id || result.messageId || null,last_error:null} :
-    {status:result.expired ? 'skipped':'failed',last_error:result.error || 'Proveedor no confirmó el envío',provider,scheduled_at:new Date(Date.now()+RETRY_DELAY_MINUTES*60000).toISOString()};
+  if(result.ok){
+    const patch={status:'sent',sent_at:new Date().toISOString(),provider,provider_message_id:result.id || result.messageId || null,last_error:null};
+    const {error}=await admin.from(table).update(patch).eq('id',row.id).eq('status','sending');if(error)throw error;
+    return;
+  }
+  // Token/auth errors are not transient: park the row so it won't auto-retry
+  // until an admin fixes the credential and requeues it.
+  const tokenError=/HTTP 401|Código 190|Invalid OAuth|access token/i.test(result.error || '');
+  const attempts=tokenError ? MAX_ATTEMPTS : (row.attempts || 0);
+  const patch=result.expired ? {status:'skipped',last_error:result.error || 'Proveedor no confirmó el envío'}
+    : {status:'failed',last_error:result.error || 'Proveedor no confirmó el envío',provider,attempts,scheduled_at:new Date(Date.now()+RETRY_DELAY_MINUTES*60000).toISOString()};
   const {error}=await admin.from(table).update(patch).eq('id',row.id).eq('status','sending');if(error)throw error;
 }
 async function skip(admin:any,table:string,id:string,reason:string) {
@@ -379,6 +403,10 @@ Deno.serve(async(req:Request)=>{
     const {data:waCfg,error:waConfigError}=await admin.from('studio_whatsapp_config').select('*').eq('id',true).maybeSingle();
     const report:any={email:{sent:0,failed:0,skipped:0},whatsapp:{sent:0,failed:0,skipped:0},push:{sent:0,failed:0,skipped:0},errors:[]};
     if(waConfigError)report.errors.push('WhatsApp: '+waConfigError.message);
+    // Recover rows stuck in "sending" (previous invocation crashed mid-send).
+    await admin.from('studio_whatsapp_outbox').update({status:'failed',last_error:'Recuperado de envío atascado'}).eq('status','sending');
+    await admin.from('studio_email_outbox').update({status:'failed',last_error:'Recuperado de envío atascado'}).eq('status','sending');
+    await admin.from('studio_notification_jobs').update({status:'failed',last_error:'Recuperado de envío atascado'}).eq('status','sending');
     const deadline=Date.now()+45000;
     for(const table of ['studio_email_outbox','studio_whatsapp_outbox','studio_notification_jobs']) {
       const {data:due,error}=await admin.from(table).select('*').in('status',['scheduled','failed']).lt('attempts',MAX_ATTEMPTS).lte('scheduled_at',new Date().toISOString()).order('scheduled_at').limit(30);

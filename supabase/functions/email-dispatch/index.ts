@@ -135,29 +135,44 @@ async function sendViaResend(
   }
 }
 
+const cleanCredential = (value: unknown): string =>
+  String(value ?? "").trim().replace(/^["'\s]+|["'\s]+$/g, "");
+
 async function sendViaWhatsAppCloud(
   accessToken: string,
   phoneNumberId: string,
   to: string,
   templateName: string,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const token = cleanCredential(accessToken);
+  const phoneId = cleanCredential(phoneNumberId);
+  if (!token) return { ok: false, error: "Falta el token de acceso de WhatsApp (vacío o no configurado)" };
+  if (!phoneId) return { ok: false, error: "Falta el phone_number_id de WhatsApp" };
   try {
-    const response = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+    const response = await fetch(`https://graph.facebook.com/v22.0/${phoneId}/messages`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         messaging_product: "whatsapp",
         to: to.replace(/^\+/, ""),
         type: "template",
         template: { name: templateName, language: { code: "es" } },
       }),
+      signal: AbortSignal.timeout(15000),
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
-      const err = (payload as { error?: { message?: string } }).error?.message || `Error ${response.status}`;
-      return { ok: false, error: err };
+      const err = (payload as { error?: { message?: string; code?: number; error_subcode?: number; fbtrace_id?: string; type?: string } }).error;
+      const parts = [`HTTP ${response.status}`];
+      if (err?.type) parts.push(err.type);
+      if (err?.code) parts.push(`Código ${err.code}`);
+      if (err?.error_subcode) parts.push(`Subcódigo ${err.error_subcode}`);
+      if (err?.message) parts.push(err.message);
+      if (err?.fbtrace_id) parts.push(`Ref ${err.fbtrace_id}`);
+      return { ok: false, error: parts.join(" · ") };
     }
     const id = (payload as { messages?: { id?: string }[] }).messages?.[0]?.id || "";
+    if (!id) return { ok: false, error: "Meta aceptó la petición pero no devolvió un identificador de mensaje" };
     return { ok: true, id };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Error de red" };
@@ -334,7 +349,15 @@ Deno.serve(async (req: Request) => {
     let waSkipped = 0;
     const waErrors: string[] = [];
     if (secretOk) {
-      const waConfigured = Boolean(waCfg.access_token && waCfg.phone_number_id && waCfg.template_name);
+      // Recover rows stuck in "sending" (previous invocation crashed mid-send).
+      await admin.from("studio_whatsapp_outbox")
+        .update({ status: "failed", last_error: "Recuperado de envío atascado" })
+        .eq("status", "sending");
+      await admin.from("studio_email_outbox")
+        .update({ status: "failed", last_error: "Recuperado de envío atascado" })
+        .eq("status", "sending");
+
+      const waConfigured = Boolean(cleanCredential(waCfg.access_token) && cleanCredential(waCfg.phone_number_id) && waCfg.template_name);
       const { data: waDue, error: waErr } = await admin
         .from("studio_whatsapp_outbox")
         .select("id, appointment_id, kind, to_phone, template_name, status, attempts")
@@ -396,6 +419,8 @@ Deno.serve(async (req: Request) => {
 
         await admin.from("studio_whatsapp_outbox").update({ status: "sending" }).eq("id", row.id);
         const result = await sendViaWhatsAppCloud(waCfg.access_token as string, waCfg.phone_number_id as string, row.to_phone, row.template_name || (waCfg.template_name as string));
+        // 401/token errors are not transient — don't waste the retry budget.
+        const tokenError = /HTTP 401|Código 190|Invalid OAuth|access token/i.test(result.error || "");
         if (result.ok) {
           await admin.from("studio_whatsapp_outbox").update({
             status: "sent",
@@ -408,10 +433,11 @@ Deno.serve(async (req: Request) => {
           waSent++;
         } else {
           const nextAttempts = (row.attempts ?? 0) + 1;
-          const retryAt = nextAttempts >= MAX_ATTEMPTS ? row.scheduled_at : new Date(Date.now() + RETRY_DELAY_MINUTES * 60_000).toISOString();
+          const terminal = nextAttempts >= MAX_ATTEMPTS || tokenError;
+          const retryAt = terminal ? row.scheduled_at : new Date(Date.now() + RETRY_DELAY_MINUTES * 60_000).toISOString();
           await admin.from("studio_whatsapp_outbox").update({
             status: "failed",
-            attempts: nextAttempts,
+            attempts: terminal ? nextAttempts : nextAttempts,
             last_error: result.error,
             provider: "meta_cloud_api",
             scheduled_at: retryAt,
@@ -424,7 +450,7 @@ Deno.serve(async (req: Request) => {
 
     return json({
       ok: true, due: (due ?? []).length, sent, failed, skipped, providerConfigured, errors: errors.slice(0, 10),
-      whatsapp: { sent: waSent, failed: waFailed, skipped: waSkipped, providerConfigured: Boolean(waCfg.access_token && waCfg.phone_number_id && waCfg.template_name), errors: waErrors.slice(0, 10) },
+      whatsapp: { sent: waSent, failed: waFailed, skipped: waSkipped, providerConfigured: Boolean(cleanCredential(waCfg.access_token) && cleanCredential(waCfg.phone_number_id) && waCfg.template_name), errors: waErrors.slice(0, 10) },
     });
   } catch (error) {
     return json({ error: error instanceof Error ? error.message : "Error interno" }, 500);
