@@ -9,7 +9,7 @@ const corsHeaders = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-const STUDIO_LOCATION = "Calle Mayor / Centro de Elche, Alicante";
+const STUDIO_LOCATION = "Carrer Porta d'Alacant 11, Bajo, 03202 Elx (Alicante), España";
 const DEFAULT_PORTAL_URL = "https://lstudioana.es";
 const STUDIO_NOTIFY_EMAIL = "lstudioana@gmail.com";
 const MADRID_TZ = "Europe/Madrid";

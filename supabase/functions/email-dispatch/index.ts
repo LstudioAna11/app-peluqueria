@@ -15,7 +15,7 @@ const json = (body: unknown, status = 200) =>
 
 const MADRID_TZ = "Europe/Madrid";
 const STUDIO_NAME = "L'Studio Ana";
-const STUDIO_LOCATION = "Calle Mayor / Centro de Elche, Alicante";
+const STUDIO_LOCATION = "Carrer Porta d'Alacant 11, Bajo, 03202 Elx (Alicante), España";
 const DEFAULT_PORTAL_URL = "https://lstudioana.es";
 const MAX_ATTEMPTS = 3;
 const RETRY_DELAY_MINUTES = 10;

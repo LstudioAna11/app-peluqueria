@@ -54,7 +54,7 @@ const INITIAL_BUSINESS_CONFIG: BusinessConfig = {
 
   appSubtitle: "Hair Experience",
 
-  location: "Centro de Elche, Alicante",
+  location: "Carrer Porta d'Alacant 11, Bajo, 03202 Elx (Alicante), España",
 
   phone: "600000000",
 
