@@ -1,7 +1,3 @@
-// Email dispatch worker. Triggered by pg_cron every 5 minutes and also callable
-// manually. Sends scheduled appointment emails through Resend; only
-// provider-confirmed sends are marked as "sent".
-
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 
 const corsHeaders = {
@@ -13,42 +9,75 @@ const corsHeaders = {
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-const MADRID_TZ = "Europe/Madrid";
-const STUDIO_NAME = "L'Studio Ana";
 const STUDIO_LOCATION = "Calle Mayor / Centro de Elche, Alicante";
 const DEFAULT_PORTAL_URL = "https://lstudioana.es";
-const MAX_ATTEMPTS = 3;
-const RETRY_DELAY_MINUTES = 10;
+const STUDIO_NOTIFY_EMAIL = "lstudioana@gmail.com";
+const MADRID_TZ = "Europe/Madrid";
 
-const esc = (value: string) =>
-  value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const escHtml = (value: string) =>
+  String(value).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-const fmtDate = (iso: string) =>
+const fmtDateMadrid = (iso: string) =>
   new Date(iso).toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", timeZone: MADRID_TZ });
 
-const fmtTime = (iso: string) =>
+const fmtTimeMadrid = (iso: string) =>
   new Date(iso).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", timeZone: MADRID_TZ });
 
-interface OutboxRow {
-  id: string;
-  appointment_id: string | null;
-  kind: string;
-  to_email: string;
-  subject: string;
-  body_html: string;
-  status: string;
-  scheduled_at: string;
-  attempts: number;
-}
+const emailLayout = (title: string, bodyHtml: string) => `<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#29231F;font-family:'Garet','Poppins',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#29231F;padding:24px 12px;">
+    <tr><td align="center">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#322A25;border:1px solid rgba(212,175,55,.35);border-radius:14px;">
+        <tr><td style="padding:22px 22px 6px;text-align:center;">
+          <p style="margin:0;color:#C99E52;font-size:13px;letter-spacing:2px;">L'STUDIO ANA</p>
+          <h1 style="margin:10px 0 0;color:#FFF8EE;font-size:20px;font-weight:600;line-height:1.3;">${escHtml(title)}</h1>
+        </td></tr>
+        <tr><td style="padding:12px 22px 4px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#29231F;border:1px solid rgba(212,175,55,.25);border-radius:10px;">
+            <tr><td style="padding:16px;color:#FFF8EE;font-size:15px;line-height:1.7;">${bodyHtml}</td></tr>
+          </table>
+        </td></tr>
+        <tr><td style="padding:8px 22px 20px;" align="center">
+          <p style="margin:0;color:#D6CBB8;font-size:12px;line-height:1.7;">${escHtml(STUDIO_LOCATION)}</p>
+        </td></tr>
+      </table>
+      <p style="max-width:480px;margin:14px auto 0;color:#8A7E6E;font-size:11px;line-height:1.6;text-align:center;">
+        Recibes este correo porque tienes una reserva activa en L'Studio Ana.
+      </p>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 
-interface AppointmentRow {
-  id: string;
-  starts_at: string;
-  lifecycle_status: string;
-  approval_status: string;
-  deposit_status: string;
-  completed_at?: string | null;
-}
+const howToGetThereLink = () =>
+  `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(STUDIO_LOCATION)}" target="_blank" style="color:#E4C687;">Cómo llegar</a>`;
+
+const viewButton = (portalUrl: string, appointmentId: string) => {
+  const url = `${portalUrl}?cita=${encodeURIComponent(appointmentId)}`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
+  <tr><td align="center" style="padding:4px 0 12px;">
+    <a href="${escHtml(url)}" style="display:inline-block;background:linear-gradient(135deg,#C99E52 0%,#B3823B 100%);color:#29231F;text-decoration:none;font-weight:600;font-size:14px;padding:13px 26px;border-radius:9px;">Ver mi cita</a>
+  </td></tr>
+  <tr><td align="center">${howToGetThereLink()}</td></tr>
+</table>`;
+};
+
+const detailsTable = (startsAt: string, servicesText: string, professional?: string | null) => {
+  const rows = [
+    `<tr><td style="padding:4px 0;color:#D6CBB8;width:92px;">Fecha</td><td style="padding:4px 0;color:#FFF8EE;">${escHtml(fmtDateMadrid(startsAt))}</td></tr>`,
+    `<tr><td style="padding:4px 0;color:#D6CBB8;">Hora</td><td style="padding:4px 0;color:#FFF8EE;">${escHtml(fmtTimeMadrid(startsAt))}h</td></tr>`,
+    `<tr><td style="padding:4px 0;color:#D6CBB8;">Servicios</td><td style="padding:4px 0;color:#FFF8EE;">${escHtml(servicesText)}</td></tr>`,
+  ];
+  if (professional) rows.push(`<tr><td style="padding:4px 0;color:#D6CBB8;">Profesional</td><td style="padding:4px 0;color:#FFF8EE;">${escHtml(professional)}</td></tr>`);
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows.join("")}</table>`;
+};
+
+const validEmail = (value: unknown): string | null => {
+  const email = String(value ?? "").toLowerCase().trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
+};
 
 // starts_at del proyecto conserva la hora de agenda como texto ISO UTC.
 // Convertir SOLO al programar avisos, sin cambiar las citas existentes ni el portal.
@@ -72,88 +101,295 @@ const notificationConfirmed = (appt: any) => !!appt && !appt.completed_at &&
   ['accepted','not_required'].includes(appt.approval_status || 'not_required') &&
   ['received','paid','confirmed','not_required'].includes(appt.deposit_status || 'not_required');
 
-function appointmentIsConfirmed(appt: AppointmentRow): boolean { return notificationConfirmed(appt); }
-
-function emailLayout(title: string, bodyHtml: string): string {
-  return `<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
-<body style="margin:0;padding:0;background:#29231F;font-family:'Garet','Poppins',Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#29231F;padding:24px 12px;">
-    <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#322A25;border:1px solid rgba(212,175,55,.35);border-radius:14px;">
-        <tr><td style="padding:22px 22px 6px;text-align:center;">
-          <p style="margin:0;color:#C99E52;font-size:13px;letter-spacing:2px;">${esc(STUDIO_NAME.toUpperCase())}</p>
-          <h1 style="margin:10px 0 0;color:#FFF8EE;font-size:20px;font-weight:600;line-height:1.3;">${esc(title)}</h1>
-        </td></tr>
-        <tr><td style="padding:12px 22px 4px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#29231F;border:1px solid rgba(212,175,55,.25);border-radius:10px;">
-            <tr><td style="padding:16px;color:#FFF8EE;font-size:15px;line-height:1.7;">${bodyHtml}</td></tr>
-          </table>
-        </td></tr>
-        <tr><td style="padding:8px 22px 20px;" align="center">
-          <p style="margin:0;color:#D6CBB8;font-size:12px;line-height:1.7;">${esc(STUDIO_LOCATION)}</p>
-        </td></tr>
-      </table>
-      <p style="max-width:480px;margin:14px auto 0;color:#8A7E6E;font-size:11px;line-height:1.6;text-align:center;">
-        Recibes este correo porque tienes una reserva activa en ${esc(STUDIO_NAME)}.
-      </p>
-    </td></tr>
-  </table>
-</body>
-</html>`;
-}
-
-function detailsTable(startsAt: string, servicesText: string, professional?: string | null): string {
-  const rows = [
-    `<tr><td style="padding:4px 0;color:#D6CBB8;width:92px;">Fecha</td><td style="padding:4px 0;color:#FFF8EE;">${esc(fmtDate(startsAt))}</td></tr>`,
-    `<tr><td style="padding:4px 0;color:#D6CBB8;">Hora</td><td style="padding:4px 0;color:#FFF8EE;">${esc(fmtTime(startsAt))}h</td></tr>`,
-    `<tr><td style="padding:4px 0;color:#D6CBB8;">Servicios</td><td style="padding:4px 0;color:#FFF8EE;">${esc(servicesText)}</td></tr>`,
+async function enqueueReminderJobs(admin: ReturnType<typeof createClient>, ctx: any, channel: 'push'|'whatsapp') {
+  if (!ctx.confirmed) return;
+  const start = Date.parse(notificationInstant(ctx.startsAt));
+  const now = Date.now();
+  if (start <= now) return;
+  const recipients = channel === 'push'
+    ? (await admin.from('studio_push_subscriptions').select('id').eq('client_id',ctx.clientId || '00000000-0000-0000-0000-000000000000')).data || []
+    : ctx.clientPhone ? [{id:null}] : [];
+  const moments: {kind:string;at:number}[] = [
+    ...(channel === 'push' ? [{kind:ctx.isUpdate ? 'update':'confirmation',at:now}] : []),
+    ...[24,2].map(hours => ({kind:`reminder_${hours}h`,at:start-hours*3600000})).filter(m => m.at > now)
   ];
-  if (professional) rows.push(`<tr><td style="padding:4px 0;color:#D6CBB8;">Profesional</td><td style="padding:4px 0;color:#FFF8EE;">${esc(professional)}</td></tr>`);
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows.join("")}</table>`;
+  for (const recipient of recipients) for (const moment of moments) {
+    const key = `${channel}:${moment.kind}:${ctx.apptId}:${ctx.startsAt}:${recipient.id || ctx.clientPhone}`;
+    const {error} = await admin.from('studio_notification_jobs').upsert({
+      idempotency_key:key, appointment_id:ctx.apptId, channel, kind:moment.kind,
+      subscription_id:recipient.id, client_id:ctx.clientId || null, to_phone:ctx.clientPhone || null,
+      expected_starts_at:ctx.startsAt, scheduled_at:new Date(moment.at).toISOString(),
+      payload:{clientName:ctx.clientName,servicesText:ctx.servicesText},status:'scheduled'
+    },{onConflict:'idempotency_key',ignoreDuplicates:true});
+    if (error) throw new Error(`No se pudo programar ${channel}: ${error.message}`);
+    // Reactivar únicamente pendientes anulados, nunca mensajes ya enviados.
+    await admin.from('studio_notification_jobs').update({status:'scheduled',scheduled_at:new Date(moment.at).toISOString(),last_error:null})
+      .eq('idempotency_key',key).eq('status','skipped');
+  }
+}
+async function cancelNotificationJobs(admin: ReturnType<typeof createClient>, id:string) {
+  const {error}=await admin.from('studio_notification_jobs').update({status:'skipped',last_error:'Cita cancelada, modificada o pendiente'})
+    .eq('appointment_id',id).in('status',['scheduled','failed']);
+  if(error) console.error('Cancelar recordatorios:',error.message);
+}
+async function kickDispatcher(admin: ReturnType<typeof createClient>) {
+  const {data}=await admin.from('studio_email_config').select('worker_secret').eq('id',true).maybeSingle();
+  if(!data?.worker_secret) { console.error('Falta worker_secret; no se inicia envío inmediato');return; }
+  const task=fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/email-dispatch`,{
+    method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`},
+    body:JSON.stringify({workerSecret:data.worker_secret}),signal:AbortSignal.timeout(25000)
+  }).then(async r=>{if(!r.ok)console.error('email-dispatch:',r.status,await r.text());}).catch(e=>console.error('email-dispatch:',e.message));
+  const runtime=(globalThis as any).EdgeRuntime;
+  if(runtime?.waitUntil) runtime.waitUntil(task); else await task;
 }
 
-function howToGetThereLink(): string {
-  return `<a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(STUDIO_LOCATION)}" target="_blank" style="color:#E4C687;">Cómo llegar</a>`;
+// E.164 normalisation for Spanish/international numbers: digits only, Spain
+// assumed when the client saved a 9-digit local number.
+const validPhoneE164 = (value: unknown): string | null => {
+  const raw = String(value ?? "").replace(/[^+\d]/g, "");
+  if (!raw) return null;
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length < 9 || digits.length > 15) return null;
+  if (raw.startsWith("+")) return `+${digits}`;
+  if (digits.length === 9) return `+34${digits}`;
+  if (digits.startsWith("34") && digits.length === 11) return `+${digits}`;
+  return null;
+};
+
+const whatsAppMessageText = (opts: {
+  kind: "confirmation" | "request_received" | "update" | "cancellation";
+  clientName: string;
+  startsAt: string;
+  servicesText: string;
+  portalUrl: string;
+  pending?: string | null;
+  apptIdToken?: string;
+}) => {
+  const date = fmtDateMadrid(opts.startsAt);
+  const time = fmtTimeMadrid(opts.startsAt);
+  const header = opts.kind === "request_received"
+    ? `Hola, ${opts.clientName}. Hemos recibido tu solicitud en L'Studio Ana.`
+    : opts.kind === "update"
+      ? `Hola, ${opts.clientName}. Tu cita en L'Studio Ana ha sido modificada.`
+      : opts.kind === "cancellation"
+        ? `Hola, ${opts.clientName}. Tu cita en L'Studio Ana ha sido cancelada.`
+        : `Hola, ${opts.clientName}. Tu cita en L'Studio Ana está confirmada.`;
+  const pendingLine = opts.pending ? `\nPendiente: ${opts.pending}. Te enviaremos la confirmación definitiva cuando se complete.` : "";
+  return `${header}\nFecha: ${date}\nHora: ${time}\nServicios: ${opts.servicesText}\nDirección: ${STUDIO_LOCATION}${pendingLine}\nPuedes consultar y gestionar tu cita aquí: ${opts.portalUrl}?cita=${opts.apptIdToken ?? ""}\n¡Te esperamos!`;
+};
+
+interface WhatsAppSchedulingContext {
+  apptId: string;
+  startsAt: string;
+  clientName: string;
+  clientPhone: string | null;
+  servicesText: string;
+  confirmed: boolean;
+  isUpdate?: boolean;
+  kindOverride?: "confirmation" | "request_received" | "update" | "cancellation";
 }
 
-function viewButton(portalUrl: string, appointmentId: string): string {
-  const url = `${portalUrl}?cita=${encodeURIComponent(appointmentId)}`;
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;">
-  <tr><td align="center" style="padding:4px 0 12px;">
-    <a href="${esc(url)}" style="display:inline-block;background:linear-gradient(135deg,#C99E52 0%,#B3823B 100%);color:#29231F;text-decoration:none;font-weight:600;font-size:14px;padding:13px 26px;border-radius:9px;">Ver mi cita</a>
-  </td></tr>
-  <tr><td align="center">${howToGetThereLink()}</td></tr>
-</table>`;
+// Schedule the WhatsApp booking confirmation. Idempotent via unique
+// idempotency_key, mirroring the email outbox. Emails and push are unaffected.
+const scheduleAppointmentWhatsApp = async (admin: ReturnType<typeof createClient>, ctx: WhatsAppSchedulingContext) => {
+  if (!ctx.confirmed && ctx.kindOverride !== 'cancellation') return;
+  await enqueueReminderJobs(admin, ctx, 'whatsapp').catch(error => console.error('Programar WhatsApp:',error));
+  ctx = { ...ctx, startsAt: notificationInstant(ctx.startsAt) };
+  const { data: cfg } = await admin.from("studio_whatsapp_config").select("portal_url").eq("id", true).maybeSingle();
+  const portalUrl = ((cfg as { portal_url?: string | null } | null)?.portal_url || DEFAULT_PORTAL_URL).replace(/\/+$/, "");
+  if (!ctx.clientPhone) return;
+  const kind = ctx.kindOverride ?? (!ctx.confirmed ? "request_received" : ctx.isUpdate ? "update" : "confirmation");
+  const { data: apptRow } = await admin.from("studio_appointments").select("id").eq("id", ctx.apptId).maybeSingle();
+  void apptRow;
+  const text = whatsAppMessageText({
+    kind,
+    clientName: ctx.clientName,
+    startsAt: ctx.startsAt,
+    servicesText: ctx.servicesText,
+    portalUrl,
+    pending: kind === "request_received" ? "aprobación o anticipo" : null,
+    apptIdToken: ctx.apptId,
+  });
+  await admin.from("studio_whatsapp_outbox").upsert({
+    idempotency_key: `${kind}:${ctx.apptId}:${ctx.startsAt}`,
+    appointment_id: ctx.apptId,
+    kind,
+    to_phone: ctx.clientPhone,
+    template_name: "appointment_confirmation_v1",
+    body_text: text,
+    scheduled_at: new Date().toISOString(),
+    status: "scheduled",
+  }, { onConflict: "idempotency_key", ignoreDuplicates: true });
+};
+
+const cancelAppointmentWhatsApp = async (admin: ReturnType<typeof createClient>, apptId: string, opts: { cancelled?: boolean } = {}) => {
+  await admin.from("studio_whatsapp_outbox")
+    .update({ status: "skipped", last_error: "Cita cancelada o modificada" })
+    .eq("appointment_id", apptId)
+    .in("status", ["scheduled", "failed"]);
+  if (opts.cancelled) {
+    const { data: appt } = await admin.from("studio_appointments")
+      .select("id, starts_at, client_snapshot")
+      .eq("id", apptId).maybeSingle();
+    const snap = ((appt?.client_snapshot || {}) as Record<string, unknown>);
+    const phone = validPhoneE164(snap.phone);
+    if (appt && phone) {
+      const { data: cfg } = await admin.from("studio_whatsapp_config").select("portal_url").eq("id", true).maybeSingle();
+      const portalUrl = ((cfg as { portal_url?: string | null } | null)?.portal_url || DEFAULT_PORTAL_URL).replace(/\/+$/, "");
+      const text = whatsAppMessageText({
+        kind: "cancellation",
+        clientName: String(snap.clientName ?? ""),
+        startsAt: notificationInstant(appt.starts_at),
+        servicesText: String(snap.serviceSubcategory ?? "Servicios del Studio"),
+        portalUrl,
+        apptIdToken: apptId,
+      });
+      await admin.from("studio_whatsapp_outbox").upsert({
+        idempotency_key: `cancellation:${apptId}`,
+        appointment_id: apptId,
+        kind: "cancellation",
+        to_phone: phone,
+        template_name: "appointment_confirmation_v1",
+        body_text: text,
+        scheduled_at: new Date().toISOString(),
+        status: "scheduled",
+      }, { onConflict: "idempotency_key", ignoreDuplicates: true });
+    }
+  }
+};
+
+interface SchedulingContext {
+  apptId: string;
+  startsAt: string;
+  clientName: string;
+  clientEmail: string | null;
+  servicesText: string;
+  professional?: string | null;
+  confirmed: boolean;
+  isUpdate?: boolean;
 }
 
-async function sendViaResend(
-  apiKey: string,
-  fromEmail: string,
-  to: string,
-  subject: string,
-  html: string,
-  idempotencyKey?: string,
-): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+// Schedule or update every email that depends on the current state of an
+// appointment. Idempotent: unique idempotency keys prevent duplicates when an
+// operation is retried.
+const scheduleAppointmentEmails = async (admin: ReturnType<typeof createClient>, ctx: SchedulingContext) => {
+  ctx = { ...ctx, startsAt: notificationInstant(ctx.startsAt) };
+  const { data: cfg } = await admin.from("studio_email_config").select("portal_url").eq("id", true).maybeSingle();
+  const portalUrl = ((cfg as { portal_url?: string | null } | null)?.portal_url || DEFAULT_PORTAL_URL).replace(/\/+$/, "");
+  const now = Date.now();
+  const startMs = new Date(ctx.startsAt).getTime();
+
+  const upsert = async (kind: string, idempotencyKey: string, subject: string, bodyHtml: string, scheduledAt: string, to: string) => {
+    if (!validEmail(to)) return;
+    await admin.from("studio_email_outbox").upsert({
+      idempotency_key: idempotencyKey,
+      appointment_id: ctx.apptId,
+      kind,
+      to_email: to,
+      subject,
+      body_html: bodyHtml,
+      scheduled_at: scheduledAt,
+      status: "scheduled",
+    }, { onConflict: "idempotency_key", ignoreDuplicates: true });
+  };
+
+  // Every booking notice also lands in the Studio inbox as a copy. Both
+  // recipients get their own idempotency key, so a retry never duplicates.
+  const deliver = (kind: string, keyPrefix: string, subject: string, bodyHtml: string, scheduledAt: string) =>
+    Promise.all([
+      upsert(kind, `${keyPrefix}:client:${ctx.apptId}${keySuffix}`, subject, bodyHtml, scheduledAt, ctx.clientEmail ?? ""),
+      upsert(kind, `${keyPrefix}:studio:${ctx.apptId}${keySuffix}`, `[Studio] ${subject}`, bodyHtml, scheduledAt, STUDIO_NOTIFY_EMAIL),
+    ]);
+
+  // Keys include the start time: a rescheduled appointment gets fresh messages
+  // instead of colliding with the superseded ones.
+  const keySuffix = `:${ctx.startsAt}`;
+
+  if (!ctx.confirmed) {
+    await deliver("request_received", "req", "Hemos recibido tu solicitud en L'Studio Ana",
+      emailLayout("Solicitud recibida",
+        `<p style="margin:0 0 12px;color:#FFF8EE;">Hola <strong>${escHtml(ctx.clientName)}</strong>,</p>
+         <p style="margin:0 0 12px;color:#FFF8EE;">Tu solicitud está en revisión. Te enviaremos la confirmación definitiva cuando se completen los pasos pendientes (aprobación de Ana o el anticipo de la reserva).</p>
+         ${detailsTable(ctx.startsAt, ctx.servicesText, ctx.professional)}
+         ${viewButton(portalUrl, ctx.apptId)}`),
+      new Date().toISOString());
+    return;
+  }
+
+  const confirmationKind = ctx.isUpdate ? "update" : "confirmation";
+  const confirmationTitle = ctx.isUpdate ? "Tu cita ha sido modificada" : "Tu cita está confirmada";
+  const confirmationSubject = ctx.isUpdate
+    ? "Tu cita en L'Studio Ana ha sido modificada"
+    : "Tu cita en L'Studio Ana está confirmada";
+  await deliver(confirmationKind, confirmationKind, confirmationSubject,
+    emailLayout(confirmationTitle,
+      `<p style="margin:0 0 12px;color:#FFF8EE;">Hola <strong>${escHtml(ctx.clientName)}</strong>,</p>
+       ${detailsTable(ctx.startsAt, ctx.servicesText, ctx.professional)}
+       ${viewButton(portalUrl, ctx.apptId)}`),
+    new Date().toISOString());
+
+  for (const [kind, hours, subject] of [
+    ["reminder_48h", 48, "Tu cita en L'Studio Ana es dentro de 48 horas"],
+    ["reminder_24h", 24, "Mañana te esperamos en L'Studio Ana"],
+  ] as const) {
+    const sendAt = startMs - hours * 3600_000;
+    if (sendAt <= now) continue;
+    await deliver(kind, kind, subject,
+      emailLayout(hours === 48 ? "Tu cita es dentro de 48 horas" : "Mañana te esperamos",
+        `<p style="margin:0 0 12px;color:#FFF8EE;">Hola <strong>${escHtml(ctx.clientName)}</strong>,</p>
+         ${detailsTable(ctx.startsAt, ctx.servicesText, ctx.professional)}
+         <p style="margin:12px 0 0;color:#D6CBB8;">Puedes consultar, modificar o cancelar tu cita desde el portal, según las condiciones de reserva.</p>
+         ${viewButton(portalUrl, ctx.apptId)}`),
+      new Date(sendAt).toISOString());
+  }
+};
+
+const cancelAppointmentEmails = async (admin: ReturnType<typeof createClient>, apptId: string, opts: { cancelled?: boolean } = {}) => {
+  await admin.from("studio_email_outbox")
+    .update({ status: "skipped", last_error: "Cita cancelada o modificada" })
+    .eq("appointment_id", apptId)
+    .in("status", ["scheduled", "failed"]);
+  if (opts.cancelled) {
+    const { data: appt } = await admin.from("studio_appointments")
+      .select("id, starts_at, client_snapshot")
+      .eq("id", apptId).maybeSingle();
+    const snap = ((appt?.client_snapshot || {}) as Record<string, unknown>);
+    const email = validEmail(snap.email);
+    if (appt && email) {
+      await admin.from("studio_email_outbox").upsert({
+        idempotency_key: `cancellation:${apptId}`,
+        appointment_id: apptId,
+        kind: "cancellation",
+        to_email: email,
+        subject: "Tu cita en L'Studio Ana ha sido cancelada",
+        body_html: emailLayout("Tu cita ha sido cancelada",
+          `<p style="margin:0 0 12px;color:#FFF8EE;">Hola <strong>${escHtml(String(snap.clientName ?? ""))}</strong>,</p>
+           <p style="margin:0 0 12px;color:#FFF8EE;">Tu cita ha quedado cancelada y el hueco liberado en la agenda del Studio. Los recordatorios pendientes han sido anulados.</p>
+           ${detailsTable(notificationInstant(appt.starts_at), String(snap.serviceSubcategory ?? "Servicios del Studio"))}
+           <p style="margin:12px 0 0;color:#D6CBB8;">Si quieres reservar otro día, puedes hacerlo desde el portal.</p>`),
+        scheduled_at: new Date().toISOString(),
+        status: "scheduled",
+      }, { onConflict: "idempotency_key", ignoreDuplicates: true });
+    }
+  }
+};
+
+const sendViaWhatsAppCloud = async (accessToken: string, phoneNumberId: string, to: string, templateName: string): Promise<{ ok: true; id: string } | { ok: false; error: string }> => {
   try {
-    const response = await fetch("https://api.resend.com/emails", {
+    const response = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
       method: "POST",
-      signal: AbortSignal.timeout(12000),
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", ...(idempotencyKey ? {"Idempotency-Key":idempotencyKey}: {}) },
-      body: JSON.stringify({ from: fromEmail, to: [to], subject, html }),
+      headers: { Authorization: `Bearer ${accessToken}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ messaging_product: "whatsapp", to: to.replace(/^\+/, ""), type: "template", template: { name: templateName, language: { code: "es" } } }),
     });
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) {
-      const message = (payload as { message?: string }).message || `Error ${response.status}`;
-      return { ok: false, error: message };
-    }
-    const id = (payload as { id?: string }).id || "";
-    return { ok: true, id };
+    if (!response.ok) return { ok: false, error: (payload as { error?: { message?: string } }).error?.message || `Error ${response.status}` };
+    return { ok: true, id: (payload as { messages?: { id?: string }[] }).messages?.[0]?.id || "" };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Error de red" };
   }
-}
+};
+
+// ---------- Web Push (RFC 8291 / RFC 8292) ----------
 
 const b64uToBytes = (value: string): Uint8Array => {
   const padding = 4 - (value.length % 4 || 4);
@@ -273,182 +509,651 @@ const sendWebPush = async (admin: ReturnType<typeof createClient>, endpoint: str
   }
 };
 
+// Sends a push to every device of a clienta and records each attempt in the
+// outbox. Idempotent per appointment+kind, cleans up expired subscriptions.
+const sendAppointmentPush = async (admin: ReturnType<typeof createClient>, ctx: { apptId: string; clientId: string | null; clientName: string; startsAt: string; servicesText: string; confirmed: boolean; isUpdate?: boolean }) => {
+  if (ctx.confirmed && ctx.clientId) await enqueueReminderJobs(admin,ctx,'push');
+};
 
-function templateData(appt:any,portalUrl:string) {
-  const snap=appt.client_snapshot || {};
-  const instant=notificationInstant(appt.starts_at);
-  const services=(appt.services || []).map((s:any)=>[s?.sub?.name,s?.variant?.name].filter(Boolean).join(' · ')).filter(Boolean).join(' + ') || snap.serviceSubcategory || 'Servicios del Studio';
-  return {client_name:String(snap.clientName || ''),date:fmtDate(instant),time:fmtTime(instant),services,portal_url:`${portalUrl.replace(/\/+$/,'')}?cita=${encodeURIComponent(appt.id)}`};
-}
-const cleanCredential = (value: unknown): string =>
-  String(value ?? "").trim().replace(/^["'\s]+|["'\s]+$/g, "");
+Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
 
-async function sendApprovedWhatsApp(config:any,kind:string,to:string,appt:any) {
-  const token = cleanCredential(config.access_token);
-  const phoneId = cleanCredential(config.phone_number_id);
-  if (!token) return {ok:false,error:'Falta el token de acceso de WhatsApp (vacío o no configurado)'};
-  if (!phoneId) return {ok:false,error:'Falta el phone_number_id de WhatsApp'};
-  const configured=config.notification_templates?.[kind];
-  const template=configured || (kind === 'confirmation' && config.template_name ? {name:config.template_name,language:'es',parameters:[]}:null);
-  if(!template?.name) return {ok:false,error:`Falta la plantilla aprobada y configurada para ${kind}. No se enviará una plantilla de confirmación como recordatorio.`};
-  const values=templateData(appt,String(config.portal_url || DEFAULT_PORTAL_URL));
-  const parameters=Array.isArray(template.parameters) ? template.parameters : [];
-  if(parameters.some((key:string)=>!(key in values)))return {ok:false,error:'La plantilla tiene parámetros desconocidos'};
-  const payload={messaging_product:'whatsapp',to:to.replace(/^\+/,''),type:'template',template:{name:template.name,language:{code:template.language || 'es'},...(parameters.length ? {components:[{type:'body',parameters:parameters.map((key:keyof typeof values)=>({type:'text',text:values[key]}))}]}:{})}};
+  const admin = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+  );
+
   try {
-    const response=await fetch(`https://graph.facebook.com/v22.0/${phoneId}/messages`,{method:'POST',headers:{Authorization:`Bearer ${token}`,'Content-Type':'application/json'},body:JSON.stringify(payload),signal:AbortSignal.timeout(15000)});
-    const data=await response.json().catch(()=>({}));
-    if(!response.ok || !data.messages?.[0]?.id){
-      const err=data.error || {};
-      const parts=[`HTTP ${response.status}`];
-      if(err.type)parts.push(err.type);
-      if(err.code)parts.push(`Código ${err.code}`);
-      if(err.error_subcode)parts.push(`Subcódigo ${err.error_subcode}`);
-      if(err.message)parts.push(err.message);
-      if(err.fbtrace_id)parts.push(`Ref ${err.fbtrace_id}`);
-      return {ok:false,error:parts.join(' · ') || `Meta no confirmó el envío (${response.status})`};
-    }
-    return {ok:true,id:String(data.messages[0].id)};
-  }catch(error){return {ok:false,error:error instanceof Error ? error.message:'Error de red'};}
-}
-async function whatsappConsent(admin:any,appt:any) {
-  const {data,error}=appt.client_id ? await admin.from('studio_clients').select('whatsapp_consent').eq('id',appt.client_id).maybeSingle():{data:null,error:null};
-  if(error)throw error;
-  const old=appt.client_snapshot?.remindersStatus || {};
-  return !!data?.whatsapp_consent || (appt.booking_channel === 'portal' && (old.whatsapp48h === true || old.whatsapp24h === true || old.whatsapp2h === true));
-}
-async function readAppointment(admin:any,id:string) {
-  const {data,error}=await admin.from('studio_appointments').select('*').eq('id',id).maybeSingle();
-  if(error)throw error;return data;
-}
-async function claim(admin:any,table:string,row:any) {
-  const {data,error}=await admin.from(table).update({status:'sending',attempts:(row.attempts || 0)+1}).eq('id',row.id).eq('status',row.status).eq('attempts',row.attempts || 0).select('id').maybeSingle();
-  if(error)throw error;return !!data;
-}
-async function finish(admin:any,table:string,row:any,result:any,provider:string) {
-  if(result.ok){
-    const patch={status:'sent',sent_at:new Date().toISOString(),provider,provider_message_id:result.id || result.messageId || null,last_error:null};
-    const {error}=await admin.from(table).update(patch).eq('id',row.id).eq('status','sending');if(error)throw error;
-    return;
-  }
-  // Token/auth errors are not transient: park the row so it won't auto-retry
-  // until an admin fixes the credential and requeues it.
-  const tokenError=/HTTP 401|Código 190|Invalid OAuth|access token/i.test(result.error || '');
-  const attempts=tokenError ? MAX_ATTEMPTS : (row.attempts || 0);
-  const patch=result.expired ? {status:'skipped',last_error:result.error || 'Proveedor no confirmó el envío'}
-    : {status:'failed',last_error:result.error || 'Proveedor no confirmó el envío',provider,attempts,scheduled_at:new Date(Date.now()+RETRY_DELAY_MINUTES*60000).toISOString()};
-  const {error}=await admin.from(table).update(patch).eq('id',row.id).eq('status','sending');if(error)throw error;
-}
-async function skip(admin:any,table:string,id:string,reason:string) {
-  const {error}=await admin.from(table).update({status:'skipped',last_error:reason}).eq('id',id).eq('status','sending');if(error)throw error;
-}
-function invalidMessage(row:any,appt:any):string|null {
-  if(!appt)return 'Cita eliminada';
-  if(row.kind === 'cancellation')return appt.lifecycle_status === 'cancelled' ? null:'La cita no está cancelada';
-  if(row.kind === 'request_received')return ['cancelled','no_show'].includes(appt.lifecycle_status) || appt.approval_status === 'rejected' || appointmentIsConfirmed(appt) ? 'La solicitud ya no está pendiente':null;
-  if(!appointmentIsConfirmed(appt))return 'Cita pendiente, rechazada, cancelada o finalizada';
-  const start=Date.parse(notificationInstant(appt.starts_at));
-  if(start <= Date.now())return 'La cita ya ha comenzado';
-  if(row.expected_starts_at && Date.parse(row.expected_starts_at) !== Date.parse(appt.starts_at))return 'La cita ha cambiado de fecha';
-  if(row.idempotency_key && !row.expected_starts_at) {
-    const match=String(row.idempotency_key).match(/(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z)$/);
-    if(match && Date.parse(match[1]) !== start)return 'Aviso de una fecha anterior';
-  }
-  if(row.kind === 'reminder_24h' && start-Date.now() <= 2*3600000)return 'El recordatorio de 24 horas ya está fuera de plazo';
-  return null;
-}
+    const url = new URL(req.url);
+    const action = url.pathname.replace(/\/+$/, "").split("/").pop() || "";
+    const body = req.method === "GET" ? {} : await req.json().catch(() => ({}));
 
-Deno.serve(async(req:Request)=>{
-  if(req.method === 'OPTIONS')return new Response(null,{headers:corsHeaders});
-  const admin=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-  try {
-    const url=new URL(req.url);
-    const raw=req.method === 'GET' ? '':await req.text();
-    let body:any={};try{body=raw ? JSON.parse(raw):{};}catch{return json({error:'JSON no válido'},400);}
-    // Meta callbacks have separate verification; do not execute the dispatch loop.
-    if(url.pathname.endsWith('/whatsapp') || url.searchParams.has('hub.mode')) {
-      const {data:cfg}=await admin.from('studio_whatsapp_config').select('*').eq('id',true).maybeSingle();
-      if(req.method === 'GET')return cfg?.verify_token && url.searchParams.get('hub.mode') === 'subscribe' && url.searchParams.get('hub.verify_token') === cfg.verify_token ? new Response(url.searchParams.get('hub.challenge') || '',{status:200}):json({error:'No autorizado'},403);
-      const secret=Deno.env.get('META_APP_SECRET');
-      if(!secret)return json({error:'Falta META_APP_SECRET para verificar el webhook'},503);
-      const sig=req.headers.get('x-hub-signature-256') || '';
-      if(!/^sha256=[a-f0-9]{64}$/i.test(sig))return json({error:'Firma no válida'},401);
-      const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(secret),{name:'HMAC',hash:'SHA-256'},false,['verify']);
-      const signature=Uint8Array.from(sig.slice(7).match(/../g)!,h=>parseInt(h,16));
-      if(!await crypto.subtle.verify('HMAC',key,signature,new TextEncoder().encode(raw)))return json({error:'Firma no válida'},401);
-      for(const entry of body.entry || [])for(const change of entry.changes || [])for(const st of change.value?.statuses || []) {
-        if(!st.id || !['sent','delivered','read','failed'].includes(st.status))continue;
-        const instant=st.timestamp ? new Date(Number(st.timestamp)*1000).toISOString():new Date().toISOString();
-        const patch:any={};
-        if(st.status === 'delivered')patch.delivered_at=instant;
-        if(st.status === 'read'){patch.read_at=instant;patch.delivered_at=instant;}
-        if(st.status === 'failed')patch.last_error=st.errors?.[0]?.title || 'Meta informó de un fallo de entrega';
-        // Never downgrade read to delivered on an out-of-order callback.
-        if(st.status === 'read')await admin.from('studio_whatsapp_outbox').update({...patch,status:'read'}).eq('provider_message_id',st.id);
-        if(st.status === 'delivered')await admin.from('studio_whatsapp_outbox').update({...patch,status:'delivered'}).eq('provider_message_id',st.id).neq('status','read');
-        if(st.status === 'failed')await admin.from('studio_whatsapp_outbox').update(patch).eq('provider_message_id',st.id);
-        await admin.from('studio_notification_jobs').update({...(st.status === 'failed' ? {last_error:patch.last_error}:{}),provider_delivery_status:st.status}).eq('provider_message_id',st.id);
+    // ---------- health ----------
+    if (action === "health") return json({ ok: true });
+
+    // ---------- auth ----------
+    if (action === "auth") {
+      const pin = String(body.pin ?? "").trim();
+      if (!/^\d{4}$/.test(pin)) return json({ error: "PIN no válido" }, 400);
+
+      const { data: config } = await admin.from("studio_settings").select("configuration").eq("id", true).maybeSingle();
+      const masterPin = String((config?.configuration as any)?.masterPin ?? "0000");
+
+      if (pin === masterPin) {
+        const { data, error } = await admin.from("api_tokens").insert({ role: "admin" }).select("token, expires_at").single();
+        if (error) return json({ error: "No se pudo iniciar sesión" }, 500);
+        return json({ role: "admin", token: data.token, expiresAt: data.expires_at });
       }
-      return json({ok:true});
+
+      const { data: client } = await admin.from("studio_clients").select("id, whatsapp_consent").eq("legacy_id", Number(pin)).maybeSingle();
+      if (client) {
+        const { data, error } = await admin.from("api_tokens").insert({ role: "client", client_id: client.id }).select("token, expires_at").single();
+        if (error) return json({ error: "No se pudo iniciar sesión" }, 500);
+        return json({ role: "client", token: data.token, clientId: client.id, expiresAt: data.expires_at, whatsappConsent: Boolean((client as { whatsapp_consent?: boolean }).whatsapp_consent) });
+      }
+      return json({ error: "PIN incorrecto" }, 401);
     }
-    const {data:cfg,error:configError}=await admin.from('studio_email_config').select('*').eq('id',true).maybeSingle();
-    if(configError)throw configError;
-    const secret=String(cfg?.worker_secret || '');
-    if(!secret || (String(body.workerSecret || '') !== secret && url.searchParams.get('workerSecret') !== secret))return json({error:'No autorizado: falta secreto de worker válido'},401);
-    if(url.pathname.endsWith('/email-status')) {
-      const {data,error}=await admin.from('studio_email_outbox').select('id,kind,to_email,subject,status,scheduled_at,sent_at,provider,provider_message_id,last_error,attempts,created_at').eq('appointment_id',String(body.appointmentId || '')).order('created_at');
-      if(error)throw error;return json({emails:data || []});
+
+    // ---------- public catalog (read-only, sin datos de clientas ni citas) ----------
+    if (action === "public-catalog") {
+      const { data: catalog, error } = await admin.from("studio_catalog").select("id, category").order("sort_order");
+      if (error) return json({ error: error.message }, 500);
+      return json({ catalog: catalog ?? [] });
     }
-    if(req.method !== 'POST' && req.method !== 'GET')return json({error:'Método no permitido'},405);
-    const {data:waCfg,error:waConfigError}=await admin.from('studio_whatsapp_config').select('*').eq('id',true).maybeSingle();
-    const report:any={email:{sent:0,failed:0,skipped:0},whatsapp:{sent:0,failed:0,skipped:0},push:{sent:0,failed:0,skipped:0},errors:[]};
-    if(waConfigError)report.errors.push('WhatsApp: '+waConfigError.message);
-    // Recover rows stuck in "sending" (previous invocation crashed mid-send).
-    await admin.from('studio_whatsapp_outbox').update({status:'failed',last_error:'Recuperado de envío atascado'}).eq('status','sending');
-    await admin.from('studio_email_outbox').update({status:'failed',last_error:'Recuperado de envío atascado'}).eq('status','sending');
-    await admin.from('studio_notification_jobs').update({status:'failed',last_error:'Recuperado de envío atascado'}).eq('status','sending');
-    const deadline=Date.now()+45000;
-    for(const table of ['studio_email_outbox','studio_whatsapp_outbox','studio_notification_jobs']) {
-      const {data:due,error}=await admin.from(table).select('*').in('status',['scheduled','failed']).lt('attempts',MAX_ATTEMPTS).lte('scheduled_at',new Date().toISOString()).order('scheduled_at').limit(30);
-      if(error){report.errors.push(`${table}: ${error.message}`);continue;}
-      for(const row of due || []) {
-        if(Date.now()>deadline)break;
-        const channel=table === 'studio_email_outbox' ? 'email':table === 'studio_whatsapp_outbox' ? 'whatsapp':row.channel;
-        let claimed=false;
-        try {
-          if(!await claim(admin,table,row))continue;
-          claimed=true;
-          const appt=await readAppointment(admin,row.appointment_id);
-          const invalid=invalidMessage(row,appt);
-          if(invalid){await skip(admin,table,row.id,invalid);report[channel].skipped++;continue;}
-          if(channel === 'email') {
-            const result=cfg?.service_key && cfg?.from_email ? await sendViaResend(cfg.service_key,cfg.from_email,row.to_email,row.subject,row.body_html,row.id):{ok:false,error:'Falta API key de email o remitente verificado'};
-            await finish(admin,table,row,result,'resend');report.email[result.ok?'sent':'failed']++;
-            if(!result.ok)report.errors.push(result.error);
-          } else if(channel === 'whatsapp') {
-            if(!await whatsappConsent(admin,appt)){await skip(admin,table,row.id,'Sin autorización de WhatsApp de la clienta');report.whatsapp.skipped++;continue;}
-            const result=await sendApprovedWhatsApp(waCfg || {},row.kind,row.to_phone,appt);
-            await finish(admin,table,row,result,'meta_cloud_api');report.whatsapp[result.ok?'sent':'failed']++;
-            if(!result.ok)report.errors.push(result.error);
-          } else {
-            const {data:sub,error:subError}=await admin.from('studio_push_subscriptions').select('*').eq('id',row.subscription_id).maybeSingle();
-            if(subError)throw subError;
-            if(!sub || sub.client_id !== appt.client_id){await skip(admin,table,row.id,'Dispositivo desactivado o de otra clienta');report.push.skipped++;continue;}
-            const instant=notificationInstant(appt.starts_at);
-            const kind=row.kind;
-            const title=kind === 'reminder_24h' ? 'Mañana te esperamos':kind === 'reminder_2h' ? 'Tu cita es dentro de 2 horas':kind === 'update' ? 'Cita modificada':'Cita confirmada';
-            const result=await sendWebPush(admin,sub.endpoint,sub.p256dh,sub.auth,{title,body:`${fmtDate(instant)} · ${fmtTime(instant)} h. ${templateData(appt,DEFAULT_PORTAL_URL).services}`,url:`/?cita=${appt.id}`,tag:`appt-${appt.id}-${kind}-${appt.starts_at}`,ttlSeconds:Math.max(1,Math.floor((Date.parse(instant)-Date.now())/1000))});
-            await finish(admin,table,row,result,'web_push');report.push[result.ok?'sent':'failed']++;
-            if(!result.ok){report.errors.push(result.error);if(result.expired)await admin.from('studio_push_subscriptions').delete().eq('id',sub.id);}
-          }
-        }catch(error){
-          const message=error instanceof Error ? error.message:String((error as any)?.message || error);
-          report.errors.push(message);
-          if(claimed)await finish(admin,table,row,{ok:false,error:message},channel === 'email'?'resend':channel === 'push'?'web_push':'meta_cloud_api');
-          report[channel].failed++;
+
+    // ---------- token check ----------
+    const authHeader = req.headers.get("Authorization") ?? "";
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+    if (!token) return json({ error: "Falta autenticación" }, 401);
+
+    const { data: tokenRow } = await admin.from("api_tokens").select("token, role, client_id, expires_at").eq("token", token).maybeSingle();
+    if (!tokenRow || new Date(tokenRow.expires_at).getTime() < Date.now()) {
+      return json({ error: "Sesión caducada" }, 401);
+    }
+    const isAdmin = tokenRow.role === "admin";
+
+    // ---------- sync (read everything for this space) ----------
+    if (action === "sync") {
+      const { data: catalog } = await admin.from("studio_catalog").select("id, category").order("sort_order");
+      const { data: settings } = await admin.from("studio_settings").select("configuration").eq("id", true).maybeSingle();
+      const { data: closures } = await admin.from("studio_closures").select("id, start_date, end_date, type, reason");
+      const { data: blocks } = await admin.from("studio_time_blocks").select("id, starts_at, ends_at, reason");
+      const { data: clients } = await admin.from("studio_clients").select("id, legacy_id, registration_id, first_name, last_name, email, phone, birth_date, created_at");
+      const { data: passports } = await admin.from("studio_passports").select("client_id, hair_diagnosis, home_care, last_visit_text, next_visit_text");
+      const { data: visits } = await admin.from("studio_visits").select("id, client_id, visit_date, service, stylist, shared_notes");
+      const { data: appts } = await admin.from("studio_appointments").select("*").order("starts_at");
+      const { data: feedback } = await admin.from("studio_feedback").select("id, rating, comment, resolved_at, created_at, client_id");
+
+      if (isAdmin) {
+        return json({
+          role: "admin",
+          catalog: catalog ?? [],
+          settings: settings?.configuration ?? null,
+          closures: closures ?? [],
+          timeBlocks: blocks ?? [],
+          clients: (clients ?? []).map((c: any) => ({
+            ...c,
+            passport: passports?.find(p => p.client_id === c.id) ?? null,
+            visits: (visits ?? []).filter(v => v.client_id === c.id),
+            notes: null,
+          })),
+          appointments: appts ?? [],
+          feedback: feedback ?? [],
+        });
+      }
+
+      const my = (appts ?? []).filter((a: any) => a.client_id === tokenRow.client_id);
+      const me = (clients ?? []).find((c: any) => c.id === tokenRow.client_id);
+      const myPassport = passports?.find(p => p.client_id === tokenRow.client_id) ?? null;
+      const myVisits = (visits ?? []).filter(v => v.client_id === tokenRow.client_id);
+      return json({
+        role: "client",
+        clientId: tokenRow.client_id,
+        catalog: catalog ?? [],
+        settings: settings?.configuration ?? null,
+        closures: closures ?? [],
+        timeBlocks: blocks ?? [],
+        me: me ?? null,
+        passport: myPassport,
+        visits: myVisits,
+        appointments: my,
+      });
+    }
+
+    // ---------- admin-only mutations ----------
+    if (action === "email-status") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const appointmentId = String(body.appointmentId ?? "");
+      if (!appointmentId) return json({ error: "Falta la cita" }, 400);
+      const { data: cfg, error: cfgErr } = await admin.from("studio_email_config").select("worker_secret").eq("id", true).maybeSingle();
+      if (cfgErr) return json({ error: cfgErr.message }, 500);
+      const { data: emails, error } = await admin
+        .from("studio_email_outbox")
+        .select("id, kind, to_email, subject, status, scheduled_at, sent_at, provider, provider_message_id, last_error, attempts, created_at")
+        .eq("appointment_id", appointmentId)
+        .order("created_at");
+      if (error) return json({ error: error.message }, 500);
+      return json({ emails: emails ?? [] });
+    }
+
+    if (action === "email-config") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const { data: cfg, error } = await admin.from("studio_email_config").select("provider, from_email, portal_url, service_key").eq("id", true).maybeSingle();
+      if (error) return json({ error: error.message }, 500);
+      const row = (cfg ?? {}) as Record<string, unknown>;
+      return json({
+        providerConfigured: Boolean(row.service_key && row.from_email),
+        provider: (row.provider as string) ?? null,
+        fromEmail: (row.from_email as string) ?? null,
+        portalUrl: (row.portal_url as string) ?? null,
+      });
+    }
+
+    if (action === "whatsapp-consent" && req.method === "PUT") {
+      // Client scope: a clienta saves her own consent. Admin can set it for any client.
+      const consent = Boolean(body.consent);
+      let targetClientId = tokenRow.client_id as string | null;
+      if (isAdmin && body.clientId) targetClientId = String(body.clientId);
+      if (!targetClientId) return json({ error: "Falta la clienta" }, 400);
+      const { error } = await admin.from("studio_clients").update({ whatsapp_consent: consent }).eq("id", targetClientId);
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true, whatsappConsent: consent });
+    }
+
+    if (action === "whatsapp-retry" && req.method === "POST") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const appointmentId = String(body.appointmentId ?? "");
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(appointmentId)) {
+        return json({ error: "Cita no válida" }, 400);
+      }
+      const { data: retried, error } = await admin.rpc("studio_reenqueue_whatsapp_confirmation" as never, { p_appointment_id: appointmentId } as never);
+      if (error) return json({ error: error.message }, 500);
+      await kickDispatcher(admin);
+      return json({ ok: true, retried: Number(retried) || 0 });
+    }
+
+    if (action === "whatsapp-status") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const appointmentId = String(body.appointmentId ?? "");
+      if (!appointmentId) return json({ error: "Falta la cita" }, 400);
+      const { data: messages, error } = await admin
+        .from("studio_whatsapp_outbox")
+        .select("id, kind, to_phone, status, scheduled_at, sent_at, delivered_at, read_at, provider, provider_message_id, body_text, last_error, attempts, created_at")
+        .eq("appointment_id", appointmentId)
+        .order("created_at");
+      if (error) return json({ error: error.message }, 500);
+      const {data:jobs,error:jobError}=await admin.from('studio_notification_jobs').select('*').eq('appointment_id',appointmentId).eq('channel','whatsapp').order('scheduled_at');
+      if(jobError)return json({error:jobError.message},500);
+      return json({messages:[...(messages||[]),...(jobs||[]).map((j:any)=>({...j,status:['delivered','read'].includes(j.provider_delivery_status) ? j.provider_delivery_status:j.status,body_text:`Recordatorio de cita ${j.kind === 'reminder_24h' ? '24 horas' : '2 horas'} antes`,sent_at:j.sent_at,provider:j.provider,provider_message_id:j.provider_message_id,delivered_at:null,read_at:null}))]});
+    }
+
+    if (action === "whatsapp-config") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const { data: cfg, error } = await admin.from("studio_whatsapp_config").select("provider, access_token, phone_number_id, template_name, studio_phone, portal_url, notification_templates").eq("id", true).maybeSingle();
+      if (error) return json({ error: error.message }, 500);
+      const row = (cfg ?? {}) as Record<string, unknown>;
+      const missing: string[] = [];
+      if (!row.provider || !row.phone_number_id || !row.access_token) missing.push("Credenciales de WhatsApp Business Platform (proveedor, phone_number_id y token de sistema)");
+      if (!row.template_name) missing.push("Plantilla aprobada por Meta para las confirmaciones");
+      if (!row.studio_phone) missing.push("Número de WhatsApp del Studio verificado");
+      return json({
+        providerConfigured: missing.length === 0,
+        missing,
+        provider: (row.provider as string) ?? null,
+        templateName: (row.template_name as string) ?? null,
+        studioPhone: (row.studio_phone as string) ?? null,
+        portalUrl: (row.portal_url as string) ?? null,
+      });
+    }
+
+    if (action === "service-image" && req.method === "POST") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const dataUrl = String(body.dataUrl ?? "");
+      const match = /^data:(image\/(png|jpeg|webp));base64,(.+)$/.exec(dataUrl);
+      if (!match) return json({ error: "Formato de imagen no soportado" }, 400);
+      const [, mime, , base64] = match;
+      const bytes = Uint8Array.from(atob(base64), (ch) => ch.charCodeAt(0));
+      if (bytes.length > 4 * 1024 * 1024) return json({ error: "La imagen supera 4 MB" }, 400);
+      const ext = mime === "image/png" ? "png" : mime === "image/webp" ? "webp" : "jpg";
+      const path = `services/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await admin.storage.from("service-images").upload(path, bytes, {
+        contentType: mime, upsert: false,
+      });
+      if (upErr) return json({ error: upErr.message }, 500);
+      const { data: pub } = admin.storage.from("service-images").getPublicUrl(path);
+      const publicUrl = pub?.publicUrl;
+      if (typeof publicUrl !== "string" || !publicUrl.trim()) {
+        return json({ error: "La foto se ha subido, pero no se pudo obtener su dirección pública." }, 500);
+      }
+      return json({ ok: true, url: publicUrl, path });
+    }
+
+    if (action === "service-image" && req.method === "DELETE") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const path = String(body.path ?? "");
+      if (!/^services\/[a-f0-9-]+\.(png|jpe?g|webp)$/.test(path)) return json({ error: "Ruta no válida" }, 400);
+      const { error } = await admin.storage.from("service-images").remove([path]);
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true });
+    }
+
+    if (action === "catalog" && req.method === "PUT") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const rows = (body.catalog as any[]).map((category, index) => ({
+        id: String(category.id),
+        sort_order: index,
+        category,
+      }));
+      const { error } = await admin.from("studio_catalog").upsert(rows, { onConflict: "id" });
+      if (error) return json({ error: error.message }, 500);
+      const keep = new Set(rows.map(row => row.id));
+      const { data: existing } = await admin.from("studio_catalog").select("id");
+      const stale = (existing ?? []).filter(row => !keep.has(row.id)).map(row => row.id);
+      if (stale.length) await admin.from("studio_catalog").delete().in("id", stale);
+      return json({ ok: true });
+    }
+
+    if (action === "settings" && req.method === "PUT") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const { error } = await admin.from("studio_settings").upsert({ id: true, configuration: body.settings }, { onConflict: "id" });
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true });
+    }
+
+    if (action === "client" && req.method === "POST") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const pin = String(body.pin ?? "").trim();
+      if (!/^\d{4}$/.test(pin)) return json({ error: "PIN de clienta no válido" }, 400);
+      const legacyId = Number(body.idNum) || Math.floor(Math.random() * 8999) + 1000;
+      const { data: client, error } = await admin.from("studio_clients").insert({
+        legacy_id: legacyId,
+        registration_id: body.registroId ?? null,
+        email: String(body.email ?? "").toLowerCase().trim() || `clienta${legacyId}@lstudio.local`,
+        first_name: body.nombre ?? "",
+        last_name: body.apellidos ?? "",
+        phone: body.telefono ?? "",
+      }).select("id").single();
+      if (error) return json({ error: error.message }, 500);
+      await admin.from("studio_passports").upsert({
+        client_id: client.id,
+        hair_diagnosis: body.dniCapilar ?? "",
+        home_care: body.prescripcionCasa ?? "",
+        last_visit_text: body.ultimaVisita ?? "",
+        next_visit_text: body.proximaVisitaSugerida ?? "",
+      }, { onConflict: "client_id" });
+      return json({ ok: true, id: client.id, legacyId });
+    }
+
+    if (action === "passport" && req.method === "PUT") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const { error } = await admin.from("studio_passports").upsert({
+        client_id: body.clientId,
+        hair_diagnosis: body.dniCapilar ?? "",
+        home_care: body.prescripcionCasa ?? "",
+        last_visit_text: body.ultimaVisita ?? "",
+        next_visit_text: body.proximaVisitaSugerida ?? "",
+      }, { onConflict: "client_id" });
+      if (error) return json({ error: error.message }, 500);
+      if (Array.isArray(body.pastVisits)) {
+        await admin.from("studio_visits").delete().eq("client_id", body.clientId);
+        if (body.pastVisits.length) {
+          await admin.from("studio_visits").insert(body.pastVisits.map((visit: any) => ({
+            client_id: body.clientId,
+            visit_date: visit.date ?? "",
+            service: visit.service ?? "",
+            stylist: visit.stylist ?? "",
+            shared_notes: visit.notes ?? "",
+          })));
         }
       }
+      return json({ ok: true });
     }
-    return json({ok:report.errors.length === 0,...report,errors:report.errors.slice(0,20)});
-  }catch(error){return json({error:error instanceof Error ? error.message:String((error as any)?.message || error)},500);}
+
+    if (action === "closure" && req.method === "POST") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const { data, error } = await admin.from("studio_closures").insert({
+        start_date: body.startDate, end_date: body.endDate, type: body.type ?? "vacaciones", reason: body.reason ?? "",
+      }).select("id").single();
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true, id: data.id });
+    }
+
+    if (action === "closure" && req.method === "DELETE") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      await admin.from("studio_closures").delete().eq("id", body.id);
+      return json({ ok: true });
+    }
+
+    if (action === "timeblock" && req.method === "POST") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const { data, error } = await admin.from("studio_time_blocks").insert({
+        starts_at: `${body.dateKey}T${body.time}:00`,
+        ends_at: `${body.dateKey}T${body.time}:00`,
+        reason: body.reason ?? "",
+      }).select("id").single();
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true, id: data.id });
+    }
+
+    if (action === "timeblock" && req.method === "DELETE") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      await admin.from("studio_time_blocks").delete().eq("id", body.id);
+      return json({ ok: true });
+    }
+
+    // ---------- appointments (admin or client) ----------
+    if (action === "appointment" && req.method === "POST") {
+      const startsAt = `${body.dateKey}T${body.time}:00`;
+      const duration = Number(body.durationMinutes) || 45;
+
+      // Aplicar las mismas condiciones editables del catálogo en el servidor.
+      if (Array.isArray(body.services) && body.services.length) {
+        const {data:rows,error:catalogError}=await admin.from('studio_catalog').select('category');
+        if(catalogError)return json({error:catalogError.message},500);
+        const catalog=(rows || []).flatMap((r:any)=>r.category?.subservices || []);
+        const selected=body.services.map((item:any)=>({sub:catalog.find((sub:any)=>sub.id === item?.sub?.id),variant:item.variant}));
+        if(selected.some((item:any)=>!item.sub || item.sub.active === false))return json({error:'Hay servicios no disponibles en la reserva'},422);
+        if(selected.some((i:any)=>i.sub.isCutGoService) && selected.some((i:any)=>i.sub.isStylingService && !i.sub.isCutGoService))return json({error:'Elige peinado o Cut & Go, no ambas modalidades'},422);
+        for(const kind of ['styling','toner']) {
+          const flag=kind === 'styling' ? 'isStylingService':'isTonerService';
+          const policy=kind+'Policy'; const ids=kind+'AllowedIds';
+          const compatible=(owner:any,candidate:any)=>candidate.id !== owner.id && candidate[flag] && candidate.active !== false && (!candidate.isCutGoService || kind === 'styling' && owner.allowCutGo) && (!Array.isArray(owner[ids]) || owner[ids].includes(candidate.id));
+          for(const item of selected) {
+            if(!item.sub[flag] && item.sub[policy] === 'required' && !selected.some((i:any)=>compatible(item.sub,i.sub)))return json({error:`Completa ${item.sub.name} con un complemento compatible de ${kind === 'styling' ? 'peinado':'matiz'}`},422);
+            if(item.sub[flag] && item.sub.hasVariants && item.sub.variants?.length && !item.sub.variants.some((v:any)=>v.id === item.variant?.id))return json({error:`Selecciona una variante válida de ${item.sub.name}`},422);
+          }
+        }
+        for(const item of selected.filter((i:any)=>i.sub.isCutGoService)) {
+          if(!selected.some((i:any)=>!i.sub.isStylingService && i.sub.allowCutGo && (!Array.isArray(i.sub.stylingAllowedIds) || i.sub.stylingAllowedIds.includes(item.sub.id))))return json({error:'Cut & Go no está permitido para estos servicios'},422);
+        }
+      }
+
+      // Server-side conflict validation (source of truth)
+      const rpc = admin.rpc("studio_appointment_conflict" as never, {} as never);
+      const conflicts = typeof rpc?.catch === "function" ? await rpc.catch(() => ({ data: null })) : { data: null };
+      void conflicts;
+
+      const check = await admin
+        .from("studio_appointments")
+        .select("id, starts_at, duration_minutes, lifecycle_status, booking_channel")
+        .gte("starts_at", new Date(new Date(startsAt).getTime() - 14 * 3600_000).toISOString())
+        .lte("starts_at", new Date(new Date(startsAt).getTime() + 14 * 3600_000).toISOString());
+      if (check.error) return json({ error: check.error.message }, 500);
+
+      const toMin = (iso: string) => {
+        const d = new Date(iso);
+        return d.getHours() * 60 + d.getMinutes();
+      };
+      const startMin = toMin(startsAt + "Z");
+      const overlap = (check.data ?? []).some((a: any) => {
+        if (a.lifecycle_status === "cancelled" || a.lifecycle_status === "no_show") return false;
+        const aStart = toMin(a.starts_at);
+        const aEnd = aStart + (a.duration_minutes ?? 45);
+        return startMin < aEnd && startMin + duration > aStart;
+      });
+      if (overlap && body.bookingChannel !== "admin") {
+        return json({ error: "Ese hueco acaba de ocuparse. Elige otra hora." }, 409);
+      }
+
+      const { data: created, error } = await admin.from("studio_appointments").insert({
+        source_legacy_id: body.id ? String(body.id) : null,
+        client_id: body.clientId ?? null,
+        starts_at: startsAt,
+        duration_minutes: duration,
+        booking_channel: body.bookingChannel === "admin" ? "admin" : "portal",
+        lifecycle_status: body.lifecycleStatus ?? "active",
+        approval_status: body.approval?.status ?? "not_required",
+        approval_reason: body.approval?.reason ?? null,
+        approval_reference: body.approval?.reference ?? null,
+        deposit_status: body.advancePayment?.status ?? "not_required",
+        deposit_amount: body.advancePayment?.amount ?? null,
+        deposit_reference: body.advancePayment?.reference ?? null,
+        services: body.services ?? [],
+        client_snapshot: body.clientSnapshot ?? {
+          clientName: body.clientName ?? "",
+          phone: body.phone ?? "",
+          email: body.email ?? "",
+          serviceCategory: body.serviceCategory ?? "",
+          serviceSubcategory: body.serviceSubcategory ?? "",
+          dayName: body.dayName ?? "",
+          remindersStatus: body.remindersStatus ?? null,
+          selectedVariant: body.selectedVariant ?? null,
+        },
+        legacy_service_text: body.serviceSubcategory ?? "",
+      }).select("id").single();
+      if (error) {
+        if ((error as any).code === "23505") return json({ error: "Reserva duplicada" }, 409);
+        return json({ error: error.message }, 500);
+      }
+      const servicesText = (Array.isArray(body.services) && body.services.length
+        ? body.services.map((s: any) => [s?.sub?.name || "", s?.variant?.name].filter(Boolean).join(" (") + (s?.variant ? ")" : "")).join(" + ")
+        : String(body.serviceSubcategory ?? "")) || "Servicios del Studio";
+      const approvalPending = (body.approval?.status ?? "not_required") === "pending";
+      const depositPending = (body.advancePayment?.status ?? "not_required") === "pending";
+      await scheduleAppointmentEmails(admin, {
+        apptId: created.id,
+        startsAt: new Date(`${body.dateKey}T${body.time}:00Z`).toISOString(),
+        clientName: String(body.clientName ?? ""),
+        clientEmail: validEmail(body.email),
+        servicesText,
+        confirmed: notificationConfirmed({lifecycle_status:body.lifecycleStatus || 'active',approval_status:body.approval?.status || 'not_required',deposit_status:body.advancePayment?.status || 'not_required'}),
+      }).catch(error => console.error("Notificaciones:",error));
+      await scheduleAppointmentWhatsApp(admin, {
+        apptId: created.id,
+        startsAt: new Date(`${body.dateKey}T${body.time}:00Z`).toISOString(),
+        clientName: String(body.clientName ?? ""),
+        clientPhone: validPhoneE164(body.phone),
+        servicesText,
+        confirmed: notificationConfirmed({lifecycle_status:body.lifecycleStatus || 'active',approval_status:body.approval?.status || 'not_required',deposit_status:body.advancePayment?.status || 'not_required'}),
+      }).catch(error => console.error("Notificaciones:",error));
+      await sendAppointmentPush(admin, {
+        apptId: created.id,
+        clientId: body.clientId ?? null,
+        clientName: String(body.clientName ?? ""),
+        startsAt: new Date(`${body.dateKey}T${body.time}:00Z`).toISOString(),
+        servicesText,
+        confirmed: notificationConfirmed({lifecycle_status:body.lifecycleStatus || 'active',approval_status:body.approval?.status || 'not_required',deposit_status:body.advancePayment?.status || 'not_required'}),
+      }).catch(error => console.error("Notificaciones:",error));
+      await kickDispatcher(admin);
+      return json({ ok: true, id: created.id });
+    }
+
+    if (action === "appointment" && req.method === "PUT") {
+      const patch: Record<string, unknown> = {};
+      if (!isAdmin) {
+        // client scope: cancellation only
+        if (body.lifecycleStatus !== 'cancelled') return json({ error: "Solo puedes cancelar la cita" }, 403);
+        patch.lifecycle_status = 'cancelled';
+        if (body.clientSnapshot !== undefined) patch.client_snapshot = body.clientSnapshot;
+      } else {
+      if (body.dateKey && body.time) patch.starts_at = `${body.dateKey}T${body.time}:00`;
+      if (body.dayName !== undefined) patch.dayName = body.dayName;
+      if (body.durationMinutes) patch.duration_minutes = Number(body.durationMinutes);
+      if (body.lifecycleStatus !== undefined) patch.lifecycle_status = body.lifecycleStatus;
+      if (body.approval !== undefined) {
+        patch.approval_status = body.approval.status;
+        patch.approval_reason = body.approval.reason ?? null;
+        patch.approval_reference = body.approval.reference ?? null;
+      }
+      if (body.advancePayment !== undefined) {
+        patch.deposit_status = body.advancePayment.status;
+        patch.deposit_amount = body.advancePayment.amount ?? null;
+        patch.deposit_reference = body.advancePayment.reference ?? null;
+      }
+      if (body.internalNotes !== undefined) {
+        patch.services = body.services ?? null;
+      }
+      if (body.clientSnapshot !== undefined) patch.client_snapshot = body.clientSnapshot;
+      if (body.completedAt !== undefined) patch.completed_at = body.completedAt;
+      }
+
+      let query = admin.from("studio_appointments").update(patch);
+      if (isAdmin) query = query.or(`source_legacy_id.eq.${body.id},id.eq.${body.id}`);
+      else {
+        // client scope: only own appointments, matched by server id or portal legacy id
+        const { data: own } = await admin.from("studio_appointments").select("id")
+          .or(`id.eq.${body.id},source_legacy_id.eq.${body.id}`)
+          .eq("client_id", tokenRow.client_id).maybeSingle();
+        if (!own) return json({ error: "Cita no encontrada" }, 404);
+        query = query.or(`id.eq.${body.id},source_legacy_id.eq.${body.id}`).eq("client_id", tokenRow.client_id);
+      }
+      const { error } = await query;
+      if (error) return json({ error: error.message }, 500);
+      const scheduleKey = crypto.randomUUID();
+      void scheduleKey;
+      const { data: updatedAppt } = await admin.from("studio_appointments")
+        .select("id, starts_at, lifecycle_status, approval_status, deposit_status, services, client_snapshot, client_id")
+        .or(`id.eq.${body.id},source_legacy_id.eq.${body.id}`).maybeSingle();
+      if (updatedAppt) {
+        if (updatedAppt.lifecycle_status === "cancelled" || updatedAppt.lifecycle_status === "no_show" || updatedAppt.approval_status === "rejected") {
+          await cancelNotificationJobs(admin,updatedAppt.id);
+          await cancelAppointmentEmails(admin, updatedAppt.id, { cancelled: updatedAppt.lifecycle_status === "cancelled" }).catch(error => console.error("Notificaciones:",error));
+          await cancelAppointmentWhatsApp(admin, updatedAppt.id, { cancelled: updatedAppt.lifecycle_status === "cancelled" }).catch(error => console.error("Notificaciones:",error));
+        } else {
+          const snap = (updatedAppt.client_snapshot || {}) as Record<string, unknown>;
+          const approvalPending = updatedAppt.approval_status === "pending";
+          const depositPending = updatedAppt.deposit_status === "pending";
+          const confirmed = notificationConfirmed(updatedAppt);
+          const servicesText = (Array.isArray(updatedAppt.services) && updatedAppt.services.length
+            ? updatedAppt.services.map((s: any) => [s?.sub?.name || "", s?.variant?.name].filter(Boolean).join(" (") + (s?.variant ? ")" : "")).join(" + ")
+            : String(snap.serviceSubcategory ?? "")) || "Servicios del Studio";
+          const waCtx = {
+            apptId: updatedAppt.id,
+            startsAt: updatedAppt.starts_at,
+            clientName: String(snap.clientName ?? ""),
+            clientPhone: validPhoneE164(snap.phone),
+            servicesText,
+            confirmed,
+          };
+          if (!confirmed || patch.starts_at) await cancelNotificationJobs(admin,updatedAppt.id);
+          if (patch.starts_at) {
+            // Rescheduled: annul the previous reminders, send the update and
+            // schedule the new ones.
+            await cancelAppointmentEmails(admin, updatedAppt.id).catch(error => console.error("Notificaciones:",error));
+            await cancelAppointmentWhatsApp(admin, updatedAppt.id).catch(error => console.error("Notificaciones:",error));
+            await scheduleAppointmentEmails(admin, {
+              apptId: updatedAppt.id,
+              startsAt: updatedAppt.starts_at,
+              clientName: String(snap.clientName ?? ""),
+              clientEmail: validEmail(snap.email),
+              servicesText,
+              confirmed,
+              isUpdate: true,
+            }).catch(error => console.error("Notificaciones:",error));
+            await scheduleAppointmentWhatsApp(admin, { ...waCtx, isUpdate: true }).catch(e => console.error(e));
+            await sendAppointmentPush(admin,{...waCtx,clientId:updatedAppt.client_id || null,isUpdate:true}).catch(e=>console.error(e));
+          } else {
+            await scheduleAppointmentEmails(admin, {
+              apptId: updatedAppt.id,
+              startsAt: updatedAppt.starts_at,
+              clientName: String(snap.clientName ?? ""),
+              clientEmail: validEmail(snap.email),
+              servicesText,
+              confirmed,
+            }).catch(error => console.error("Notificaciones:",error));
+            await scheduleAppointmentWhatsApp(admin, waCtx).catch(error => console.error("Notificaciones:",error));
+            // Confirmation after approval accepted or deposit received.
+            if (confirmed) {
+              await sendAppointmentPush(admin, {
+                apptId: updatedAppt.id,
+                clientId: updatedAppt.client_id ?? null,
+                clientName: String(snap.clientName ?? ""),
+                startsAt: updatedAppt.starts_at,
+                servicesText,
+                confirmed: true,
+              }).catch(error => console.error("Notificaciones:",error));
+            }
+          }
+        }
+      }
+      await kickDispatcher(admin);
+      return json({ ok: true });
+    }
+
+    if (action === "appointment" && req.method === "DELETE") {
+      let query = admin.from("studio_appointments").delete();
+      if (isAdmin) query = query.eq("id", body.id).or(`source_legacy_id.eq.${body.id},id.eq.${body.id}`);
+      else {
+        const { data: own } = await admin.from("studio_appointments").select("id").eq("source_legacy_id", body.id).eq("client_id", tokenRow.client_id).maybeSingle();
+        if (!own) return json({ error: "Cita no encontrada" }, 404);
+        query = query.eq("source_legacy_id", body.id).eq("client_id", tokenRow.client_id);
+      }
+      const { error } = await query;
+      if (error) return json({ error: error.message }, 500);
+      await cancelAppointmentEmails(admin, body.id).catch(error => console.error("Notificaciones:",error));
+      await cancelAppointmentWhatsApp(admin, body.id).catch(error => console.error("Notificaciones:",error));
+      return json({ ok: true });
+    }
+
+    // ---------- push notifications ----------
+    if (action === "push-public-key") {
+      const { data: cfg } = await admin.from("studio_push_config").select("public_key").eq("id", true).maybeSingle();
+      if (!cfg?.public_key) return json({ error: "El Studio aún no tiene configuradas las notificaciones push" }, 503);
+      return json({ publicKey: cfg.public_key });
+    }
+
+    if (action === "push-subscribe" && req.method === "POST") {
+      const endpoint = String(body.endpoint ?? "");
+      const keys = body.keys ?? {};
+      if (!/^https:\/\//.test(endpoint) || !keys.p256dh || !keys.auth) return json({ error: "Suscripción no válida" }, 400);
+      // Link to the signed-in clienta; admin devices record role admin without client link.
+      const { data: sub, error } = await admin.from("studio_push_subscriptions").upsert({
+        endpoint,
+        p256dh: String(keys.p256dh),
+        auth: String(keys.auth),
+        client_id: (isAdmin ? null : tokenRow.client_id) ?? null,
+        user_agent: String(body.userAgent ?? "").slice(0, 200),
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "endpoint" }).select("id").single();
+      if (error) return json({ error: error.message }, 500);
+      return json({ ok: true, id: sub.id });
+    }
+
+    if (action === "push-unsubscribe" && req.method === "POST") {
+      const endpoint = String(body.endpoint ?? "");
+      if (!endpoint) return json({ error: "Falta la suscripción" }, 400);
+      await admin.from("studio_push_subscriptions").delete().eq("endpoint", endpoint);
+      return json({ ok: true });
+    }
+
+    if (action === "push-test" && req.method === "POST") {
+      // Client scope: sends a test notification to the signed-in clienta's own devices only.
+      if (isAdmin || !tokenRow.client_id) return json({ error: "La prueba de avisos se realiza desde el portal de una clienta con sesión iniciada" }, 403);
+      const { data: subs } = await admin.from("studio_push_subscriptions")
+        .select("id, endpoint, p256dh, auth")
+        .eq("client_id", tokenRow.client_id);
+      if (!subs?.length) return json({ ok: true, sent: 0, errors: ["Este dispositivo todavía no aparece registrado. Vuelve a pulsar «Activar notificaciones»."] });
+      let sent = 0; const errors: string[] = [];
+      for (const sub of subs as { id: string; endpoint: string; p256dh: string; auth: string }[]) {
+        const result = await sendWebPush(admin, sub.endpoint, sub.p256dh, sub.auth, {
+          title: "Avisos activados",
+          body: "Recibirás aquí la confirmación de tus citas de L'Studio Ana.",
+          url: "/",
+          tag: "push-test",
+        });
+        if (result.ok) sent++; else errors.push(result.error);
+        if (result.expired) await admin.from("studio_push_subscriptions").delete().eq("id", sub.id);
+      }
+      return json({ ok: true, sent, errors });
+    }
+
+    if (action === "push-status" && req.method === "POST") {
+      if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      const appointmentId = String(body.appointmentId ?? "");
+      if (!appointmentId) return json({ error: "Falta la cita" }, 400);
+      const { data: pushes, error } = await admin
+        .from("studio_push_outbox")
+        .select("id, kind, status, provider, provider_message_id, delivered_at, last_error, attempts, created_at, subscription_id, studio_push_subscriptions(user_agent)")
+        .eq("appointment_id", appointmentId)
+        .order("created_at");
+      if (error) return json({ error: error.message }, 500);
+      const {data:jobs,error:jobError}=await admin.from('studio_notification_jobs').select('*').eq('appointment_id',appointmentId).eq('channel','push').order('scheduled_at');
+      if(jobError)return json({error:jobError.message},500);
+      return json({pushes:[...(pushes||[]),...(jobs||[]).map((j:any)=>({...j,status:j.status === 'sent' ? 'accepted':j.status,studio_push_subscriptions:null,delivered_at:null}))]});
+    }
+
+    return json({ error: "Acción no reconocida" }, 404);
+  } catch (error) {
+    return json({ error: error instanceof Error ? error.message : "Error interno" }, 500);
+  }
 });
