@@ -422,6 +422,7 @@ Deno.serve(async(req:Request)=>{
             await finish(admin,table,row,result,'resend');report.email[result.ok?'sent':'failed']++;
             if(!result.ok)report.errors.push(result.error);
           } else if(channel === 'whatsapp') {
+            if(row.kind === 'confirmation' || row.kind === 'reminder_24h'){await skip(admin,table,row.id,'Envío desactivado: solo se envía el recordatorio de 2 horas');report.whatsapp.skipped++;continue;}
             if(!await whatsappConsent(admin,appt)){await skip(admin,table,row.id,'Sin autorización de WhatsApp de la clienta');report.whatsapp.skipped++;continue;}
             const result=await sendApprovedWhatsApp(waCfg || {},row.kind,row.to_phone,appt);
             await finish(admin,table,row,result,'meta_cloud_api');report.whatsapp[result.ok?'sent':'failed']++;

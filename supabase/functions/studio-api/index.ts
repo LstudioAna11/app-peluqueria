@@ -109,9 +109,10 @@ async function enqueueReminderJobs(admin: ReturnType<typeof createClient>, ctx: 
   const recipients = channel === 'push'
     ? (await admin.from('studio_push_subscriptions').select('id').eq('client_id',ctx.clientId || '00000000-0000-0000-0000-000000000000')).data || []
     : ctx.clientPhone ? [{id:null}] : [];
+  const reminderHours = channel === 'whatsapp' ? [2] : [24,2];
   const moments: {kind:string;at:number}[] = [
     ...(channel === 'push' ? [{kind:ctx.isUpdate ? 'update':'confirmation',at:now}] : []),
-    ...[24,2].map(hours => ({kind:`reminder_${hours}h`,at:start-hours*3600000})).filter(m => m.at > now)
+    ...reminderHours.map(hours => ({kind:`reminder_${hours}h`,at:start-hours*3600000})).filter(m => m.at > now)
   ];
   for (const recipient of recipients) for (const moment of moments) {
     const key = `${channel}:${moment.kind}:${ctx.apptId}:${ctx.startsAt}:${recipient.id || ctx.clientPhone}`;
@@ -189,37 +190,15 @@ interface WhatsAppSchedulingContext {
   kindOverride?: "confirmation" | "request_received" | "update" | "cancellation";
 }
 
-// Schedule the WhatsApp booking confirmation. Idempotent via unique
-// idempotency_key, mirroring the email outbox. Emails and push are unaffected.
+// Schedule WhatsApp reminders only (no immediate confirmation, no 24h).
+// Cancellations are still sent immediately. Emails and push are unaffected.
 const scheduleAppointmentWhatsApp = async (admin: ReturnType<typeof createClient>, ctx: WhatsAppSchedulingContext) => {
-  if (!ctx.confirmed && ctx.kindOverride !== 'cancellation') return;
+  if (ctx.kindOverride === 'cancellation') {
+    await cancelAppointmentWhatsApp(admin, ctx.apptId, { cancelled: true });
+    return;
+  }
+  if (!ctx.confirmed) return;
   await enqueueReminderJobs(admin, ctx, 'whatsapp').catch(error => console.error('Programar WhatsApp:',error));
-  ctx = { ...ctx, startsAt: notificationInstant(ctx.startsAt) };
-  const { data: cfg } = await admin.from("studio_whatsapp_config").select("portal_url").eq("id", true).maybeSingle();
-  const portalUrl = ((cfg as { portal_url?: string | null } | null)?.portal_url || DEFAULT_PORTAL_URL).replace(/\/+$/, "");
-  if (!ctx.clientPhone) return;
-  const kind = ctx.kindOverride ?? (!ctx.confirmed ? "request_received" : ctx.isUpdate ? "update" : "confirmation");
-  const { data: apptRow } = await admin.from("studio_appointments").select("id").eq("id", ctx.apptId).maybeSingle();
-  void apptRow;
-  const text = whatsAppMessageText({
-    kind,
-    clientName: ctx.clientName,
-    startsAt: ctx.startsAt,
-    servicesText: ctx.servicesText,
-    portalUrl,
-    pending: kind === "request_received" ? "aprobación o anticipo" : null,
-    apptIdToken: ctx.apptId,
-  });
-  await admin.from("studio_whatsapp_outbox").upsert({
-    idempotency_key: `${kind}:${ctx.apptId}:${ctx.startsAt}`,
-    appointment_id: ctx.apptId,
-    kind,
-    to_phone: ctx.clientPhone,
-    template_name: "appointment_confirmation_v1",
-    body_text: text,
-    scheduled_at: new Date().toISOString(),
-    status: "scheduled",
-  }, { onConflict: "idempotency_key", ignoreDuplicates: true });
 };
 
 const cancelAppointmentWhatsApp = async (admin: ReturnType<typeof createClient>, apptId: string, opts: { cancelled?: boolean } = {}) => {
