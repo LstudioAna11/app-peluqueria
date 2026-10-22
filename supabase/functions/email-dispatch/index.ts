@@ -449,5 +449,5 @@ Deno.serve(async(req:Request)=>{
       }
     }
     return json({ok:report.errors.length === 0,...report,errors:report.errors.slice(0,20)});
-  }catch(error){return json({error:error instanceof Error ? error.message:String((error as any)?.message || error)},500);}
+  }catch(error){console.error('[email-dispatch]',error instanceof Error?error.message:String(error));return json({error:'No se pudo completar el envío.'},500);}
 });
