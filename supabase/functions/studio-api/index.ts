@@ -155,7 +155,7 @@ async function kickDispatcher(admin: ReturnType<typeof createClient>) {
   const {data}=await admin.from('studio_email_config').select('worker_secret').eq('id',true).maybeSingle();
   if(!data?.worker_secret) { console.error('Falta worker_secret; no se inicia envío inmediato');return; }
   const task=fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/email-dispatch`,{
-    method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`},
+    method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${Deno.env.get('STUDIO_BACKEND_KEY')}`},
     body:JSON.stringify({workerSecret:data.worker_secret}),signal:AbortSignal.timeout(25000)
   }).then(async r=>{if(!r.ok)console.error('email-dispatch:',r.status,await r.text());}).catch(e=>console.error('email-dispatch:',e.message));
   const runtime=(globalThis as any).EdgeRuntime;
@@ -517,7 +517,7 @@ Deno.serve(async (req: Request) => {
 
   const admin = createClient(
     Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    Deno.env.get("STUDIO_BACKEND_KEY")!,
   );
 
   try {

@@ -362,7 +362,7 @@ function invalidMessage(row:any,appt:any):string|null {
 
 Deno.serve(async(req:Request)=>{
   if(req.method === 'OPTIONS')return new Response(null,{headers:corsHeaders});
-  const admin=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+  const admin=createClient(Deno.env.get('SUPABASE_URL')!,Deno.env.get('STUDIO_BACKEND_KEY')!);
   try {
     const url=new URL(req.url);
     const raw=req.method === 'GET' ? '':await req.text();
