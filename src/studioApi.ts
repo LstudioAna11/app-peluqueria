@@ -1,9 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
-
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) as string;
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY) as string;
 
 const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/studio-api`;
 
@@ -11,7 +7,7 @@ export const serverConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
 
 const TOKEN_KEY = "lst_api_token";
 const ROLE_KEY = "lst_api_role";
-const CLIENT_ID_KEY = "lst_api_client_id";
+const CLIENT_ID_KEY = "lst_client_id";
 const EXPIRES_KEY = "lst_api_expires";
 
 export const currentToken = (): string | null => {
@@ -40,6 +36,7 @@ const storeSession = (result: { token: string; role: string; clientId?: string; 
     localStorage.setItem(TOKEN_KEY, result.token);
     localStorage.setItem(ROLE_KEY, result.role);
     if (result.clientId) localStorage.setItem(CLIENT_ID_KEY, result.clientId);
+    else localStorage.removeItem(CLIENT_ID_KEY);
     if (result.expiresAt) localStorage.setItem(EXPIRES_KEY, result.expiresAt);
   } catch { /* ignore */ }
 };
@@ -53,27 +50,22 @@ export interface AuthResult {
 }
 
 export const authenticate = async (pin: string): Promise<AuthResult> => {
-  const res = await fetch(EDGE_FUNCTION_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action: "auth", pin }),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "PIN incorrecto");
+  const data = await call<AuthResult>("auth", { body: { pin } });
   storeSession(data);
   return data;
 };
 
 const call = async <T = Record<string, unknown>>(
   action: string,
-  opts: { method?: string; token?: string; body?: Record<string, unknown> } = {}
+  opts: { method?: string; token?: string; body?: unknown } = {}
 ): Promise<T> => {
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (!serverConfigured) throw new Error("Servidor no configurado");
+  const headers: Record<string, string> = { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY };
   if (opts.token) headers["Authorization"] = `Bearer ${opts.token}`;
-  const res = await fetch(EDGE_FUNCTION_URL, {
+  const res = await fetch(`${EDGE_FUNCTION_URL}/${encodeURIComponent(action)}`, {
     method: opts.method || "POST",
     headers,
-    body: JSON.stringify({ action, ...opts.body }),
+    body: opts.method === "GET" || opts.method === "HEAD" || opts.body === undefined ? undefined : JSON.stringify(opts.body),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || "Error del servidor");
@@ -263,12 +255,7 @@ export const sendTestPush = (token: string) =>
 export const fetchAppointmentPushes = (token: string, appointmentId: string) =>
   call<{ pushes: PushStatusRow[] }>("push-status", { method: "POST", token, body: { appointmentId } });
 
-export const setClientArchived = async (token: string, clientId: string, archive: boolean): Promise<{ archivedAt: string | null }> => {
-  const archivedAt = archive ? new Date().toISOString() : null;
-  const { error } = await supabase
-    .from("studio_clients")
-    .update({ archived_at: archivedAt })
-    .eq("id", clientId);
-  if (error) throw new Error(error.message);
-  return { archivedAt };
-};
+export const setClientArchived = (token: string, clientId: string, archived: boolean) =>
+  call<{ ok: true; archivedAt: string | null }>("client-status", {
+    method: "PUT", token, body: { clientId, archived },
+  });
