@@ -4,13 +4,12 @@ import './catalog.css';
 import * as studioApi from './studioApi';
 
 // Prepara el aviso; el envío se confirma manualmente en WhatsApp.
-function delayWhatsAppUrl(phone: string, clientName: string, dateKey: string, time: string): string | null {
+function delayWhatsAppUrl(phone: string): string | null {
   let number = String(phone || '').replace(/\D/g, '');
   if (number.startsWith('00')) number = number.slice(2);
   if (number.length === 9) number = '34' + number;
   if (!/^[1-9]\d{8,14}$/.test(number)) return null;
-  const date = dateKey.split('-').reverse().join('/');
-  const message = `Hola ${clientName}. Soy Ana, de L’Studio Ana. Te aviso de que llevamos un retraso aproximado de 10 minutos para tu cita del ${date} a las ${time}. Puedes venir 10 minutos más tarde de la hora prevista. Disculpa las molestias y gracias por tu comprensión.`;
+  const message = "Hola, te escribo desde L'STUDIO ANA 🌿.\n\nVeo que tu cita comenzaba hace 10 minutos y todavía no has llegado al estudio.\n\nTe escribo para recordarte que, para no retrasar los servicios de las siguientes clientas, el tiempo máximo de cortesía es de 15 minutos.⏳\n\nSi crees que vas a tardar más, por favor avísame ahora mismo para ver si podemos reajustar tu servicio o si debemos agendarlo para otro momento. ¡Muchas gracias!";
   return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
 }
 
@@ -7450,11 +7449,11 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
 `}</style><div className="lst-appt-dialog" role="dialog" aria-modal="true" aria-label="Detalle de la cita"><header className="lst-appt-head"><div><p style={{ color: '#E4C687', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
 <h3 style={{ color: '#FFF8EE', fontSize: '26px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{viewApptModal.clientName}</h3></div><button type="button" autoFocus onClick={() => setViewApptModal(null)} aria-label="Cerrar detalle de la cita" style={{background:'transparent',border:'1px solid #655039',borderRadius:8,color:'#FFF8EE',minWidth:40,minHeight:40,cursor:'pointer'}}>✕</button></header><div className="lst-appt-body"><div className="lst-appt-column">
 {!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && (() => {
-  const url = delayWhatsAppUrl(viewApptModal.phone, viewApptModal.clientName, viewApptModal.dateKey, viewApptModal.time);
+  const url = delayWhatsAppUrl(viewApptModal.phone);
   return <section style={{ padding: '12px', border: '1px solid #C5A059', borderRadius: '10px', background: '#29231F' }}>
-    <p style={{ margin: '0 0 8px', color: '#E4C687', fontSize: '13px', fontWeight: 600 }}>Avisar de retraso</p>
-    {url ? <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 14px', minHeight: '44px', boxSizing: 'border-box', background: '#8FC98F', color: '#193923', borderRadius: '8px', fontWeight: 600, fontSize: '13px', textDecoration: 'none' }}><MessageCircle size={17} />WhatsApp · Retraso de 10 min</a> : <p style={{ color: '#E4C687', fontSize: '12px', margin: 0 }}>Añade un teléfono válido a la cita para preparar el aviso.</p>}
-    <p style={{ margin: '8px 0 0', color: '#D6CBB8', fontSize: '12px' }}>Abre el mensaje preparado. Revísalo y pulsa Enviar en WhatsApp. La hora de la reserva no cambia.</p>
+    <p style={{ margin: '0 0 8px', color: '#E4C687', fontSize: '13px', fontWeight: 600 }}>¿La clienta lleva 10 minutos de retraso?</p>
+    {url ? <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 14px', minHeight: '44px', boxSizing: 'border-box', background: '#8FC98F', color: '#193923', borderRadius: '8px', fontWeight: 600, fontSize: '13px', textDecoration: 'none' }}><MessageCircle size={17} />WhatsApp · Clienta con retraso</a> : <p style={{ color: '#E4C687', fontSize: '12px', margin: 0 }}>Añade un teléfono válido a la cita para preparar el aviso.</p>}
+    <p style={{ margin: '8px 0 0', color: '#D6CBB8', fontSize: '12px' }}>Envía este aviso solo si han pasado 10 minutos y la clienta no ha llegado. Revísalo y pulsa Enviar en WhatsApp.</p>
   </section>;
 })()}
 <section>
