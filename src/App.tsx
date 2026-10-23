@@ -4390,7 +4390,7 @@ function StudioApp() {
       return start < otherStart + (other.durationMinutes || 45) && end > otherStart;
     });
   };
-  const markAppointmentCompleted = (appointment: Appointment) => {
+  const markAppointmentCompleted = async (appointment: Appointment) => {
     if (appointment.completedAt || !isActiveAppointment(appointment)) return;
     if (appointment.saturdayApproval?.status === 'pending' || appointment.advancePayment?.status === 'pending') { alert('Resuelve primero la aprobación y el pago pendiente.'); return; }
     const client = listaClientes.find(item => !!normalizeEmail(appointment.email) && normalizeEmail(item.email) === normalizeEmail(appointment.email));
@@ -4398,12 +4398,21 @@ function StudioApp() {
     if (new Date(`${appointment.dateKey}T${appointment.time}:00`).getTime() > Date.now()) { alert('Esta cita todavía no ha comenzado.'); return; }
     if (!window.confirm(`¿Registrar esta cita como realizada en el pasaporte de ${client.nombre}?`)) return;
     const service = appointment.services?.length ? appointment.services.map(item => item.sub.name + (item.variant ? ` (${item.variant.name})` : '')).join(' + ') : appointment.serviceSubcategory.replace(/^RESERVADO\s*/, '');
+    const updated = { ...appointment, completedAt: new Date().toISOString() };
+    if (studioApi.serverConfigured) {
+      const token = studioApi.currentToken();
+      if (!token || studioApi.storedRole() !== 'admin') { alert('Inicia sesión de nuevo en la intranet.'); return; }
+      try {
+        await studioApi.updateAppointmentOnServer(token, { id: appointment.serverId || appointment.id, completedAt: updated.completedAt });
+      } catch {
+        alert('No se pudo registrar la finalización en el servidor. No se ha marcado como realizada. Inténtalo de nuevo.'); return;
+      }
+    }
     setListaClientes(previous => previous.map(item => item.idNum === client.idNum ? {
       ...item,
       ultimaVisita: appointment.dateKey.split('-').reverse().join('/'),
       pastVisits: (item.pastVisits || []).some(visit => visit.sourceAppointmentId === appointment.id) ? item.pastVisits : [...(item.pastVisits || []), { date: appointment.dateKey.split('-').reverse().join('/'), service, stylist: 'Ana', notes: '', sourceAppointmentId: appointment.id }]
     } : item));
-    const updated = { ...appointment, completedAt: new Date().toISOString() };
     setAppointments(previous => previous.map(item => item.id === appointment.id ? updated : item));
     setViewApptModal(updated);
   };
