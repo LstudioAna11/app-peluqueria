@@ -259,3 +259,9 @@ export const setClientArchived = (token: string, clientId: string, archived: boo
   call<{ ok: true; archivedAt: string | null }>("client-status", {
     method: "PUT", token, body: { clientId, archived },
   });
+
+export interface SavedFeedback { id: string; rating: number; comment: string | null; created_at: string; }
+export const submitFeedback = (token: string, feedback: { id: string; rating: number; comment: string }) =>
+  call<{ ok: true; feedback: SavedFeedback }>('feedback', { token, body: feedback });
+export const updateFeedbackStatus = (token: string, id: string, resolved: boolean) =>
+  call<{ ok: true; resolvedAt: string | null }>('feedbac
