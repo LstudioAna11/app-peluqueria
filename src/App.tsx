@@ -4168,14 +4168,14 @@ function StudioApp() {
     setMesNavegacion(new Date(mesNavegacion.getFullYear(), mesNavegacion.getMonth() + delta, 1));
   };
 
-  const aÃ±oMini = mesNavegacion.getFullYear();
+  const anioMini = mesNavegacion.getFullYear();
   const mesMini = mesNavegacion.getMonth();
-  const primerDiaMes = new Date(aÃ±oMini, mesMini, 1).getDay();
+  const primerDiaMes = new Date(anioMini, mesMini, 1).getDay();
   const diaInicio = primerDiaMes === 0 ? 6 : primerDiaMes - 1;
-  const diasEnMes = new Date(aÃ±oMini, mesMini + 1, 0).getDate();
+  const diasEnMes = new Date(anioMini, mesMini + 1, 0).getDate();
   const diasRejillaMini: (Date | null)[] = [];
   for (let i = 0; i < diaInicio; i++) diasRejillaMini.push(null);
-  for (let d = 1; d <= diasEnMes; d++) diasRejillaMini.push(new Date(aÃ±oMini, mesMini, d));
+  for (let d = 1; d <= diasEnMes; d++) diasRejillaMini.push(new Date(anioMini, mesMini, d));
 
   const workingRanges = (date: Date): { start: number; end: number }[] => {
     if (date.getDay() === 0 || isDateBlockedByHoliday(formatDateKey(date))) return [];
@@ -5566,7 +5566,7 @@ style={{ padding: '8px', background: '#322A25', color: '#FFF8EE', border: '1px s
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <button onClick={() => cambiarMesMiniCal(-1)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>â—€</button>
-                    <span style={{ color: '#E4C687', fontSize: '12px', fontWeight: 'bold', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em' }}>{nombresMeses[mesMini]} {aÃ±oMini}</span>
+                    <span style={{ color: '#E4C687', fontSize: '12px', fontWeight: 'bold', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em' }}>{nombresMeses[mesMini]} {anioMini}</span>
                     <button onClick={() => cambiarMesMiniCal(1)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>â–¶</button>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center', marginBottom: '6px' }}>
@@ -7958,3 +7958,4 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
       )}
     </div>
   );
+}
