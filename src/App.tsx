@@ -1450,6 +1450,7 @@ interface FeedbackRecord {
   rating: number;
   comment: string;
   type: 'detractor' | 'neutral' | 'promoter';
+  serverStored?: boolean;
   resolvedAt?: string;
 }
 
@@ -2286,19 +2287,42 @@ function StudioApp() {
 
   const [feedbackList, setFeedbackList] = useState<FeedbackRecord[]>(() => {
     const saved = localStorage.getItem('lst_feedback_list');
-    return saved ? readStoredValue('lst_feedback_list', saved) : [
-      { id: '1', date: '24/09/2026', clientName: 'María G.', rating: 1, comment: 'No me gustó el tiempo de espera en el lavado.', type: 'detractor' }
-    ];
+    return saved ? readStoredValue('lst_feedback_list', saved) : [];
   });
 
   useEffect(() => {
     localStorage.setItem('lst_feedback_list', JSON.stringify(feedbackList));
   }, [feedbackList]);
 
-  const [detractorReplies, setDetractorReplies] = useState<{ [key: string]: string }>({
-    '1': "Hola María, lamentamos mucho el tiempo de espera en el lavado. En L'Studio Ana cuidamos cada detalle y queremos compensarte en tu próxima visita con un ritual exclusivo de hidratación."
-  });
+  const [detractorReplies, setDetractorReplies] = useState<{ [key: string]: string }>({});
+  const [feedbackSaving, setFeedbackSaving] = useState(false);
+  const feedbackSending = useRef(false);
+  const feedbackRequestId = useRef<string | null>(null);
+  const [feedbackError, setFeedbackError] = useState('');
+  const [mailboxError, setMailboxError] = useState('');
+  const [feedbackStatusBusy, setFeedbackStatusBusy] = useState<string | null>(null);
+  const handleFeedbackResolution = async (fb: FeedbackRecord) => {
+    if (feedbackStatusBusy) return;
+    setMailboxError(''); setFeedbackStatusBusy(fb.id);
+    try {
+      let resolvedAt: string | undefined;
+      if (fb.serverStored) {
+        const token = studioApi.currentToken();
+        if (!token) throw new Error('Vuelve a entrar en la intranet.');
+        const result = await studioApi.updateFeedbackStatus(token, fb.id, !fb.resolvedAt);
+        resolvedAt = result.resolvedAt || undefined;
+      } else resolvedAt = fb.resolvedAt ? undefined : new Date().toISOString();
+      setFeedbackList(previous => previous.map(item => item.id === fb.id ? { ...item, resolvedAt } : item));
+    } catch (error) { setMailboxError(error instanceof Error ? error.message : 'No se pudo guardar el estado.'); }
+    finally { setFeedbackStatusBusy(null); }
+  };
+  useEffect(() => {
+    if (currentScreen !== 'adminPanel' || adminTab !== 'detractors' || !studioApi.serverConfigured || !studioApi.currentToken()) return;
+    setMailboxError('');
+    void syncFromServer().catch(() => setMailboxError('No se pudieron actualizar las opiniones. Vuelve a abrir el buzón.'));
+  }, [currentScreen, adminTab]);
 
+  const [feedbackRatingFilter, setFeedbackRatingFilter] = useState<'low' | 'high' | 'all'>('low');
   const [mailboxFilter, setMailboxFilter] = useState<'pending' | 'all' | 'resolved'>('pending');
   const [selectedRating, setSelectedRating] = useState<number>(5);
   const [feedbackComment, setFeedbackComment] = useState<string>('');
@@ -2309,25 +2333,28 @@ function StudioApp() {
 
   };
 
-  const handleSendFeedback = (e: React.FormEvent) => {
+  const handleSendFeedback = async (e: React.FormEvent) => {
     e.preventDefault();
-    const type = selectedRating <= 2 ? 'detractor' : selectedRating === 3 ? 'neutral' : 'promoter';
-    const newRecord: FeedbackRecord = {
-      id: Date.now().toString(),
-      date: new Date().toLocaleDateString('es-ES'),
-      clientName: currentClientRecord ? `${currentClientRecord.nombre} ${currentClientRecord.apellidos}`.trim() : 'Clienta Verificada',
-      rating: selectedRating,
-      comment: feedbackComment,
-      type
-    };
-    setFeedbackList([newRecord, ...feedbackList]);
-    if (type === 'detractor') {
-      setDetractorReplies(prev => ({
-        ...prev,
-        [newRecord.id]: `Hola ${currentClientRecord?.nombre || 'estimada clienta'}, hemos leído tu comentario y queremos pedirte disculpas. Nos encantaría invitarte a un protocolo de mejora en tu próxima cita.`
-      }));
-    }
-    setFeedbackSubmitted(true);
+    if (feedbackSending.current) return;
+    setFeedbackError('');
+    const comment = feedbackComment.trim();
+    if (!Number.isInteger(selectedRating) || selectedRating < 1 || selectedRating > 5 || comment.length > 3000) { setFeedbackError('Revisa la valoración y escribe como máximo 3000 caracteres.'); return; }
+    const token = studioApi.currentToken();
+    if (!studioApi.serverConfigured || !token) { setFeedbackError('Vuelve a acceder al portal para enviar tu opinión al Studio.'); return; }
+    feedbackSending.current = true; setFeedbackSaving(true);
+    if (!feedbackRequestId.current) feedbackRequestId.current = crypto.randomUUID();
+    try {
+      const result = await studioApi.submitFeedback(token, { id: feedbackRequestId.current, rating: selectedRating, comment });
+      const newRecord: FeedbackRecord = {
+        id: result.feedback.id, date: new Date(result.feedback.created_at).toLocaleDateString('es-ES'),
+        clientName: currentClientRecord ? `${currentClientRecord.nombre} ${currentClientRecord.apellidos}`.trim() : 'Clienta',
+        rating: result.feedback.rating, comment: result.feedback.comment || '', serverStored: true,
+        type: result.feedback.rating <= 2 ? 'detractor' : result.feedback.rating === 3 ? 'neutral' : 'promoter',
+      };
+      setFeedbackList(previous => [newRecord, ...previous.filter(item => item.id !== newRecord.id)]);
+      setFeedbackSubmitted(true); feedbackRequestId.current = null;
+    } catch (error) { setFeedbackError(error instanceof Error ? error.message : 'No se pudo enviar tu opinión. Tu texto se conserva; inténtalo de nuevo.'); }
+    finally { feedbackSending.current = false; setFeedbackSaving(false); }
   };
 
   const [appointments, setAppointments] = useState<Appointment[]>(() => {
@@ -3334,10 +3361,11 @@ function StudioApp() {
           comment: f.comment || '',
           type: (f.rating ?? 5) <= 2 ? 'detractor' : (f.rating ?? 5) === 3 ? 'neutral' : 'promoter',
           resolvedAt: f.resolved_at || undefined,
+          serverStored: true,
         }));
-        if (serverFeedback.length) {
+        {
           setFeedbackList(previous => {
-            const byId = new Map(previous.map(item => [item.id, item]));
+            const byId = new Map(previous.filter(item => !item.serverStored).map(item => [item.id, item]));
             serverFeedback.forEach(item => byId.set(item.id, item));
             return Array.from(byId.values());
           });
@@ -4802,16 +4830,9 @@ function StudioApp() {
                 <p style={{ color: selectedRating >= 4 ? '#2E7D32' : '#8F6D24', fontSize: '12px', fontWeight: 'bold', margin: '0 0 4px 0' }}>
                   {selectedRating >= 4 ? '¡Gracias por compartir tu opinión!' : 'Gracias por tu sinceridad'}
                 </p>
-                {selectedRating >= 4 ? (
-                  <>
-                    <p style={{ color: '#D6CBB8', fontSize: '12px', margin: '0 0 8px 0', lineHeight: 1.5 }}>¿Nos ayudas contándolo también en Google? Tu opinión ayuda a otras personas a descubrir el Studio.</p>
-                    <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ display: 'inline-block', background: '#C49A58', color: '#29231F', padding: '10px 16px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', textDecoration: 'none', minHeight: '44px', lineHeight: '24px' }}>
-                      Compartir mi reseña en Google ↗
-                    </a>
-                  </>
-                ) : (
-                  <p style={{ color: '#D6CBB8', fontSize: '12px', margin: 0, lineHeight: 1.5 }}>Tu comentario ha llegado directamente a Ana en la intranet del Studio. Lo revisará personalmente y se pondrá en contacto contigo para cuidar cada detalle.</p>
-                )}
+                <p style={{ color: '#FFF8EE', fontSize: '12px', margin: '0 0 12px', lineHeight: 1.6 }}>Tu opinión se ha guardado y Ana podrá revisarla en la intranet. Si quieres, también puedes compartir tu experiencia en Google.</p>
+                <a href={bizConfig.googleReviewUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', background: '#C49A58', color: '#29231F', padding: '10px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none', minHeight: 44, boxSizing: 'border-box' }}>Compartir mi experiencia en Google ↗</a>
+
               </div>
             ) : (
               <form onSubmit={handleSendFeedback} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -4832,10 +4853,11 @@ function StudioApp() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label htmlFor="portal-feedback-comment" style={{ color: '#E4C687', fontSize: '15px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em' }}>Cuéntanos tu experiencia</label>
                   <p style={{ color: '#FFF8EE', fontSize: '13px', margin: 0, lineHeight: 1.6 }}>¿Qué servicio te has realizado y cómo ha sido tu experiencia en L’Studio Ana? Nos encantará saber cómo te has sentido y qué destacarías de tu visita.</p>
-                  <textarea id="portal-feedback-comment" value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} placeholder="Escribe aquí tu experiencia…" rows={4} style={{ backgroundColor: 'rgba(234, 220, 199, 0.07)', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#FFF8EE', borderRadius: '10px', padding: '12px', fontSize: '14px', lineHeight: 1.55, width: '100%', boxSizing: 'border-box', resize: 'vertical', minHeight: '44px' }} />
+                  <textarea maxLength={3000} disabled={feedbackSaving} id="portal-feedback-comment" value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} placeholder="Escribe aquí tu experiencia…" rows={4} style={{ backgroundColor: 'rgba(234, 220, 199, 0.07)', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#FFF8EE', borderRadius: '10px', padding: '12px', fontSize: '14px', lineHeight: 1.55, width: '100%', boxSizing: 'border-box', resize: 'vertical', minHeight: '44px' }} />
                 </div>
-                <button type="submit" style={{ backgroundColor: '#C49A58', color: '#29231F', border: 'none', padding: '14px', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', minHeight: '48px', letterSpacing: '0.03em', boxShadow: '0 8px 20px rgba(196, 154, 88, 0.3)' }}>
-                  {t('sendReview')}
+                {feedbackError && <p role="alert" style={{ color: '#F5C7B8', fontSize: 13 }}>{feedbackError}</p>}
+                <button disabled={feedbackSaving} type="submit" style={{ backgroundColor: '#C49A58', color: '#29231F', border: 'none', padding: '14px', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', minHeight: '48px', letterSpacing: '0.03em', boxShadow: '0 8px 20px rgba(196, 154, 88, 0.3)' }}>
+                  {feedbackSaving ? 'Enviando…' : t('sendReview')}
                 </button>
               </form>
             )}
@@ -6658,7 +6680,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
                   <h3 style={{ color: '#E4C687', fontSize: '23px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Opiniones del Studio</h3>
-                  <p style={{ color: '#D6CBB8', fontSize: '11px', margin: 0 }}>Opiniones del portal y solicitudes de reseña después de cada visita.</p>
+                  <p style={{ color: '#D6CBB8', fontSize: '11px', margin: 0 }}>Opiniones recibidas en el servidor y seguimiento de cada experiencia.</p>
                 </div>
                 <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ backgroundColor: '#322A25', border: '1px solid #B98A3E', color: '#FFF8EE', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   Abrir enlace para reseñar ↗
@@ -6674,13 +6696,16 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 {appointments.filter(item => !!item.completedAt && item.lifecycleStatus !== 'cancelled' && item.lifecycleStatus !== 'no_show').map(item => <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', padding: '12px 0', borderTop: '1px solid #3A312A', fontSize: '13px' }}><span>{item.clientName} · {item.dateKey}</span>{item.phone ? <a target="_blank" rel="noreferrer" href={`https://wa.me/${item.phone.replace(/\D/g, '').length === 9 ? '34' : ''}${item.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${item.clientName.split(' ')[0]}, gracias por tu visita a ${bizConfig.name}. Si te apetece, puedes compartir tu experiencia en Google: ${bizConfig.googleReviewUrl}. ¡Gracias por tu tiempo! Ana.`)}`} style={{ color: '#E4C687' }}>Pedir reseña por WhatsApp ↗</a> : <span>Sin teléfono registrado</span>}</div>)}
                 {!appointments.some(item => !!item.completedAt) && <p style={{ fontSize: '13px' }}>Marca una cita como realizada para verla aquí.</p>}
               </details>
+              {mailboxError && <p role="alert" style={{ color: '#F5C7B8', fontSize: 13 }}>{mailboxError}</p>}
+              <p style={{ color: '#D6CBB8', fontSize: 12 }}>El buzón se actualiza al abrirlo. Las opiniones de Google se gestionan en Google; aquí aparecen las enviadas desde el portal.</p>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{([{ id: 'low', label: 'Necesitan atención · 1–3 ★' }, { id: 'high', label: 'Positivas · 4–5 ★' }, { id: 'all', label: 'Todas las valoraciones' }] as const).map(tab => <button type="button" key={tab.id} aria-pressed={feedbackRatingFilter === tab.id} onClick={() => setFeedbackRatingFilter(tab.id)} style={{ padding: '10px 14px', border: '1px solid #C5A059', borderRadius: 8, background: feedbackRatingFilter === tab.id ? '#C49A58' : '#322A25', color: feedbackRatingFilter === tab.id ? '#221D19' : '#FFF8EE', cursor: 'pointer', fontSize: 12 }}>{tab.label}</button>)}</div>
               <div className="studio-review-grid">
-                {feedbackList.filter(f => mailboxFilter === 'all' || (mailboxFilter === 'resolved' ? !!f.resolvedAt : !f.resolvedAt)).length === 0 ? (
+                {feedbackList.filter(f => (feedbackRatingFilter === 'all' || (feedbackRatingFilter === 'low' ? f.rating <= 3 : f.rating >= 4)) && (mailboxFilter === 'all' || (mailboxFilter === 'resolved' ? !!f.resolvedAt : !f.resolvedAt))).length === 0 ? (
                   <div style={{ backgroundColor: '#322A25', padding: '20px', borderRadius: '8px', textAlign: 'center', color: '#D6CBB8', fontSize: '12px', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
                     No hay opiniones en esta vista.
                   </div>
                 ) : (
-                  feedbackList.filter(f => mailboxFilter === 'all' || (mailboxFilter === 'resolved' ? !!f.resolvedAt : !f.resolvedAt)).map((fb) => {
+                  feedbackList.filter(f => (feedbackRatingFilter === 'all' || (feedbackRatingFilter === 'low' ? f.rating <= 3 : f.rating >= 4)) && (mailboxFilter === 'all' || (mailboxFilter === 'resolved' ? !!f.resolvedAt : !f.resolvedAt))).map((fb) => {
                     const currentReply = detractorReplies[fb.id] || "";
                     return (
                       <div className="studio-review-card" key={fb.id} style={{ backgroundColor: '#322A25', border: '1px solid #463B32', borderRadius: '10px', padding: '18px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -6688,18 +6713,19 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                           <span style={{ color: '#E4C687', fontWeight: 'bold', fontSize: '12px' }}>★ {fb.rating}/5 · {fb.clientName.replace(/\s*\(PIN\s+[^)]*\)/gi, '')}</span>
                           <span style={{ color: '#D6CBB8', fontSize: '10px' }}>{fb.date}</span>
                         </div>
+                        <small style={{ color: '#D6CBB8', fontSize: 11 }}>{fb.serverStored ? 'Guardada en el servidor' : 'Histórico local · solo en este navegador'}</small>
                         <p style={{ color: '#FFF8EE', fontSize: '12px', margin: 0, fontStyle: 'italic', backgroundColor: '#322A25', padding: '10px', borderRadius: '6px', borderLeft: '2px solid #a68f59' }}>
                           "{fb.comment}"
                         </p>
                         <details className="studio-review-response" style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px', display: 'block' }}>
-                          <summary>Responder a la clienta <span>＋</span></summary>
+                          <summary>Responder a la clienta <span>＋</span></summary><p style={{ color: '#D6CBB8', fontSize: 11 }}>Plantilla editable. No hay IA conectada. Revisa la respuesta antes de enviarla.</p>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ color: '#FFF8EE', fontSize: '11px', fontWeight: 'bold' }}>Respuesta para la clienta</span>
                             <button type="button" onClick={() => {
                               const generated = `Hola ${fb.clientName.split(" ")[0]}, gracias por compartir tu experiencia en ${bizConfig.name}. Hemos leído tu comentario y nos gustaría hablar contigo para dar seguimiento a tu visita. Ana.`;
                               setDetractorReplies(prev => ({ ...prev, [fb.id]: generated }));
                             }} style={{ backgroundColor: 'transparent', border: '1px solid #B98A3E', color: '#E4C687', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}>
-                              Preparar respuesta
+                              Preparar plantilla
                             </button>
                           </div>
                           <textarea value={currentReply} onChange={(e) => setDetractorReplies(prev => ({ ...prev, [fb.id]: e.target.value }))} rows={3} placeholder="Escribe tu respuesta personalizada..." style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', padding: '8px', fontSize: '11px', resize: 'vertical' }} />
@@ -6716,8 +6742,8 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                           </div>
                         </details>
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '5px' }}>
-                          <button onClick={() => setFeedbackList(previous => previous.map(item => item.id !== fb.id ? item : { ...item, resolvedAt: item.resolvedAt ? undefined : new Date().toISOString() }))} style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#D6CBB8', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>
-                            {fb.resolvedAt ? 'Reabrir opinión' : 'Marcar como resuelta'}
+                          <button type="button" disabled={feedbackStatusBusy !== null} onClick={() => void handleFeedbackResolution(fb)} style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#D6CBB8', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}>
+                            {feedbackStatusBusy === fb.id ? 'Guardando…' : fb.resolvedAt ? 'Reabrir opinión' : 'Marcar como resuelta'}
                           </button>
                         </div>
                       </div>
