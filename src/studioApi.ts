@@ -264,4 +264,4 @@ export interface SavedFeedback { id: string; rating: number; comment: string | n
 export const submitFeedback = (token: string, feedback: { id: string; rating: number; comment: string }) =>
   call<{ ok: true; feedback: SavedFeedback }>('feedback', { token, body: feedback });
 export const updateFeedbackStatus = (token: string, id: string, resolved: boolean) =>
-  call<{ ok: true; resolvedAt: string | null }>('feedbac
+  call<{ ok: true; resolvedAt: string | null }>('feedback-status', { method: 'PUT', token, body: { id, resolved } });
