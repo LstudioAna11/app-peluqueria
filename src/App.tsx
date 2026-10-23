@@ -1931,7 +1931,38 @@ function StudioApp() {
   const [employeePhotoBusy, setEmployeePhotoBusy] = useState<string | null>(null);
   const employeePhotoBusyRef = useRef(false);
   const portalShowsPrices = bizConfig.showPrices !== false;
+  const [professionalsLoading, setProfessionalsLoading] = useState(false);
+  const [professionalsError, setProfessionalsError] = useState('');
+  const [professionalsReload, setProfessionalsReload] = useState(0);
   const activeEmployees = (bizConfig.employees || []).filter(e => e.status === 'active' && e.name.trim());
+
+  // Fetch independently of saved sessions whenever the booking agenda opens.
+  useEffect(() => {
+    if (currentScreen !== 'visualAgenda' || !studioApi.serverConfigured) return;
+    let cancelled = false;
+    setProfessionalsLoading(true);
+    setProfessionalsError('');
+    void statusWithTimeout(studioApi.fetchPublicCatalog<{ employees?: StudioEmployee[] }>())
+      .then(data => {
+        if (cancelled) return;
+        if (!Array.isArray(data.employees)) throw new Error('missing employees');
+        const employees = data.employees.filter(employee =>
+          employee && typeof employee.id === 'string' &&
+          typeof employee.name === 'string' && employee.name.trim() && employee.status === 'active');
+        setBizConfig(previous => {
+          const next = { ...previous, employees };
+          bizConfigRef.current = next;
+          return next;
+        });
+        setSelectedProfessionalId(previous => employees.some(employee => employee.id === previous)
+          ? previous : employees.length === 1 ? employees[0].id : null);
+      })
+      .catch(() => {
+        if (!cancelled) setProfessionalsError('No hemos podido consultar los profesionales. Pulsa Reintentar.');
+      })
+      .finally(() => { if (!cancelled) setProfessionalsLoading(false); });
+    return () => { cancelled = true; };
+  }, [currentScreen, professionalsReload]);
   useEffect(() => {
     if (activeEmployees.length === 1) setSelectedProfessionalId(activeEmployees[0].id);
     else if (activeEmployees.length === 0) setSelectedProfessionalId(null);
@@ -5064,8 +5095,14 @@ function StudioApp() {
           <button type="button" onClick={() => { setReservationPolicyChecked(saturdayNeedsAcceptance && acceptedSaturdayPolicy === saturdayPolicyKey); setReservationPolicyOpen(true); }} style={{ alignSelf: 'flex-end', color: '#E4C687', background: 'none', border: 'none', textDecoration: 'underline', padding: 10, minHeight: 44, cursor: 'pointer' }}>Políticas de reserva · Sábados</button>
           <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#D8C29A', padding: '10px 0', cursor: 'pointer' }}>{t('backServices')}</button>
           <div><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', color: '#FFF8EE', fontSize: '28px', fontWeight: 'normal', margin: '0 0 8px' }}>{t('chooseMoment')}</h2><p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('fullSlots')} · {getModalDuration(selectedServicesToBook)} min.</p></div>
-          {activeEmployees.length >= 1 && <section aria-label="Selecciona profesional" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {<section aria-label="Selecciona profesional" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <h3 style={{ color: '#FFF8EE', fontSize: '15px', margin: 0 }}>Elige profesional</h3>
+            <div aria-live="polite">
+              {professionalsLoading && <p style={{ color: '#D6CBB8', fontSize: 13 }}>Consultando profesionales…</p>}
+              {professionalsError && <p role="alert" style={{ color: '#F5C7B8', fontSize: 13 }}>{professionalsError}</p>}
+              {!professionalsLoading && !professionalsError && !activeEmployees.length && <p style={{ color: '#D6CBB8', fontSize: 13 }}>No hay profesionales disponibles para seleccionar en este momento.</p>}
+              {(professionalsError || (!professionalsLoading && !activeEmployees.length)) && <button type="button" className="studio-btn-ghost" onClick={() => setProfessionalsReload(value => value + 1)}>Reintentar</button>}
+            </div>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               {activeEmployees.map(emp => (
                 <button key={emp.id} type="button" aria-pressed={selectedProfessionalId === emp.id} onClick={() => setSelectedProfessionalId(prev => prev === emp.id ? null : emp.id)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 14px', background: selectedProfessionalId === emp.id ? '#C49A58' : '#322A25', color: selectedProfessionalId === emp.id ? '#29231F' : '#FFF8EE', border: '1px solid rgba(255,248,238,0.12)', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', minHeight: '48px' }}>
