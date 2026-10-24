@@ -265,3 +265,5 @@ export const submitFeedback = (token: string, feedback: { id: string; rating: nu
   call<{ ok: true; feedback: SavedFeedback }>('feedback', { token, body: feedback });
 export const updateFeedbackStatus = (token: string, id: string, resolved: boolean) =>
   call<{ ok: true; resolvedAt: string | null }>('feedback-status', { method: 'PUT', token, body: { id, resolved } });
+
+export const fetchPublicBranding = () => call<{ brandLogoUrl: string | null; headerLogoUrl: string | null }>('branding', { method: 'GET' });
