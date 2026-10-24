@@ -3743,7 +3743,7 @@ function StudioApp() {
   };
 
   return (
-    <div lang={currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang} dir={currentLang === 'ar' && currentScreen !== 'adminPanel' && currentScreen !== 'adminLogin' ? 'rtl' : 'ltr'} style={{ backgroundColor: '#29231F', color: '#FFF8EE', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', fontFamily: "'Garet', 'Poppins', sans-serif", margin: 0, padding: '20px 20px 96px', position: 'relative' }}>
+    <div className={selectedServicesToBook.length > 0 && ['catalogBooking', 'categoryScreen', 'serviceDetail'].includes(currentScreen) ? 'lst-has-booking-summary' : undefined} lang={currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang} dir={currentLang === 'ar' && currentScreen !== 'adminPanel' && currentScreen !== 'adminLogin' ? 'rtl' : 'ltr'} style={{ backgroundColor: '#29231F', color: '#FFF8EE', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', fontFamily: "'Garet', 'Poppins', sans-serif", margin: 0, padding: '20px 20px 96px', position: 'relative' }}>
       
       <style>{`
         .lst-app-header { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 520px; padding: 4px 0 12px; }
@@ -3761,6 +3761,12 @@ function StudioApp() {
         .lst-c-cta { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
         .lst-c-cta .lst-btn-ver { flex: 1 1 auto; min-width: 0; min-height: 44px; padding: 0 10px; font-size: 13px; font-weight: 500; justify-content: center; }
         .lst-btn-ver:hover { background: #CFA765; }
+        .lst-mobile-booking { display: none; }
+        @media (max-width: 640px) {
+          .lst-mobile-booking { display: block; position: fixed; bottom: calc(76px + env(safe-area-inset-bottom)); left: 10px; right: 10px; z-index: 49; background: #221D19; border: 1px solid rgba(196,154,88,.45); border-radius: 14px; padding: 12px; box-shadow: 0 -4px 24px rgba(0,0,0,.35); max-height: 50dvh; overflow-y: auto; }
+          .lst-has-booking-summary { padding-bottom: calc(230px + env(safe-area-inset-bottom)) !important; }
+          #booking-selection-summary { scroll-margin-top: 20px; }
+        }
         .lst-bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 50; background: #221D19; border-top: 1px solid rgba(255, 248, 238, 0.08); display: flex; justify-content: space-around; padding: 6px 8px calc(10px + env(safe-area-inset-bottom)); max-width: 640px; margin: 0 auto; }
         .lst-bottom-nav button { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: none; color: #C9BCA9; font-size: 11px; cursor: pointer; padding: 6px 0; }
         .lst-bottom-nav button.lst-bottom-active { color: #C49A58; }
@@ -3850,6 +3856,45 @@ function StudioApp() {
           </button>
         </nav>
       )}
+
+      {selectedServicesToBook.length > 0 && ['catalogBooking', 'categoryScreen', 'serviceDetail'].includes(currentScreen) && (() => {
+        const total = getSelectionTotal(selectedServicesToBook);
+        const continueBooking = () => {
+          const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant);
+          const error = missing ? tf('requiredVariant', { service: missing.sub.name }) : getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook);
+          if (error) {
+            alert(error);
+            setViewServiceDetail(null);
+            setCurrentScreen('catalogBooking');
+            window.setTimeout(() => document.getElementById('booking-selection-summary')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+            return;
+          }
+          setViewServiceDetail(null);
+          setCurrentScreen('visualAgenda');
+          window.scrollTo({ top: 0 });
+        };
+        return <>
+          
+          <aside className="lst-mobile-booking" aria-label="Resumen de reserva">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <strong style={{ display: 'block', color: '#FFF8EE', fontSize: 14 }}>{selectedServicesToBook.length} {selectedServicesToBook.length === 1 ? 'servicio elegido' : 'servicios elegidos'}</strong>
+                <p style={{ margin: '4px 0 0', color: '#D6CBB8', fontSize: 12 }}>{getModalDuration(selectedServicesToBook)} min{portalShowsPrices && total.total > 0 && <> · {total.orientative ? 'Orientativo: ' : ''}{total.total.toFixed(2).replace('.', ',')} €</>}</p>
+              </div>
+              <button type="button" onClick={continueBooking} style={{ minHeight: 46, padding: '10px 16px', border: 0, borderRadius: 9, background: '#C49A58', color: '#221D19', fontWeight: 600, cursor: 'pointer' }}>Continuar →</button>
+            </div>
+            <details key={currentScreen} style={{ marginTop: 6 }}>
+              <summary style={{ color: '#E4C687', fontSize: 12, minHeight: 30, cursor: 'pointer', padding: '6px 0' }}>Ver servicios elegidos</summary>
+              <div style={{ maxHeight: '25dvh', overflowY: 'auto' }}>
+                {selectedServicesToBook.map(item => <div key={item.sub.id} style={{ display: 'flex', alignItems: 'center', gap: 8, borderTop: '1px solid rgba(255,248,238,.12)', fontSize: 12 }}>
+                  <span style={{ flex: 1, color: '#FFF8EE', padding: '8px 0' }}>{serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}{item.variant && <> · {variantText(item.variant, item.sub)}</>}</span>
+                  <button type="button" aria-label={'Quitar ' + serviceText(item.sub, 'name')} onClick={() => setSelectedServicesToBook(previous => previous.filter(selected => selected.sub.id !== item.sub.id))} style={{ minHeight: 44, minWidth: 44, background: 'none', border: 0, color: '#E4C687', cursor: 'pointer' }}>×</button>
+                </div>)}
+              </div>
+            </details>
+          </aside>
+        </>;
+      })()}
 
       {/* 1. ACCESO PIN CLIENTE */}
       {currentScreen === 'clientPin' && (
@@ -4183,7 +4228,7 @@ function StudioApp() {
               })}
             </div>
 
-          {selectedServicesToBook.length > 0 && <section aria-label="Resumen de tu selección" style={{ backgroundColor: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', padding: '20px', borderRadius: 12 }}>
+          {selectedServicesToBook.length > 0 && <section id="booking-selection-summary" aria-label="Resumen de tu selección" style={{ backgroundColor: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', padding: '20px', borderRadius: 12 }}>
             <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '20px', margin: '0 0 14px', fontWeight: 400 }}>Tu selección</h2>
             {selectedServicesToBook.map(item => <div key={item.sub.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid #E4DCCF' }}>
               <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#E4C687' }}>{serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#E4C687' }}>{item.sub.hasVariants && !item.variant ? t('chooseOption') : (portalShowsPrices ? (item.variant?.price || item.sub.price) + ' · ' : '') + (item.variant?.duration || item.sub.duration)}</span></div>
