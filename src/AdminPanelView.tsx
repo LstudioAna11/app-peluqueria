@@ -859,7 +859,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               <style>{`
                 
                 
-                .studio-service-editor[open] { position: fixed !important; inset: 0 0 0 auto; width: min(670px, 96vw); max-height: 100vh; overflow-y: auto; z-index: 1800; box-sizing: border-box; border: 1px solid #B98A3E !important; border-radius: 0 !important; box-shadow: -20px 0 60px rgba(60, 50, 40, 0.12); padding: 20px !important; background: #322A25 !important; }
+                .studio-service-editor[open] { position: fixed !important; inset: 0 0 0 auto; width: min(920px, 98vw); max-height: 100vh; overflow-y: auto; z-index: 1800; box-sizing: border-box; border: 1px solid #B98A3E !important; border-radius: 0 !important; box-shadow: -20px 0 60px rgba(60, 50, 40, 0.12); padding: 20px !important; background: #322A25 !important; }
                 .studio-service-editor[open] > summary { display: none; }
                 .studio-editor-toolbar { position: sticky; top: -20px; z-index: 4; background: #322A25; border-bottom: 1px solid rgba(212, 175, 55, 0.35); padding: 15px 0; }
                 .studio-service-editor[data-editor-tab=data] .studio-editor-options,
@@ -925,6 +925,12 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                 .studio-service-editor label { color: #D6CBB8 !important; font-size: 13px !important; line-height: 1.6; }
                 .studio-base-field { display: flex; flex-direction: column; gap: 6px; flex: 1 1 150px; min-width: 0; }
                 .studio-base-field input { width: 100% !important; }
+                .studio-service-names-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 18px; align-items: start; }
+                .studio-service-names-grid .studio-base-field { display: flex; flex-direction: column; gap: 8px; min-width: 0; flex: none; margin: 0; }
+                .studio-service-names-grid input { min-width: 0 !important; width: 100% !important; flex: none !important; font-weight: 400 !important; }
+                .studio-service-basics > div + div { margin-top: 20px; display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; }
+                @media (max-width: 600px) { .studio-service-names-grid { grid-template-columns: 1fr; gap: 16px; } .studio-service-editor[open] { width: 100vw; padding: 16px !important; } }
+
                 .studio-variant-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; flex: 1 1 350px; min-width: 0; }
                 .studio-variant-fields label { display: flex; flex-direction: column; gap: 6px; }
                 .studio-variant-fields input { width: 100%; }
@@ -1092,13 +1098,13 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                   }} /> {sub.active === false ? 'Desactivado · Oculto para nuevas reservas' : 'Activo · Disponible para reservar'}
                                 </label>
 
-                                <div className="studio-editor-data" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                                  <div style={{ flex: 1, display: 'flex', gap: '8px', alignItems: 'center' }}>
+                                <div className="studio-editor-data studio-service-basics" style={{ display: 'block' }}>
+                                  <div className="studio-service-names-grid">
                                     <label className="studio-base-field">Título creativo del portal<input type="text" value={sub.name} onChange={(e) => {
                                       const updatedName = e.target.value;
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, name: updatedName } : s) } : c));
                                     }} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', flex: 1 }} /></label>
-                                    <label className="studio-base-field">Nombre corto en citas<input type="text" maxLength={100} value={sub.bookingName ?? bookingName(sub)} placeholder="Styling & Peinados" onChange={event => updateSubserviceField(cat.id, sub.id, { bookingName: event.target.value })} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '4px 8px', borderRadius: 4, fontSize: 12, minWidth: 160 }} /><small style={{display:'block',color:'#D6CBB8',fontSize:11,marginTop:5}}>Agenda, ficha y cita rápida. El título creativo se conserva en el portal. Guarda el catálogo al terminar.</small></label>
+                                    <label className="studio-base-field">Nombre corto en citas<input type="text" maxLength={100} value={sub.bookingName ?? bookingName(sub)} placeholder="Styling & Peinados" onChange={event => updateSubserviceField(cat.id, sub.id, { bookingName: event.target.value })} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '4px 8px', borderRadius: 4, fontSize: 12, minWidth: 160 }} /><small style={{display:'block',color:'#D6CBB8',fontSize:11,marginTop:5}}>Se usa en agenda, ficha y cita rápida.</small></label>
                                     <label className="studio-base-field">Precio base<input type="text" value={sub.price} onChange={(e) => {
                                       const updatedPrice = e.target.value;
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, price: updatedPrice } : s) } : c));
