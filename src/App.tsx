@@ -3843,7 +3843,7 @@ function StudioApp() {
             @media (max-width: 600px) { .studio-editorial-logo img { width: 180px !important; height: auto !important; } }
           `}</style>
           <button className="studio-editorial-logo" type="button" onClick={handleLogoClick} aria-label="L’Studio Ana" style={{ display: 'inline-block', border: 'none', background: 'none', padding: 0, cursor: 'pointer', marginBottom: '18px' }}>
-            <img src={brandLogoSrc} onError={fallbackBrandLogo} decoding="async" alt="L’A · Hair Experience" draggable={false} style={{ width: '210px', height: 'auto', objectFit: 'contain', display: 'block', mixBlendMode: bizConfig.brandLogoUrl ? 'normal' : 'screen' }} />
+            <img src={brandLogoSrc} onError={fallbackBrandLogo} decoding="async" alt="L’A · Hair Experience" draggable={false} style={{ width: '210px', height: 'auto', objectFit: 'contain', display: 'block', mixBlendMode: 'screen' }} />
           </button>
           <h1 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '30px', margin: '0 0 12px' }}>L’Studio Ana</h1>
           <p style={{ color: '#D8C29A', fontSize: '10px', letterSpacing: '3px', textTransform: 'uppercase', margin: '0 0 40px', lineHeight: 1.6 }}>{t('subtitle')}</p>
@@ -3868,7 +3868,7 @@ function StudioApp() {
             .studio-registration label { font-size: 12px !important; color: #D6CBB8 !important; margin-bottom: 4px; }
             .studio-registration button:focus-visible { outline: 2px solid #B98A3E; outline-offset: 4px; }
           `}</style>
-          <img src={brandLogoSrc} onError={fallbackBrandLogo} decoding="async" alt="L’A · Hair Experience" style={{ width: '150px', height: 'auto', mixBlendMode: bizConfig.brandLogoUrl ? 'normal' : 'screen', display: 'block', margin: '0 auto 12px' }} />
+          <img src={brandLogoSrc} onError={fallbackBrandLogo} decoding="async" alt="L’A · Hair Experience" style={{ width: '150px', height: 'auto', mixBlendMode: 'screen', display: 'block', margin: '0 auto 12px' }} />
           <h2 style={{ color: '#FFF8EE', fontSize: '25px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0, textAlign: 'center' }}>{t('clientRegistrationTitle')}</h2>
           <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.7, textAlign: 'center', margin: '0 0 10px 0' }}>{t('clientRegistrationDesc')}</p>
           <form onSubmit={handleRegistroClientaPortalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -4535,7 +4535,7 @@ function StudioApp() {
             .studio-admin-access-button:hover { background: #CFA765 !important; }
             @media (max-width: 600px) { .studio-admin-access-logo { width: 170px !important; } }
           `}</style>
-          <img className="studio-admin-access-logo" src={brandLogoSrc} onError={fallbackBrandLogo} decoding="async" alt="L’A · Hair Experience" style={{ width: '190px', height: 'auto', display: 'block', margin: '0 auto 22px', mixBlendMode: bizConfig.brandLogoUrl ? 'normal' : 'screen' }} />
+          <img className="studio-admin-access-logo" src={brandLogoSrc} onError={fallbackBrandLogo} decoding="async" alt="L’A · Hair Experience" style={{ width: '190px', height: 'auto', display: 'block', margin: '0 auto 22px', mixBlendMode: 'screen' }} />
           <h1 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '32px', fontWeight: 'normal', margin: '0 0 10px' }}>360studio</h1>
           <p style={{ color: '#D8C29A', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '3px', lineHeight: 1.6, margin: '0 0 36px' }}>Intranet privada · L’Studio Ana</p>
           <form onSubmit={handleAdminLoginSubmit} style={{ maxWidth: '280px', margin: '0 auto' }}>
@@ -4651,7 +4651,7 @@ function StudioApp() {
             }
           `}</style>
           <div className="studio-admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212, 175, 55, 0.2)', paddingBottom: '15px' }}>
-            <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}><img src={headerLogoSrc} alt={bizConfig.name} decoding="async" style={{width:160,height:48,objectFit:'contain'}} onError={fallbackHeaderLogo}/><div>
+            <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}><img src={headerLogoSrc} alt={bizConfig.name} decoding="async" style={{width:160,height:48,objectFit:'contain',mixBlendMode:'screen'}} onError={fallbackHeaderLogo}/><div>
               <h2 style={{ color: '#E4C687', fontSize: '28px', margin: '0 0 3px 0', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em' }}>{t('adminMasterTitle')}</h2>
               <p style={{ color: '#C9BCA9', fontSize: '12px', letterSpacing: '1px', margin: 0 }}>{bizConfig.name} - {t('adminSubtitle')}</p>
             </div>
@@ -5000,7 +5000,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                     <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:14}}>
                       {([{key:'brandLogoUrl',title:'Logo principal',help:'Pantalla de inicio y accesos al portal y la intranet.',fallback:DEFAULT_BRAND_LOGO},{key:'headerLogoUrl',title:'Logo de cabecera',help:'Formato horizontal para la cabecera de la intranet.',fallback:DEFAULT_HEADER_LOGO}] as const).map(item=><article key={item.key} style={{display:'flex',flexDirection:'column',gap:12,border:'1px solid #655039',borderRadius:10,padding:16,background:'#221D19'}}>
                         <strong style={{color:'#FFF8EE',fontSize:14}}>{item.title}</strong><p style={{color:'#D6CBB8',fontSize:12,margin:0}}>{item.help}</p>
-                        <div style={{height:130,display:'flex',alignItems:'center',justifyContent:'center',background:'#121212',borderRadius:8,padding:12}}><img src={tempConfig[item.key] || item.fallback} alt={`Vista previa: ${item.title}`} style={{maxWidth:'100%',maxHeight:'100%',objectFit:'contain'}} onError={e=>{if(!e.currentTarget.src.endsWith(item.fallback))e.currentTarget.src=item.fallback;}} /></div>
+                        <div style={{height:130,display:'flex',alignItems:'center',justifyContent:'center',background:'#221D19',borderRadius:8,padding:12}}><img src={tempConfig[item.key] || item.fallback} alt={`Vista previa: ${item.title}`} style={{maxWidth:'100%',maxHeight:'100%',objectFit:'contain',mixBlendMode:'screen'}} onError={e=>{if(!e.currentTarget.src.endsWith(item.fallback))e.currentTarget.src=item.fallback;}} /></div>
                         <label style={{padding:'11px 14px',border:'1px solid #C5A059',borderRadius:8,color:'#E4C687',textAlign:'center',cursor:logoUploadBusy ? 'wait' : 'pointer',fontSize:13}}>{logoUploadBusy===item.key ? 'Subiendo…' : 'Subir / cambiar logo'}<input type="file" accept="image/png,image/jpeg,image/webp" disabled={logoUploadBusy !== null || saveState === 'saving'} onChange={e=>{const file=e.currentTarget.files?.[0];e.currentTarget.value='';if(file)void uploadStudioLogo(item.key,file);}} style={{display:'block',width:'100%',marginTop:9,fontSize:12}} /></label>
                         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}><button type="button" disabled={logoUploadBusy !== null || !tempConfig[item.key]} onClick={()=>{setTempConfig(previous=>({...previous,[item.key]:undefined}));setLogoUploadMessage('Logo original seleccionado. Pulsa Guardar cambios para aplicarlo.');}} style={{background:'transparent',border:'1px solid #655039',color:'#D6CBB8',borderRadius:7,padding:'8px 10px',cursor:'pointer',fontSize:12}}>Restaurar original</button><button type="button" disabled={logoUploadBusy !== null || !tempConfig[item.key]} onClick={()=>{const url=tempConfig[item.key];setTempConfig(previous=>({...previous,brandLogoUrl:url,headerLogoUrl:url}));setLogoUploadMessage('El mismo logo se usará en ambos sitios. Pulsa Guardar cambios.');}} style={{background:'transparent',border:'1px solid #655039',color:'#D6CBB8',borderRadius:7,padding:'8px 10px',cursor:'pointer',fontSize:12}}>Usar en ambos</button></div>
                       </article>)}
