@@ -3,6 +3,23 @@ import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, Arrow
 import './catalog.css';
 import * as studioApi from './studioApi';
 const LazyAdminPanelView = React.lazy(() => import('./AdminPanelView'));
+// Optimized copies of bundled photos only; custom uploads remain unchanged.
+const FAST_PHOTO_URLS: Readonly<Record<string,string>> = {
+  "/s1.webp": "/s1-fast.webp",
+  "/s2.webp": "/s2-fast.webp",
+  "/s3.webp": "/s3-fast.webp",
+  "/s4.webp": "/s4-fast.webp",
+  "/s5.webp": "/s5-fast.webp",
+  "/s6.webp": "/s6-fast.webp",
+  "/s7.webp": "/s7-fast.webp",
+  "/s8.webp": "/s8-fast.webp",
+  "/s9.webp": "/s9-fast.webp",
+  "/Salon_elegante_con_luz_calida.png": "/salon-inicio-fast.webp"
+};
+function optimizedImageUrl(source: string | undefined | null): string {
+ return source ? FAST_PHOTO_URLS[source] || source : '';
+}
+
 
 
 // Prepara el aviso; el envío se confirma manualmente en WhatsApp.
@@ -2931,7 +2948,7 @@ function StudioApp() {
     return (
       <article key={sub.id} id={`portal-service-${sub.id}`} className="lst-card" style={{ boxShadow: '0 6px 18px rgba(60, 50, 40, 0.05)' }}>
         {(serviceImage
-          ? <button type="button" style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'zoom-in' }} onClick={() => setLightboxImage(serviceImage)} aria-label="Ampliar imagen"><img className="lst-card-media" style={{ objectPosition: `${sub.imagePosition?.x ?? 50}% ${sub.imagePosition?.y ?? 50}%` }} src={serviceImage} alt={serviceText(sub, 'name') || sub.name} loading="lazy" />{sub.imageIsAiPlaceholder && <span className="lst-ai-tag">Imagen ilustrativa</span>}</button>
+          ? <button type="button" style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'zoom-in' }} onClick={() => setLightboxImage(serviceImage)} aria-label="Ampliar imagen"><img className="lst-card-media" style={{ objectPosition: `${sub.imagePosition?.x ?? 50}% ${sub.imagePosition?.y ?? 50}%` }} src={optimizedImageUrl(serviceImage)} alt={serviceText(sub, 'name') || sub.name} loading="lazy" />{sub.imageIsAiPlaceholder && <span className="lst-ai-tag">Imagen ilustrativa</span>}</button>
           : <div className="studio-service-media studio-service-media-empty" aria-hidden="true"><span>LS</span><small>{bizConfig.name}</small></div>)}
         <div className="lst-card-footer">
           <div style={{ minWidth: 0 }}>
@@ -3845,7 +3862,7 @@ function StudioApp() {
             @media (max-width: 600px) { .studio-editorial-logo img { width: 180px !important; height: auto !important; } }
           `}</style>
           <button className="studio-editorial-logo" type="button" onClick={handleLogoClick} aria-label="L’Studio Ana" style={{ display: 'inline-block', border: 'none', background: 'none', padding: 0, cursor: 'pointer', marginBottom: '18px' }}>
-            <img src={brandLogoSrc} onError={fallbackBrandLogo} decoding="async" alt="L’A · Hair Experience" draggable={false} style={{ width: '210px', height: 'auto', objectFit: 'contain', display: 'block', mixBlendMode: 'screen' }} />
+            <img src={optimizedImageUrl(brandLogoSrc)} onError={fallbackBrandLogo} decoding="async" alt="L’A · Hair Experience" draggable={false} style={{ width: '210px', height: 'auto', objectFit: 'contain', display: 'block', mixBlendMode: 'screen' }} />
           </button>
           <h1 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '30px', margin: '0 0 12px' }}>L’Studio Ana</h1>
           <p style={{ color: '#D8C29A', fontSize: '10px', letterSpacing: '3px', textTransform: 'uppercase', margin: '0 0 40px', lineHeight: 1.6 }}>{t('subtitle')}</p>
@@ -3870,7 +3887,7 @@ function StudioApp() {
             .studio-registration label { font-size: 12px !important; color: #D6CBB8 !important; margin-bottom: 4px; }
             .studio-registration button:focus-visible { outline: 2px solid #B98A3E; outline-offset: 4px; }
           `}</style>
-          <img src={brandLogoSrc} onError={fallbackBrandLogo} decoding="async" alt="L’A · Hair Experience" style={{ width: '150px', height: 'auto', mixBlendMode: 'screen', display: 'block', margin: '0 auto 12px' }} />
+          <img src={optimizedImageUrl(brandLogoSrc)} onError={fallbackBrandLogo} decoding="async" alt="L’A · Hair Experience" style={{ width: '150px', height: 'auto', mixBlendMode: 'screen', display: 'block', margin: '0 auto 12px' }} />
           <h2 style={{ color: '#FFF8EE', fontSize: '25px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0, textAlign: 'center' }}>{t('clientRegistrationTitle')}</h2>
           <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.7, textAlign: 'center', margin: '0 0 10px 0' }}>{t('clientRegistrationDesc')}</p>
           <form onSubmit={handleRegistroClientaPortalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -3926,8 +3943,10 @@ function StudioApp() {
           {bizConfig.homeHeroImage && (
             <figure style={{ margin: 0, borderRadius: '18px', overflow: 'hidden', boxShadow: '0 12px 32px rgba(0, 0, 0, 0.3)', lineHeight: 0 }}>
               <img
-                src={bizConfig.homeHeroImage}
+                src={optimizedImageUrl(bizConfig.homeHeroImage)}
                 alt="Interior de L’Studio Ana"
+                decoding="async"
+                fetchPriority="high"
                 style={{ width: '100%', height: 'min(58vw, 340px)', objectFit: 'cover', objectPosition: `${bizConfig.homeHeroImagePosition?.x ?? 50}% ${bizConfig.homeHeroImagePosition?.y ?? 62}%`, display: 'block' }}
               />
             </figure>
@@ -4150,7 +4169,7 @@ function StudioApp() {
                   <button key={cat.id} type="button" className="lst-cat-card" onClick={() => { setActiveCatalogTab(cat.id); setViewServiceDetail(null); setCurrentScreen('categoryScreen'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
                     <span className="lst-cat-thumb" aria-hidden="true">
                       {(cat.imageUrl || firstService?.imageUrl)
-                        ? <img src={(cat.imageUrl || firstService!.imageUrl)} alt="" loading="lazy" decoding="async" style={{ objectPosition: `${(cat.imageUrl ? cat.imagePosition?.x : firstService!.imagePosition?.x) ?? 50}% ${(cat.imageUrl ? cat.imagePosition?.y : firstService!.imagePosition?.y) ?? 50}%` }} />
+                        ? <img src={optimizedImageUrl((cat.imageUrl || firstService!.imageUrl))} alt="" loading="lazy" decoding="async" style={{ objectPosition: `${(cat.imageUrl ? cat.imagePosition?.x : firstService!.imagePosition?.x) ?? 50}% ${(cat.imageUrl ? cat.imagePosition?.y : firstService!.imagePosition?.y) ?? 50}%` }} />
                         : <strong>LS</strong>}
                     </span>
                     <span className="lst-cat-info">
@@ -4245,7 +4264,7 @@ function StudioApp() {
                       <button type="button" className="lst-c-media" onClick={() => openDetail(sub)} aria-label={name + ' · ' + t('viewService')}>
                         {sub.imageUrl
                           ? <>
-                            <img src={sub.imageUrl} alt={name} loading="lazy" decoding="async" style={{ objectPosition: `${sub.imagePosition?.x ?? 50}% ${sub.imagePosition?.y ?? 50}%` }} />
+                            <img src={optimizedImageUrl(sub.imageUrl)} alt={name} loading="lazy" decoding="async" style={{ objectPosition: `${sub.imagePosition?.x ?? 50}% ${sub.imagePosition?.y ?? 50}%` }} />
                             {sub.imageIsAiPlaceholder && <span className="lst-ai-tag">Imagen ilustrativa</span>}
                           </>
                           : <span className="lst-c-media-fallback"><strong>LS</strong><small>{bizConfig.name}</small></span>}
@@ -4303,7 +4322,7 @@ function StudioApp() {
             <span style={{ width: 40, display: 'block' }} aria-hidden="true" />
           </div>
           {detailImage
-            ? <button type="button" style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'zoom-in', position: 'relative' }} onClick={() => setLightboxImage(detailImage)} aria-label="Ampliar imagen"><img className="lst-card-media" style={{ height: 280, borderRadius: 14, objectPosition: `${viewServiceDetail.sub.imagePosition?.x ?? 50}% ${viewServiceDetail.sub.imagePosition?.y ?? 50}%` }} src={detailImage} alt={serviceText(detailSub, 'name') || detailSub.name} />{viewServiceDetail.sub.imageIsAiPlaceholder && <span className="lst-ai-tag">Imagen ilustrativa</span>}</button>
+            ? <button type="button" style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'zoom-in', position: 'relative' }} onClick={() => setLightboxImage(detailImage)} aria-label="Ampliar imagen"><img className="lst-card-media" style={{ height: 280, borderRadius: 14, objectPosition: `${viewServiceDetail.sub.imagePosition?.x ?? 50}% ${viewServiceDetail.sub.imagePosition?.y ?? 50}%` }} src={optimizedImageUrl(detailImage)} alt={serviceText(detailSub, 'name') || detailSub.name} />{viewServiceDetail.sub.imageIsAiPlaceholder && <span className="lst-ai-tag">Imagen ilustrativa</span>}</button>
             : <div className="studio-service-media studio-service-media-empty" style={{ height: 280, borderRadius: 14 }} aria-hidden="true"><span>LS</span><small>{bizConfig.name}</small></div>}
           <header style={{ display: 'flex', flexDirection: 'column' }}>
             <span className="lst-detail-eyebrow">{categoryText(viewServiceDetail.cat)}</span>
@@ -4370,7 +4389,7 @@ function StudioApp() {
 
       {lightboxImage && (
         <div role="dialog" aria-modal="true" aria-label="Imagen ampliada del servicio" onClick={() => setLightboxImage(null)} style={{ position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(28, 22, 18, 0.9)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px', cursor: 'zoom-out' }}>
-          <img src={lightboxImage} alt="Imagen ampliada del servicio" style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: '12px', objectFit: 'contain' }} />
+          <img src={optimizedImageUrl(lightboxImage)} alt="Imagen ampliada del servicio" style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: '12px', objectFit: 'contain' }} />
         </div>
       )}
 
@@ -4391,7 +4410,7 @@ function StudioApp() {
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               {activeEmployees.map(emp => (
                 <button key={emp.id} type="button" aria-pressed={selectedProfessionalId === emp.id} onClick={() => setSelectedProfessionalId(prev => prev === emp.id ? null : emp.id)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 14px', background: selectedProfessionalId === emp.id ? '#C49A58' : '#322A25', color: selectedProfessionalId === emp.id ? '#29231F' : '#FFF8EE', border: '1px solid rgba(255,248,238,0.12)', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', minHeight: '48px' }}>
-                  {emp.photo ? <img src={emp.photo} alt={emp.name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} /> : <span style={{ width: 36, height: 36, borderRadius: '50%', background: '#3E342C', display: 'grid', placeItems: 'center', fontSize: 14, color: '#E4C687' }}>{emp.name.charAt(0).toUpperCase()}</span>}
+                  {emp.photo ? <img src={optimizedImageUrl(emp.photo)} alt={emp.name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} /> : <span style={{ width: 36, height: 36, borderRadius: '50%', background: '#3E342C', display: 'grid', placeItems: 'center', fontSize: 14, color: '#E4C687' }}>{emp.name.charAt(0).toUpperCase()}</span>}
                   <span>{emp.name.trim()}</span>
                 </button>
               ))}
@@ -4537,7 +4556,7 @@ function StudioApp() {
             .studio-admin-access-button:hover { background: #CFA765 !important; }
             @media (max-width: 600px) { .studio-admin-access-logo { width: 170px !important; } }
           `}</style>
-          <img className="studio-admin-access-logo" src={brandLogoSrc} onError={fallbackBrandLogo} decoding="async" alt="L’A · Hair Experience" style={{ width: '190px', height: 'auto', display: 'block', margin: '0 auto 22px', mixBlendMode: 'screen' }} />
+          <img className="studio-admin-access-logo" src={optimizedImageUrl(brandLogoSrc)} onError={fallbackBrandLogo} decoding="async" alt="L’A · Hair Experience" style={{ width: '190px', height: 'auto', display: 'block', margin: '0 auto 22px', mixBlendMode: 'screen' }} />
           <h1 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '32px', fontWeight: 'normal', margin: '0 0 10px' }}>360studio</h1>
           <p style={{ color: '#D8C29A', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '3px', lineHeight: 1.6, margin: '0 0 36px' }}>Intranet privada · L’Studio Ana</p>
           <form onSubmit={handleAdminLoginSubmit} style={{ maxWidth: '280px', margin: '0 auto' }}>
