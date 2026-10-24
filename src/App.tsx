@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ChevronDown, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
 import './catalog.css';
+import { getBookingName, getAppointmentServiceNames, compactServiceText } from './serviceNames';
 import * as studioApi from './studioApi';
 const LazyAdminPanelView = React.lazy(() => import('./AdminPanelView'));
 // Optimized copies of bundled photos only; custom uploads remain unchanged.
@@ -487,6 +488,7 @@ const FINISH_COPY: Record<StylingPolicy, string> = {
 export type ServiceTranslation = Partial<Pick<SubService, 'name' | 'slogan' | 'description' | 'includesText' | 'achievedText' | 'forWhomText' | 'alertText'>>;
 
 export interface SubService {
+  bookingName?: string;
   consultationPhotoVersion?: number;
   cutPhotoVersion?: number;
   imageCredit?: string;
@@ -908,7 +910,7 @@ function readStoredValue(key: string, raw: string): any {
     title: safeText(category.title), slogan: safeText(category.slogan),
     subservices: (Array.isArray(category.subservices) ? category.subservices : [])
       .filter((sub: any) => sub && typeof sub === 'object').map((sub: any) => ({
-        ...sub, id: safeText(sub.id), name: safeText(sub.name),
+        ...sub, id: safeText(sub.id), name: safeText(sub.name), bookingName: safeText(sub.bookingName),
         slogan: safeText(sub.slogan), description: safeText(sub.description), duration: safeText(sub.duration),
         price: safeText(sub.price),
         variants: (Array.isArray(sub.variants) ? sub.variants : [])
@@ -1223,6 +1225,10 @@ function StudioApp() {
     }));
   });
 
+  const bookingName = (sub: SubService) => getBookingName(sub, catalog);
+  const appointmentServiceNames = (appointment: Appointment) => getAppointmentServiceNames(appointment, catalog);
+  const compactVisitText = (text: string) => compactServiceText(text, catalog);
+
   const [savedCatalogSnapshot, setSavedCatalogSnapshot] = useState(() => JSON.stringify(catalog));
   const catalogHasChanges = JSON.stringify(catalog) !== savedCatalogSnapshot;
 
@@ -1361,7 +1367,7 @@ function StudioApp() {
       const categories = verify?.catalog?.map(row => row.category).filter(Boolean) as CatalogCategory[] | undefined;
       if (!categories || submitted.some(category => {
         const stored = categories.find(item => item.id === category.id);
-        const keys = ['imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
+        const keys = ['name', 'bookingName', 'imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
         return !stored || (stored.slogan || '') !== (category.slogan || '') || (stored.imageUrl || '') !== (category.imageUrl || '') || category.subservices.some(service => {
           const saved = stored.subservices?.find(s => s.id === service.id);
           return !saved || keys.some(key => JSON.stringify(saved[key] ?? null) !== JSON.stringify(service[key] ?? null));
@@ -2777,21 +2783,21 @@ function StudioApp() {
     for (const item of current) {
       if (isFinish(item.sub, kind) || finishPolicy(item.sub, kind) !== 'required') continue;
       const candidates = finishCandidates(item.sub, kind);
-      if (!candidates.length) return `Ana debe configurar las opciones de ${label} para «${item.sub.name}». Contacta con el estudio antes de reservar.`;
+      if (!candidates.length) return `Ana debe configurar las opciones de ${label} para «${bookingName(item.sub)}». Contacta con el estudio antes de reservar.`;
       if (!current.some(selected => candidates.some(c => c.id === selected.sub.id)))
-        return `Completa «${item.sub.name}»: selecciona ${label === 'peinado' && item.sub.allowCutGo ? 'peinado o Cut & Go compatible' : 'un ' + label + ' compatible'} antes de elegir fecha y hora.`;
+        return `Completa «${bookingName(item.sub)}»: selecciona ${label === 'peinado' && item.sub.allowCutGo ? 'peinado o Cut & Go compatible' : 'un ' + label + ' compatible'} antes de elegir fecha y hora.`;
     }
     for (const item of current.filter(i => isFinish(i.sub, kind))) {
       const duration = item.variant?.duration || item.sub.duration;
-      if (!/\d/.test(duration || '') || parseFloat(duration) <= 0) return `Ana debe configurar una duración válida para «${item.sub.name}» antes de reservar.`;
+      if (!/\d/.test(duration || '') || parseFloat(duration) <= 0) return `Ana debe configurar una duración válida para «${bookingName(item.sub)}» antes de reservar.`;
       if (item.sub.hasVariants && item.sub.variants?.length && (!item.variant || !item.sub.variants.some(v => v.id === item.variant?.id)))
-        return `Selecciona el largo o variante de «${item.sub.name}».`;
+        return `Selecciona el largo o variante de «${bookingName(item.sub)}».`;
       if (item.sub.isCutGoService && !current.some(parent => !parent.sub.isStylingService && parent.sub.allowCutGo && finishCandidates(parent.sub, 'styling').some(c => c.id === item.sub.id)))
         return 'Cut & Go debe acompañar a un servicio que permita esta modalidad.';
       const owners = current.filter(i => !isFinish(i.sub, kind));
       const relevant = owners.filter(i => finishPolicy(i.sub, kind) === 'required' || finishPolicy(i.sub, kind) === 'optional');
       if (relevant.length && !relevant.some(owner => finishCandidates(owner.sub, kind).some(c => c.id === item.sub.id)))
-        return `«${item.sub.name}» no es un complemento compatible con los servicios elegidos.`;
+        return `«${bookingName(item.sub)}» no es un complemento compatible con los servicios elegidos.`;
       if (owners.length && !relevant.length && owners.every(i => finishPolicy(i.sub, kind) === 'included'))
         return `El ${label} ya está incluido en los servicios elegidos. Retira el complemento adicional para evitar duplicarlo.`;
     }
@@ -2804,7 +2810,7 @@ function StudioApp() {
       const current = catalog.flatMap(category => category.subservices).find(sub => sub.id === item.sub.id);
       return !current || current.active === false;
     });
-    return unavailable.length ? `Estos servicios ya no están disponibles para nuevas reservas: ${unavailable.map(item => item.sub.name).join(', ')}. Retíralos y selecciona otra opción.` : null;
+    return unavailable.length ? `Estos servicios ya no están disponibles para nuevas reservas: ${unavailable.map(item => bookingName(item.sub)).join(', ')}. Retíralos y selecciona otra opción.` : null;
   };
   const getApprovalReason = (items: { sub: SubService }[], dateKey: string): 'saturday' | 'assessment' | 'both' | null => {
     const saturday = new Date(`${dateKey}T12:00:00`).getDay() === 6;
@@ -3005,7 +3011,7 @@ function StudioApp() {
       phone: modalPhone || '600000000',
       email: modalEmail || 'sinemail@gmail.com',
       serviceCategory: Array.from(new Set(services.map(item => item.categoryName))).join(' + '),
-      serviceSubcategory: `RESERVADO ${services.map(item => item.sub.name + (item.variant ? ` (${item.variant.name} - ${item.variant.price})` : '')).join(' + ')}`,
+      serviceSubcategory: `RESERVADO ${services.map(item => bookingName(item.sub) + (item.variant ? ` (${item.variant.name} - ${item.variant.price})` : '')).join(' + ')}`,
       selectedVariant: services[0].variant,
       services,
       remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
@@ -3131,14 +3137,14 @@ function StudioApp() {
     }
     for (const item of selectedServicesToBook) {
       if (item.sub.hasVariants && item.sub.variants && item.sub.variants.length > 0 && !item.variant) {
-        alert(tf('requiredVariant', {service: item.sub.name}));
+        alert(tf('requiredVariant', {service: bookingName(item.sub)}));
         return;
       }
     }
     const dayNamesMap = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     const dayNameStr = dayNamesMap[bookingDate.getDay()];
     const subNames = selectedServicesToBook.map(s => {
-      return s.variant ? `${s.sub.name} (${s.variant.name})` : s.sub.name;
+      return s.variant ? `${bookingName(s.sub)} (${s.variant.name})` : bookingName(s.sub);
     }).join(', ');
     let totalDurationMinutes = 0;
     selectedServicesToBook.forEach(s => {
@@ -3519,7 +3525,7 @@ function StudioApp() {
   useEffect(() => {
     if (!['catalogBooking', 'visualAgenda'].includes(currentScreen) || !currentClientRecord || !selectedServicesToBook.length) return;
     const email = currentClientRecord.email.trim().toLowerCase();
-    const services = selectedServicesToBook.map(item => item.sub.name + (item.variant ? ` (${item.variant.name})` : '')).join(' + ');
+    const services = selectedServicesToBook.map(item => bookingName(item.sub) + (item.variant ? ` (${item.variant.name})` : '')).join(' + ');
     const date = currentScreen === 'visualAgenda' ? formatDateKey(bookingDate) : '';
     const time = currentScreen === 'visualAgenda' ? selectedVisualTime : '';
     const step = time ? 'Hora seleccionada' : date ? 'Buscando fecha' : 'Servicios seleccionados';
@@ -3534,7 +3540,7 @@ function StudioApp() {
   useEffect(() => {
     if (currentScreen !== 'visualAgenda' || !currentClientRecord || !selectedServicesToBook.length || !portalDateAllowed(bookingDate) || portalTimes.length) return;
     const desiredDate = formatDateKey(bookingDate);
-    const serviceName = selectedServicesToBook.map(item => item.sub.name + (item.variant ? ` (${item.variant.name})` : '')).join(' + ');
+    const serviceName = selectedServicesToBook.map(item => bookingName(item.sub) + (item.variant ? ` (${item.variant.name})` : '')).join(' + ');
     const clientEmail = currentClientRecord.email.trim().toLowerCase();
     const observedAt = new Date().toISOString();
     setLostDemandsList(previous => {
@@ -3607,7 +3613,7 @@ function StudioApp() {
     if (!client) { alert('No hay una clienta registrada con el email de esta cita. Revisa su ficha antes de registrar la visita.'); return; }
     if (new Date(`${appointment.dateKey}T${appointment.time}:00`).getTime() > Date.now()) { alert('Esta cita todavía no ha comenzado.'); return; }
     if (!window.confirm(`¿Registrar esta cita como realizada en el pasaporte de ${client.nombre}?`)) return;
-    const service = appointment.services?.length ? appointment.services.map(item => item.sub.name + (item.variant ? ` (${item.variant.name})` : '')).join(' + ') : appointment.serviceSubcategory.replace(/^RESERVADO\s*/, '');
+    const service = appointment.services?.length ? appointment.services.map(item => bookingName(item.sub) + (item.variant ? ` (${item.variant.name})` : '')).join(' + ') : appointmentServiceNames(appointment);
     const updated = { ...appointment, completedAt: new Date().toISOString() };
     if (studioApi.serverConfigured) {
       const token = studioApi.currentToken();
@@ -3721,8 +3727,8 @@ function StudioApp() {
           if (row < 0) return null;
           const span = Math.max(1, hoursList.filter(time => minutes(time) >= start && minutes(time) < end).length);
           const serviceLabel = item.services?.length
-            ? item.services.map(service => service.sub.name).join(' + ')
-            : item.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '');
+            ? item.services.map(service => bookingName(service.sub)).join(' + ')
+            : appointmentServiceNames(item);
           return <button type="button" className="studio-agenda-appointment" key={item.id} draggable onDragStart={event => handleDragStart(event, item.id)}
             onClick={() => setViewApptModal(item)} onDragOver={handleDragOver}
             onDrop={event => { event.stopPropagation(); handleDrop(event, day.dateObj, day.name, item.time); }}
@@ -3861,7 +3867,7 @@ function StudioApp() {
         const total = getSelectionTotal(selectedServicesToBook);
         const continueBooking = () => {
           const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant);
-          const error = missing ? tf('requiredVariant', { service: missing.sub.name }) : getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook);
+          const error = missing ? tf('requiredVariant', { service: bookingName(missing.sub) }) : getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook);
           if (error) {
             alert(error);
             setViewServiceDetail(null);
@@ -4128,7 +4134,7 @@ function StudioApp() {
                 {new Date(`${clientNextAppointment.dateKey}T12:00:00`).toLocaleDateString(portalLocale, { weekday: 'long', day: 'numeric', month: 'long' })}
                 <span style={{ color: '#E4C687' }}> · {clientNextAppointment.time}</span>
               </div>
-              <p style={{ color: '#D6CBB8', margin: 0, lineHeight: 1.5, fontSize: '13px', overflowWrap: 'anywhere' }}>{clientNextAppointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
+              <p style={{ color: '#D6CBB8', margin: 0, lineHeight: 1.5, fontSize: '13px', overflowWrap: 'anywhere' }}>{appointmentServiceNames(clientNextAppointment)}</p>
               <p style={{ color: '#D6CBB8', margin: 0, fontSize: '12px' }}>Estilista: Ana · L’Studio Ana — Hair Experience</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', paddingTop: '2px' }}>
                 <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(clientNextAppointment); setNewRescheduleTime(clientNextAppointment.time); setNewRescheduleDate(clientNextAppointment.dateKey); }} style={{ background: 'transparent', border: '1px solid rgba(255, 248, 238, 0.16)', color: '#E4C687', minHeight: '44px', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>{t('changeDate')}</button>
@@ -4146,7 +4152,7 @@ function StudioApp() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {clientUpcomingAppointments.slice(1).map(appointment => <article key={appointment.id} style={{ background: 'rgba(255, 255, 255, 0.55)', border: '1px solid rgba(255, 248, 238, 0.14)', borderRadius: '8px', padding: '10px' }}>
                   <strong style={{ fontSize: '12px' }}>{new Date(`${appointment.dateKey}T12:00:00`).toLocaleDateString(portalLocale, { weekday: 'long', day: 'numeric', month: 'long' })} · {appointment.time}</strong>
-                  <p style={{ color: '#D6CBB8', fontSize: '11px', margin: '4px 0 8px', overflowWrap: 'anywhere' }}>{appointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
+                  <p style={{ color: '#D6CBB8', fontSize: '11px', margin: '4px 0 8px', overflowWrap: 'anywhere' }}>{appointmentServiceNames(appointment)}</p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(appointment); setNewRescheduleTime(appointment.time); setNewRescheduleDate(appointment.dateKey); }} style={{ background: 'transparent', border: '1px solid rgba(255, 248, 238, 0.16)', color: '#E4C687', minHeight: '40px', padding: '6px 12px', borderRadius: '7px', cursor: 'pointer', fontSize: '11px' }}>{t('changeDate')}</button>
                     <button type="button" onClick={() => setCancelApptModal(appointment)} style={{ background: 'transparent', border: '1px solid rgba(155, 60, 45, 0.45)', color: '#9B3C2D', minHeight: '40px', padding: '6px 12px', borderRadius: '7px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>Cancelar cita</button>
@@ -4247,7 +4253,7 @@ function StudioApp() {
             {getStylingError(selectedServicesToBook) && <p role="alert" style={{ color: '#E4C687', fontSize: '12px', margin: 0 }}>{getStylingError(selectedServicesToBook)}</p>}
             <button type="button" onClick={() => {
               const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant);
-              if (missing) { alert(tf('requiredVariant', { service: missing.sub.name })); return; }
+              if (missing) { alert(tf('requiredVariant', { service: bookingName(missing.sub) })); return; }
               const conditionError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook);
               if (conditionError) { alert(conditionError); return; }
               const finishError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook); if (finishError) { alert(finishError); setCurrentScreen('catalogBooking'); return; } setCurrentScreen('visualAgenda');
@@ -4340,7 +4346,7 @@ function StudioApp() {
             {selectedServicesToBook.length > 0 && (
               <button type="button" onClick={() => {
                 const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant);
-                if (missing) { alert(tf('requiredVariant', { service: missing.sub.name })); return; }
+                if (missing) { alert(tf('requiredVariant', { service: bookingName(missing.sub) })); return; }
                 const finishError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook); if (finishError) { alert(finishError); setCurrentScreen('catalogBooking'); return; } setCurrentScreen('visualAgenda');
               }} style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, minHeight: '54px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#E4C687', cursor: 'pointer' }}>
                 {t('reviewSelection')} ({selectedServicesToBook.length}) → {t('chooseDateTime')}
@@ -4422,7 +4428,7 @@ function StudioApp() {
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button type="button" onClick={() => { setViewServiceDetail(null); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="lst-cta-full" style={{ flex: 1, background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.16)' }}>Añadir otro servicio</button>
-                <button type="button" onClick={() => { const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant); if (missing) { alert(tf('requiredVariant', { service: missing.sub.name })); return; } const finishError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook); if (finishError) { alert(finishError); setCurrentScreen('catalogBooking'); return; } setCurrentScreen('visualAgenda'); }} className="lst-cta-full" style={{ flex: 1 }}>{t('chooseDateTime')} <ArrowRight size={18} strokeWidth={2} aria-hidden="true" /></button>
+                <button type="button" onClick={() => { const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant); if (missing) { alert(tf('requiredVariant', { service: bookingName(missing.sub) })); return; } const finishError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook); if (finishError) { alert(finishError); setCurrentScreen('catalogBooking'); return; } setCurrentScreen('visualAgenda'); }} className="lst-cta-full" style={{ flex: 1 }}>{t('chooseDateTime')} <ArrowRight size={18} strokeWidth={2} aria-hidden="true" /></button>
               </div>
             </div>
           ) : (
@@ -4572,7 +4578,7 @@ function StudioApp() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {(currentClientRecord?.pastVisits || []).length ? currentClientRecord!.pastVisits!.map((visit, index) => <article key={index} style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderLeft: '2px solid #B98A3E', borderRadius: '10px', padding: '12px' }}>
                 <p style={{ color: '#E4C687', fontSize: '12px', margin: '0 0 8px' }}>{visit.date}</p>
-                <h4 style={{ color: '#FFF8EE', fontSize: '13px', lineHeight: 1.5, margin: '0 0 8px' }}>{visit.service}</h4>
+                <h4 style={{ color: '#FFF8EE', fontSize: '13px', lineHeight: 1.5, margin: '0 0 8px' }}>{compactVisitText(visit.service)}</h4>
                 {visit.stylist && <p style={{ color: '#D6CBB8', fontSize: '12px', margin: 0 }}>Con {visit.stylist}</p>}
                 {visit.notes && <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.7, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: '14px 0 0' }}>{visit.notes}</p>}
               </article>) : <div style={{ backgroundColor: '#322A25', padding: '14px', borderRadius: '10px', color: '#D6CBB8', fontSize: '13px', lineHeight: 1.7 }}>{t('emptyVisits')}</div>}
@@ -4616,7 +4622,7 @@ function StudioApp() {
       )}
 
       {/* 4. PANEL DE ADMINISTRACIÓN */}
-      {currentScreen === 'adminPanel' && <React.Suspense fallback={<div role="status" style={{padding:32,color:'#E4C687',textAlign:'center'}}>Cargando la intranet…</div>}><LazyAdminPanelView AGENDA_SWATCHES={AGENDA_SWATCHES} DEFAULT_BRAND_LOGO={DEFAULT_BRAND_LOGO} DEFAULT_HEADER_LOGO={DEFAULT_HEADER_LOGO} FINISH_COPY={FINISH_COPY} TRANSLATIONS={TRANSLATIONS} activeEmployees={activeEmployees} adminCatalogSearch={adminCatalogSearch} adminCatalogStatus={adminCatalogStatus} adminTab={adminTab} agendaExpanded={agendaExpanded} agendaLayoutRef={agendaLayoutRef} agendaSwatch={agendaSwatch} agendaViewMode={agendaViewMode} anioMini={anioMini} appointmentSearch={appointmentSearch} appointmentSearchQuery={appointmentSearchQuery} appointmentSearchResults={appointmentSearchResults} appointments={appointments} attemptClock={attemptClock} bizConfig={bizConfig} bookingAttempts={bookingAttempts} busquedaCliente={busquedaCliente} cambiarMesMiniCal={cambiarMesMiniCal} catalog={catalog} catalogEditorId={catalogEditorId} catalogEditorTab={catalogEditorTab} catalogHasChanges={catalogHasChanges} catalogSavedMsg={catalogSavedMsg} catalogTranslationLang={catalogTranslationLang} clientStatusBusy={clientStatusBusy} clientStatusError={clientStatusError} clientStatusFilter={clientStatusFilter} clientsPageCount={clientsPageCount} configHasPendingChanges={configHasPendingChanges} configSubTab={configSubTab} crmPeriod={crmPeriod} crmView={crmView} dashboardEnd={dashboardEnd} dashboardStart={dashboardStart} demandEnd={demandEnd} demandFilter={demandFilter} demandStart={demandStart} detractorReplies={detractorReplies} diaSeleccionadoObj={diaSeleccionadoObj} diasRejillaMini={diasRejillaMini} editAdminDniCapilar={editAdminDniCapilar} editAdminFormulas={editAdminFormulas} editAdminPrescripcionCasa={editAdminPrescripcionCasa} editAdminProxima={editAdminProxima} editAdminUltimaVisita={editAdminUltimaVisita} editingClientId={editingClientId} effectiveClientsPage={effectiveClientsPage} emailConfigStatus={emailConfigStatus} employeePhotoBusy={employeePhotoBusy} enableDoubleBooking={enableDoubleBooking} enableOutOfHours={enableOutOfHours} expandedCategories={expandedCategories} expandedClientId={expandedClientId} fallbackHeaderLogo={fallbackHeaderLogo} fechaSeleccionada={fechaSeleccionada} feedbackList={feedbackList} feedbackRatingFilter={feedbackRatingFilter} feedbackStatusBusy={feedbackStatusBusy} filteredClientRows={filteredClientRows} formatDateKey={formatDateKey} googleCalendarConnected={googleCalendarConnected} googleCalendarSyncActive={googleCalendarSyncActive} handleAddCategorySubmit={handleAddCategorySubmit} handleAddSubserviceSubmit={handleAddSubserviceSubmit} handleAddVariant={handleAddVariant} handleCategoryPhotoDelete={handleCategoryPhotoDelete} handleCategoryPhotoSelect={handleCategoryPhotoSelect} handleCellClick={handleCellClick} handleClientStatus={handleClientStatus} handleDeleteCategory={handleDeleteCategory} handleDeleteSubservice={handleDeleteSubservice} handleDeleteVariant={handleDeleteVariant} handleFeedbackResolution={handleFeedbackResolution} handleGuardarEdicionAdminCliente={handleGuardarEdicionAdminCliente} handleGuardarNuevoCliente={handleGuardarNuevoCliente} handleMoveCategory={handleMoveCategory} handleSaveCatalogMaster={handleSaveCatalogMaster} handleSaveSection={handleSaveSection} handleServicePhotoDelete={handleServicePhotoDelete} handleServicePhotoSelect={handleServicePhotoSelect} handleToggleVariants={handleToggleVariants} handleUpdateCategoryCode={handleUpdateCategoryCode} handleUpdateCategoryTitle={handleUpdateCategoryTitle} headerLogoSrc={headerLogoSrc} holidaysList={holidaysList} hoursList={hoursList} isActiveAppointment={isActiveAppointment} isAddingCategory={isAddingCategory} isAddingClient={isAddingClient} isAddingSub={isAddingSub} isDateBlockedByHoliday={isDateBlockedByHoliday} isFinish={isFinish} isTimeSlotOccupied={isTimeSlotOccupied} listaClientes={listaClientes} logoUploadBusy={logoUploadBusy} logoUploadMessage={logoUploadMessage} lostDemandsList={lostDemandsList} mailboxError={mailboxError} mailboxFilter={mailboxFilter} mesMini={mesMini} newCatCode={newCatCode} newCatTitle={newCatTitle} newHolidayEnd={newHolidayEnd} newHolidayReason={newHolidayReason} newHolidayStart={newHolidayStart} newHolidayType={newHolidayType} newSubAchieved={newSubAchieved} newSubAlertBadge={newSubAlertBadge} newSubAlertText={newSubAlertText} newSubDesc={newSubDesc} newSubDur={newSubDur} newSubIncludes={newSubIncludes} newSubName={newSubName} newSubPrice={newSubPrice} newSubPriceType={newSubPriceType} newVariantDuration={newVariantDuration} newVariantName={newVariantName} newVariantPrice={newVariantPrice} nombresMeses={nombresMeses} normalizeCatalogSearch={normalizeCatalogSearch} normalizeEmail={normalizeEmail} novoApellidos={novoApellidos} novoDiagnostico={novoDiagnostico} novoEmail={novoEmail} novoNacimiento={novoNacimiento} novoNombre={novoNombre} novoPin={novoPin} novoTelefono={novoTelefono} openPassportEditor={openPassportEditor} opportunityPage={opportunityPage} opportunitySearch={opportunitySearch} opportunityStatus={opportunityStatus} photoUploadBusy={photoUploadBusy} renderAgendaLinks={renderAgendaLinks} renderDurationAgenda={renderDurationAgenda} returnToAppointmentId={returnToAppointmentId} saveErrorMsg={saveErrorMsg} saveState={saveState} savedMsg={savedMsg} semanaActual={semanaActual} setAdminCatalogSearch={setAdminCatalogSearch} setAdminCatalogStatus={setAdminCatalogStatus} setAdminTab={setAdminTab} setAgendaExpanded={setAgendaExpanded} setAgendaSidePanel={setAgendaSidePanel} setAgendaSwatch={setAgendaSwatch} setAgendaViewMode={setAgendaViewMode} setAppointmentSearch={setAppointmentSearch} setBookingAttempts={setBookingAttempts} setBusquedaCliente={setBusquedaCliente} setCatalog={setCatalog} setCatalogEditorId={setCatalogEditorId} setCatalogEditorTab={setCatalogEditorTab} setCatalogTranslationLang={setCatalogTranslationLang} setClientDetailsDraft={setClientDetailsDraft} setClientStatusFilter={setClientStatusFilter} setClientsPage={setClientsPage} setConfigSubTab={setConfigSubTab} setCrmPeriod={setCrmPeriod} setCrmView={setCrmView} setCurrentScreen={setCurrentScreen} setDashboardEnd={setDashboardEnd} setDashboardStart={setDashboardStart} setDemandEnd={setDemandEnd} setDemandFilter={setDemandFilter} setDemandStart={setDemandStart} setDetractorReplies={setDetractorReplies} setEditAdminDniCapilar={setEditAdminDniCapilar} setEditAdminFormulas={setEditAdminFormulas} setEditAdminPrescripcionCasa={setEditAdminPrescripcionCasa} setEditAdminProxima={setEditAdminProxima} setEditAdminUltimaVisita={setEditAdminUltimaVisita} setEditingClientId={setEditingClientId} setEnableDoubleBooking={setEnableDoubleBooking} setEnableOutOfHours={setEnableOutOfHours} setExpandedCategories={setExpandedCategories} setExpandedClientId={setExpandedClientId} setFechaSeleccionada={setFechaSeleccionada} setFeedbackRatingFilter={setFeedbackRatingFilter} setGoogleCalendarConnected={setGoogleCalendarConnected} setGoogleCalendarSyncActive={setGoogleCalendarSyncActive} setHolidaysList={setHolidaysList} setIsAddingCategory={setIsAddingCategory} setIsAddingClient={setIsAddingClient} setIsAddingSub={setIsAddingSub} setLogoUploadMessage={setLogoUploadMessage} setLostDemandsList={setLostDemandsList} setMailboxFilter={setMailboxFilter} setMesNavegacion={setMesNavegacion} setModalServices={setModalServices} setNewCatCode={setNewCatCode} setNewCatTitle={setNewCatTitle} setNewHolidayEnd={setNewHolidayEnd} setNewHolidayReason={setNewHolidayReason} setNewHolidayStart={setNewHolidayStart} setNewHolidayType={setNewHolidayType} setNewSubAchieved={setNewSubAchieved} setNewSubAlertBadge={setNewSubAlertBadge} setNewSubAlertText={setNewSubAlertText} setNewSubDesc={setNewSubDesc} setNewSubDur={setNewSubDur} setNewSubIncludes={setNewSubIncludes} setNewSubName={setNewSubName} setNewSubPrice={setNewSubPrice} setNewSubPriceType={setNewSubPriceType} setNewVariantDuration={setNewVariantDuration} setNewVariantName={setNewVariantName} setNewVariantPrice={setNewVariantPrice} setNovoApellidos={setNovoApellidos} setNovoDiagnostico={setNovoDiagnostico} setNovoEmail={setNovoEmail} setNovoNacimiento={setNovoNacimiento} setNovoNombre={setNovoNombre} setNovoPin={setNovoPin} setNovoTelefono={setNovoTelefono} setOpportunityPage={setOpportunityPage} setOpportunitySearch={setOpportunitySearch} setOpportunityStatus={setOpportunityStatus} setPendingPanelFilter={setPendingPanelFilter} setPreviewServiceId={setPreviewServiceId} setPreviewVariantId={setPreviewVariantId} setReturnToAppointmentId={setReturnToAppointmentId} setSelectedServicesToBook={setSelectedServicesToBook} setTempConfig={setTempConfig} setViewApptModal={setViewApptModal} t={t} tempConfig={tempConfig} timeBlocks={timeBlocks} trafficEvents={trafficEvents} translationLanguagePicker={translationLanguagePicker} updateEmployee={updateEmployee} updateServiceTranslation={updateServiceTranslation} updateSubserviceField={updateSubserviceField} uploadEmployeePhoto={uploadEmployeePhoto} uploadStudioLogo={uploadStudioLogo} visibleClientRows={visibleClientRows} whatsappConfigStatus={whatsappConfigStatus} workingRanges={workingRanges} /></React.Suspense>}
+      {currentScreen === 'adminPanel' && <React.Suspense fallback={<div role="status" style={{padding:32,color:'#E4C687',textAlign:'center'}}>Cargando la intranet…</div>}><LazyAdminPanelView bookingName={bookingName} appointmentServiceNames={appointmentServiceNames} compactVisitText={compactVisitText} AGENDA_SWATCHES={AGENDA_SWATCHES} DEFAULT_BRAND_LOGO={DEFAULT_BRAND_LOGO} DEFAULT_HEADER_LOGO={DEFAULT_HEADER_LOGO} FINISH_COPY={FINISH_COPY} TRANSLATIONS={TRANSLATIONS} activeEmployees={activeEmployees} adminCatalogSearch={adminCatalogSearch} adminCatalogStatus={adminCatalogStatus} adminTab={adminTab} agendaExpanded={agendaExpanded} agendaLayoutRef={agendaLayoutRef} agendaSwatch={agendaSwatch} agendaViewMode={agendaViewMode} anioMini={anioMini} appointmentSearch={appointmentSearch} appointmentSearchQuery={appointmentSearchQuery} appointmentSearchResults={appointmentSearchResults} appointments={appointments} attemptClock={attemptClock} bizConfig={bizConfig} bookingAttempts={bookingAttempts} busquedaCliente={busquedaCliente} cambiarMesMiniCal={cambiarMesMiniCal} catalog={catalog} catalogEditorId={catalogEditorId} catalogEditorTab={catalogEditorTab} catalogHasChanges={catalogHasChanges} catalogSavedMsg={catalogSavedMsg} catalogTranslationLang={catalogTranslationLang} clientStatusBusy={clientStatusBusy} clientStatusError={clientStatusError} clientStatusFilter={clientStatusFilter} clientsPageCount={clientsPageCount} configHasPendingChanges={configHasPendingChanges} configSubTab={configSubTab} crmPeriod={crmPeriod} crmView={crmView} dashboardEnd={dashboardEnd} dashboardStart={dashboardStart} demandEnd={demandEnd} demandFilter={demandFilter} demandStart={demandStart} detractorReplies={detractorReplies} diaSeleccionadoObj={diaSeleccionadoObj} diasRejillaMini={diasRejillaMini} editAdminDniCapilar={editAdminDniCapilar} editAdminFormulas={editAdminFormulas} editAdminPrescripcionCasa={editAdminPrescripcionCasa} editAdminProxima={editAdminProxima} editAdminUltimaVisita={editAdminUltimaVisita} editingClientId={editingClientId} effectiveClientsPage={effectiveClientsPage} emailConfigStatus={emailConfigStatus} employeePhotoBusy={employeePhotoBusy} enableDoubleBooking={enableDoubleBooking} enableOutOfHours={enableOutOfHours} expandedCategories={expandedCategories} expandedClientId={expandedClientId} fallbackHeaderLogo={fallbackHeaderLogo} fechaSeleccionada={fechaSeleccionada} feedbackList={feedbackList} feedbackRatingFilter={feedbackRatingFilter} feedbackStatusBusy={feedbackStatusBusy} filteredClientRows={filteredClientRows} formatDateKey={formatDateKey} googleCalendarConnected={googleCalendarConnected} googleCalendarSyncActive={googleCalendarSyncActive} handleAddCategorySubmit={handleAddCategorySubmit} handleAddSubserviceSubmit={handleAddSubserviceSubmit} handleAddVariant={handleAddVariant} handleCategoryPhotoDelete={handleCategoryPhotoDelete} handleCategoryPhotoSelect={handleCategoryPhotoSelect} handleCellClick={handleCellClick} handleClientStatus={handleClientStatus} handleDeleteCategory={handleDeleteCategory} handleDeleteSubservice={handleDeleteSubservice} handleDeleteVariant={handleDeleteVariant} handleFeedbackResolution={handleFeedbackResolution} handleGuardarEdicionAdminCliente={handleGuardarEdicionAdminCliente} handleGuardarNuevoCliente={handleGuardarNuevoCliente} handleMoveCategory={handleMoveCategory} handleSaveCatalogMaster={handleSaveCatalogMaster} handleSaveSection={handleSaveSection} handleServicePhotoDelete={handleServicePhotoDelete} handleServicePhotoSelect={handleServicePhotoSelect} handleToggleVariants={handleToggleVariants} handleUpdateCategoryCode={handleUpdateCategoryCode} handleUpdateCategoryTitle={handleUpdateCategoryTitle} headerLogoSrc={headerLogoSrc} holidaysList={holidaysList} hoursList={hoursList} isActiveAppointment={isActiveAppointment} isAddingCategory={isAddingCategory} isAddingClient={isAddingClient} isAddingSub={isAddingSub} isDateBlockedByHoliday={isDateBlockedByHoliday} isFinish={isFinish} isTimeSlotOccupied={isTimeSlotOccupied} listaClientes={listaClientes} logoUploadBusy={logoUploadBusy} logoUploadMessage={logoUploadMessage} lostDemandsList={lostDemandsList} mailboxError={mailboxError} mailboxFilter={mailboxFilter} mesMini={mesMini} newCatCode={newCatCode} newCatTitle={newCatTitle} newHolidayEnd={newHolidayEnd} newHolidayReason={newHolidayReason} newHolidayStart={newHolidayStart} newHolidayType={newHolidayType} newSubAchieved={newSubAchieved} newSubAlertBadge={newSubAlertBadge} newSubAlertText={newSubAlertText} newSubDesc={newSubDesc} newSubDur={newSubDur} newSubIncludes={newSubIncludes} newSubName={newSubName} newSubPrice={newSubPrice} newSubPriceType={newSubPriceType} newVariantDuration={newVariantDuration} newVariantName={newVariantName} newVariantPrice={newVariantPrice} nombresMeses={nombresMeses} normalizeCatalogSearch={normalizeCatalogSearch} normalizeEmail={normalizeEmail} novoApellidos={novoApellidos} novoDiagnostico={novoDiagnostico} novoEmail={novoEmail} novoNacimiento={novoNacimiento} novoNombre={novoNombre} novoPin={novoPin} novoTelefono={novoTelefono} openPassportEditor={openPassportEditor} opportunityPage={opportunityPage} opportunitySearch={opportunitySearch} opportunityStatus={opportunityStatus} photoUploadBusy={photoUploadBusy} renderAgendaLinks={renderAgendaLinks} renderDurationAgenda={renderDurationAgenda} returnToAppointmentId={returnToAppointmentId} saveErrorMsg={saveErrorMsg} saveState={saveState} savedMsg={savedMsg} semanaActual={semanaActual} setAdminCatalogSearch={setAdminCatalogSearch} setAdminCatalogStatus={setAdminCatalogStatus} setAdminTab={setAdminTab} setAgendaExpanded={setAgendaExpanded} setAgendaSidePanel={setAgendaSidePanel} setAgendaSwatch={setAgendaSwatch} setAgendaViewMode={setAgendaViewMode} setAppointmentSearch={setAppointmentSearch} setBookingAttempts={setBookingAttempts} setBusquedaCliente={setBusquedaCliente} setCatalog={setCatalog} setCatalogEditorId={setCatalogEditorId} setCatalogEditorTab={setCatalogEditorTab} setCatalogTranslationLang={setCatalogTranslationLang} setClientDetailsDraft={setClientDetailsDraft} setClientStatusFilter={setClientStatusFilter} setClientsPage={setClientsPage} setConfigSubTab={setConfigSubTab} setCrmPeriod={setCrmPeriod} setCrmView={setCrmView} setCurrentScreen={setCurrentScreen} setDashboardEnd={setDashboardEnd} setDashboardStart={setDashboardStart} setDemandEnd={setDemandEnd} setDemandFilter={setDemandFilter} setDemandStart={setDemandStart} setDetractorReplies={setDetractorReplies} setEditAdminDniCapilar={setEditAdminDniCapilar} setEditAdminFormulas={setEditAdminFormulas} setEditAdminPrescripcionCasa={setEditAdminPrescripcionCasa} setEditAdminProxima={setEditAdminProxima} setEditAdminUltimaVisita={setEditAdminUltimaVisita} setEditingClientId={setEditingClientId} setEnableDoubleBooking={setEnableDoubleBooking} setEnableOutOfHours={setEnableOutOfHours} setExpandedCategories={setExpandedCategories} setExpandedClientId={setExpandedClientId} setFechaSeleccionada={setFechaSeleccionada} setFeedbackRatingFilter={setFeedbackRatingFilter} setGoogleCalendarConnected={setGoogleCalendarConnected} setGoogleCalendarSyncActive={setGoogleCalendarSyncActive} setHolidaysList={setHolidaysList} setIsAddingCategory={setIsAddingCategory} setIsAddingClient={setIsAddingClient} setIsAddingSub={setIsAddingSub} setLogoUploadMessage={setLogoUploadMessage} setLostDemandsList={setLostDemandsList} setMailboxFilter={setMailboxFilter} setMesNavegacion={setMesNavegacion} setModalServices={setModalServices} setNewCatCode={setNewCatCode} setNewCatTitle={setNewCatTitle} setNewHolidayEnd={setNewHolidayEnd} setNewHolidayReason={setNewHolidayReason} setNewHolidayStart={setNewHolidayStart} setNewHolidayType={setNewHolidayType} setNewSubAchieved={setNewSubAchieved} setNewSubAlertBadge={setNewSubAlertBadge} setNewSubAlertText={setNewSubAlertText} setNewSubDesc={setNewSubDesc} setNewSubDur={setNewSubDur} setNewSubIncludes={setNewSubIncludes} setNewSubName={setNewSubName} setNewSubPrice={setNewSubPrice} setNewSubPriceType={setNewSubPriceType} setNewVariantDuration={setNewVariantDuration} setNewVariantName={setNewVariantName} setNewVariantPrice={setNewVariantPrice} setNovoApellidos={setNovoApellidos} setNovoDiagnostico={setNovoDiagnostico} setNovoEmail={setNovoEmail} setNovoNacimiento={setNovoNacimiento} setNovoNombre={setNovoNombre} setNovoPin={setNovoPin} setNovoTelefono={setNovoTelefono} setOpportunityPage={setOpportunityPage} setOpportunitySearch={setOpportunitySearch} setOpportunityStatus={setOpportunityStatus} setPendingPanelFilter={setPendingPanelFilter} setPreviewServiceId={setPreviewServiceId} setPreviewVariantId={setPreviewVariantId} setReturnToAppointmentId={setReturnToAppointmentId} setSelectedServicesToBook={setSelectedServicesToBook} setTempConfig={setTempConfig} setViewApptModal={setViewApptModal} t={t} tempConfig={tempConfig} timeBlocks={timeBlocks} trafficEvents={trafficEvents} translationLanguagePicker={translationLanguagePicker} updateEmployee={updateEmployee} updateServiceTranslation={updateServiceTranslation} updateSubserviceField={updateSubserviceField} uploadEmployeePhoto={uploadEmployeePhoto} uploadStudioLogo={uploadStudioLogo} visibleClientRows={visibleClientRows} whatsappConfigStatus={whatsappConfigStatus} workingRanges={workingRanges} /></React.Suspense>}
 
       {catalogEditorId && currentScreen === 'adminPanel' && adminTab === 'catalog' && <div onClick={() => setCatalogEditorId(null)}
         style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 1700 }} />}
@@ -4626,7 +4632,7 @@ function StudioApp() {
           <h3 id="appointment-registered-title" style={{ margin: '0 0 14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '26px', fontWeight: 'normal', color: '#E4C687' }}>Cita registrada</h3>
           <p style={{ lineHeight: 1.7 }}>{registeredAppointment.clientName}<br />
             {registeredAppointment.dateKey.split('-').reverse().join('/')} · {registeredAppointment.time}</p>
-          <p style={{ color: '#D6CBB8', lineHeight: 1.6, fontSize: '13px' }}>{registeredAppointment.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</p>
+          <p style={{ color: '#D6CBB8', lineHeight: 1.6, fontSize: '13px' }}>{appointmentServiceNames(registeredAppointment)}</p>
           <p style={{ color: '#E4C687', lineHeight: 1.6 }}>{registeredAppointment.saturdayApproval?.status === 'pending'
             ? 'Tu solicitud está registrada. La cita queda pendiente de la confirmación de Ana.'
             : registeredAppointment.advancePayment?.status === 'pending'
@@ -4782,7 +4788,7 @@ function StudioApp() {
                 : t('reviewExplanation'))
               : t('reviewExplanation')}</p>
             <p>{saturdayRequestModal.dateKey.split('-').reverse().join('/')} · {saturdayRequestModal.time}</p>
-            <p>{saturdayRequestModal.serviceSubcategory.replace(/^PENDIENTE (?:SÁBADO|VALORACIÓN) /, '')}</p>
+            <p>{appointmentServiceNames(saturdayRequestModal)}</p>
             {bizConfig.advancePaymentEnabled && (saturdayRequestModal.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes && <p>{tf('reviewDeposit', {amount: bizConfig.depositAmount})}</p>}
             <p style={{ color: '#D6CBB8', fontSize: '12px' }}>{t('localRequestNotice')}</p>
             <button type="button" onClick={() => setSaturdayRequestModal(null)} style={{ padding: '10px', marginRight: '10px' }}>{t('backAction')}</button>
@@ -4851,7 +4857,7 @@ function StudioApp() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                     {appointments.filter(item => item.dateKey === formatDateKey(fechaSeleccionada)).sort((a, b) => a.time.localeCompare(b.time)).map(item => <button type="button" key={item.id} onClick={() => setViewApptModal(item)} style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '16px', textAlign: 'left', backgroundColor: adminAppointmentColor(item).background, border: `1px solid ${adminAppointmentColor(item).border}`, borderRadius: '10px', padding: '16px', cursor: 'pointer', color: '#FFF8EE', width: '100%' }}>
                       <div style={{ minWidth: '55px' }}><strong style={{ fontSize: '19px' }}>{item.time}</strong><span style={{ display: 'block', color: '#D6CBB8', fontSize: '12px', marginTop: '6px' }}>{item.durationMinutes || 45} min</span></div>
-                      <div style={{ flex: '1 1 180px', fontSize: '14px', lineHeight: 1.6, overflowWrap: 'anywhere' }}><strong>{item.clientName}</strong><span style={{ display: 'block', color: '#D6CBB8' }}>{item.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '')}</span><span style={{ display: 'block', fontSize: '12px', color: '#D6CBB8', marginTop: '8px' }}>{item.lifecycleStatus === 'cancelled' ? 'Cancelada' : item.lifecycleStatus === 'no_show' ? 'No presentada' : item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : item.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Confirmada'} · Ver detalles</span></div>
+                      <div style={{ flex: '1 1 180px', fontSize: '14px', lineHeight: 1.6, overflowWrap: 'anywhere' }}><strong>{item.clientName}</strong><span style={{ display: 'block', color: '#D6CBB8' }}>{appointmentServiceNames(item)}</span><span style={{ display: 'block', fontSize: '12px', color: '#D6CBB8', marginTop: '8px' }}>{item.lifecycleStatus === 'cancelled' ? 'Cancelada' : item.lifecycleStatus === 'no_show' ? 'No presentada' : item.completedAt ? 'Realizada' : item.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : item.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Confirmada'} · Ver detalles</span></div>
                     </button>)}
                     {!appointments.some(item => item.dateKey === formatDateKey(fechaSeleccionada)) && <p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6 }}>No hay citas registradas para este día. Puedes crear una con «Nueva cita» o elegir un hueco en el calendario.</p>}
                   </div>
@@ -4934,7 +4940,7 @@ function StudioApp() {
                 const sub = catalog[modalCatIndex]?.subservices[sIdx];
                 setModalSelectedVariant(sub?.variants?.[0] || null);
               }} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }}>
-                {catalog[modalCatIndex]?.subservices.map((sub, idx) => (<option key={sub.id} value={idx} disabled={sub.active === false}>{sub.name}{sub.active === false ? " · Desactivado" : ""}</option>))}
+                {catalog[modalCatIndex]?.subservices.map((sub, idx) => (<option key={sub.id} value={idx} disabled={sub.active === false}>{bookingName(sub)}{sub.active === false ? " · Desactivado" : ""}</option>))}
               </select>
               {catalog[modalCatIndex]?.subservices[modalSubIndex]?.hasVariants && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -4955,8 +4961,8 @@ function StudioApp() {
                   <strong>Servicios de esta cita</strong>
                   {modalServices.map(item => (
                     <div key={item.sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '8px' }}>
-                      <span>{item.sub.name}{item.variant ? ` (${item.variant.name})` : ''} · {item.variant?.duration || item.sub.duration}</span>
-                      <button type="button" aria-label={`Quitar ${item.sub.name}`} onClick={() => setModalServices(previous => previous.filter(entry => entry.sub.id !== item.sub.id))} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '6px', borderRadius: '4px', cursor: 'pointer' }}>Quitar</button>
+                      <span>{bookingName(item.sub)}{item.variant ? ` (${item.variant.name})` : ''} · {item.variant?.duration || item.sub.duration}</span>
+                      <button type="button" aria-label={`Quitar ${bookingName(item.sub)}`} onClick={() => setModalServices(previous => previous.filter(entry => entry.sub.id !== item.sub.id))} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '6px', borderRadius: '4px', cursor: 'pointer' }}>Quitar</button>
                     </div>
                   ))}
                   <p style={{ color: '#E4C687', marginBottom: 0 }}>Duración total: {getModalDuration(modalServices)} min</p>
@@ -5002,7 +5008,7 @@ function StudioApp() {
 })()}
 <section>
               <h4 style={{ color: '#E4C687', fontSize: '14px', margin: '0 0 12px' }}>Servicios reservados</h4>
-              {viewApptModal.services?.length ? viewApptModal.services.map((item, index) => <div key={index} style={{ backgroundColor: '#322A25', padding: '14px', border: '1px solid #3A312A', borderRadius: '8px', marginBottom: '8px', fontSize: '14px', lineHeight: 1.6, color: '#FFF8EE' }}><strong>{item.sub.name}</strong>{item.variant && <span style={{ display: 'block', color: '#D6CBB8' }}>{item.variant.name}</span>}<span style={{ display: 'block', color: '#E4C687', fontSize: '13px' }}>{item.variant?.price || item.sub.price} · {item.variant?.duration || item.sub.duration}</span></div>) : <p style={{ color: '#E4C687', fontSize: '14px', lineHeight: 1.6, overflowWrap: 'anywhere' }}>{viewApptModal.serviceSubcategory}</p>}
+              {viewApptModal.services?.length ? viewApptModal.services.map((item, index) => <div key={index} style={{ backgroundColor: '#322A25', padding: '14px', border: '1px solid #3A312A', borderRadius: '8px', marginBottom: '8px', fontSize: '14px', lineHeight: 1.6, color: '#FFF8EE' }}><strong>{bookingName(item.sub)}</strong>{item.variant && <span style={{ display: 'block', color: '#D6CBB8' }}>{item.variant.name}</span>}<span style={{ display: 'block', color: '#E4C687', fontSize: '13px' }}>{item.variant?.price || item.sub.price} · {item.variant?.duration || item.sub.duration}</span></div>) : <p style={{ color: '#E4C687', fontSize: '14px', lineHeight: 1.6, overflowWrap: 'anywhere' }}>{appointmentServiceNames(viewApptModal)}</p>}
             </section>
 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', color: '#D6CBB8', fontSize: '13px', overflowWrap: 'anywhere' }}>
               <a href={`tel:${viewApptModal.phone}`} style={{ color: '#E4C687', padding: '8px 0' }}>{viewApptModal.phone}</a>
@@ -5263,7 +5269,7 @@ function StudioApp() {
               borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>Editar servicios y duración</button>}
             <section>
               <h4 style={{ color: '#E4C687', fontSize: '14px', margin: '0 0 12px' }}>Servicios reservados</h4>
-              {viewApptModal.services?.length ? viewApptModal.services.map((item, index) => <div key={index} style={{ backgroundColor: '#322A25', padding: '14px', border: '1px solid #3A312A', borderRadius: '8px', marginBottom: '8px', fontSize: '14px', lineHeight: 1.6, color: '#FFF8EE' }}><strong>{item.sub.name}</strong>{item.variant && <span style={{ display: 'block', color: '#D6CBB8' }}>{item.variant.name}</span>}<span style={{ display: 'block', color: '#E4C687', fontSize: '13px' }}>{item.variant?.price || item.sub.price} · {item.variant?.duration || item.sub.duration}</span></div>) : <p style={{ color: '#E4C687', fontSize: '14px', lineHeight: 1.6, overflowWrap: 'anywhere' }}>{viewApptModal.serviceSubcategory}</p>}
+              {viewApptModal.services?.length ? viewApptModal.services.map((item, index) => <div key={index} style={{ backgroundColor: '#322A25', padding: '14px', border: '1px solid #3A312A', borderRadius: '8px', marginBottom: '8px', fontSize: '14px', lineHeight: 1.6, color: '#FFF8EE' }}><strong>{bookingName(item.sub)}</strong>{item.variant && <span style={{ display: 'block', color: '#D6CBB8' }}>{item.variant.name}</span>}<span style={{ display: 'block', color: '#E4C687', fontSize: '13px' }}>{item.variant?.price || item.sub.price} · {item.variant?.duration || item.sub.duration}</span></div>) : <p style={{ color: '#E4C687', fontSize: '14px', lineHeight: 1.6, overflowWrap: 'anywhere' }}>{appointmentServiceNames(viewApptModal)}</p>}
             </section>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', color: '#D6CBB8', fontSize: '13px', overflowWrap: 'anywhere' }}>
               <a href={`tel:${viewApptModal.phone}`} style={{ color: '#E4C687', padding: '8px 0' }}>{viewApptModal.phone}</a>
@@ -5473,7 +5479,7 @@ function StudioApp() {
                     durationMinutes: rescheduleModalAppt.durationMinutes, services,
                     selectedVariant: services[0]?.variant || null,
                     serviceCategory: Array.from(new Set(services.map(item => item.categoryName))).join(' + '),
-                    serviceSubcategory: 'RESERVADO ' + services.map(item => item.sub.name + (item.variant ? ' (' + item.variant.name + ')' : '')).join(' + '),
+                    serviceSubcategory: 'RESERVADO ' + services.map(item => bookingName(item.sub) + (item.variant ? ' (' + item.variant.name + ')' : '')).join(' + '),
                     remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false }
                   };
                   const reason = getApprovalReason(services, newRescheduleDate);
@@ -5504,7 +5510,7 @@ function StudioApp() {
             <h3 style={{ color: '#C99E52', fontSize: '24px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>Cancelar cita</h3>
             <div style={{ backgroundColor: 'rgba(255, 248, 238, 0.06)', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '9px', padding: '14px', color: '#FFF8EE', fontSize: '13px', lineHeight: 1.7 }}>
               {cancelApptModal.dateKey.split('-').reverse().join('/')} · {cancelApptModal.time}<br />
-              <span style={{ color: '#D6CBB8' }}>{(cancelApptModal.services?.length ? cancelApptModal.services.map(item => item.sub.name + (item.variant ? ` (${item.variant.name})` : '')).join(' + ') : cancelApptModal.serviceSubcategory.replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, ''))}</span>
+              <span style={{ color: '#D6CBB8' }}>{(cancelApptModal.services?.length ? cancelApptModal.services.map(item => bookingName(item.sub) + (item.variant ? ` (${item.variant.name})` : '')).join(' + ') : appointmentServiceNames(cancelApptModal))}</span>
             </div>
             {cancelApptModal.advancePayment?.status === 'pending' && (
               <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.6, margin: 0, background: 'rgba(201, 158, 82, 0.1)', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px', padding: '10px 12px' }}>
