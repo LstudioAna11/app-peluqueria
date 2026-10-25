@@ -1130,6 +1130,7 @@ function StudioApp() {
   const [reservationPolicyChecked, setReservationPolicyChecked] = useState(false);
   const [acceptedSaturdayPolicy, setAcceptedSaturdayPolicy] = useState('');
   const reservationPolicyDialog = useRef<HTMLDialogElement>(null);
+  const portalDateInputRef = useRef<HTMLInputElement>(null);
   const [bookingDate, setBookingDate] = useState<Date>(() => { const date = new Date(); date.setHours(12, 0, 0, 0); date.setDate(date.getDate() + bizConfig.minAdvanceDays); return date; });
   const [tempConfig, setTempConfigState] = useState<BusinessConfig>(() => structuredClone(bizConfig));
   const [employeePhotoBusy, setEmployeePhotoBusy] = useState<string | null>(null);
@@ -3517,10 +3518,17 @@ function StudioApp() {
     if (reservationPolicyOpen && reservationPolicyDialog.current && !reservationPolicyDialog.current.open) reservationPolicyDialog.current.showModal();
   }, [reservationPolicyOpen]);
   const leaveReservationPolicy = () => {
+    // Stay on the booking calendar and keep the selected services/professional.
+    reservationPolicyDialog.current?.close();
     setReservationPolicyOpen(false);
     setReservationPolicyChecked(false);
     setSelectedVisualTime('');
-    setCurrentScreen('catalogBooking');
+    const input = portalDateInputRef.current;
+    if (input) {
+      input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      input.focus({ preventScroll: true });
+      try { input.showPicker?.(); } catch { /* Focus remains usable if the browser blocks the native picker. */ }
+    }
   };
 
   const portalWeekStart = new Date(bookingDate);
@@ -4529,7 +4537,7 @@ function StudioApp() {
               return <button type="button" key={formatDateKey(day)} aria-pressed={selected} disabled={!portalDateAllowed(day)} onClick={() => choosePortalDate(day)} style={{ minHeight: '70px', padding: '8px 1px', backgroundColor: selected ? '#C49A58' : '#322A25', color: selected ? '#29231F' : '#FFF8EE', opacity: portalDateAllowed(day) ? 1 : 0.35, border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '9px', cursor: 'pointer' }}><span style={{ fontSize: '10px', display: 'block' }}>{day.toLocaleDateString(portalLocale, { weekday: 'short' })}</span><strong style={{ fontSize: '18px', display: 'block', margin: '5px 0' }}>{day.getDate()}</strong><span aria-label={available ? t('slotsAvailable') : t('noSlots')} style={{ fontSize: '10px' }}>{available ? '●' : '—'}</span></button>;
             })}
           </div>
-          <label style={{ color: '#C9BCA9', fontSize: '13px' }}>{t('otherDate')}<input type="date" value={formatDateKey(bookingDate)} onChange={e => { if (e.target.value) choosePortalDate(new Date(`${e.target.value}T12:00:00`)); }} style={{ display: 'block', marginTop: '8px', padding: '12px', backgroundColor: '#3E342C', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', boxSizing: 'border-box', width: '100%' }} /></label>
+          <label style={{ color: '#C9BCA9', fontSize: '13px' }}>{t('otherDate')}<input ref={portalDateInputRef} aria-label={t('otherDate')} type="date" value={formatDateKey(bookingDate)} onChange={e => { if (e.target.value) choosePortalDate(new Date(`${e.target.value}T12:00:00`)); }} style={{ display: 'block', marginTop: '8px', padding: '12px', backgroundColor: '#3E342C', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', boxSizing: 'border-box', width: '100%' }} /></label>
           <section><h3 style={{ color: '#FFF8EE', fontSize: '16px', margin: '0 0 16px' }}>{bookingDate.toLocaleDateString(portalLocale, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
             {!portalTimes.length ? <p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6 }}>{t('noSlotsDay')}</p> : ['morning', 'afternoon'].map(period => {
               const times = portalTimes.filter(time => period === 'morning' ? Number(time.slice(0, 2)) < 14 : Number(time.slice(0, 2)) >= 14);
