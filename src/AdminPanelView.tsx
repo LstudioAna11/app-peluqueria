@@ -290,6 +290,25 @@ export default function AdminPanelView(props: Props) {
    if (item.advancePayment?.status === 'pending') return 'Anticipo pendiente';
    return 'Confirmada';
  };
+ const renderCompactDaySummary = () => (<section aria-label="Resumen de hoy">
+            <p style={{ color: '#E4C687', fontSize: 11, margin: '0 0 7px' }}>Hoy · {summaryNow.toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', weekday: 'long', day: 'numeric', month: 'long' })}</p>
+            <div className="studio-day-summary">
+              <button type="button" onClick={() => { setFechaSeleccionada(new Date(todaySummaryKey + 'T12:00:00')); setAgendaViewMode('day'); setAgendaSidePanel('day'); }}>
+                <small>Citas de hoy</small><strong>{todaySummary.length}</strong><small>{todaySummary.filter(item => !!item.completedAt).length} realizadas · Incluye solicitudes pendientes</small>
+              </button>
+              <button type="button" disabled={!nextSummary} onClick={() => { if (nextSummary) setViewApptModal(nextSummary); }}>
+                <small>{ongoingSummary ? 'En horario de cita' : 'Próxima cita confirmada'}</small><strong>{nextSummary?.time || '—'}</strong>
+                <small>{nextSummary ? nextSummary.clientName : 'Sin más citas confirmadas hoy'}</small>
+                {nextSummary && <small>{appointmentServiceNames(nextSummary)}</small>}
+              </button>
+              <button type="button" onClick={() => { setPendingPanelFilter('approval'); setAgendaSidePanel('pending'); }}>
+                <small>Solicitudes por aceptar</small><strong>{approvalSummaryCount}</strong><small>Todas las fechas · Toca para revisar</small>
+              </button>
+              <button type="button" onClick={() => { setPendingPanelFilter('payment'); setAgendaSidePanel('pending'); }}>
+                <small>Anticipos por comprobar</small><strong>{paymentSummaryCount}</strong><small>Todas las fechas · Toca para revisar</small>
+              </button>
+            </div>
+          </section>);
  return (<div className={`studio-admin-shell ${agendaExpanded && adminTab === 'agenda' ? 'studio-agenda-expanded' : ''}`} style={{ maxWidth: '1680px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <style>{`
             .studio-desktop-nav { display: none; }
@@ -411,12 +430,22 @@ export default function AdminPanelView(props: Props) {
               .studio-mobile-booking-bar button { width: 100%; min-height: 48px; border: 0; border-radius: 10px; background: linear-gradient(135deg,#E4C687,#B3823B); color: #221D19; font-size: 16px; font-weight: 700; }
             }
 
-            .studio-day-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
-            .studio-day-summary button { text-align: left; padding: 13px; min-height: 100px; min-width: 0; border: 1px solid #67543C; border-radius: 10px; background: #221D19; color: #FFF8EE; cursor: pointer; overflow-wrap: anywhere; }
+
+            .studio-day-summary { display: grid; grid-template-columns: minmax(0,1fr); gap: 5px; margin-bottom: 12px; }
+            .studio-day-summary button { text-align: left; padding: 8px 10px; min-height: 48px; min-width: 0; border: 1px solid #67543C; border-radius: 7px; background: #221D19; color: #FFF8EE; cursor: pointer; overflow-wrap: anywhere; display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; column-gap: 7px; }
+            .studio-day-summary button:disabled { opacity: 1; cursor: default; }
             .studio-day-summary button:focus-visible { outline: 2px solid #E4C687; outline-offset: 2px; }
             .studio-day-summary small { display: block; color: #D6CBB8; font-size: 11px; line-height: 1.4; }
-            .studio-day-summary strong { display: block; color: #E4C687; font-size: 21px; margin: 6px 0; }
-            @media(max-width:700px) { .studio-day-summary { grid-template-columns: repeat(2,minmax(0,1fr)); } .studio-day-summary button { min-height: 98px; padding: 11px; } }
+            .studio-day-summary strong { color: #E4C687; font-size: 17px; margin: 0; grid-column: 2; grid-row: 1; }
+            .studio-day-summary button small:nth-of-type(n+2) { grid-column: 1 / -1; font-size: 10px; }
+            .studio-day-summary button:first-child small:nth-of-type(2), .studio-day-summary button:nth-child(n+3) small:nth-of-type(2) { display: none; }
+            .studio-mobile-summary { display: none; }
+            @media(max-width:700px) {
+              .studio-mobile-summary { display: block; padding: 9px 10px; border: 1px solid #67543C; border-radius: 8px; }
+              .studio-mobile-summary > summary { color: #E4C687; font-size: 12px; cursor: pointer; min-height: 32px; align-content: center; }
+              .studio-mobile-summary[open] > summary { margin-bottom: 10px; }
+              .studio-mobile-summary .studio-day-summary { grid-template-columns: repeat(2,minmax(0,1fr)); margin-bottom: 0; }
+            }
           `}</style>
           <div className="studio-admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212, 175, 55, 0.2)', paddingBottom: '15px' }}>
             <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}><img src={headerLogoSrc} alt={bizConfig.name} decoding="async" style={{width:160,height:48,objectFit:'contain',mixBlendMode:'screen'}} onError={fallbackHeaderLogo}/><div>
@@ -450,30 +479,12 @@ export default function AdminPanelView(props: Props) {
               No hay profesionales configurados. Ve a Configuración → Empleados y añade al menos una persona en activo para que las clientas puedan elegir profesional al reservar.
             </div>
           )}
-          {adminTab === 'agenda' && <section aria-label="Resumen de hoy">
-            <p style={{ color: '#E4C687', fontSize: 13, margin: '0 0 10px' }}>Hoy · {summaryNow.toLocaleDateString('es-ES', { timeZone: 'Europe/Madrid', weekday: 'long', day: 'numeric', month: 'long' })}</p>
-            <div className="studio-day-summary">
-              <button type="button" onClick={() => { setFechaSeleccionada(new Date(todaySummaryKey + 'T12:00:00')); setAgendaViewMode('day'); setAgendaSidePanel('day'); }}>
-                <small>Citas de hoy</small><strong>{todaySummary.length}</strong><small>{todaySummary.filter(item => !!item.completedAt).length} realizadas · Incluye solicitudes pendientes</small>
-              </button>
-              <button type="button" disabled={!nextSummary} onClick={() => { if (nextSummary) setViewApptModal(nextSummary); }}>
-                <small>{ongoingSummary ? 'En horario de cita' : 'Próxima cita confirmada'}</small><strong>{nextSummary?.time || '—'}</strong>
-                <small>{nextSummary ? nextSummary.clientName : 'Sin más citas confirmadas hoy'}</small>
-                {nextSummary && <small>{appointmentServiceNames(nextSummary)}</small>}
-              </button>
-              <button type="button" onClick={() => { setPendingPanelFilter('approval'); setAgendaSidePanel('pending'); }}>
-                <small>Solicitudes por aceptar</small><strong>{approvalSummaryCount}</strong><small>Todas las fechas · Toca para revisar</small>
-              </button>
-              <button type="button" onClick={() => { setPendingPanelFilter('payment'); setAgendaSidePanel('pending'); }}>
-                <small>Anticipos por comprobar</small><strong>{paymentSummaryCount}</strong><small>Todas las fechas · Toca para revisar</small>
-              </button>
-            </div>
-          </section>}
           {/* TAB 1: AGENDA MAESTRA */}
           {adminTab === 'agenda' && (
             <div ref={agendaLayoutRef} className="studio-agenda-layout" style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
               <div className="studio-calendar-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px', minWidth: 0, overflowX: 'auto' }}>
 
+                <details className="studio-mobile-summary"><summary>Resumen de hoy · {todaySummary.length} citas · {approvalSummaryCount + paymentSummaryCount} gestiones pendientes</summary>{renderCompactDaySummary()}</details>
                 <div className="studio-agenda-toolbar" role="group" aria-label="Controles de agenda">
                   <button type="button" onClick={() => setFechaSeleccionada(new Date())} style={{ padding: '9px 14px', border: '1px solid #C5A059', borderRadius: 8, cursor: 'pointer' }}>Hoy</button>
                   <div className="studio-agenda-view-switch" role="group" aria-label="Vista de agenda" style={{ display: 'flex', gap: 4 }}>
@@ -576,7 +587,8 @@ export default function AdminPanelView(props: Props) {
                 </div>
               </div>
               <details open className="studio-calendar-tools" style={{ width: '280px', backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '16px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                <summary>Calendario y ajustes</summary>
+                <summary>Resumen, calendario y ajustes</summary>
+                {renderCompactDaySummary()}
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                     <button onClick={() => cambiarMesMiniCal(-1)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>◀</button>
