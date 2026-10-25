@@ -1683,6 +1683,10 @@ function StudioApp() {
   const [rescheduleModalAppt, setRescheduleModalAppt] = useState<Appointment | null>(null);
   const [repeatAppointmentMode, setRepeatAppointmentMode] = useState(false);
   const [newRescheduleTime, setNewRescheduleTime] = useState<string>('10:00');
+  const [rescheduleSaving, setRescheduleSaving] = useState(false);
+  const rescheduleSavingRef = useRef(false);
+  const [rescheduleError, setRescheduleError] = useState('');
+  useEffect(() => { setRescheduleError(''); }, [rescheduleModalAppt?.id]);
   const [newRescheduleDate, setNewRescheduleDate] = useState<string>(formatDateKey(new Date()));
 
   useEffect(() => {
@@ -5537,7 +5541,7 @@ function StudioApp() {
       {/* MODAL MODIFICAR HORA DE CITA */}
       {rescheduleModalAppt && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1100 }}>
-          <div style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', maxWidth: '500px', width: '100%', boxSizing: 'border-box', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <div role="dialog" aria-modal="true" aria-label="Cambiar fecha u hora" style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', maxWidth: '500px', width: '100%', boxSizing: 'border-box', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <h3 style={{ color: '#E4C687', fontSize: '24px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>{repeatAppointmentMode ? 'Repetir cita' : 'Cambiar fecha u hora'}</h3>
             <p style={{ color: '#D6CBB8', fontSize: '14px', margin: 0 }}>Clienta: <strong style={{ color: '#FFF8EE' }}>{rescheduleModalAppt.clientName}</strong></p>
             <div style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '9px', padding: '14px', color: '#D6CBB8', fontSize: '13px', lineHeight: 1.7 }}>
@@ -5546,20 +5550,31 @@ function StudioApp() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold' }}>Nueva Fecha:</label>
-              <input type="date" value={newRescheduleDate} onChange={(e) => setNewRescheduleDate(e.target.value)} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
+              <input type="date" disabled={rescheduleSaving} value={newRescheduleDate} onChange={(e) => { setNewRescheduleDate(e.target.value); setNewRescheduleTime(''); setRescheduleError(''); }} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '16px', minHeight: 44 }} />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold' }}>Nueva Hora:</label>
-              <select value={newRescheduleTime} onChange={(e) => setNewRescheduleTime(e.target.value)} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }}>
-                <option value="" disabled>Selecciona una hora</option>
+            <section aria-label="Elegir nueva hora">
+              <p style={{ color: '#E4C687', fontSize: 14, margin: '0 0 8px' }}>Elige un hueco para la duración completa</p>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, maxHeight: '32vh', overflowY: 'auto', padding: 3 }}>
                 {Array.from({ length: Math.ceil(1440 / agendaStep) }, (_, index) => minuteTime(index * agendaStep))
-                  .filter(time => enableOutOfHours || isAgendaTimeWorking(new Date(newRescheduleDate + 'T12:00:00'), time, rescheduleModalAppt.durationMinutes || 45))
-                  .map(h => (<option key={h} value={h}>{h}h</option>))}
-              </select>
-            </div>
+                  .filter(time => /^\d{4}-\d{2}-\d{2}$/.test(newRescheduleDate) && (enableOutOfHours || isAgendaTimeWorking(new Date(newRescheduleDate + 'T12:00:00'), time, rescheduleModalAppt.durationMinutes || 45)))
+                  .map(time => {
+                    const unavailable = isDateBlockedByHoliday(newRescheduleDate) || timeBlockConflict(newRescheduleDate, time, rescheduleModalAppt.durationMinutes || 45) ||
+                      (!!getRescheduleConflict(repeatAppointmentMode ? { ...rescheduleModalAppt, id: '' } : rescheduleModalAppt, newRescheduleDate, time) && !enableDoubleBooking);
+                    const selected = newRescheduleTime === time;
+                    return <button key={time} type="button" disabled={rescheduleSaving || unavailable} aria-pressed={selected} onClick={() => { setNewRescheduleTime(time); setRescheduleError(''); }}
+                      style={{ minHeight: 52, borderRadius: 8, border: selected ? '2px solid #E4C687' : '1px solid #67543C', background: selected ? '#C49A58' : '#221D19', color: selected ? '#221D19' : '#FFF8EE', opacity: unavailable ? .4 : 1, cursor: unavailable ? 'not-allowed' : 'pointer' }}>
+                      <strong>{time}</strong><small style={{ display: 'block', fontSize: 10, marginTop: 3 }}>{unavailable ? 'No disponible' : selected ? 'Seleccionada' : 'Libre'}</small>
+                    </button>;
+                  })}
+              </div>
+              <p style={{ color: '#D6CBB8', fontSize: 12 }}>Las horas atenuadas no admiten la duración completa. Se conservan los servicios de la cita.</p>
+              {newRescheduleTime && <p style={{ color: '#E4C687', fontSize: 14 }}>Nueva cita: {newRescheduleDate.split('-').reverse().join('/')} · {newRescheduleTime}</p>}
+              {rescheduleError && <p role="alert" style={{ color: '#FFB4A9', fontSize: 13 }}>{rescheduleError}</p>}
+            </section>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
-              <button type="button" onClick={() => setRescheduleModalAppt(null)} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
-              <button type="button" onClick={() => {
+              <button type="button" disabled={rescheduleSaving} onClick={() => setRescheduleModalAppt(null)} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
+              <button type="button" disabled={rescheduleSaving} onClick={async () => {
+                if (rescheduleSavingRef.current) return;
                 if (!repeatAppointmentMode && !isActiveAppointment(rescheduleModalAppt)) { alert('Esta cita está cancelada o no presentada. Crea una nueva reserva.'); return; }
                 if (!/^\d{4}-\d{2}-\d{2}$/.test(newRescheduleDate) || !/^\d{2}:\d{2}$/.test(newRescheduleTime)) { alert('Elige una fecha y una hora válidas.'); return; }
                 if (isDateBlockedByHoliday(newRescheduleDate)) { alert('Este día está bloqueado por vacaciones o festivo.'); return; }
@@ -5599,10 +5614,29 @@ function StudioApp() {
                   setAppointments(previous => [...previous, repeated]); setFechaSeleccionada(date); setViewApptModal(repeated);
                   return;
                 }
-                setAppointments(previous => previous.map(a => a.id === rescheduleModalAppt.id ? { ...a, dateKey: newRescheduleDate, time: newRescheduleTime, dayName: date.toLocaleDateString('es-ES', { weekday: 'long' }) } : a));
-                setRescheduleModalAppt(null);
-                alert('¡Cita modificada con éxito!');
-              }} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{repeatAppointmentMode ? 'Crear nueva cita' : 'Guardar Cambios'}</button>
+                rescheduleSavingRef.current = true; setRescheduleSaving(true); setRescheduleError('');
+                try {
+                  const token = studioApi.currentToken();
+                  if (!studioApi.serverConfigured || !token) throw new Error('Necesitas conexión y una sesión válida para guardar el cambio.');
+                  const source = rescheduleModalAppt;
+                  const before = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+                  const row = before.appointments?.find(item => item.id === source.serverId || item.id === source.id || String(item.source_legacy_id || '') === source.id);
+                  if (!row) throw new Error('No se ha encontrado la cita en el servidor. Actualiza la agenda antes de reintentar.');
+                  const dayName = date.toLocaleDateString('es-ES', { weekday: 'long' });
+                  await studioApi.updateAppointmentOnServer(token, { id: row.id, dateKey: newRescheduleDate, time: newRescheduleTime, dayName, durationMinutes: source.durationMinutes || 45 });
+                  let saved: Appointment = { ...source, serverId: row.id, dateKey: newRescheduleDate, time: newRescheduleTime, dayName };
+                  try {
+                    const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+                    const updatedRow = after.appointments?.find(item => item.id === row.id);
+                    if (updatedRow) saved = mapServerAppointment(updatedRow);
+                  } catch { /* The successful update already confirms persistence. */ }
+                  setAppointments(previous => previous.map(item => item.id === source.id || item.serverId === row.id ? saved : item));
+                  setFechaSeleccionada(date); setRescheduleModalAppt(null); setViewApptModal(saved);
+                } catch (error) {
+                  setRescheduleError(error instanceof Error ? error.message : 'No se ha podido guardar el cambio. Reintenta sin cerrar esta ventana.');
+                } finally { rescheduleSavingRef.current = false; setRescheduleSaving(false); }
+
+              }} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{rescheduleSaving ? 'Guardando…' : repeatAppointmentMode ? 'Crear nueva cita' : 'Guardar cambio'}</button>
             </div>
           </div>
         </div>
