@@ -384,6 +384,10 @@ export default function AdminPanelView(props: Props) {
               .studio-agenda-layout > .studio-calendar-tools { display: none !important; }
               .studio-agenda-layout { padding-bottom: 90px; }
               .studio-mobile-daily-agenda { display: flex; flex-direction: column; gap: 10px; }
+              .studio-mobile-hours { border: 1px solid #67543C; border-radius: 10px; overflow: hidden; padding: 5px; background: #221D19; }
+              .studio-mobile-hours .studio-agenda-grid { min-width: 0 !important; grid-template-columns: 44px minmax(0, 1fr) !important; }
+              .studio-mobile-hours .studio-agenda-slot:not(:disabled) { border: 1px dashed rgba(228,198,135,.2) !important; }
+              .studio-mobile-hours .studio-agenda-slot:not(:disabled)::after { content: "+"; color: #E4C687; font-size: 15px; }
               .studio-mobile-day-navigation { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
               .studio-mobile-day-navigation button { min-height: 44px; min-width: 44px; border: 1px solid #67543C; border-radius: 8px; background: #221D19; color: #E4C687; }
               .studio-mobile-appointment { display: flex; width: 100%; gap: 12px; text-align: left; padding: 14px; box-sizing: border-box; border: 1px solid #67543C; border-radius: 12px; background: #221D19; color: #FFF8EE; cursor: pointer; }
@@ -509,20 +513,20 @@ export default function AdminPanelView(props: Props) {
                     <button type="button" aria-label="Día anterior" onClick={() => { const day = new Date(fechaSeleccionada); day.setDate(day.getDate() - 1); setFechaSeleccionada(day); }}>◀</button>
                     <div style={{ textAlign: 'center', minWidth: 0 }}>
                       <strong style={{ color: '#E4C687', textTransform: 'capitalize' }}>{fechaSeleccionada.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</strong>
-                      <small style={{ display: 'block', color: '#D6CBB8', marginTop: 4 }}>{mobileDayAppointments.length} citas · Toca una para gestionarla</small>
+                      <small style={{ display: 'block', color: '#D6CBB8', marginTop: 4 }}>{mobileDayAppointments.length} citas · Horario completo del día</small>
                     </div>
                     <button type="button" aria-label="Día siguiente" onClick={() => { const day = new Date(fechaSeleccionada); day.setDate(day.getDate() + 1); setFechaSeleccionada(day); }}>▶</button>
                   </div>
                   {isDateBlockedByHoliday(selectedDayKey) && <p style={{ color: '#E4C687', fontSize: 13 }}>Día bloqueado para nuevas citas. Puedes consultar las citas registradas.</p>}
                   {!mobileDayAppointments.length && <p style={{ textAlign: 'center', color: '#D6CBB8', padding: '24px 8px' }}>No hay citas en este día. Usa «Agendar cita» para añadir una.</p>}
-                  {!isDateBlockedByHoliday(selectedDayKey) && <details style={{ border: '1px solid #67543C', borderRadius: 10, padding: 12 }}>
-                    <summary style={{ cursor: 'pointer', color: '#E4C687', minHeight: 32 }}>Elegir hora para una nueva cita</summary>
-                    <p style={{ color: '#D6CBB8', fontSize: 12 }}>Horas de inicio libres. Al guardar se comprobará la duración completa del servicio.</p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                      {hoursList.filter(time => !isTimeSlotOccupied(selectedDayKey, time)).map(time => <button type="button" key={time} onClick={() => handleCellClick(fechaSeleccionada, diaSeleccionadoObj.name, time)} style={{ minHeight: 44, padding: '10px 14px', background: '#221D19', border: '1px solid #67543C', borderRadius: 8, color: '#FFF8EE' }}>{time}</button>)}
-                      {!hoursList.some(time => !isTimeSlotOccupied(selectedDayKey, time)) && <p style={{ color: '#D6CBB8', fontSize: 13 }}>No hay horas de inicio libres.</p>}
-                    </div>
-                  </details>}
+                  <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', color: '#D6CBB8', fontSize: 12 }}>
+                    <span>□ Hueco libre: toca para agendar</span><span>▣ Cita reservada: toca para abrir</span>
+                  </div>
+                  <div className="studio-mobile-hours" aria-label="Horas reservadas y disponibles del día">
+                    {renderDurationAgenda([diaSeleccionadoObj])}
+                  </div>
+                  <details><summary style={{ color: '#E4C687', cursor: 'pointer', padding: '12px 0' }}>Ver también el listado de citas ({mobileDayAppointments.length})</summary>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {mobileDayAppointments.map(appointment => <button type="button" key={appointment.id} className="studio-mobile-appointment" onClick={() => setViewApptModal(appointment)}>
                     <div style={{ flexShrink: 0, color: '#E4C687', fontSize: 18, fontWeight: 700 }}>{appointment.time}
                       {!!appointment.durationMinutes && <small style={{ fontSize: 11, fontWeight: 400 }}>{appointment.durationMinutes} min</small>}
@@ -535,6 +539,7 @@ export default function AdminPanelView(props: Props) {
                     </div>
                     <span aria-hidden="true" style={{ alignSelf: 'center', color: '#E4C687' }}>›</span>
                   </button>)}
+                  </div></details>
                 </section>
                 <div className="studio-mobile-booking-bar"><button type="button" onClick={openMobileBooking}>+ Agendar cita</button></div>
                 {/* VISTA DINÁMICA DE LA TABLA (SEMANAL vs DIARIA) */}
