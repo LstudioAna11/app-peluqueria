@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ChevronDown, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
+import { Maximize2, Minimize2, Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ChevronDown, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
 import * as studioApi from './studioApi';
 import type { StudioEmployee, BusinessConfig, ServiceVariant, Appointment, StylingPolicy, FinishKind, ServiceTranslation, SubService, CatalogCategory, ClientRecord, LostDemandRecord, FeedbackRecord, HolidayBlock } from './App';
 const LazyOpportunitiesView=React.lazy(()=>import('./OpportunitiesView'));
@@ -299,10 +299,10 @@ export default function AdminPanelView(props: Props) {
             .studio-calendar-main { gap: 11px !important; }
             .studio-agenda-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
             .studio-agenda-toolbar > div { margin: 0 !important; }
-            .studio-agenda-toolbar > div:first-child { display: contents !important; }
+            .studio-agenda-toolbar > .studio-agenda-view-switch { display: flex !important; }
             .studio-agenda-toolbar h2 { display: none; }
             .studio-agenda-toolbar button { min-height: 38px; border-color: rgba(234, 220, 199, 0.35) !important; font-size: 12px !important; color: #E4C687 !important; background: #322A25 !important; }
-            .studio-agenda-toolbar button[aria-pressed=true] { background: rgba(201, 158, 82, 0.12) !important; color: #7A5C1E !important; border-color: #E4C687 !important; }
+            .studio-agenda-toolbar button[aria-pressed=true] { background: rgba(201, 158, 82, 0.12) !important; color: #FFF8EE !important; border-color: #E4C687 !important; }
             .studio-agenda-toolbar .studio-new-appointment { background: linear-gradient(135deg, #C99E52 0%, #B3823B 100%) !important; border-color: #B8972E !important; color: #29231F !important; font-weight: 600; }
             .studio-agenda-stat { border: none !important; background: transparent !important; padding: 4px 12px 4px 0 !important; gap: 6px !important; }
             .studio-agenda-stat span { font-size: 11px !important; color: #D6CBB8 !important; }
@@ -395,48 +395,27 @@ export default function AdminPanelView(props: Props) {
             <div ref={agendaLayoutRef} className="studio-agenda-layout" style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
               <div className="studio-calendar-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px', minWidth: 0, overflowX: 'auto' }}>
 
-<div className="studio-agenda-toolbar">
-<div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', width: '100%' }}>
-                  <span style={{ color: '#D6CBB8', fontSize: '12px' }}>Muestra de color (temporal):</span>
-                  {AGENDA_SWATCHES.map(swatch => (
-                    <button key={swatch.id} type="button" aria-pressed={agendaSwatch === swatch.id}
-                      onClick={() => setAgendaSwatch(swatch.id)}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '7px 12px', borderRadius: '999px', cursor: 'pointer', fontSize: '12px',
-                        background: agendaSwatch === swatch.id ? swatch.panel : 'transparent',
-                        border: agendaSwatch === swatch.id ? '2px solid #8F6D24' : '1px solid #5C5248', color: '#FFF8EE' }}>
-                      <span aria-hidden="true" style={{ width: 14, height: 14, borderRadius: '50%', background: swatch.panel, border: '1px solid #5C5248', display: 'inline-block' }} />
-                      {swatch.label}
-                    </button>
-                  ))}
-                </div>
-
-<button type="button" aria-pressed={agendaExpanded} onClick={() => setAgendaExpanded(previous => !previous)}
-style={{ padding: '9px 14px', background: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '7px', cursor: 'pointer' }}>
-{agendaExpanded ? 'Volver a vista normal' : 'Ampliar agenda'}</button>
-                <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '16px', marginBottom: '0' }}>
-                  <div><h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '22px', fontWeight: 'normal', margin: 0 }}>Agenda Maestra</h2></div>
-                  <button type="button" onClick={() => setFechaSeleccionada(new Date())} style={{ padding: '9px 14px', background: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '8px', cursor: 'pointer' }}>Ir a hoy</button>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginBottom: '0' }}>
-                  {(['day', 'week'] as const).map(view => <button type="button" key={view} aria-pressed={agendaViewMode === view} onClick={() => setAgendaViewMode(view)} style={{ backgroundColor: agendaViewMode === view ? '#C49A58' : '#3E342C', color: agendaViewMode === view ? '#29231F' : '#2C2521', border: '1px solid rgba(228, 198, 135, 0.45)', padding: '9px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>{view === 'day' ? 'Día' : 'Semana'}</button>)}
+                <div className="studio-agenda-toolbar" role="group" aria-label="Controles de agenda">
+                  <button type="button" onClick={() => setFechaSeleccionada(new Date())} style={{ padding: '9px 14px', border: '1px solid #C5A059', borderRadius: 8, cursor: 'pointer' }}>Hoy</button>
+                  <div className="studio-agenda-view-switch" role="group" aria-label="Vista de agenda" style={{ display: 'flex', gap: 4 }}>
+                    {(['day', 'week'] as const).map(view => <button type="button" key={view} aria-pressed={agendaViewMode === view} onClick={() => setAgendaViewMode(view)} style={{ padding: '9px 14px', border: '1px solid rgba(228,198,135,.35)', borderRadius: 8, cursor: 'pointer' }}>{view === 'day' ? 'Día' : 'Semana'}</button>)}
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#D6CBB8', fontSize: 12 }}>Fecha
+                    <input aria-label="Elegir fecha de la agenda" type="date" value={formatDateKey(fechaSeleccionada)} onChange={event => { if (event.target.value) setFechaSeleccionada(new Date(event.target.value + 'T12:00:00')); }} style={{ padding: 8, background: '#221D19', color: '#FFF8EE', border: '1px solid rgba(196,154,88,.4)', borderRadius: 8, minWidth: 140 }} />
+                  </label>
                   <button className="studio-new-appointment" type="button" onClick={() => {
                     if (isDateBlockedByHoliday(formatDateKey(fechaSeleccionada))) { alert('El día seleccionado está bloqueado. Elige otra fecha.'); return; }
                     const freeTime = hoursList.find(time => !isTimeSlotOccupied(formatDateKey(fechaSeleccionada), time));
                     if (!freeTime) { alert('No hay huecos libres en el día seleccionado.'); return; }
                     handleCellClick(fechaSeleccionada, diaSeleccionadoObj.name, freeTime);
-                  }} style={{ backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059', padding: '9px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px' }}>+ Nueva cita</button>
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#D6CBB8', fontSize: '12px' }}>Ir a fecha
-<input aria-label="Elegir fecha de la agenda" type="date" value={formatDateKey(fechaSeleccionada)}
-onChange={event => { if (event.target.value) setFechaSeleccionada(new Date(event.target.value + 'T12:00:00')); }}
-style={{ padding: '8px', background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059', borderRadius: '6px' }} /></label></div>
-
-
-</div>
+                  }} style={{ padding: '9px 16px', border: '1px solid #C5A059', borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap' }}>+ Nueva cita</button>
+                  <button type="button" aria-pressed={agendaExpanded} aria-label={agendaExpanded ? 'Volver a vista normal' : 'Ampliar agenda'} title={agendaExpanded ? 'Volver a vista normal' : 'Ampliar agenda'} onClick={() => setAgendaExpanded(previous => !previous)} style={{ display: 'grid', placeItems: 'center', marginInlineStart: 'auto', padding: 9, minWidth: 40, border: '1px solid rgba(196,154,88,.3)', borderRadius: 8, cursor: 'pointer' }}>{agendaExpanded ? <Minimize2 size={18} aria-hidden="true" /> : <Maximize2 size={18} aria-hidden="true" />}</button>
+                </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {[
                     { label: 'Citas del día', value: appointments.filter(item => item.dateKey === formatDateKey(fechaSeleccionada)).length, color: '#FFF8EE' },
                     { label: 'Solicitudes por revisar', value: appointments.filter(item => isActiveAppointment(item) && item.saturdayApproval?.status === 'pending').length, color: '#E4C687' },
-                    { label: 'Bizum por confirmar', value: appointments.filter(item => isActiveAppointment(item) && item.advancePayment?.status === 'pending').length, color: '#33517E' }
+                    { label: 'Bizum por confirmar', value: appointments.filter(item => isActiveAppointment(item) && item.advancePayment?.status === 'pending').length, color: '#E4C687' }
                   ].map(item => <button type="button" className="studio-agenda-stat" aria-label={'Abrir ' + item.label}
                     onClick={() => {
                       if (item.label === 'Citas del día') setAgendaSidePanel('day');
