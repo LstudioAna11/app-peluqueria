@@ -1899,25 +1899,69 @@ function StudioApp() {
   const [modalSubIndex, setModalSubIndex] = useState<number>(0);
   const [modalSelectedVariant, setModalSelectedVariant] = useState<ServiceVariant | null>(null);
   const [saturdayRequestModal, setSaturdayRequestModal] = useState<Appointment | null>(null);
-  const registerSaturdayRequest = () => {
-    if (!saturdayRequestModal) return;
-    setAppointments(previous => previous.some(item => item.id === saturdayRequestModal.id) ? previous : [...previous, saturdayRequestModal]);
-    setBookingSuccessMsg(t('requestSaved'));
-    setSelectedServicesToBook([]);
-    setIsModalOpen(false);
-    setSaturdayRequestModal(null);
+  const [pendingBookingBusy, setPendingBookingBusy] = useState(false);
+  const [pendingBookingError, setPendingBookingError] = useState('');
+  const pendingBookingBusyRef = useRef(false);
+  const registerSaturdayRequest = async () => {
+    if (!saturdayRequestModal || pendingBookingBusyRef.current) return;
+    pendingBookingBusyRef.current = true; setPendingBookingBusy(true); setPendingBookingError('');
+    try {
+      const saved = await persistPendingAppointment(saturdayRequestModal);
+      setAppointments(previous => [...previous.filter(item => item.id !== saved.id && item.serverId !== saved.serverId), saved]);
+      setRegisteredAppointment(saved);
+      setBookingSuccessMsg('Solicitud enviada al Studio · Pendiente de confirmación de Ana.');
+      setSelectedServicesToBook([]); setIsModalOpen(false); setSaturdayRequestModal(null);
+      setCurrentScreen('catalogBooking');
+    } catch (error) {
+      setPendingBookingError(error instanceof Error ? error.message : 'No se ha podido enviar la solicitud. Conservamos tus datos para reintentar.');
+    } finally { pendingBookingBusyRef.current = false; setPendingBookingBusy(false); }
   };
   const [advancePaymentModal, setAdvancePaymentModal] = useState<Appointment | null>(null);
   const createAdvancePayment = () => ({ amount: parseFloat(bizConfig.depositAmount.replace(',', '.')) || 60, reference: `LS-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, status: 'pending' as const });
   const advancePaymentConcept = (appointment: Appointment) => `${appointment.clientName} · Reserva anticipada · ${appointment.advancePayment?.reference || ''}`;
-  const savePendingAdvanceAppointment = () => {
-    if (!advancePaymentModal) return;
-    setAppointments(previous => previous.some(item => item.id === advancePaymentModal.id) ? previous : [...previous, advancePaymentModal]);
-    setBookingSuccessMsg(tf('paymentSaved', {amount: advancePaymentModal.advancePayment?.amount, reference: advancePaymentModal.advancePayment?.reference}));
-    setSelectedServicesToBook([]);
-    setIsModalOpen(false);
-    setCurrentScreen('catalogBooking');
-    setAdvancePaymentModal(null);
+  useEffect(() => { setPendingBookingError(''); }, [saturdayRequestModal?.id, advancePaymentModal?.id]);
+  const persistPendingAppointment = async (draft: Appointment): Promise<Appointment> => {
+    const token = studioApi.currentToken();
+    if (!studioApi.serverConfigured || !token) throw new Error('Necesitas conexión y una sesión válida para enviar la solicitud. Tus datos siguen aquí.');
+    // Recover an earlier successful send if its response was lost; do not create a second booking.
+    const before = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+    const existing = before.appointments?.find(row => row.id === draft.serverId || String(row.source_legacy_id || '') === draft.id);
+    if (existing) {
+      const saved = mapServerAppointment(existing);
+      if (saved.dateKey !== draft.dateKey || saved.time !== draft.time || saved.email.trim().toLowerCase() !== draft.email.trim().toLowerCase()) throw new Error('Hay una reserva con esta referencia y otros datos. Revisa Mis citas o consulta con Ana antes de reintentar.');
+      return saved;
+    }
+    const result = await studioApi.createAppointmentOnServer(token, {
+      id: draft.id, clientId: currentClientRecord?.serverId || studioApi.storedClientId() || null,
+      dateKey: draft.dateKey, time: draft.time, dayName: draft.dayName,
+      durationMinutes: draft.durationMinutes, bookingChannel: draft.bookingChannel || (studioApi.storedRole() === 'admin' ? 'admin' : 'portal'),
+      approval: draft.saturdayApproval ? { status: draft.saturdayApproval.status, reason: draft.saturdayApproval.reason, reference: draft.saturdayApproval.reference } : null,
+      advancePayment: draft.advancePayment ? { status: draft.advancePayment.status, amount: draft.advancePayment.amount, reference: draft.advancePayment.reference } : null,
+      services: draft.services, clientName: draft.clientName, phone: draft.phone, email: draft.email,
+      serviceCategory: draft.serviceCategory, serviceSubcategory: draft.serviceSubcategory,
+      selectedVariant: draft.selectedVariant, remindersStatus: draft.remindersStatus,
+      professionalId: draft.professionalId, professionalName: draft.professionalName,
+    });
+    if (!result.ok || !result.id) throw new Error('El servidor no ha confirmado el guardado. Reintenta sin cerrar esta ventana.');
+    try {
+      const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+      const row = after.appointments?.find(item => item.id === result.id);
+      if (row) return mapServerAppointment(row);
+    } catch { /* The successful POST already confirms persistence. */ }
+    return { ...draft, serverId: result.id };
+  };
+  const savePendingAdvanceAppointment = async () => {
+    if (!advancePaymentModal || pendingBookingBusyRef.current) return;
+    pendingBookingBusyRef.current = true; setPendingBookingBusy(true); setPendingBookingError('');
+    try {
+      const saved = await persistPendingAppointment(advancePaymentModal);
+      setAppointments(previous => [...previous.filter(item => item.id !== saved.id && item.serverId !== saved.serverId), saved]);
+      setRegisteredAppointment(saved);
+      setBookingSuccessMsg(saved.saturdayApproval?.status === 'pending' ? 'Solicitud enviada al Studio · Pendiente de confirmación de Ana.' : 'Solicitud enviada al Studio · Pendiente de comprobar el anticipo.');
+      setSelectedServicesToBook([]); setIsModalOpen(false); setCurrentScreen('catalogBooking'); setAdvancePaymentModal(null);
+    } catch (error) {
+      setPendingBookingError(error instanceof Error ? error.message : 'No se ha podido enviar la solicitud. Conservamos tus datos para reintentar.');
+    } finally { pendingBookingBusyRef.current = false; setPendingBookingBusy(false); }
   };
   const [modalServices, setModalServices] = useState<{ categoryId: string; categoryName: string; sub: SubService; variant: ServiceVariant | null }[]>([]);
   const getModalService = () => {
@@ -4849,8 +4893,9 @@ function StudioApp() {
             <p>{appointmentServiceNames(saturdayRequestModal)}</p>
             {bizConfig.advancePaymentEnabled && (saturdayRequestModal.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes && <p>{tf('reviewDeposit', {amount: bizConfig.depositAmount})}</p>}
             <p style={{ color: '#D6CBB8', fontSize: '12px' }}>{t('localRequestNotice')}</p>
-            <button type="button" onClick={() => setSaturdayRequestModal(null)} style={{ padding: '10px', marginRight: '10px' }}>{t('backAction')}</button>
-            <button type="button" onClick={registerSaturdayRequest} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>{t('registerRequest')}</button>
+            {pendingBookingError && <p role="alert" style={{color:'#F5C7B8',fontSize:13,lineHeight:1.6}}>{pendingBookingError}</p>}
+            <button type="button" disabled={pendingBookingBusy} onClick={() => setSaturdayRequestModal(null)} style={{ padding: '10px', marginRight: '10px' }}>{t('backAction')}</button>
+            <button type="button" disabled={pendingBookingBusy} onClick={registerSaturdayRequest} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>{pendingBookingBusy ? 'Enviando al Studio…' : t('registerRequest')}</button>
           </div>
         </div>
       )}
@@ -4864,9 +4909,10 @@ function StudioApp() {
             <div dir="ltr" style={{ padding: '12px', border: '1px solid #B98A3E', borderRadius: '6px', overflowWrap: 'anywhere' }}>{advancePaymentConcept(advancePaymentModal)}</div>
             <p style={{ color: '#D6CBB8' }}>{t('paymentPendingExplanation')}</p>
             <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(advancePaymentConcept(advancePaymentModal)); alert(t('copiedConcept')); } catch { alert(t('copyFailed')); } }} style={{ padding: '10px', marginBottom: '12px', cursor: 'pointer' }}>{t('copyConcept')}</button>
+            {pendingBookingError && <p role="alert" style={{color:'#F5C7B8',fontSize:13,lineHeight:1.6}}>{pendingBookingError}</p>}
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <button type="button" onClick={() => setAdvancePaymentModal(null)} style={{ padding: '10px', cursor: 'pointer' }}>{t('backAction')}</button>
-              <button type="button" onClick={savePendingAdvanceAppointment} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>{t('registerPayment')}</button>
+              <button type="button" disabled={pendingBookingBusy} onClick={() => setAdvancePaymentModal(null)} style={{ padding: '10px', cursor: 'pointer' }}>{t('backAction')}</button>
+              <button type="button" disabled={pendingBookingBusy} onClick={savePendingAdvanceAppointment} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>{pendingBookingBusy ? 'Enviando al Studio…' : t('registerPayment')}</button>
             </div>
           </div>
         </div>
