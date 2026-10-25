@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ChevronDown, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
+import { Bell, Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ChevronDown, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
 import './catalog.css';
 import { getBookingName, getAppointmentServiceNames, compactServiceText } from './serviceNames';
 import * as studioApi from './studioApi';
@@ -2263,6 +2263,7 @@ function StudioApp() {
   };
   const [pushStatus, setPushStatus] = useState<'unsupported' | 'config-pending' | 'denied' | 'subscribed' | 'default'>('default');
   const [pushBusy, setPushBusy] = useState(false);
+  const [pushPanelOpen, setPushPanelOpen] = useState(false);
   const [pushNeedsLogin, setPushNeedsLogin] = useState(false);
   const [pushLoginPin, setPushLoginPin] = useState('');
   const [pushError, setPushError] = useState<string | null>(null);
@@ -2271,7 +2272,7 @@ function StudioApp() {
     if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) { setPushStatus('unsupported'); return; }
     if (Notification.permission === 'denied') { setPushStatus('denied'); return; }
     try {
-      const registration = await navigator.serviceWorker.ready;
+      const registration = await Promise.race([navigator.serviceWorker.ready, new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error('No se ha podido iniciar el servicio de notificaciones. Recarga la app y reintenta.')), 12000))]);
       const existing = await registration.pushManager.getSubscription();
       if (existing && Notification.permission === 'granted' && studioApi.currentToken()) {
         await persistPushSubscription(existing);
@@ -2301,7 +2302,7 @@ function StudioApp() {
       const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
       if (permission !== 'granted') { setPushStatus(permission === 'denied' ? 'denied' : 'default'); setPushError('Para recibir avisos debes conceder permiso en tu dispositivo.'); return; }
       const registration = await navigator.serviceWorker.register('/sw.js');
-      await navigator.serviceWorker.ready;
+      await Promise.race([navigator.serviceWorker.ready, new Promise<never>((_, reject) => window.setTimeout(() => reject(new Error('No se ha podido iniciar el servicio de notificaciones. Recarga la app y reintenta.')), 12000))]);
       const existing = await registration.pushManager.getSubscription();
       const vapid = await studioApi.fetchPushPublicKey(studioApi.currentToken()!);
       const subscription = existing ?? await registration.pushManager.subscribe({
@@ -3808,6 +3809,56 @@ function StudioApp() {
     </div>;
   };
 
+  const renderClientPushPanel = () => (<section style={{ padding: '12px', background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px' }}>
+              <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: '0 0 10px' }}>Notificaciones push: <strong style={{ color: pushStatus === 'subscribed' ? '#8FC98F' : '#E4C687' }}>{pushStatusLabel()}</strong></p>
+              {pushNeedsLogin && <div style={{ marginBottom: '12px', color: '#FFF8EE' }}>
+                <label htmlFor="push-login-pin">Confirma tu PIN para activar los avisos</label>
+                <input id="push-login-pin" type="password" inputMode="numeric" maxLength={4} autoComplete="off" value={pushLoginPin} onChange={event => setPushLoginPin(event.target.value.replace(/[^0-9]/g, '').slice(0, 4))} style={{ display: 'block', margin: '8px 0', padding: '10px', color: '#2C2521', background: '#EADCC7' }} />
+                <button type="button" onClick={handlePushLogin} disabled={pushBusy || pushLoginPin.length !== 4}>Recuperar sesión sin perder mi reserva</button>
+              </div>}
+              {(pushStatus === 'default' || pushStatus === 'subscribed') && !pushNeedsLogin && <button type="button" onClick={handleEnablePush} disabled={pushBusy} style={{ width: '100%', minHeight: '46px', padding: '12px', background: 'transparent', color: '#E4C687', border: '1px solid #C49A58', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: pushBusy ? 'wait' : 'pointer' }}>{pushBusy ? 'Comprobando…' : pushStatus === 'subscribed' ? 'Enviar notificación de prueba' : 'Activar notificaciones'}</button>}
+              {pushStatus === 'config-pending' && <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>El Studio todavía no tiene activas las notificaciones. Prueba de nuevo más tarde.</p>}
+              {pushStatus === 'denied' && <p style={{ color: '#F2B8AC', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>Tienes las notificaciones bloqueadas para este sitio. Para recibirlas, toca el icono de información junto a la dirección en tu navegador y permite las notificaciones{showInstallBanner ? ', o instala primero la app del Studio desde el aviso de instalación' : ''}.</p>}
+              {(() => {
+                const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+                const isAndroid = /Android/.test(navigator.userAgent);
+                if (isIos) return (
+                  <details style={{ marginTop: '10px' }}>
+                    <summary style={{ color: '#D8C29A', fontSize: '12px', cursor: 'pointer' }}>Instrucciones para iPhone o iPad</summary>
+                    <ol style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0', paddingLeft: '18px' }}>
+                      <li>Abre esta página con Safari.</li>
+                      <li>Toca el botón Compartir (el cuadrado con una flecha hacia arriba).</li>
+                      <li>Elige «Añadir a pantalla de inicio» y confirma con «Añadir».</li>
+                      <li>Abre la app del Studio desde el icono nuevo de tu pantalla de inicio.</li>
+                      <li>Inicia sesión con tu PIN y vuelve a pulsar «Activar notificaciones».</li>
+                    </ol>
+                  </details>
+                );
+                if (isAndroid) return (
+                  <details style={{ marginTop: '10px' }}>
+                    <summary style={{ color: '#D8C29A', fontSize: '12px', cursor: 'pointer' }}>Instrucciones para Android</summary>
+                    <ol style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0', paddingLeft: '18px' }}>
+                      <li>Abre esta página con Chrome.</li>
+                      <li>Toca el aviso de instalación que aparece abajo, o el menú ⋮ y luego «Añadir a pantalla de inicio».</li>
+                      <li>Abre la app del Studio desde el icono nuevo de tu pantalla de inicio.</li>
+                      <li>Inicia sesión con tu PIN y vuelve a pulsar «Activar notificaciones».</li>
+                    </ol>
+                  </details>
+                );
+                return (
+                  <details style={{ marginTop: '10px' }}>
+                    <summary style={{ color: '#D8C29A', fontSize: '12px', cursor: 'pointer' }}>Instrucciones para ordenador</summary>
+                    <ol style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0', paddingLeft: '18px' }}>
+                      <li>Haz clic en el icono de la candado o de información junto a la dirección.</li>
+                      <li>Permite las notificaciones para este sitio.</li>
+                      <li>Vuelve a pulsar «Activar notificaciones».</li>
+                    </ol>
+                  </details>
+                );
+              })()}
+              {pushTestResult && <p role="status" style={{ color: '#8FC98F', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>{pushTestResult}</p>}
+              {pushError && <p role="alert" style={{ color: '#F2B8AC', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>{pushError}</p>}
+            </section>);
   return (
     <div className={selectedServicesToBook.length > 0 && ['catalogBooking', 'categoryScreen', 'serviceDetail'].includes(currentScreen) ? 'lst-has-booking-summary' : undefined} lang={currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang} dir={currentLang === 'ar' && currentScreen !== 'adminPanel' && currentScreen !== 'adminLogin' ? 'rtl' : 'ltr'} style={{ backgroundColor: '#29231F', color: '#FFF8EE', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', fontFamily: "'Garet', 'Poppins', sans-serif", margin: 0, padding: '20px 20px 96px', position: 'relative' }}>
       
@@ -3922,6 +3973,9 @@ function StudioApp() {
           </button>
           <button type="button" className={currentScreen === 'myAppointmentsPage' ? 'lst-bottom-active' : ''} onClick={() => { setViewServiceDetail(null); setCurrentScreen('myAppointmentsPage'); }}>
             <CalendarDays size={20} strokeWidth={1.7} aria-hidden="true" /><span>Mis citas</span>
+          </button>
+          <button type="button" aria-label="Mis notificaciones" aria-expanded={pushPanelOpen} onClick={() => { setPushPanelOpen(true); setPushError(null); setPushTestResult(null); void refreshPushStatus(); }}>
+            <Bell size={20} strokeWidth={1.7} aria-hidden="true" /><span>Avisos</span>
           </button>
           <button type="button" className={currentScreen === 'clientHistoryPage' ? 'lst-bottom-active' : ''} onClick={() => setCurrentScreen('clientHistoryPage')}>
             <User size={20} strokeWidth={1.7} aria-hidden="true" /><span>Perfil</span>
@@ -4599,56 +4653,7 @@ function StudioApp() {
               <input type="checkbox" checked={whatsappConsent} onChange={e => setWhatsappConsent(e.target.checked)} style={{ width: 18, height: 18, marginTop: 2, accentColor: '#C49A58', flexShrink: 0 }} />
               <span style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6 }}>Autorizo a L'Studio Ana a enviarme avisos de mi cita por WhatsApp al teléfono de mi ficha (confirmaciones y cambios). Puedo retirar el consentimiento cuando quiera en el portal.</span>
             </label>
-            <section style={{ padding: '12px', background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px' }}>
-              <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: '0 0 10px' }}>Notificaciones push: <strong style={{ color: pushStatus === 'subscribed' ? '#8FC98F' : '#E4C687' }}>{pushStatusLabel()}</strong></p>
-              {pushNeedsLogin && <div style={{ marginBottom: '12px', color: '#FFF8EE' }}>
-                <label htmlFor="push-login-pin">Confirma tu PIN para activar los avisos</label>
-                <input id="push-login-pin" type="password" inputMode="numeric" maxLength={4} autoComplete="off" value={pushLoginPin} onChange={event => setPushLoginPin(event.target.value.replace(/[^0-9]/g, '').slice(0, 4))} style={{ display: 'block', margin: '8px 0', padding: '10px', color: '#2C2521', background: '#EADCC7' }} />
-                <button type="button" onClick={handlePushLogin} disabled={pushBusy || pushLoginPin.length !== 4}>Recuperar sesión sin perder mi reserva</button>
-              </div>}
-              {pushStatus === 'default' && !pushNeedsLogin && <button type="button" onClick={handleEnablePush} disabled={pushBusy} style={{ width: '100%', minHeight: '46px', padding: '12px', background: 'transparent', color: '#E4C687', border: '1px solid #C49A58', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: pushBusy ? 'wait' : 'pointer' }}>{pushBusy ? 'Activando…' : 'Activar notificaciones de mi cita'}</button>}
-              {pushStatus === 'config-pending' && <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>El Studio todavía no tiene activas las notificaciones. Prueba de nuevo más tarde.</p>}
-              {pushStatus === 'denied' && <p style={{ color: '#F2B8AC', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>Tienes las notificaciones bloqueadas para este sitio. Para recibirlas, toca el icono de información junto a la dirección en tu navegador y permite las notificaciones{showInstallBanner ? ', o instala primero la app del Studio desde el aviso de instalación' : ''}.</p>}
-              {(() => {
-                const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-                const isAndroid = /Android/.test(navigator.userAgent);
-                if (isIos) return (
-                  <details style={{ marginTop: '10px' }}>
-                    <summary style={{ color: '#D8C29A', fontSize: '12px', cursor: 'pointer' }}>Instrucciones para iPhone o iPad</summary>
-                    <ol style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0', paddingLeft: '18px' }}>
-                      <li>Abre esta página con Safari.</li>
-                      <li>Toca el botón Compartir (el cuadrado con una flecha hacia arriba).</li>
-                      <li>Elige «Añadir a pantalla de inicio» y confirma con «Añadir».</li>
-                      <li>Abre la app del Studio desde el icono nuevo de tu pantalla de inicio.</li>
-                      <li>Inicia sesión con tu PIN y vuelve a pulsar «Activar notificaciones».</li>
-                    </ol>
-                  </details>
-                );
-                if (isAndroid) return (
-                  <details style={{ marginTop: '10px' }}>
-                    <summary style={{ color: '#D8C29A', fontSize: '12px', cursor: 'pointer' }}>Instrucciones para Android</summary>
-                    <ol style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0', paddingLeft: '18px' }}>
-                      <li>Abre esta página con Chrome.</li>
-                      <li>Toca el aviso de instalación que aparece abajo, o el menú ⋮ y luego «Añadir a pantalla de inicio».</li>
-                      <li>Abre la app del Studio desde el icono nuevo de tu pantalla de inicio.</li>
-                      <li>Inicia sesión con tu PIN y vuelve a pulsar «Activar notificaciones».</li>
-                    </ol>
-                  </details>
-                );
-                return (
-                  <details style={{ marginTop: '10px' }}>
-                    <summary style={{ color: '#D8C29A', fontSize: '12px', cursor: 'pointer' }}>Instrucciones para ordenador</summary>
-                    <ol style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0', paddingLeft: '18px' }}>
-                      <li>Haz clic en el icono de la candado o de información junto a la dirección.</li>
-                      <li>Permite las notificaciones para este sitio.</li>
-                      <li>Vuelve a pulsar «Activar notificaciones».</li>
-                    </ol>
-                  </details>
-                );
-              })()}
-              {pushTestResult && <p role="status" style={{ color: '#8FC98F', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>{pushTestResult}</p>}
-              {pushError && <p role="alert" style={{ color: '#F2B8AC', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>{pushError}</p>}
-            </section>
+            {renderClientPushPanel()}
             <button type="button" onClick={handleConfirmarCitaVisual} disabled={!portalTimes.includes(selectedVisualTime)} style={{ width: '100%', minHeight: '54px', padding: '14px', backgroundColor: portalTimes.includes(selectedVisualTime) ? '#C49A58' : '#322A25', color: portalTimes.includes(selectedVisualTime) ? '#29231F' : '#C9BCA9', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>{!selectedVisualTime ? t('chooseHour') : getApprovalReason(selectedServicesToBook, formatDateKey(bookingDate)) ? t('requestAppointment') : t('continueBooking')}</button>
           </div>
         </div>
@@ -5085,6 +5090,17 @@ function StudioApp() {
         </div>
       )}
 
+      {pushPanelOpen && !['clientPin', 'clientRegistration', 'adminLogin', 'adminPanel'].includes(currentScreen) && <div style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(0,0,0,.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+        <div role="dialog" aria-modal="true" aria-label="Mis notificaciones" style={{ width: '100%', maxWidth: 460, maxHeight: '85dvh', overflowY: 'auto', background: '#221D19', color: '#FFF8EE', padding: 20, borderRadius: 14, border: '1px solid #C49A58', boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 12 }}>
+            <h2 style={{ fontSize: 22, color: '#E4C687', margin: 0 }}>Mis notificaciones</h2>
+            <button type="button" aria-label="Cerrar notificaciones" onClick={() => setPushPanelOpen(false)} style={{ minWidth: 44, minHeight: 44, background: 'transparent', color: '#E4C687', border: '1px solid #67543C', borderRadius: 8 }}>✕</button>
+          </div>
+          <p style={{ color: '#D6CBB8', fontSize: 13, lineHeight: 1.6 }}>Activa los avisos de tus citas en este dispositivo. No necesitas hacer una reserva para probarlos.</p>
+          {renderClientPushPanel()}
+          <p style={{ color: '#D6CBB8', fontSize: 12, lineHeight: 1.6 }}>Un envío aceptado por el servidor no confirma la entrega. Comprueba si la prueba aparece en las notificaciones de tu móvil.</p>
+        </div>
+      </div>}
       {/* MODAL DETALLE CITA */}
       {viewApptModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
