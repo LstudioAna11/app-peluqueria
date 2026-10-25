@@ -5102,26 +5102,36 @@ function StudioApp() {
 .lst-appt-notices summary {cursor:pointer;color:#E4C687;font-size:13px;min-height:30px;}
 .lst-appt-notices[open] {display:flex;flex-direction:column;gap:12px;}
 @media(max-width:760px){.lst-appt-body{grid-template-columns:1fr;padding:14px;gap:14px}.lst-appt-head{padding:14px}.lst-appt-footer{padding:10px 14px}.lst-appt-dialog{max-height:calc(100dvh - 24px)}}
-`}</style><div className="lst-appt-dialog" role="dialog" aria-modal="true" aria-label="Detalle de la cita"><header className="lst-appt-head"><div><p style={{ color: '#E4C687', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
-<h3 style={{ color: '#FFF8EE', fontSize: '26px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{viewApptModal.clientName}</h3></div><button type="button" autoFocus onClick={() => setViewApptModal(null)} aria-label="Cerrar detalle de la cita" style={{background:'transparent',border:'1px solid #655039',borderRadius:8,color:'#FFF8EE',minWidth:40,minHeight:40,cursor:'pointer'}}>✕</button></header><div className="lst-appt-body"><div className="lst-appt-column">
 
-{!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && (() => {
-  const url = delayWhatsAppUrl(viewApptModal.phone);
-  return <section style={{ padding: '12px', border: '1px solid #C5A059', borderRadius: '10px', background: '#29231F' }}>
-    <p style={{ margin: '0 0 8px', color: '#E4C687', fontSize: '13px', fontWeight: 600 }}>¿La clienta lleva 10 minutos de retraso?</p>
-    {url ? <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 14px', minHeight: '44px', boxSizing: 'border-box', background: '#8FC98F', color: '#193923', borderRadius: '8px', fontWeight: 600, fontSize: '13px', textDecoration: 'none' }}><MessageCircle size={17} />WhatsApp · Clienta con retraso</a> : <p style={{ color: '#E4C687', fontSize: '12px', margin: 0 }}>Añade un teléfono válido a la cita para preparar el aviso.</p>}
-    <p style={{ margin: '8px 0 0', color: '#D6CBB8', fontSize: '12px' }}>Envía este aviso solo si han pasado 10 minutos y la clienta no ha llegado. Revísalo y pulsa Enviar en WhatsApp.</p>
-  </section>;
-})()}
+.lst-appt-head {padding:14px 18px;gap:10px;}
+.lst-appt-head h3 {font-size:22px!important;margin-top:4px!important;}
+.lst-appt-body {gap:12px;padding:14px 18px;}
+.lst-appt-column {gap:9px;}
+.lst-appt-notices {padding:9px 11px;border-radius:8px;}
+.lst-appt-column h4 {margin-bottom:8px!important;}
+.lst-appt-footer {padding:10px 18px;gap:7px;}
+.lst-appt-more {position:relative;}
+.lst-appt-more>summary {cursor:pointer;color:#D6CBB8;font-size:12px;min-height:44px;display:flex;align-items:center;padding:0 10px;}
+.lst-appt-more>div {position:absolute;bottom:100%;right:0;background:#221D19;border:1px solid #67543C;border-radius:9px;padding:8px;display:flex;flex-direction:column;gap:8px;width:190px;box-shadow:0 8px 24px #0008;z-index:5;}
+@media(max-width:760px){.lst-appt-head h3{font-size:20px!important}.lst-appt-body{padding:12px}.lst-appt-footer button{min-height:44px}.lst-appt-footer{padding:8px 10px;max-height:30dvh;overflow-y:auto}.lst-appt-more>div{position:static;width:auto}.lst-appt-head p{line-height:1.4}}
+`}</style><div className="lst-appt-dialog" role="dialog" aria-modal="true" aria-label="Detalle de la cita"><header className="lst-appt-head"><div><p style={{ color: '#E4C687', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
+<h3 style={{ color: '#FFF8EE', fontSize: '26px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{viewApptModal.clientName}</h3>
+<p style={{ color: '#E4C687', fontSize: 14, margin: '7px 0 0' }}>{viewApptModal.dateKey.split('-').reverse().join('/')} · {viewApptModal.time} · {viewApptModal.durationMinutes || 45} min</p>
+<p style={{ color: '#D6CBB8', fontSize: 12, margin: '5px 0 0', overflowWrap: 'anywhere' }}>{appointmentServiceNames(viewApptModal)}</p>
+<span style={{ display: 'inline-block', fontSize: 11, color: '#E4C687', marginTop: 7 }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada' : viewApptModal.completedAt ? 'Finalizada' : viewApptModal.saturdayApproval?.status === 'rejected' ? 'Solicitud rechazada' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Anticipo pendiente' : 'Confirmada'}</span>
+</div><button type="button" autoFocus onClick={() => setViewApptModal(null)} aria-label="Cerrar detalle de la cita" style={{background:'transparent',border:'1px solid #655039',borderRadius:8,color:'#FFF8EE',minWidth:40,minHeight:40,cursor:'pointer'}}>✕</button></header><div className="lst-appt-body"><div className="lst-appt-column">
+
+
 <section>
               <h4 style={{ color: '#E4C687', fontSize: '14px', margin: '0 0 12px' }}>Servicios reservados</h4>
               {viewApptModal.services?.length ? viewApptModal.services.map((item, index) => <div key={index} style={{ backgroundColor: '#322A25', padding: '14px', border: '1px solid #3A312A', borderRadius: '8px', marginBottom: '8px', fontSize: '14px', lineHeight: 1.6, color: '#FFF8EE' }}><strong>{bookingName(item.sub)}</strong>{item.variant && <span style={{ display: 'block', color: '#D6CBB8' }}>{item.variant.name}</span>}<span style={{ display: 'block', color: '#E4C687', fontSize: '13px' }}>{item.variant?.price || item.sub.price} · {item.variant?.duration || item.sub.duration}</span></div>) : <p style={{ color: '#E4C687', fontSize: '14px', lineHeight: 1.6, overflowWrap: 'anywhere' }}>{appointmentServiceNames(viewApptModal)}</p>}
             </section>
 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', color: '#D6CBB8', fontSize: '13px', overflowWrap: 'anywhere' }}>
               <a href={`tel:${viewApptModal.phone}`} style={{ color: '#E4C687', padding: '8px 0' }}>{viewApptModal.phone}</a>
+              {validRecipientPhone(viewApptModal.phone) && <a href={'https://wa.me/' + (viewApptModal.phone.replace(/[^0-9]/g, '').length === 9 ? '34' : '') + viewApptModal.phone.replace(/[^0-9]/g, '')} target="_blank" rel="noopener noreferrer" style={{ color: '#E4C687', padding: '8px 0' }}>Abrir WhatsApp</a>}
               <span style={{ padding: '8px 0' }}>{viewApptModal.email}</span>
             </div>
-<section style={{ padding: '14px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px' }}>
+<details className="lst-appt-notices"><summary>Notas internas{viewApptModal.internalNotes ? ' · Con notas' : ''}</summary><section style={{ padding: '14px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px' }}>
               <label htmlFor="appointment-internal-notes" style={{ color: '#E4C687', fontSize: '13px' }}>Notas internas · Solo 360studio</label>
               <textarea id="appointment-internal-notes" value={appointmentNoteDraft} onChange={event => setAppointmentNoteDraft(event.target.value)}
                 rows={3} placeholder="Detalles para preparar o hacer seguimiento de esta cita"
@@ -5132,7 +5142,15 @@ function StudioApp() {
                 setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
                 setViewApptModal(updated); alert('Notas internas guardadas.');
               }} style={{ padding: '10px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 0, borderRadius: '6px', cursor: 'pointer' }}>Guardar notas</button>
-            </section>
+            </section></details>
+{!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && (() => {
+  const url = delayWhatsAppUrl(viewApptModal.phone);
+  return <details className="lst-appt-notices"><summary>Avisar de un retraso de la clienta</summary><section style={{ padding: '8px 0', background: '#29231F' }}>
+    <p style={{ margin: '0 0 8px', color: '#E4C687', fontSize: '13px', fontWeight: 600 }}>¿La clienta lleva 10 minutos de retraso?</p>
+    {url ? <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 14px', minHeight: '44px', boxSizing: 'border-box', background: '#8FC98F', color: '#193923', borderRadius: '8px', fontWeight: 600, fontSize: '13px', textDecoration: 'none' }}><MessageCircle size={17} />WhatsApp · Clienta con retraso</a> : <p style={{ color: '#E4C687', fontSize: '12px', margin: 0 }}>Añade un teléfono válido a la cita para preparar el aviso.</p>}
+    <p style={{ margin: '8px 0 0', color: '#D6CBB8', fontSize: '12px' }}>Envía este aviso solo si han pasado 10 minutos y la clienta no ha llegado. Revísalo y pulsa Enviar en WhatsApp.</p>
+  </section></details>;
+})()}
 {currentScreen === 'adminPanel' && <button type="button" onClick={() => {
               const email = normalizeEmail(viewApptModal.email);
               const matches = email ? listaClientes.filter(client => normalizeEmail(client.email) === email) : [];
@@ -5311,14 +5329,15 @@ function StudioApp() {
                   Copiar Mensaje
                 </button>
               </div>
-            </div></details></aside></div><footer className="lst-appt-footer">{viewApptModal.completedAt ? <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6 }}>Visita registrada en el pasaporte. Puedes editar o borrar esa visita desde Clientes → Editar pasaporte e historial.</p> : <button type="button" onClick={() => markAppointmentCompleted(viewApptModal)} style={{ backgroundColor: '#8FC98F', border: '1px solid #3E6B47', color: '#2C5538', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Marcar como realizada · Añadir al pasaporte</button>}
-<button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(viewApptModal); setNewRescheduleDate(viewApptModal.dateKey); setNewRescheduleTime(viewApptModal.time); setViewApptModal(null); }} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Cambiar fecha u hora</button>
+            </div></details></aside></div><footer className="lst-appt-footer">{viewApptModal.completedAt ? <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6 }}>Visita registrada en el pasaporte. Puedes editar o borrar esa visita desde Clientes → Editar pasaporte e historial.</p> : <button type="button" onClick={() => markAppointmentCompleted(viewApptModal)} style={{ backgroundColor: '#8FC98F', border: '1px solid #3E6B47', color: '#2C5538', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Finalizar servicio</button>}
+<button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(viewApptModal); setNewRescheduleDate(viewApptModal.dateKey); setNewRescheduleTime(viewApptModal.time); setViewApptModal(null); }} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Cambiar cita</button>
 {!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-              <button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'cancelled')} style={{ padding: '10px', border: '1px solid #3A312A', color: '#C0392B', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cita cancelada · WhatsApp' : 'Marcar cancelada'}</button>
-              <button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'no_show')} style={{ padding: '10px', border: '1px solid #C5A059', color: '#D6CBB8', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>No presentada</button>
+              <button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'cancelled')} style={{ padding: '10px', border: '1px solid #3A312A', color: '#C0392B', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cita cancelada · WhatsApp' : 'Cancelar cita'}</button>
+
             </div>}
 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'space-between', marginTop: '10px' }}>
-              <button onClick={(e) => handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#F2DCD8', border: '1px solid #C0392B', color: '#8A2F23', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar Cita</button>
+
+              <details className="lst-appt-more"><summary>Más acciones</summary><div>{!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && (<button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'no_show')} style={{ padding: '10px', border: '1px solid #C5A059', color: '#D6CBB8', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>No presentada</button>)}<button onClick={(e) => handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#F2DCD8', border: '1px solid #C0392B', color: '#8A2F23', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar Cita</button></div></details>
               <button onClick={() => setViewApptModal(null)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Cerrar</button>
             </div></footer></div></>) : (<div style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', maxWidth: '560px', width: '100%', boxSizing: 'border-box', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <p style={{ color: '#E4C687', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
