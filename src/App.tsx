@@ -17,6 +17,11 @@ const FAST_PHOTO_URLS: Readonly<Record<string,string>> = {
   "/s9.webp": "/s9-fast.webp",
   "/Salon_elegante_con_luz_calida.png": "/salon-inicio-fast.webp"
 };
+function normalizeServiceSearch(value: string): string {
+  const plurals: Record<string, string> = { raices: 'raiz', cortes: 'corte', peinados: 'peinado', mechas: 'mecha', rubios: 'rubio', colores: 'color', tratamientos: 'tratamiento' };
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim().split(/\s+/).map(word => plurals[word] || word).join(' ');
+}
+
 function optimizedImageUrl(source: string | undefined | null): string {
  return source ? FAST_PHOTO_URLS[source] || source : '';
 }
@@ -2899,13 +2904,13 @@ function StudioApp() {
     return latest.translations?.[currentLang]?.name?.trim() || latest.name;
   };
   const [portalSearch, setPortalSearch] = useState('');
-  const portalSearchQuery = portalSearch.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase().trim();
+  const portalSearchQuery = normalizeServiceSearch(portalSearch);
   const [portalSearchExpanded, setPortalSearchExpanded] = useState<Record<string, boolean>>({});
   const portalServiceMatches = (category: CatalogCategory, service: SubService) => {
     if (service.active === false) return false;
     if (!portalSearchQuery) return true;
-    const text = [categoryText(category), category.title, serviceText(service, 'name'), service.name, serviceText(service, 'description'), service.description, ...(service.variants || []).map(variant => variantText(variant, service))].join(' ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
-    return text.includes(portalSearchQuery);
+    const text = normalizeServiceSearch([categoryText(category), category.title, category.slogan, bookingName(service), serviceText(service, 'name'), service.name, serviceText(service, 'slogan'), service.slogan, serviceText(service, 'description'), service.description, ...(service.variants || []).map(variant => variantText(variant, service))].filter(Boolean).join(' '));
+    return portalSearchQuery.split(' ').every(word => text.includes(word));
   };
   const portalSearchCount = catalog.reduce((total, category) => total + category.subservices.filter(service => portalServiceMatches(category, service)).length, 0);
   const translationLanguagePicker = () => <label style={{ display: 'block', color: '#D6CBB8', fontSize: '13px', margin: '12px 0' }}>Idioma<select value={catalogTranslationLang} onChange={event => setCatalogTranslationLang(event.target.value)} style={{ display: 'block', width: '100%', padding: '12px', marginTop: '6px', background: '#3E342C', color: '#FFF8EE', border: '1px solid #C5A059', borderRadius: '7px' }}>{Object.keys(TRANSLATIONS).filter(language => language !== 'es').map(language => <option key={language} value={language}>{({en: 'English', fr: 'Français', it: 'Italiano', pt: 'Português', de: 'Deutsch', nl: 'Nederlands', pl: 'Polski', cs: 'Čeština', nb: 'Norsk', sv: 'Svenska', ar: 'العربية'} as Record<string, string>)[language]}</option>)}</select></label>;
@@ -4191,6 +4196,27 @@ function StudioApp() {
             <h1 style={{ fontSize: '26px', lineHeight: 1.25, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', color: '#FFF8EE', margin: '0 0 8px', fontWeight: 400 }}>{t('experienceTitle')}</h1>
             <p style={{ color: '#F0E6D2', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('experienceIntro')}</p>
           </div>
+          <section aria-label={t('searchServices')} style={{ background: '#322A25', border: '1px solid rgba(196,154,88,.3)', borderRadius: 12, padding: 14 }}>
+            <label htmlFor="portal-service-search" style={{ display: 'block', color: '#FFF8EE', fontSize: 14, marginBottom: 8 }}>{t('searchServices')}</label>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input id="portal-service-search" type="search" value={portalSearch} maxLength={100} onChange={event => setPortalSearch(event.target.value)} placeholder={t('searchPlaceholder')} autoComplete="off" style={{ width: '100%', minWidth: 0, minHeight: 46, fontSize: 16, padding: '10px 12px', borderRadius: 8, background: '#221D19', color: '#FFF8EE', border: '1px solid rgba(196,154,88,.5)', boxSizing: 'border-box' }} />
+              {portalSearch && <button type="button" aria-label={t('clearSearch')} onClick={() => { setPortalSearch(''); document.getElementById('portal-service-search')?.focus(); }} style={{ minWidth: 44, minHeight: 46, borderRadius: 8, background: '#221D19', border: '1px solid rgba(196,154,88,.4)', color: '#E4C687', cursor: 'pointer' }}>×</button>}
+            </div>
+            {currentLang === 'es' && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>{['Corte', 'Raíces', 'Mechas', 'Peinado'].map(word => <button key={word} type="button" aria-pressed={portalSearchQuery === normalizeServiceSearch(word)} onClick={() => setPortalSearch(word)} style={{ border: '1px solid rgba(196,154,88,.35)', borderRadius: 20, padding: '8px 12px', minHeight: 40, background: portalSearchQuery === normalizeServiceSearch(word) ? '#C49A58' : 'transparent', color: portalSearchQuery === normalizeServiceSearch(word) ? '#221D19' : '#E4C687', fontSize: 12, cursor: 'pointer' }}>{word}</button>)}</div>}
+          </section>
+          {portalSearchQuery && <section aria-label={t('searchResults')}>
+            <p role="status" aria-live="polite" style={{ color: '#D6CBB8', fontSize: 13, margin: '0 0 12px' }}>{t('searchResults')}: {portalSearchCount}</p>
+            {!portalSearchCount && <p style={{ color: '#FFF8EE', lineHeight: 1.6 }}>{t('noSearchResults')}</p>}
+            <div style={{ display: 'grid', gap: 10 }}>{catalog.flatMap(category => category.subservices.filter(service => portalServiceMatches(category, service)).map(service => <button key={category.id + ':' + service.id} type="button" onClick={() => { setActiveCatalogTab(category.id); setViewServiceDetail({ cat: category, sub: service }); setCurrentScreen('serviceDetail'); window.scrollTo({ top: 0 }); }} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: 14, textAlign: 'start', background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255,248,238,.12)', borderRadius: 12, cursor: 'pointer', minHeight: 70 }}>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <small style={{ display: 'block', color: '#D6CBB8', fontSize: 11, marginBottom: 5 }}>{categoryText(category)}</small>
+                <strong style={{ display: 'block', fontSize: 15, lineHeight: 1.5 }}>{bookingName(service)}</strong>
+                {bookingName(service) !== serviceText(service, 'name') && <span style={{ display: 'block', color: '#D6CBB8', fontSize: 12, marginTop: 4 }}>{serviceText(service, 'name')}</span>}
+                <span style={{ display: 'block', color: '#E4C687', fontSize: 12, marginTop: 6 }}>{service.hasVariants ? t('chooseOption') : (portalShowsPrices ? service.price + ' · ' : '') + service.duration}</span>
+              </span>
+              <ChevronRight size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
+            </button>))}</div>
+          </section>}
           <details style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, padding: '8px 12px' }}>
             <summary style={{ cursor: 'pointer', color: '#FFF8EE', fontSize: '14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', listStyle: 'none', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               {t('advisorTitle')}
@@ -4211,6 +4237,7 @@ function StudioApp() {
               <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#E4C687', padding: '12px 0' }}>WhatsApp · Ana</a>
             </div>}
           </details>
+          {!portalSearchQuery && <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '20px', fontWeight: 400, margin: '4px 0 2px' }}>Elige una categoría</h2>
             {catalog.map(cat => {
@@ -4234,6 +4261,7 @@ function StudioApp() {
               })}
             </div>
 
+          </>}
           {selectedServicesToBook.length > 0 && <section id="booking-selection-summary" aria-label="Resumen de tu selección" style={{ backgroundColor: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', padding: '20px', borderRadius: 12 }}>
             <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '20px', margin: '0 0 14px', fontWeight: 400 }}>Tu selección</h2>
             {selectedServicesToBook.map(item => <div key={item.sub.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid #E4DCCF' }}>
