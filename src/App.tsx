@@ -2037,6 +2037,30 @@ function StudioApp() {
     if (appt) setViewApptModal(appt);
   }, [appointments.length]);
   const [appointmentNoteDraft, setAppointmentNoteDraft] = useState('');
+  const [notesSaving, setNotesSaving] = useState(false);
+  const notesSavingRef = useRef(false);
+  const [notesFeedback, setNotesFeedback] = useState('');
+  useEffect(() => { setNotesFeedback(''); }, [viewApptModal?.id]);
+  const saveAppointmentNotes = async () => {
+    if (!viewApptModal || notesSavingRef.current) return;
+    const appointment = viewApptModal; const note = appointmentNoteDraft;
+    notesSavingRef.current = true; setNotesSaving(true); setNotesFeedback('');
+    try {
+      const token = studioApi.currentToken();
+      if (!studioApi.serverConfigured || !token || studioApi.storedRole() !== 'admin') throw new Error('Necesitas una sesión de administración y conexión para guardar las notas.');
+      const before = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+      const row = before.appointments?.find(item => item.id === appointment.serverId || item.id === appointment.id || String(item.source_legacy_id || '') === appointment.id);
+      if (!row) throw new Error('La cita no está guardada en el servidor. Actualiza la agenda antes de reintentar.');
+      await studioApi.updateAppointmentOnServer(token, { id: row.id, internalNotes: note });
+      const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+      const savedRow = after.appointments?.find(item => item.id === row.id);
+      if (!savedRow || String(savedRow.client_snapshot?.internalNotes || '') !== note) throw new Error('No se ha podido verificar el guardado. Conservamos tu texto; comprueba que studio-api esté actualizado y reintenta.');
+      setAppointments(previous => previous.map(item => item.id === appointment.id || item.serverId === row.id ? { ...item, internalNotes: note } : item));
+      setViewApptModal(current => current?.id === appointment.id ? { ...current, internalNotes: note } : current);
+      setNotesFeedback('Notas guardadas en el servidor.');
+    } catch (error) { setNotesFeedback(error instanceof Error ? error.message : 'No se pudieron guardar las notas. Tu texto sigue aquí.'); }
+    finally { notesSavingRef.current = false; setNotesSaving(false); }
+  };
   useEffect(() => { setAppointmentNoteDraft(viewApptModal?.internalNotes || ''); }, [viewApptModal?.id]);
   const [appointmentEmails, setAppointmentEmails] = useState<studioApi.AppointmentEmailRow[]>([]);
   const [appointmentEmailsLoading, setAppointmentEmailsLoading] = useState(false);
@@ -2500,6 +2524,7 @@ function StudioApp() {
       dayName: snap.dayName || '',
       time: iso.slice(11, 16),
       durationMinutes: row.duration_minutes ?? 45,
+      internalNotes: typeof snap.internalNotes === 'string' ? snap.internalNotes : '',
       clientName: snap.clientName || '',
       phone: snap.phone || '',
       email: snap.email || '',
@@ -5149,15 +5174,12 @@ function StudioApp() {
             </div>
 <details className="lst-appt-notices"><summary>Notas internas{viewApptModal.internalNotes ? ' · Con notas' : ''}</summary><section style={{ padding: '14px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px' }}>
               <label htmlFor="appointment-internal-notes" style={{ color: '#E4C687', fontSize: '13px' }}>Notas internas · Solo 360studio</label>
-              <textarea id="appointment-internal-notes" value={appointmentNoteDraft} onChange={event => setAppointmentNoteDraft(event.target.value)}
+              <textarea id="appointment-internal-notes" disabled={notesSaving} value={appointmentNoteDraft} onChange={event => setAppointmentNoteDraft(event.target.value)}
                 rows={3} placeholder="Detalles para preparar o hacer seguimiento de esta cita"
                 style={{ width: '100%', boxSizing: 'border-box', margin: '10px 0', padding: '10px', background: '#322A25',
                   color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', fontSize: '14px', resize: 'vertical' }} />
-              <button type="button" onClick={() => {
-                const updated = { ...viewApptModal, internalNotes: appointmentNoteDraft };
-                setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
-                setViewApptModal(updated); alert('Notas internas guardadas.');
-              }} style={{ padding: '10px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 0, borderRadius: '6px', cursor: 'pointer' }}>Guardar notas</button>
+              <button type="button" disabled={notesSaving} onClick={saveAppointmentNotes} style={{ padding: '10px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 0, borderRadius: '6px', cursor: 'pointer' }}>{notesSaving ? 'Guardando…' : 'Guardar notas'}</button>
+              {notesFeedback && <p role="status" style={{ color: '#E4C687', fontSize: 12, lineHeight: 1.5 }}>{notesFeedback}</p>}
             </section></details>
 {!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && (() => {
   const url = delayWhatsAppUrl(viewApptModal.phone);
@@ -5457,15 +5479,12 @@ function StudioApp() {
             )}
             <section style={{ padding: '14px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px' }}>
               <label htmlFor="appointment-internal-notes" style={{ color: '#E4C687', fontSize: '13px' }}>Notas internas · Solo 360studio</label>
-              <textarea id="appointment-internal-notes" value={appointmentNoteDraft} onChange={event => setAppointmentNoteDraft(event.target.value)}
+              <textarea id="appointment-internal-notes" disabled={notesSaving} value={appointmentNoteDraft} onChange={event => setAppointmentNoteDraft(event.target.value)}
                 rows={3} placeholder="Detalles para preparar o hacer seguimiento de esta cita"
                 style={{ width: '100%', boxSizing: 'border-box', margin: '10px 0', padding: '10px', background: '#322A25',
                   color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', fontSize: '14px', resize: 'vertical' }} />
-              <button type="button" onClick={() => {
-                const updated = { ...viewApptModal, internalNotes: appointmentNoteDraft };
-                setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
-                setViewApptModal(updated); alert('Notas internas guardadas.');
-              }} style={{ padding: '10px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 0, borderRadius: '6px', cursor: 'pointer' }}>Guardar notas</button>
+              <button type="button" disabled={notesSaving} onClick={saveAppointmentNotes} style={{ padding: '10px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 0, borderRadius: '6px', cursor: 'pointer' }}>{notesSaving ? 'Guardando…' : 'Guardar notas'}</button>
+              {notesFeedback && <p role="status" style={{ color: '#E4C687', fontSize: 12, lineHeight: 1.5 }}>{notesFeedback}</p>}
             </section>
             {!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
               <button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'cancelled')} style={{ padding: '10px', border: '1px solid #3A312A', color: '#C0392B', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cita cancelada · WhatsApp' : 'Marcar cancelada'}</button>
