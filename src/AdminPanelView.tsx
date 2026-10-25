@@ -258,6 +258,24 @@ interface Props {
 
 export default function AdminPanelView(props: Props) {
  const { bookingName, appointmentServiceNames, compactVisitText, AGENDA_SWATCHES, DEFAULT_BRAND_LOGO, DEFAULT_HEADER_LOGO, FINISH_COPY, TRANSLATIONS, activeEmployees, adminCatalogSearch, adminCatalogStatus, adminTab, agendaExpanded, agendaLayoutRef, agendaSwatch, agendaViewMode, anioMini, appointmentSearch, appointmentSearchQuery, appointmentSearchResults, appointments, attemptClock, bizConfig, bookingAttempts, busquedaCliente, cambiarMesMiniCal, catalog, catalogEditorId, catalogEditorTab, catalogHasChanges, catalogSavedMsg, catalogTranslationLang, clientStatusBusy, clientStatusError, clientStatusFilter, clientsPageCount, configHasPendingChanges, configSubTab, crmPeriod, crmView, dashboardEnd, dashboardStart, demandEnd, demandFilter, demandStart, detractorReplies, diaSeleccionadoObj, diasRejillaMini, editAdminDniCapilar, editAdminFormulas, editAdminPrescripcionCasa, editAdminProxima, editAdminUltimaVisita, editingClientId, effectiveClientsPage, emailConfigStatus, employeePhotoBusy, enableDoubleBooking, enableOutOfHours, expandedCategories, expandedClientId, fallbackHeaderLogo, fechaSeleccionada, feedbackList, feedbackRatingFilter, feedbackStatusBusy, filteredClientRows, formatDateKey, googleCalendarConnected, googleCalendarSyncActive, handleAddCategorySubmit, handleAddSubserviceSubmit, handleAddVariant, handleCategoryPhotoDelete, handleCategoryPhotoSelect, handleCellClick, handleClientStatus, handleDeleteCategory, handleDeleteSubservice, handleDeleteVariant, handleFeedbackResolution, handleGuardarEdicionAdminCliente, handleGuardarNuevoCliente, handleMoveCategory, handleSaveCatalogMaster, handleSaveSection, handleServicePhotoDelete, handleServicePhotoSelect, handleToggleVariants, handleUpdateCategoryCode, handleUpdateCategoryTitle, headerLogoSrc, holidaysList, hoursList, isActiveAppointment, isAddingCategory, isAddingClient, isAddingSub, isDateBlockedByHoliday, isFinish, isTimeSlotOccupied, listaClientes, logoUploadBusy, logoUploadMessage, lostDemandsList, mailboxError, mailboxFilter, mesMini, newCatCode, newCatTitle, newHolidayEnd, newHolidayReason, newHolidayStart, newHolidayType, newSubAchieved, newSubAlertBadge, newSubAlertText, newSubDesc, newSubDur, newSubIncludes, newSubName, newSubPrice, newSubPriceType, newVariantDuration, newVariantName, newVariantPrice, nombresMeses, normalizeCatalogSearch, normalizeEmail, novoApellidos, novoDiagnostico, novoEmail, novoNacimiento, novoNombre, novoPin, novoTelefono, openPassportEditor, opportunityPage, opportunitySearch, opportunityStatus, photoUploadBusy, renderAgendaLinks, renderDurationAgenda, returnToAppointmentId, saveErrorMsg, saveState, savedMsg, semanaActual, setAdminCatalogSearch, setAdminCatalogStatus, setAdminTab, setAgendaExpanded, setAgendaSidePanel, setAgendaSwatch, setAgendaViewMode, setAppointmentSearch, setBookingAttempts, setBusquedaCliente, setCatalog, setCatalogEditorId, setCatalogEditorTab, setCatalogTranslationLang, setClientDetailsDraft, setClientStatusFilter, setClientsPage, setConfigSubTab, setCrmPeriod, setCrmView, setCurrentScreen, setDashboardEnd, setDashboardStart, setDemandEnd, setDemandFilter, setDemandStart, setDetractorReplies, setEditAdminDniCapilar, setEditAdminFormulas, setEditAdminPrescripcionCasa, setEditAdminProxima, setEditAdminUltimaVisita, setEditingClientId, setEnableDoubleBooking, setEnableOutOfHours, setExpandedCategories, setExpandedClientId, setFechaSeleccionada, setFeedbackRatingFilter, setGoogleCalendarConnected, setGoogleCalendarSyncActive, setHolidaysList, setIsAddingCategory, setIsAddingClient, setIsAddingSub, setLogoUploadMessage, setLostDemandsList, setMailboxFilter, setMesNavegacion, setModalServices, setNewCatCode, setNewCatTitle, setNewHolidayEnd, setNewHolidayReason, setNewHolidayStart, setNewHolidayType, setNewSubAchieved, setNewSubAlertBadge, setNewSubAlertText, setNewSubDesc, setNewSubDur, setNewSubIncludes, setNewSubName, setNewSubPrice, setNewSubPriceType, setNewVariantDuration, setNewVariantName, setNewVariantPrice, setNovoApellidos, setNovoDiagnostico, setNovoEmail, setNovoNacimiento, setNovoNombre, setNovoPin, setNovoTelefono, setOpportunityPage, setOpportunitySearch, setOpportunityStatus, setPendingPanelFilter, setPreviewServiceId, setPreviewVariantId, setReturnToAppointmentId, setSelectedServicesToBook, setTempConfig, setViewApptModal, t, tempConfig, timeBlocks, trafficEvents, translationLanguagePicker, updateEmployee, updateServiceTranslation, updateSubserviceField, uploadEmployeePhoto, uploadStudioLogo, visibleClientRows, whatsappConfigStatus, workingRanges } = props;
+ const selectedDayKey = formatDateKey(fechaSeleccionada);
+ const mobileDayAppointments = appointments.filter(item => item.dateKey === selectedDayKey)
+   .slice().sort((a, b) => a.time.localeCompare(b.time));
+ const openMobileBooking = () => {
+   if (isDateBlockedByHoliday(selectedDayKey)) { alert('El día seleccionado está bloqueado. Elige otra fecha.'); return; }
+   const freeTime = hoursList.find(time => !isTimeSlotOccupied(selectedDayKey, time));
+   if (!freeTime) { alert('No hay huecos libres en el día seleccionado.'); return; }
+   handleCellClick(fechaSeleccionada, diaSeleccionadoObj.name, freeTime);
+ };
+ const mobileAppointmentStatus = (item: Appointment) => {
+   if (item.lifecycleStatus === 'cancelled') return 'Cancelada';
+   if (item.lifecycleStatus === 'no_show') return 'No presentada';
+   if (item.saturdayApproval?.status === 'rejected') return 'Solicitud rechazada';
+   if (item.completedAt) return 'Realizada';
+   if (item.saturdayApproval?.status === 'pending') return 'Pendiente de aprobación';
+   if (item.advancePayment?.status === 'pending') return 'Anticipo pendiente';
+   return 'Confirmada';
+ };
  return (<div className={`studio-admin-shell ${agendaExpanded && adminTab === 'agenda' ? 'studio-agenda-expanded' : ''}`} style={{ maxWidth: '1680px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <style>{`
             .studio-desktop-nav { display: none; }
@@ -355,6 +373,24 @@ export default function AdminPanelView(props: Props) {
             @media (max-width: 1099px) {
               .studio-calendar-tools { width: 100% !important; }
               .studio-calendar-main { flex-basis: 100% !important; }
+            }
+
+            .studio-mobile-daily-agenda, .studio-mobile-booking-bar { display: none; }
+            @media (max-width: 700px) {
+              .studio-agenda-toolbar > .studio-agenda-view-switch,
+              .studio-agenda-toolbar > .studio-new-appointment,
+              .studio-agenda-toolbar > button[aria-pressed],
+              .studio-desktop-agenda-heading, .studio-agenda-scroll,
+              .studio-agenda-layout > .studio-calendar-tools { display: none !important; }
+              .studio-agenda-layout { padding-bottom: 90px; }
+              .studio-mobile-daily-agenda { display: flex; flex-direction: column; gap: 10px; }
+              .studio-mobile-day-navigation { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+              .studio-mobile-day-navigation button { min-height: 44px; min-width: 44px; border: 1px solid #67543C; border-radius: 8px; background: #221D19; color: #E4C687; }
+              .studio-mobile-appointment { display: flex; width: 100%; gap: 12px; text-align: left; padding: 14px; box-sizing: border-box; border: 1px solid #67543C; border-radius: 12px; background: #221D19; color: #FFF8EE; cursor: pointer; }
+              .studio-mobile-appointment:focus-visible { outline: 2px solid #E4C687; outline-offset: 2px; }
+              .studio-mobile-appointment small { display: block; color: #D6CBB8; line-height: 1.5; margin-top: 4px; }
+              .studio-mobile-booking-bar { display: flex; position: fixed; z-index: 80; left: 0; right: 0; bottom: 0; padding: 12px 16px calc(12px + env(safe-area-inset-bottom)); background: #221D19; border-top: 1px solid #67543C; }
+              .studio-mobile-booking-bar button { width: 100%; min-height: 48px; border: 0; border-radius: 10px; background: linear-gradient(135deg,#E4C687,#B3823B); color: #221D19; font-size: 16px; font-weight: 700; }
             }
           `}</style>
           <div className="studio-admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212, 175, 55, 0.2)', paddingBottom: '15px' }}>
@@ -454,8 +490,8 @@ export default function AdminPanelView(props: Props) {
                   </div>}
                 </section>
 
-<p style={{ color: '#D6CBB8', fontSize: '12px', margin: 0 }}>Pulsa un hueco libre para agendar · Pulsa una cita para editarla.</p>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+<p className="studio-desktop-agenda-heading" style={{ color: '#D6CBB8', fontSize: '12px', margin: 0 }}>Pulsa un hueco libre para agendar · Pulsa una cita para editarla.</p>
+                <div className="studio-desktop-agenda-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                   <h3 style={{ color: '#E4C687', fontSize: '15px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>
                     {agendaViewMode === 'week' ? 'Tu semana' : 'Tu día'}
                   </h3>
@@ -468,6 +504,39 @@ export default function AdminPanelView(props: Props) {
                   </div>
                 </div>
 
+                <section className="studio-mobile-daily-agenda" aria-label="Agenda diaria móvil">
+                  <div className="studio-mobile-day-navigation">
+                    <button type="button" aria-label="Día anterior" onClick={() => { const day = new Date(fechaSeleccionada); day.setDate(day.getDate() - 1); setFechaSeleccionada(day); }}>◀</button>
+                    <div style={{ textAlign: 'center', minWidth: 0 }}>
+                      <strong style={{ color: '#E4C687', textTransform: 'capitalize' }}>{fechaSeleccionada.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</strong>
+                      <small style={{ display: 'block', color: '#D6CBB8', marginTop: 4 }}>{mobileDayAppointments.length} citas · Toca una para gestionarla</small>
+                    </div>
+                    <button type="button" aria-label="Día siguiente" onClick={() => { const day = new Date(fechaSeleccionada); day.setDate(day.getDate() + 1); setFechaSeleccionada(day); }}>▶</button>
+                  </div>
+                  {isDateBlockedByHoliday(selectedDayKey) && <p style={{ color: '#E4C687', fontSize: 13 }}>Día bloqueado para nuevas citas. Puedes consultar las citas registradas.</p>}
+                  {!mobileDayAppointments.length && <p style={{ textAlign: 'center', color: '#D6CBB8', padding: '24px 8px' }}>No hay citas en este día. Usa «Agendar cita» para añadir una.</p>}
+                  {!isDateBlockedByHoliday(selectedDayKey) && <details style={{ border: '1px solid #67543C', borderRadius: 10, padding: 12 }}>
+                    <summary style={{ cursor: 'pointer', color: '#E4C687', minHeight: 32 }}>Elegir hora para una nueva cita</summary>
+                    <p style={{ color: '#D6CBB8', fontSize: 12 }}>Horas de inicio libres. Al guardar se comprobará la duración completa del servicio.</p>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                      {hoursList.filter(time => !isTimeSlotOccupied(selectedDayKey, time)).map(time => <button type="button" key={time} onClick={() => handleCellClick(fechaSeleccionada, diaSeleccionadoObj.name, time)} style={{ minHeight: 44, padding: '10px 14px', background: '#221D19', border: '1px solid #67543C', borderRadius: 8, color: '#FFF8EE' }}>{time}</button>)}
+                      {!hoursList.some(time => !isTimeSlotOccupied(selectedDayKey, time)) && <p style={{ color: '#D6CBB8', fontSize: 13 }}>No hay horas de inicio libres.</p>}
+                    </div>
+                  </details>}
+                  {mobileDayAppointments.map(appointment => <button type="button" key={appointment.id} className="studio-mobile-appointment" onClick={() => setViewApptModal(appointment)}>
+                    <div style={{ flexShrink: 0, color: '#E4C687', fontSize: 18, fontWeight: 700 }}>{appointment.time}
+                      {!!appointment.durationMinutes && <small style={{ fontSize: 11, fontWeight: 400 }}>{appointment.durationMinutes} min</small>}
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1, overflowWrap: 'anywhere' }}>
+                      <strong>{appointment.clientName || 'Sin nombre'}</strong>
+                      <small>{appointmentServiceNames(appointment) || 'Sin servicio indicado'}</small>
+                      {appointment.professionalName && <small>{appointment.professionalName}</small>}
+                      <small style={{ color: '#E4C687' }}>{mobileAppointmentStatus(appointment)}</small>
+                    </div>
+                    <span aria-hidden="true" style={{ alignSelf: 'center', color: '#E4C687' }}>›</span>
+                  </button>)}
+                </section>
+                <div className="studio-mobile-booking-bar"><button type="button" onClick={openMobileBooking}>+ Agendar cita</button></div>
                 {/* VISTA DINÁMICA DE LA TABLA (SEMANAL vs DIARIA) */}
                 <div className="studio-agenda-scroll" style={{ overflowX: 'auto', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.2)', borderRadius: '10px', padding: '15px' }}>
                   {renderDurationAgenda(agendaViewMode === 'week' ? semanaActual : [diaSeleccionadoObj])}
