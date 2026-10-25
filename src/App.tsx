@@ -448,6 +448,7 @@ export interface ServiceVariant {
 }
 
 export interface Appointment {
+  clientId?: string | null;
   bookingChannel?: 'portal' | 'admin';
   lifecycleStatus?: 'cancelled' | 'no_show';
   statusChangedAt?: string;
@@ -1873,6 +1874,9 @@ function StudioApp() {
   const [targetTime, setTargetTime] = useState<string>("");
   const [modalClientName, setModalClientName] = useState<string>("");
   const [modalClientSearch, setModalClientSearch] = useState('');
+  const [adminBookingSaving, setAdminBookingSaving] = useState(false);
+  const adminBookingSavingRef = useRef(false);
+  const adminBookingDraftId = useRef('');
   const [quickClientMode, setQuickClientMode] = useState(false);
   const [quickClientPin, setQuickClientPin] = useState('');
   const [quickClientSurname, setQuickClientSurname] = useState('');
@@ -1924,15 +1928,23 @@ function StudioApp() {
     const token = studioApi.currentToken();
     if (!studioApi.serverConfigured || !token) throw new Error('Necesitas conexión y una sesión válida para enviar la solicitud. Tus datos siguen aquí.');
     // Recover an earlier successful send if its response was lost; do not create a second booking.
-    const before = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+    const before = await studioApi.syncAll<{ appointments?: Record<string, any>[]; clients?: Record<string, any>[] }>(token);
     const existing = before.appointments?.find(row => row.id === draft.serverId || String(row.source_legacy_id || '') === draft.id);
     if (existing) {
       const saved = mapServerAppointment(existing);
       if (saved.dateKey !== draft.dateKey || saved.time !== draft.time || saved.email.trim().toLowerCase() !== draft.email.trim().toLowerCase()) throw new Error('Hay una reserva con esta referencia y otros datos. Revisa Mis citas o consulta con Ana antes de reintentar.');
       return saved;
     }
+    // Admin bookings must target the registered client's push subscriptions, not the admin session.
+    let bookingClientId: string | null = currentClientRecord?.serverId || studioApi.storedClientId() || null;
+    if (studioApi.storedRole() === 'admin') {
+      const email = normalizeEmail(draft.email);
+      const matches = (before.clients || []).filter(client => email && normalizeEmail(String(client.email || '')) === email);
+      if (matches.length > 1) throw new Error('Hay varias fichas con este email. Revisa la clienta antes de guardar.');
+      bookingClientId = matches.length === 1 ? String(matches[0].id) : null;
+    }
     const result = await studioApi.createAppointmentOnServer(token, {
-      id: draft.id, clientId: currentClientRecord?.serverId || studioApi.storedClientId() || null,
+      id: draft.id, clientId: bookingClientId,
       dateKey: draft.dateKey, time: draft.time, dayName: draft.dayName,
       durationMinutes: draft.durationMinutes, bookingChannel: draft.bookingChannel || (studioApi.storedRole() === 'admin' ? 'admin' : 'portal'),
       approval: draft.saturdayApproval ? { status: draft.saturdayApproval.status, reason: draft.saturdayApproval.reason, reference: draft.saturdayApproval.reference } : null,
@@ -2478,6 +2490,7 @@ function StudioApp() {
     const appointment: Appointment = {
       id: row.source_legacy_id || row.id,
       serverId: row.id,
+      clientId: row.client_id ?? null,
       dateKey: iso.slice(0, 10),
       dayName: snap.dayName || '',
       time: iso.slice(11, 16),
@@ -2777,6 +2790,8 @@ function StudioApp() {
   };
 
   const handleCellClick = (targetDate: Date, dayName: string, time: string) => {
+    if (adminBookingSavingRef.current) return;
+    adminBookingDraftId.current = '';
     const targetDateKey = formatDateKey(targetDate);
     if (isDateBlockedByHoliday(targetDateKey)) {
       window.alert('Este día es festivo o de vacaciones. Está bloqueado en la agenda.');
@@ -3026,8 +3041,9 @@ function StudioApp() {
     );
   };
 
-  const handleSaveModalAppointment = (e: React.FormEvent) => {
+  const handleSaveModalAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (adminBookingSavingRef.current) return;
     if (!modalClientName.trim()) return;
     if (quickClientMode) { alert('Crea primero la ficha con «Crear ficha y continuar» o cancela el alta.'); return; }
     if (editingAppointment && !modalServices.length) { alert('Añade al menos un servicio a la cita.'); return; }
@@ -3052,7 +3068,7 @@ function StudioApp() {
     const dateFormattedStr = `${String(targetDateObj.getDate()).padStart(2, '0')}/${String(targetDateObj.getMonth() + 1).padStart(2, '0')}/${targetDateObj.getFullYear()}`;
     const newApp: Appointment = {
       bookingChannel: 'admin',
-      id: Date.now().toString(),
+      id: adminBookingDraftId.current || (adminBookingDraftId.current = Date.now().toString()),
       dateKey: formatDateKey(targetDateObj),
       dayName: targetDayName,
       time: targetTime,
@@ -3130,34 +3146,17 @@ function StudioApp() {
       setAdvancePaymentModal(newApp);
       return;
     }
-    setAppointments([...appointments, newApp]);
-    setIsModalOpen(false);
-    if (studioApi.serverConfigured && studioApi.storedRole() === 'admin') {
-      studioApi.createAppointmentOnServer(studioApi.currentToken()!, {
-        id: newApp.id,
-        dateKey: newApp.dateKey,
-        time: newApp.time,
-        dayName: newApp.dayName,
-        durationMinutes: newApp.durationMinutes,
-        bookingChannel: 'admin',
-        services: newApp.services,
-        clientName: newApp.clientName,
-        phone: newApp.phone,
-        email: newApp.email,
-        serviceCategory: newApp.serviceCategory,
-        serviceSubcategory: newApp.serviceSubcategory,
-        selectedVariant: newApp.selectedVariant,
-        remindersStatus: newApp.remindersStatus,
-        professionalId: newApp.professionalId ?? null,
-        professionalName: newApp.professionalName ?? null,
-      }).then(serverResult => {
-        const synced: Appointment = { ...newApp, serverId: serverResult.id };
-        setAppointments(previous => previous.map(item => item.id === synced.id ? synced : item));
-        if (viewApptModal?.id === synced.id) setViewApptModal(synced);
-      }).catch(() => undefined);
-    }
-    const cleanPhone = (modalPhone || '600000000').replace(/\s+/g, "");
-    const customMsg = generateWhatsAppMessage(modalClientName, dateFormattedStr, targetTime);
+    adminBookingSavingRef.current = true; setAdminBookingSaving(true);
+    try {
+      const saved = await persistPendingAppointment(newApp);
+      setAppointments(previous => previous.some(item => item.id === saved.id || (saved.serverId && item.serverId === saved.serverId))
+        ? previous.map(item => item.id === saved.id || (saved.serverId && item.serverId === saved.serverId) ? saved : item)
+        : [...previous, saved]);
+      adminBookingDraftId.current = '';
+      setIsModalOpen(false);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'No se ha podido guardar la cita. Tus datos siguen en el formulario.');
+    } finally { adminBookingSavingRef.current = false; setAdminBookingSaving(false); }
 
 
   };
@@ -4031,7 +4030,7 @@ function StudioApp() {
               <label style={{ color: '#D6CBB8', fontSize: '11px', fontWeight: 'bold' }}>{t('pinLabel')}</label>
               <input type="password" inputMode="numeric" pattern="[0-9]{4}" placeholder="••••" maxLength={4} value={regPin} onChange={(e) => setRegPin(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))} onFocus={(e) => e.target.select()} required style={{ padding: '10px', backgroundColor: '#3E342C', border: '1px solid #B98A3E', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px', textAlign: 'center', letterSpacing: '4px' }} />
             </div>
-            <button type="submit" style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '14px', minHeight: '48px', borderRadius: '3px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginTop: '10px' }}>
+            <button type="submit" disabled={adminBookingSaving} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '14px', minHeight: '48px', borderRadius: '3px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginTop: '10px' }}>
               {t('completeRegisterBtn')}
             </button>
           </form>
@@ -5074,8 +5073,8 @@ function StudioApp() {
               )}
               <small style={{ color: '#D6CBB8' }}>Selecciona cada servicio y pulsa «Añadir servicio». Si repites uno, se actualiza su variante. Se guardarán los servicios de la lista; sin lista, se guardará el servicio seleccionado.</small>
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
-                <button type="button" onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
-                <button type="submit" style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{editingAppointment ? 'Guardar cambios' : 'Guardar Cita'}</button>
+                <button type="button" disabled={adminBookingSaving} onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
+                <button type="submit" style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{adminBookingSaving ? 'Guardando…' : editingAppointment ? 'Guardar cambios' : 'Guardar Cita'}</button>
               </div>
             </form>
           </div>
