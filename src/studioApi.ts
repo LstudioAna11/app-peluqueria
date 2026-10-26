@@ -102,6 +102,7 @@ export const deleteTimeBlock = (token: string, id: string) =>
   call<{ ok: true }>("timeblock", { method: "DELETE", token, body: { id } });
 
 export interface ServerAppointmentInput {
+  promotionId?: string;
   id?: string;
   clientId?: string | null;
   dateKey: string;
