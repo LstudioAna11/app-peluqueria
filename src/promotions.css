@@ -35,3 +35,12 @@ dialog.lst-promo-dialog {
 dialog.lst-promo-dialog::backdrop { background: rgba(0,0,0,.75); }
 
 .lst-promotions select { display:block;box-sizing:border-box;width:100%;min-height:44px;background:#221D19;color:#FFF8EE;border:1px solid #897351;border-radius:7px;padding:10px;margin-top:6px;font:inherit; }
+
+.lst-promo-editor { width:min(760px,calc(100% - 24px)); }
+.lst-promo-editor-header { display:flex;justify-content:space-between;align-items:center;gap:12px; }
+.lst-promo-service-picker { padding:16px;border:1px solid #C99E52;border-radius:12px;margin-bottom:20px; }
+.lst-promo-service-picker h3 { margin-top:0; }
+.lst-promo-service-picker ul { list-style:none;padding:0; }
+.lst-promo-service-picker li { display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid #67543c; }
+.lst-promo-service-picker li span { min-width:0;overflow-wrap:anywhere; }
+.lst-promo-editor-actions { position:sticky;bottom:-20px;display:flex;flex-wrap:wrap;gap:10px;background:#221D19;padding:12px 0;z-index:1; }
