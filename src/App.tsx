@@ -2976,6 +2976,7 @@ function StudioApp() {
     const language = currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang;
     return (language !== 'es' ? sub.translations?.[language]?.[field]?.trim() : '') || sub[field] || '';
   };
+  const chooseServiceLabel = ({ es: 'Elegir este servicio', en: 'Choose this service', fr: 'Choisir ce service', it: 'Scegli questo servizio', pt: 'Escolher este serviço', de: 'Diese Leistung wählen', nl: 'Deze behandeling kiezen', pl: 'Wybierz tę usługę', cs: 'Vybrat tuto službu', nb: 'Velg denne behandlingen', sv: 'Välj denna behandling', ar: 'اختاري هذه الخدمة' } as Record<string, string>)[currentLang] || 'Elegir este servicio';
   const categoryText = (category: CatalogCategory) => {
     const custom = category.translations?.[currentLang]?.title?.trim();
     if (custom) return custom;
@@ -3031,21 +3032,17 @@ function StudioApp() {
 
   const renderCatalogCard = (cat: CatalogCategory, sub: SubService) => {
     const serviceImage = sub.imageUrl;
-    const selection = selectedServicesToBook.find(item => item.sub.id === sub.id);
-    const isSelected = !!selection;
     const isCompactService = !!sub.isTonerService || !!sub.isStylingService;
     if (isCompactService) {
       return (
         <article key={sub.id} id={`portal-service-${sub.id}`} className="studio-service-card studio-service-card-compact">
           <div className="studio-service-card-body">
             <div className="studio-service-card-head">
-              <h3 className="studio-service-card-title">{serviceText(sub, 'name') || sub.name}</h3>
+              <h3 className="studio-service-card-title">{bookingName(sub)}</h3>
+              {(serviceText(sub, 'name') || sub.name).trim() !== bookingName(sub).trim() && <p>{serviceText(sub, 'name') || sub.name}</p>}
               <p className="studio-service-card-meta"><span>{sub.duration}</span>{portalShowsPrices && <strong>{sub.price}</strong>}</p>
             </div>
             <div className="studio-service-card-actions">
-              <button type="button" aria-pressed={isSelected} onClick={() => {
-                setSelectedServicesToBook(previous => isSelected ? previous.filter(item => item.sub.id !== sub.id) : [...previous, { sub, variant: null }]);
-              }} className={isSelected ? 'studio-btn-gold studio-btn-gold-active' : 'studio-btn-gold'}>{isSelected ? t('selectedRemove') : t('addAppointment')}</button>
               <button type="button" onClick={() => { setViewServiceDetail({ cat, sub }); setCurrentScreen('serviceDetail'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="studio-btn-ghost">{t('viewService')}</button>
             </div>
           </div>
@@ -3059,18 +3056,15 @@ function StudioApp() {
           : <div className="studio-service-media studio-service-media-empty" aria-hidden="true"><span>LS</span><small>{bizConfig.name}</small></div>)}
         <div className="lst-card-footer">
           <div style={{ minWidth: 0 }}>
-            <strong>{serviceText(sub, 'name') || sub.name}</strong>
+            <strong>{bookingName(sub)}</strong>
+            {(serviceText(sub, 'name') || sub.name).trim() !== bookingName(sub).trim() && <span>{serviceText(sub, 'name') || sub.name}</span>}
             {!!serviceText(sub, 'slogan').trim() && <span>{serviceText(sub, 'slogan')}</span>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <button type="button" onClick={() => { setViewServiceDetail({ cat, sub }); setCurrentScreen('serviceDetail'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="lst-btn-ver">
               {t('viewService')} <ArrowRight size={15} strokeWidth={2} aria-hidden="true" />
             </button>
-            <button type="button" aria-pressed={isSelected} aria-label={isSelected ? t('selectedRemove') : t('addAppointment')} onClick={() => {
-              setSelectedServicesToBook(previous => isSelected ? previous.filter(item => item.sub.id !== sub.id) : [...previous, { sub, variant: null }]);
-            }} style={{ width: 38, height: 38, minWidth: 38, borderRadius: '50%', border: isSelected ? 'none' : '1px solid #C99E52', background: isSelected ? 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)' : 'transparent', color: isSelected ? '#29231F' : '#8F6D24', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 16 }}>
-              {isSelected ? '✓' : '+'}
-            </button>
+
           </div>
         </div>
       </article>
@@ -4543,7 +4537,6 @@ function StudioApp() {
                 }}>
                 {activeServices.map(sub => {
                   const name = serviceText(sub, 'name') || sub.name;
-                  const carouselSelected = selectedServicesToBook.some(item => item.sub.id === sub.id);
                   return (
                     <article key={sub.id} id={"portal-service-" + sub.id} className="lst-c-card">
                       <button type="button" className="lst-c-media" onClick={() => openDetail(sub)} aria-label={name + ' · ' + t('viewService')}>
@@ -4555,12 +4548,12 @@ function StudioApp() {
                           : <span className="lst-c-media-fallback"><strong>LS</strong><small>{bizConfig.name}</small></span>}
                       </button>
                       <div className="lst-c-body">
-                        <button type="button" className="lst-c-name" onClick={() => openDetail(sub)}>{name}</button>
+                        <h2 className="lst-c-name" style={{ margin: '0 0 10px', fontSize: 23, lineHeight: 1.25 }}>{bookingName(sub)}</h2>
+                        {name.trim() !== bookingName(sub).trim() && <p style={{ color: '#FFF8EE', fontSize: 16, lineHeight: 1.5, margin: '0 0 8px' }}>{name}</p>}
                         {!!serviceText(sub, 'slogan').trim() && <p className="lst-c-desc" style={{ color: '#E5D7BF', lineHeight: 1.5 }}>{serviceText(sub, 'slogan')}</p>}
                         <p className="lst-c-meta">{portalShowsPrices ? sub.price : ''}{sub.duration ? (portalShowsPrices ? ' · ' : '') + sub.duration : ''}</p>
-                        <div className="lst-c-cta">
-                          <button type="button" className="lst-btn-ver" onClick={() => openDetail(sub)}>{t('viewService')} <ArrowRight size={15} strokeWidth={2} aria-hidden="true" /></button>
-                          <button type="button" className="lst-btn-ver" aria-pressed={carouselSelected} aria-label={carouselSelected ? t('selectedRemove') : t('addShort') + ' · ' + name} onClick={() => setSelectedServicesToBook(previous => previous.some(item => item.sub.id === sub.id) ? previous.filter(item => item.sub.id !== sub.id) : [...previous, { sub, variant: null }])} style={carouselSelected ? { background: '#C99E52', borderColor: '#C99E52', color: '#29231F' } : undefined}>{carouselSelected ? '✓ ' + t('addShort') : t('addShort')}</button>
+                        <div className="lst-c-cta" style={{ display: 'flex' }}>
+                          <button type="button" className="lst-btn-ver" style={{ width: '100%', justifyContent: 'center' }} onClick={() => openDetail(sub)}>{t('viewService')} <ArrowRight size={15} strokeWidth={2} aria-hidden="true" /></button>
                         </div>
                       </div>
                     </article>
@@ -4611,7 +4604,8 @@ function StudioApp() {
             : <div className="studio-service-media studio-service-media-empty" style={{ height: 280, borderRadius: 14 }} aria-hidden="true"><span>LS</span><small>{bizConfig.name}</small></div>}
           <header style={{ display: 'flex', flexDirection: 'column' }}>
             <span className="lst-detail-eyebrow">{categoryText(viewServiceDetail.cat)}</span>
-            <h1 className="lst-detail-title">{serviceText(detailSub, 'name') || detailSub.name}</h1>
+            <h1 className="lst-detail-title">{bookingName(detailSub)}</h1>
+            {(serviceText(detailSub, 'name') || detailSub.name).trim() !== bookingName(detailSub).trim() && <p style={{ color: '#FFF8EE', fontSize: 17, lineHeight: 1.5, margin: '8px 0' }}>{serviceText(detailSub, 'name') || detailSub.name}</p>}
             {!!serviceText(detailSub, 'description') && <p className="lst-detail-desc">{serviceText(detailSub, 'description')}</p>}
             {detailSub.imageCredit && <p style={{ fontSize: 10, color: '#D6CBB8', lineHeight: 1.5 }}>{detailSub.imageCredit}</p>}
           </header>
@@ -4666,7 +4660,7 @@ function StudioApp() {
               </div>
             </div>
           ) : (
-            <button type="button" onClick={() => { if (detailSub.hasVariants && !!detailSub.variants?.length) { alert(tf('requiredVariant', { service: detailSub.name })); return; } setSelectedServicesToBook(previous => previous.some(item => item.sub.id === detailSub.id) ? previous : [...previous, { sub: detailSub, variant: null }]); }} className="lst-cta-full">{t('chooseAndBook')} <ArrowRight size={18} strokeWidth={2} aria-hidden="true" /></button>
+            <button type="button" onClick={() => { if (detailSub.hasVariants && !!detailSub.variants?.length) { alert(tf('requiredVariant', { service: detailSub.name })); return; } setSelectedServicesToBook(previous => previous.some(item => item.sub.id === detailSub.id) ? previous : [...previous, { sub: detailSub, variant: null }]); }} className="lst-cta-full">{chooseServiceLabel} <ArrowRight size={18} strokeWidth={2} aria-hidden="true" /></button>
           )}
         </div>
         );
