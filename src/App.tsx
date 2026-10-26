@@ -2026,6 +2026,10 @@ function StudioApp() {
   };
 
   const [viewApptModal, setViewApptModal] = useState<Appointment | null>(null);
+  const [bizumSavingId, setBizumSavingId] = useState<string | null>(null);
+  const [bizumSaveError, setBizumSaveError] = useState<{ id: string; message: string } | null>(null);
+  const bizumSavingRef = useRef(false);
+
   useEffect(() => {
     if (!viewApptModal || currentScreen !== 'adminPanel') return;
     const previousOverflow = document.body.style.overflow;
@@ -3755,6 +3759,56 @@ function StudioApp() {
     </button>)}
   </div>;
 
+  const confirmBizumReceived = async (source: Appointment) => {
+    if (bizumSavingRef.current || source.advancePayment?.status !== 'pending') return;
+    if (!window.confirm(`¿Has comprobado la recepción del Bizum de ${source.advancePayment.amount} € con este código: ${source.advancePayment.reference}?`)) return;
+    bizumSavingRef.current = true;
+    setBizumSavingId(source.id);
+    setBizumSaveError(null);
+    try {
+      const token = studioApi.currentToken();
+      if (!studioApi.serverConfigured || !token || studioApi.storedRole() !== 'admin') {
+        throw new Error('Necesitas conexión y una sesión de administración válida para confirmar el Bizum.');
+      }
+      const before = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+      let row = before.appointments?.find(item => item.id === source.serverId || item.id === source.id || String(item.source_legacy_id || '') === source.id);
+      if (!row) throw new Error('No se ha encontrado esta cita en el servidor. Actualiza la agenda antes de reintentar.');
+      const current = mapServerAppointment(row);
+      if (!isActiveAppointment(current) || current.completedAt) throw new Error('La cita ya no está activa. Actualiza la agenda antes de confirmar el anticipo.');
+      const alreadyConfirmed = ['confirmed', 'received', 'paid'].includes(String(row.deposit_status));
+      if (!alreadyConfirmed) {
+        if (row.deposit_status !== 'pending' || !current.advancePayment) throw new Error('Esta cita ya no tiene un anticipo pendiente. Actualiza la agenda.');
+        if (Number(current.advancePayment.amount) !== Number(source.advancePayment.amount) || current.advancePayment.reference !== source.advancePayment.reference) {
+          throw new Error('El importe o la referencia han cambiado. Actualiza la agenda y comprueba el Bizum antes de confirmar.');
+        }
+        const result = await studioApi.updateAppointmentOnServer(token, {
+          id: row.id,
+          advancePayment: { status: 'confirmed', amount: current.advancePayment.amount, reference: current.advancePayment.reference }
+        });
+        if (!result.ok) throw new Error('El servidor no ha confirmado el guardado.');
+        const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+        const verified = after.appointments?.find(item => item.id === row!.id);
+        if (!verified || !['confirmed', 'received', 'paid'].includes(String(verified.deposit_status))) {
+          throw new Error('No se ha podido verificar la confirmación. Reintenta para consultar el estado guardado antes de volver a enviarlo.');
+        }
+        row = verified;
+      }
+      const reloaded = mapServerAppointment(row);
+      const saved: Appointment = {
+        ...reloaded,
+        advancePayment: { amount: Number(row.deposit_amount), reference: String(row.deposit_reference || ''), status: 'confirmed' },
+        serviceSubcategory: reloaded.serviceSubcategory.replace(/^PENDIENTE BIZUM/, reloaded.saturdayApproval?.status === 'pending' ? 'PENDIENTE VALORACIÓN' : 'RESERVADO')
+      };
+      setAppointments(previous => previous.map(item => item.id === source.id || item.serverId === row!.id || item.id === row!.id ? saved : item));
+      setViewApptModal(previous => previous && (previous.id === source.id || previous.serverId === row!.id) ? saved : previous);
+    } catch (error) {
+      setBizumSaveError({ id: source.id, message: error instanceof Error ? error.message : 'No se pudo confirmar el Bizum. Conservamos el estado anterior; vuelve a intentarlo.' });
+    } finally {
+      bizumSavingRef.current = false;
+      setBizumSavingId(null);
+    }
+  };
+
   const renderDurationAgenda = (days: { name: string; dateObj: Date; dateFormatted: string }[]) => {
     const minutes = (time: string) => { const [hour, minute] = time.split(':').map(Number); return hour * 60 + minute; };
     return <div className="studio-agenda-grid" style={{ display: 'grid', gridTemplateColumns: '52px repeat(' + days.length + ', minmax(105px, 1fr))',
@@ -5328,13 +5382,13 @@ function StudioApp() {
               <div style={{ border: '1px solid #C5A059', borderRadius: '8px', padding: '12px', color: '#FFF8EE', fontSize: '14px' }}>
                 <strong>Reserva anticipada: {viewApptModal.advancePayment.amount} € · {viewApptModal.advancePayment.status === 'confirmed' ? 'Pago confirmado' : 'Pendiente de pago'}</strong>
                 <p>Código: {viewApptModal.advancePayment.reference}</p>
+                {bizumSaveError?.id === viewApptModal.id && <p role="alert" style={{ color: '#FFC4B5', fontSize: 13, lineHeight: 1.5 }}>{bizumSaveError.message}</p>}
+                {bizumSavingId === viewApptModal.id && <p role="status" style={{ color: '#E4C687', fontSize: 13 }}>Comprobando y guardando el anticipo en el Studio…</p>}
                 {viewApptModal.advancePayment.status === 'pending' && (
-                  <button type="button" onClick={() => {
-                    if (!window.confirm(`¿Has comprobado la recepción del Bizum de ${viewApptModal.advancePayment?.amount} € con este código?`)) return;
-                    const updated: Appointment = { ...viewApptModal, advancePayment: { ...viewApptModal.advancePayment!, status: 'confirmed' }, serviceSubcategory: viewApptModal.serviceSubcategory.replace(/^PENDIENTE BIZUM/, 'RESERVADO'), remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true } };
-                    setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
-                    setViewApptModal(updated);
-                  }} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', padding: '10px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Confirmar Bizum recibido</button>
+                  <button type="button" disabled={bizumSavingId !== null} onClick={() => void confirmBizumReceived(viewApptModal)}
+                    style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', padding: '10px', border: 'none', borderRadius: '6px', cursor: bizumSavingId ? 'wait' : 'pointer', opacity: bizumSavingId ? 0.65 : 1 }}>
+                    {bizumSavingId === viewApptModal.id ? 'Guardando confirmación…' : 'Confirmar Bizum recibido'}
+                  </button>
                 )}
               </div>
             )}
@@ -5530,13 +5584,13 @@ function StudioApp() {
               <div style={{ border: '1px solid #C5A059', borderRadius: '8px', padding: '12px', color: '#FFF8EE', fontSize: '14px' }}>
                 <strong>Reserva anticipada: {viewApptModal.advancePayment.amount} € · {viewApptModal.advancePayment.status === 'confirmed' ? 'Pago confirmado' : 'Pendiente de pago'}</strong>
                 <p>Código: {viewApptModal.advancePayment.reference}</p>
+                {bizumSaveError?.id === viewApptModal.id && <p role="alert" style={{ color: '#FFC4B5', fontSize: 13, lineHeight: 1.5 }}>{bizumSaveError.message}</p>}
+                {bizumSavingId === viewApptModal.id && <p role="status" style={{ color: '#E4C687', fontSize: 13 }}>Comprobando y guardando el anticipo en el Studio…</p>}
                 {viewApptModal.advancePayment.status === 'pending' && (
-                  <button type="button" onClick={() => {
-                    if (!window.confirm(`¿Has comprobado la recepción del Bizum de ${viewApptModal.advancePayment?.amount} € con este código?`)) return;
-                    const updated: Appointment = { ...viewApptModal, advancePayment: { ...viewApptModal.advancePayment!, status: 'confirmed' }, serviceSubcategory: viewApptModal.serviceSubcategory.replace(/^PENDIENTE BIZUM/, 'RESERVADO'), remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true } };
-                    setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
-                    setViewApptModal(updated);
-                  }} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', padding: '10px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>Confirmar Bizum recibido</button>
+                  <button type="button" disabled={bizumSavingId !== null} onClick={() => void confirmBizumReceived(viewApptModal)}
+                    style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', padding: '10px', border: 'none', borderRadius: '6px', cursor: bizumSavingId ? 'wait' : 'pointer', opacity: bizumSavingId ? 0.65 : 1 }}>
+                    {bizumSavingId === viewApptModal.id ? 'Guardando confirmación…' : 'Confirmar Bizum recibido'}
+                  </button>
                 )}
               </div>
             )}
