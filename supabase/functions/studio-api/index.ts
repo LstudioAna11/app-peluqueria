@@ -1,3 +1,4 @@
+import { calculatePromotionDiscount } from './promotionPricing.ts';
 import { createClient } from "npm:@supabase/supabase-js@2.57.4";
 
 const corsHeaders = {
@@ -105,6 +106,9 @@ const appointmentNotificationServices = async (admin: ReturnType<typeof createCl
   const catalog = (data || []).flatMap((row: any) => row.category?.subservices || []);
   return formatNotificationServices(services, fallback, catalog);
 };
+
+const promotionNotificationSuffix = (promo: any): string => promo && typeof promo.finalAmount === 'number'
+  ? ` · Promoción ${promo.title}: −${promo.percent} % solo en ${promo.serviceName}${promo.variantName ? ' (' + promo.variantName + ')' : ''}: ${Number(promo.originalAmount).toFixed(2)} € → ${Number(promo.finalAmount).toFixed(2)} €` : '';
 
 const detailsTable = (startsAt: string, servicesText: string, professional?: string | null) => {
   const rows = [
@@ -1004,6 +1008,34 @@ Deno.serve(async (req: Request) => {
         return json({ error: "Ese hueco acaba de ocuparse. Elige otra hora." }, 409);
       }
 
+      let promotionOrigin: { id: string; title: string } | null = null;
+      if (body.promotionOriginId || body.promotionId) {
+        const requestedId = body.promotionOriginId || body.promotionId;
+        if (body.promotionId && body.promotionOriginId && body.promotionId !== body.promotionOriginId) return json({ error: 'Las referencias de promoción no coinciden.' }, 422);
+        const { data: cfg, error: cfgError } = await admin.from('studio_settings').select('configuration').eq('id', true).maybeSingle();
+        if (cfgError) return json({ error: 'No se pudo comprobar la promoción.' }, 503);
+        const promos = (cfg?.configuration as any)?.promotions;
+        const promo = Array.isArray(promos) ? promos.find((item: any) => item.id === requestedId) : null;
+        const today = new Intl.DateTimeFormat('sv-SE', { timeZone: MADRID_TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        if (!promo || !promo.active || (promo.startDate && today < promo.startDate) || (promo.endDate && today > promo.endDate)) return json({ error: 'La promoción ya no está vigente.' }, 422);
+        const requiredIds = Array.isArray(promo.bookingServiceIds) ? promo.bookingServiceIds : promo.bookingServiceId ? [promo.bookingServiceId] : [];
+        if (!requiredIds.length || !requiredIds.every((id: string) => Array.isArray(body.services) && body.services.some((item: any) => item?.sub?.id === id))) return json({ error: 'Completa los servicios incluidos en la promoción.' }, 422);
+        promotionOrigin = { id: promo.id, title: promo.title };
+      }
+      let promotionDiscount: ReturnType<typeof calculatePromotionDiscount> | null = null;
+      if (body.promotionId) {
+        const [{ data: settingsRow, error: settingsError }, { data: catalogRows, error: catalogError }] = await Promise.all([
+          admin.from('studio_settings').select('configuration').eq('id', true).maybeSingle(),
+          admin.from('studio_catalog').select('category')
+        ]);
+        if (settingsError || catalogError) return json({ error: 'No se pudo comprobar la promoción. Reintenta.' }, 503);
+        const promos = (settingsRow?.configuration as any)?.promotions;
+        const promo = Array.isArray(promos) ? promos.find((item: any) => item.id === body.promotionId) : null;
+        const currentCatalog = (catalogRows || []).flatMap((row: any) => row.category?.subservices || []);
+        const today = new Intl.DateTimeFormat('sv-SE', { timeZone: MADRID_TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+        try { promotionDiscount = calculatePromotionDiscount(promo, Array.isArray(body.services) ? body.services : [], currentCatalog, String(body.dateKey || ''), today); }
+        catch (error) { return json({ error: error instanceof Error ? error.message : 'Promoción no válida.' }, 422); }
+      }
       const { data: created, error } = await admin.from("studio_appointments").insert({
         source_legacy_id: body.id ? String(body.id) : null,
         client_id: bookingClientId,
@@ -1018,7 +1050,7 @@ Deno.serve(async (req: Request) => {
         deposit_amount: depositAmount,
         deposit_reference: depositReference,
         services: body.services ?? [],
-        client_snapshot: body.clientSnapshot ?? {
+        client_snapshot: { ...(body.clientSnapshot ?? {
           clientName: body.clientName ?? "",
           phone: body.phone ?? "",
           email: body.email ?? "",
@@ -1027,7 +1059,7 @@ Deno.serve(async (req: Request) => {
           dayName: body.dayName ?? "",
           remindersStatus: body.remindersStatus ?? null,
           selectedVariant: body.selectedVariant ?? null,
-        },
+        }), promotion: promotionDiscount, promotionOrigin },
         legacy_service_text: body.serviceSubcategory ?? "",
         professional_id: validatedProfId,
         professional_name: validatedProfName,
@@ -1036,7 +1068,7 @@ Deno.serve(async (req: Request) => {
         if ((error as any).code === "23505") return json({ error: "Reserva duplicada" }, 409);
         return json(failed(error), 500);
       }
-      const servicesText = await appointmentNotificationServices(admin, body.services, body.serviceSubcategory);
+      const servicesText = (await appointmentNotificationServices(admin, body.services, body.serviceSubcategory)) + promotionNotificationSuffix(promotionDiscount);
       const approvalPending = approvalStatus === "pending";
       const depositPending = depositStatus === "pending";
       await scheduleAppointmentEmails(admin, {
@@ -1113,6 +1145,21 @@ Deno.serve(async (req: Request) => {
       if (body.completedAt !== undefined) patch.completed_at = body.completedAt;
       }
 
+      if (isAdmin && (body.services !== undefined || (body.dateKey && body.time))) {
+        const reference = String(body.id ?? '');
+        if (!/^[A-Za-z0-9_-]{1,64}$/.test(reference)) return json({ error: 'Cita no válida' }, 400);
+        const { data: original, error: originalError } = await admin.from('studio_appointments').select('services, client_snapshot')
+          .or(`source_legacy_id.eq.${reference},id.eq.${reference}`).maybeSingle();
+        if (originalError) return json(failed(originalError), 500);
+        const offer = original?.client_snapshot?.promotion;
+        if (offer) {
+          if (body.services !== undefined) {
+            const signature = (items: any[]) => JSON.stringify((items || []).map((item: any) => [item?.sub?.id, item?.variant?.id || null]).sort((a,b) => String(a[0]).localeCompare(String(b[0]))));
+            if (signature(body.services) !== signature(original.services)) return json({ error: 'Esta cita tiene un precio promocional guardado. Para cambiar sus servicios o variantes, cancela y crea una nueva reserva.' }, 422);
+          }
+          if (body.dateKey && ((offer.startDate && body.dateKey < offer.startDate) || (offer.endDate && body.dateKey > offer.endDate))) return json({ error: 'La nueva fecha queda fuera de la vigencia de la promoción.' }, 422);
+        }
+      }
       let query = admin.from("studio_appointments").update(patch);
       const apptRef = String(body.id ?? "");
       // Solo referencias con la forma esperada llegan a un filtro: nada de comas,
@@ -1149,7 +1196,7 @@ Deno.serve(async (req: Request) => {
           const approvalPending = updatedAppt.approval_status === "pending";
           const depositPending = updatedAppt.deposit_status === "pending";
           const confirmed = notificationConfirmed(updatedAppt);
-          const servicesText = await appointmentNotificationServices(admin, updatedAppt.services, snap.serviceSubcategory);
+          const servicesText = (await appointmentNotificationServices(admin, updatedAppt.services, snap.serviceSubcategory)) + promotionNotificationSuffix(snap.promotion);
           const waCtx = {
             apptId: updatedAppt.id,
             startsAt: updatedAppt.starts_at,
