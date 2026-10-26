@@ -3726,6 +3726,7 @@ function StudioApp() {
     setAppointments(previous => previous.map(item => item.id === appointment.id ? updated : item));
     setViewApptModal(updated);
   };
+  const adminAppointmentText = (appointment: Appointment) => appointment.completedAt || appointment.saturdayApproval?.status === 'pending' ? '#FFF8EE' : '#243529';
   const adminAppointmentColor = (appointment: Appointment) => appointment.completedAt ? { background: '#322A25', border: '#B8972E' } : appointment.saturdayApproval?.status === 'pending'
     ? { background: '#3E342C', border: '#C99E52' }
     : appointment.advancePayment?.status === 'pending' ? { background: '#DCE3EE', border: '#4A6FA5' }
@@ -5295,11 +5296,11 @@ function StudioApp() {
               setModalCatIndex(0); setModalSubIndex(0); setModalSelectedVariant(catalog[0]?.subservices[0]?.variants?.[0] || null);
               setViewApptModal(null); setIsModalOpen(true);
             }} style={{ background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059',
-              borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>Editar servicios y duración</button>}</div><aside className="lst-appt-column"><div style={{ backgroundColor: adminAppointmentColor(viewApptModal).background, border: `1px solid ${adminAppointmentColor(viewApptModal).border}`, borderRadius: '10px', padding: '18px', color: '#FFF8EE' }}>
-              <strong style={{ fontSize: '14px' }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada · Hueco liberado' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada · Registro conservado' : viewApptModal.completedAt ? 'Realizada · Registrada en el pasaporte' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Cita confirmada'}</strong>
-              <p style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '21px', margin: '12px 0 8px' }}>{new Date(`${viewApptModal.dateKey}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {viewApptModal.time}</p>
-              <span style={{ color: '#D6CBB8', fontSize: '13px' }}>Duración total: {viewApptModal.durationMinutes || 45} min</span>
-              {viewApptModal.professionalName && <span style={{ color: '#D6CBB8', fontSize: '13px', display: 'block', marginTop: '4px' }}>Profesional: {viewApptModal.professionalName}</span>}
+              borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>Editar servicios y duración</button>}</div><aside className="lst-appt-column"><div style={{ backgroundColor: adminAppointmentColor(viewApptModal).background, border: `1px solid ${adminAppointmentColor(viewApptModal).border}`, borderRadius: '10px', padding: '18px', color: adminAppointmentText(viewApptModal) }}>
+              <strong style={{ fontSize: '14px', color: adminAppointmentText(viewApptModal) }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada · Hueco liberado' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada · Registro conservado' : viewApptModal.completedAt ? 'Realizada · Registrada en el pasaporte' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Cita confirmada'}</strong>
+              <p style={{ color: adminAppointmentText(viewApptModal), fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '21px', margin: '12px 0 8px' }}>{new Date(`${viewApptModal.dateKey}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {viewApptModal.time}</p>
+              <span style={{ color: adminAppointmentText(viewApptModal), fontSize: '13px' }}>Duración total: {viewApptModal.durationMinutes || 45} min</span>
+              {viewApptModal.professionalName && <span style={{ color: adminAppointmentText(viewApptModal), fontSize: '13px', display: 'block', marginTop: '4px' }}>Profesional: {viewApptModal.professionalName}</span>}
             </div>
 {viewApptModal.saturdayApproval && isActiveAppointment(viewApptModal) && (
               <div style={{ border: '1px solid #C5A059', padding: '12px', borderRadius: '8px', color: '#FFF8EE' }}>
@@ -5442,11 +5443,11 @@ function StudioApp() {
             </div></footer></div></>) : (<div style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', maxWidth: '560px', width: '100%', boxSizing: 'border-box', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <p style={{ color: '#E4C687', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
             <h3 style={{ color: '#FFF8EE', fontSize: '26px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{viewApptModal.clientName}</h3>
-            <div style={{ backgroundColor: adminAppointmentColor(viewApptModal).background, border: `1px solid ${adminAppointmentColor(viewApptModal).border}`, borderRadius: '10px', padding: '18px', color: '#FFF8EE' }}>
-              <strong style={{ fontSize: '14px' }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada · Hueco liberado' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada · Registro conservado' : viewApptModal.completedAt ? 'Realizada · Registrada en el pasaporte' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Cita confirmada'}</strong>
-              <p style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '21px', margin: '12px 0 8px' }}>{new Date(`${viewApptModal.dateKey}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {viewApptModal.time}</p>
-              <span style={{ color: '#D6CBB8', fontSize: '13px' }}>Duración total: {viewApptModal.durationMinutes || 45} min</span>
-              {viewApptModal.professionalName && <span style={{ color: '#D6CBB8', fontSize: '13px', display: 'block', marginTop: '4px' }}>Profesional: {viewApptModal.professionalName}</span>}
+            <div style={{ backgroundColor: adminAppointmentColor(viewApptModal).background, border: `1px solid ${adminAppointmentColor(viewApptModal).border}`, borderRadius: '10px', padding: '18px', color: adminAppointmentText(viewApptModal) }}>
+              <strong style={{ fontSize: '14px', color: adminAppointmentText(viewApptModal) }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada · Hueco liberado' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada · Registro conservado' : viewApptModal.completedAt ? 'Realizada · Registrada en el pasaporte' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Cita confirmada'}</strong>
+              <p style={{ color: adminAppointmentText(viewApptModal), fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '21px', margin: '12px 0 8px' }}>{new Date(`${viewApptModal.dateKey}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {viewApptModal.time}</p>
+              <span style={{ color: adminAppointmentText(viewApptModal), fontSize: '13px' }}>Duración total: {viewApptModal.durationMinutes || 45} min</span>
+              {viewApptModal.professionalName && <span style={{ color: adminAppointmentText(viewApptModal), fontSize: '13px', display: 'block', marginTop: '4px' }}>Profesional: {viewApptModal.professionalName}</span>}
             </div>
             {currentScreen === 'adminPanel' && <button type="button" onClick={() => {
               const email = normalizeEmail(viewApptModal.email);
