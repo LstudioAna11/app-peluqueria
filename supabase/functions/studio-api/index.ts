@@ -1090,10 +1090,26 @@ Deno.serve(async (req: Request) => {
         patch.deposit_amount = body.advancePayment.amount ?? null;
         patch.deposit_reference = body.advancePayment.reference ?? null;
       }
-      if (body.internalNotes !== undefined) {
-        patch.services = body.services ?? null;
+      // A note must never clear or replace the selected services.
+      if (body.services !== undefined) {
+        if (!Array.isArray(body.services)) return json({ error: 'Los servicios deben ser una lista' }, 422);
+        patch.services = body.services;
       }
       if (body.clientSnapshot !== undefined) patch.client_snapshot = body.clientSnapshot;
+      if (body.internalNotes !== undefined) {
+        if (typeof body.internalNotes !== 'string') return json({ error: 'La nota debe ser texto' }, 422);
+        const reference = String(body.id ?? '');
+        if (!/^[A-Za-z0-9_-]{1,64}$/.test(reference)) return json({ error: 'Cita no válida' }, 400);
+        const { data: existing, error: readError } = await admin.from('studio_appointments')
+          .select('id, client_snapshot').or(`source_legacy_id.eq.${reference},id.eq.${reference}`).maybeSingle();
+        if (readError) return json(failed(readError), 500);
+        if (!existing) return json({ error: 'Cita no encontrada' }, 404);
+        patch.client_snapshot = {
+          ...((existing.client_snapshot || {}) as Record<string, unknown>),
+          ...((patch.client_snapshot || {}) as Record<string, unknown>),
+          internalNotes: body.internalNotes
+        };
+      }
       if (body.completedAt !== undefined) patch.completed_at = body.completedAt;
       }
 
@@ -1113,6 +1129,9 @@ Deno.serve(async (req: Request) => {
       }
       const { error } = await query;
       if (error) return json(failed(error), 500);
+      const onlyInternalNotes = isAdmin && body.internalNotes !== undefined
+        && Object.keys(body).every(key => key === 'id' || key === 'internalNotes');
+      if (onlyInternalNotes) return json({ ok: true });
       const scheduleKey = crypto.randomUUID();
       void scheduleKey;
       let reread = admin.from("studio_appointments")
