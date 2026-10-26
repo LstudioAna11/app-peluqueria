@@ -4005,6 +4005,7 @@ function StudioApp() {
           <button type="button" aria-label="Mis notificaciones" aria-expanded={pushPanelOpen} onClick={() => { setPushPanelOpen(true); setPushError(null); setPushTestResult(null); void refreshPushStatus(); }}>
             <Bell size={20} strokeWidth={1.7} aria-hidden="true" /><span>Avisos</span>
           </button>
+          <PromotionsPortalButton promotions={bizConfig.promotions} />
           <button type="button" className={currentScreen === 'clientHistoryPage' ? 'lst-bottom-active' : ''} onClick={() => setCurrentScreen('clientHistoryPage')}>
             <User size={20} strokeWidth={1.7} aria-hidden="true" /><span>Perfil</span>
           </button>
@@ -4139,7 +4140,6 @@ function StudioApp() {
               <LogOut size={20} strokeWidth={1.7} aria-hidden="true" />
             </button>
           </div>
-          <PromotionsPortalButton promotions={bizConfig.promotions} />
           {bizConfig.homeHeroImage && (
             <figure style={{ margin: 0, borderRadius: '18px', overflow: 'hidden', boxShadow: '0 12px 32px rgba(0, 0, 0, 0.3)', lineHeight: 0 }}>
               <img
