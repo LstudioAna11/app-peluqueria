@@ -3,6 +3,7 @@ import { Bell, Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight,
 import './catalog.css';
 import { PromotionsPortalButton } from './PromotionsView';
 import type { Promotion } from './promotions';
+import { promotionServiceIds } from './promotions';
 import { getBookingName, getAppointmentServiceNames, compactServiceText } from './serviceNames';
 import * as studioApi from './studioApi';
 const LazyAdminPanelView = React.lazy(() => import('./AdminPanelView'));
@@ -4014,13 +4015,19 @@ function StudioApp() {
               if (!currentPromotion || !currentPromotion.active || (currentPromotion.startDate && currentPromotion.startDate > today) || (currentPromotion.endDate && currentPromotion.endDate < today)) {
                 alert('Esta promoción ya no está disponible.'); return false;
               }
-              const cat = catalog.find(category => category.subservices.some(sub => sub.id === currentPromotion.bookingServiceId && sub.active !== false));
-              const sub = cat?.subservices.find(service => service.id === currentPromotion.bookingServiceId && service.active !== false);
-              if (!cat || !sub) { alert('El servicio de esta promoción no está disponible para reservar ahora.'); return false; }
-              setActiveCatalogTab(cat.id);
-              setViewServiceDetail({ cat, sub });
-              setCurrentScreen('serviceDetail');
-              window.scrollTo({ top: 0 });
+              const ids = promotionServiceIds(currentPromotion);
+              const services = ids.map(id => catalog.flatMap(category => category.subservices).find(service => service.id === id && service.active !== false));
+              if (!ids.length || services.some(service => !service)) { alert('Uno de los servicios de esta promoción no está disponible. Contacta con el Studio.'); return false; }
+              const selection = services.map(service => ({ sub: service!, variant: null }));
+              if (selection.some(item => item.sub.isCutGoService) && selection.some(item => item.sub.isStylingService && !item.sub.isCutGoService)) {
+                alert('Esta promoción combina peinado y Cut & Go. Contacta con el Studio para revisar los servicios incluidos.'); return false;
+              }
+              setSelectedServicesToBook(selection);
+              setViewServiceDetail(null);
+              setPortalSearch('');
+              setPortalSearchExpanded({});
+              setCurrentScreen('catalogBooking');
+              window.setTimeout(() => document.getElementById('booking-selection-summary')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
               return true;
             }}
           />
