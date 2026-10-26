@@ -2031,6 +2031,9 @@ function StudioApp() {
   const bizumSavingRef = useRef(false);
   const [deletingAppointmentId, setDeletingAppointmentId] = useState<string | null>(null);
   const deletingAppointmentRef = useRef(false);
+  const approvalSavingRef = useRef(false);
+  const [approvalSavingId, setApprovalSavingId] = useState<string | null>(null);
+  const [approvalSaveError, setApprovalSaveError] = useState<{ id: string; message: string } | null>(null);
 
   useEffect(() => {
     if (!viewApptModal || currentScreen !== 'adminPanel') return;
@@ -3334,7 +3337,7 @@ function StudioApp() {
   };
 
   const handleLogout = () => {
-    if (visualBookingBusyRef.current || pendingBookingBusyRef.current || bizumSavingRef.current || deletingAppointmentRef.current || configSavingRef.current || catalogSavingRef.current) {
+    if (approvalSavingRef.current || visualBookingBusyRef.current || pendingBookingBusyRef.current || bizumSavingRef.current || deletingAppointmentRef.current || configSavingRef.current || catalogSavingRef.current) {
       alert('Espera a que termine el guardado antes de cerrar sesión.');
       return;
     }
@@ -3780,7 +3783,7 @@ function StudioApp() {
     setViewApptModal(updated);
   };
   const adminAppointmentText = (appointment: Appointment) => appointment.completedAt || appointment.saturdayApproval?.status === 'pending' ? '#FFF8EE' : '#243529';
-  const adminAppointmentColor = (appointment: Appointment) => appointment.completedAt ? { background: '#322A25', border: '#B8972E' } : appointment.saturdayApproval?.status === 'pending'
+  const adminAppointmentColor = (appointment: Appointment) => appointment.saturdayApproval?.status === 'rejected' ? { background: '#F2DCD8', border: '#9B3C2D' } : appointment.completedAt ? { background: '#322A25', border: '#B8972E' } : appointment.saturdayApproval?.status === 'pending'
     ? { background: '#3E342C', border: '#C99E52' }
     : appointment.advancePayment?.status === 'pending' ? { background: '#DCE3EE', border: '#4A6FA5' }
     : { background: '#8FC98F', border: '#2E7D32' };
@@ -3807,6 +3810,58 @@ function StudioApp() {
         appointments.filter(item => isActiveAppointment(item) && (item.saturdayApproval?.status === 'pending' || item.advancePayment?.status === 'pending')).length}
     </button>)}
   </div>;
+
+  const saveAppointmentApproval = async (source: Appointment, status: 'accepted' | 'rejected') => {
+    if (approvalSavingRef.current) return;
+    if (status === 'rejected' && !window.confirm('¿Rechazar esta solicitud? Se liberará el hueco y se conservará el registro.')) return;
+    approvalSavingRef.current = true;
+    setApprovalSavingId(source.id);
+    setApprovalSaveError(null);
+    try {
+      const token = studioApi.currentToken();
+      if (!studioApi.serverConfigured || !token || studioApi.storedRole() !== 'admin') throw new Error('Necesitas conexión y una sesión de administración válida.');
+      const before = await studioApi.syncAll<{ appointments?: Record<string, any>[]; settings?: BusinessConfig }>(token);
+      let row = before.appointments?.find(item => item.id === source.serverId || item.id === source.id || String(item.source_legacy_id || '') === source.id);
+      if (!row) throw new Error('No se ha encontrado la solicitud en el servidor. Actualiza la agenda.');
+      if (row.lifecycle_status === 'cancelled' || row.lifecycle_status === 'no_show' || row.completed_at) throw new Error('Esta cita ya no admite una decisión de aprobación. Actualiza la agenda.');
+      if (row.approval_status !== status) {
+        if (row.approval_status !== 'pending') throw new Error('La solicitud ya se ha resuelto con otra decisión. Actualiza la agenda antes de continuar.');
+        const patch: studioApi.ServerAppointmentPatch = {
+          id: row.id,
+          approval: { status, reason: row.approval_reason || undefined, reference: row.approval_reference || undefined }
+        };
+        if (status === 'accepted') {
+          const cfg = before.settings;
+          if (!cfg) throw new Error('No se ha podido leer la configuración de anticipos. Reintenta.');
+          const threshold = Number(cfg.advancePaymentThresholdMinutes);
+          if (cfg.advancePaymentEnabled !== false && !Number.isFinite(threshold)) throw new Error('Revisa la duración mínima para pedir anticipo en Configuración.');
+          const needsDeposit = cfg.advancePaymentEnabled !== false && Number(row.duration_minutes) > threshold;
+          // Preserve an existing payment, including one already received.
+          if (needsDeposit && !['pending', 'confirmed', 'received', 'paid'].includes(String(row.deposit_status))) {
+            const amount = parseFloat(String(cfg.depositAmount || '').replace(',', '.'));
+            if (!Number.isFinite(amount) || amount <= 0) throw new Error('Revisa el importe del anticipo en Configuración.');
+            patch.advancePayment = { status: 'pending', amount, reference: 'LS-' + crypto.randomUUID().slice(0, 8).toUpperCase() };
+          }
+        }
+        const result = await studioApi.updateAppointmentOnServer(token, patch);
+        if (!result.ok) throw new Error('El servidor no ha confirmado el guardado.');
+        const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+        const verified = after.appointments?.find(item => item.id === row!.id);
+        if (!verified || verified.approval_status !== status) throw new Error('No se ha podido verificar la decisión. Reintenta para consultar su estado antes de enviarla otra vez.');
+        row = verified;
+      }
+      const reloaded = mapServerAppointment(row);
+      const prefix = status === 'rejected' ? 'SOLICITUD RECHAZADA' : reloaded.advancePayment?.status === 'pending' ? 'PENDIENTE BIZUM' : 'RESERVADO';
+      const saved: Appointment = { ...reloaded, serviceSubcategory: reloaded.serviceSubcategory.replace(/^(?:PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM)|RESERVADO)/, prefix) };
+      setAppointments(previous => previous.map(item => item.id === source.id || item.serverId === row!.id || item.id === row!.id ? saved : item));
+      setViewApptModal(previous => previous && (previous.id === source.id || previous.serverId === row!.id) ? saved : previous);
+    } catch (error) {
+      setApprovalSaveError({ id: source.id, message: error instanceof Error ? error.message : 'No se pudo guardar la decisión. Conservamos el estado anterior para reintentar.' });
+    } finally {
+      approvalSavingRef.current = false;
+      setApprovalSavingId(null);
+    }
+  };
 
   const confirmBizumReceived = async (source: Appointment) => {
     if (bizumSavingRef.current || source.advancePayment?.status !== 'pending') return;
@@ -5408,19 +5463,18 @@ function StudioApp() {
               <div style={{ border: '1px solid #C5A059', padding: '12px', borderRadius: '8px', color: '#FFF8EE' }}>
                 <strong>{approvalTitle(viewApptModal.saturdayApproval.reason)}: {viewApptModal.saturdayApproval.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.saturdayApproval.status === 'accepted' ? 'Aceptado por Ana' : 'Rechazado'}</strong>
                 <p>{viewApptModal.saturdayApproval.reference}</p>
+                {approvalSaveError?.id === viewApptModal.id && <p role="alert" style={{ color: '#FFC4B5', fontSize: 13 }}>{approvalSaveError.message}</p>}
+                {approvalSavingId === viewApptModal.id && <p role="status" style={{ color: '#E4C687', fontSize: 13 }}>Guardando la decisión en el Studio…</p>}
                 {viewApptModal.saturdayApproval.status === 'pending' && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                    <button type="button" onClick={() => {
-                      const payment = bizConfig.advancePaymentEnabled && (viewApptModal.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes ? createAdvancePayment() : undefined;
-                      const updated: Appointment = { ...viewApptModal, saturdayApproval: { ...viewApptModal.saturdayApproval!, status: 'accepted' }, advancePayment: payment, serviceSubcategory: viewApptModal.serviceSubcategory.replace(/^PENDIENTE (?:SÁBADO|VALORACIÓN)/, payment ? 'PENDIENTE BIZUM' : 'RESERVADO') };
-                      setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
-                      setViewApptModal(updated);
-                    }} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', padding: '10px', border: 'none', cursor: 'pointer' }}>Aceptar solicitud</button>
-                    <button type="button" onClick={() => {
-                      if (!window.confirm('¿Rechazar esta solicitud pendiente de revisión?')) return;
-                      setAppointments(previous => previous.filter(item => item.id !== viewApptModal.id));
-                      setViewApptModal(null);
-                    }} style={{ padding: '10px', cursor: 'pointer' }}>Rechazar solicitud</button>
+                    <button type="button" disabled={approvalSavingId !== null} onClick={() => void saveAppointmentApproval(viewApptModal, 'accepted')}
+                      style={{ padding: '10px', minHeight: 44, background: '#C99E52', color: '#29231F', border: '1px solid #C99E52', borderRadius: 6, cursor: approvalSavingId ? 'wait' : 'pointer', opacity: approvalSavingId ? 0.65 : 1 }}>
+                      {approvalSavingId === viewApptModal.id ? 'Guardando…' : 'Aceptar solicitud'}
+                    </button>
+                    <button type="button" disabled={approvalSavingId !== null} onClick={() => void saveAppointmentApproval(viewApptModal, 'rejected')}
+                      style={{ padding: '10px', minHeight: 44, background: '#322A25', color: '#FFF8EE', border: '1px solid #C99E52', borderRadius: 6, cursor: approvalSavingId ? 'wait' : 'pointer', opacity: approvalSavingId ? 0.65 : 1 }}>
+                      {approvalSavingId === viewApptModal.id ? 'Guardando…' : 'Rechazar solicitud'}
+                    </button>
                   </div>
                 )}
                 {viewApptModal.saturdayApproval.status === 'accepted' && <a style={{ color: '#E4C687' }} target="_blank" rel="noreferrer" href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(viewApptModal.advancePayment?.status === 'pending' ? `Hola ${viewApptModal.clientName}. Ana ha aceptado tu solicitud para el ${viewApptModal.dateKey.split('-').reverse().join('/')} a las ${viewApptModal.time}. Para confirmar, realiza un Bizum de ${viewApptModal.advancePayment?.amount} € al ${bizConfig.bizumNumber}. Concepto: ${advancePaymentConcept(viewApptModal)}. Confirmaremos al comprobar el pago.` : generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time))}`}>Abrir WhatsApp para avisar a la clienta</a>}
@@ -5610,19 +5664,18 @@ function StudioApp() {
               <div style={{ border: '1px solid #C5A059', padding: '12px', borderRadius: '8px', color: '#FFF8EE' }}>
                 <strong>{approvalTitle(viewApptModal.saturdayApproval.reason)}: {viewApptModal.saturdayApproval.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.saturdayApproval.status === 'accepted' ? 'Aceptado por Ana' : 'Rechazado'}</strong>
                 <p>{viewApptModal.saturdayApproval.reference}</p>
+                {approvalSaveError?.id === viewApptModal.id && <p role="alert" style={{ color: '#FFC4B5', fontSize: 13 }}>{approvalSaveError.message}</p>}
+                {approvalSavingId === viewApptModal.id && <p role="status" style={{ color: '#E4C687', fontSize: 13 }}>Guardando la decisión en el Studio…</p>}
                 {viewApptModal.saturdayApproval.status === 'pending' && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                    <button type="button" onClick={() => {
-                      const payment = bizConfig.advancePaymentEnabled && (viewApptModal.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes ? createAdvancePayment() : undefined;
-                      const updated: Appointment = { ...viewApptModal, saturdayApproval: { ...viewApptModal.saturdayApproval!, status: 'accepted' }, advancePayment: payment, serviceSubcategory: viewApptModal.serviceSubcategory.replace(/^PENDIENTE (?:SÁBADO|VALORACIÓN)/, payment ? 'PENDIENTE BIZUM' : 'RESERVADO') };
-                      setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
-                      setViewApptModal(updated);
-                    }} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', padding: '10px', border: 'none', cursor: 'pointer' }}>Aceptar solicitud</button>
-                    <button type="button" onClick={() => {
-                      if (!window.confirm('¿Rechazar esta solicitud pendiente de revisión?')) return;
-                      setAppointments(previous => previous.filter(item => item.id !== viewApptModal.id));
-                      setViewApptModal(null);
-                    }} style={{ padding: '10px', cursor: 'pointer' }}>Rechazar solicitud</button>
+                    <button type="button" disabled={approvalSavingId !== null} onClick={() => void saveAppointmentApproval(viewApptModal, 'accepted')}
+                      style={{ padding: '10px', minHeight: 44, background: '#C99E52', color: '#29231F', border: '1px solid #C99E52', borderRadius: 6, cursor: approvalSavingId ? 'wait' : 'pointer', opacity: approvalSavingId ? 0.65 : 1 }}>
+                      {approvalSavingId === viewApptModal.id ? 'Guardando…' : 'Aceptar solicitud'}
+                    </button>
+                    <button type="button" disabled={approvalSavingId !== null} onClick={() => void saveAppointmentApproval(viewApptModal, 'rejected')}
+                      style={{ padding: '10px', minHeight: 44, background: '#322A25', color: '#FFF8EE', border: '1px solid #C99E52', borderRadius: 6, cursor: approvalSavingId ? 'wait' : 'pointer', opacity: approvalSavingId ? 0.65 : 1 }}>
+                      {approvalSavingId === viewApptModal.id ? 'Guardando…' : 'Rechazar solicitud'}
+                    </button>
                   </div>
                 )}
                 {viewApptModal.saturdayApproval.status === 'accepted' && <a style={{ color: '#E4C687' }} target="_blank" rel="noreferrer" href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(viewApptModal.advancePayment?.status === 'pending' ? `Hola ${viewApptModal.clientName}. Ana ha aceptado tu solicitud para el ${viewApptModal.dateKey.split('-').reverse().join('/')} a las ${viewApptModal.time}. Para confirmar, realiza un Bizum de ${viewApptModal.advancePayment?.amount} € al ${bizConfig.bizumNumber}. Concepto: ${advancePaymentConcept(viewApptModal)}. Confirmaremos al comprobar el pago.` : generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time))}`}>Abrir WhatsApp para avisar a la clienta</a>}
