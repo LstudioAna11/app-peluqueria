@@ -1,4 +1,5 @@
 export interface Promotion {
+  bookingServiceIds?: string[];
   bookingServiceId?: string;
   id: string; title: string; description: string; imageUrl: string;
   price: string; conditions: string; startDate: string; endDate: string; active: boolean;
@@ -10,3 +11,8 @@ export const safePromotionImage = (url: string) => {
   if (url.startsWith('/') && !url.startsWith('//')) return url;
   try { return new URL(url).protocol === 'https:' ? url : ''; } catch { return ''; }
 };
+
+export const promotionServiceIds = (p: Promotion): string[] => Array.from(new Set(
+  (Array.isArray(p.bookingServiceIds) ? p.bookingServiceIds : p.bookingServiceId ? [p.bookingServiceId] : [])
+    .filter((id): id is string => typeof id === 'string' && !!id.trim())
+));
