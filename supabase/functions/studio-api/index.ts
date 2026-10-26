@@ -72,6 +72,40 @@ const viewButton = (portalUrl: string, appointmentId: string) => {
 </table>`;
 };
 
+// Match the concise appointment names used by the portal, without changing its creative titles.
+const normalizeNotificationName = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[¿?¡!.,]/g, '').replace(/\s+/g, ' ').trim();
+const KNOWN_NOTIFICATION_NAMES: Record<string, string> = {
+  'tu cabello en su mejor version': 'Styling & Peinados',
+  'tu cabello ha cambiado y no sabes por que': 'Diagnóstico capilar con microcámara'
+};
+const notificationBookingName = (snapshot: any, current?: any): string => {
+  const text = (value: unknown) => typeof value === 'string' ? value.trim() : '';
+  return text(current?.bookingName) || text(snapshot?.bookingName)
+    || KNOWN_NOTIFICATION_NAMES[normalizeNotificationName(text(current?.name) || text(snapshot?.name))]
+    || text(current?.name) || text(snapshot?.name) || 'Servicio';
+};
+const formatNotificationServices = (services: unknown, fallback: unknown, catalog: any[] = []): string => {
+  if (Array.isArray(services) && services.length) {
+    return services.map(item => {
+      const current = item?.sub?.id ? catalog.find(service => service.id === item.sub.id) : undefined;
+      const name = notificationBookingName(item?.sub, current);
+      const variant = typeof item?.variant?.name === 'string' ? item.variant.name.trim() : '';
+      return name + (variant ? ' · ' + variant : '');
+    }).join(' + ');
+  }
+  let text = String(fallback || '').replace(/^(RESERVADO|PENDIENTE (?:SÁBADO|VALORACIÓN|BIZUM))\s*/, '');
+  const replacements = catalog.filter(service => typeof service?.name === 'string' && service.name.trim()).sort((a,b) => b.name.length - a.name.length);
+  for (const service of replacements) text = text.split(service.name).join(notificationBookingName(service, service));
+  text = text.replace(/¿?Tu cabello ha cambiado y no sabes por qu[eé]\??/gi, 'Diagnóstico capilar con microcámara').replace(/Tu cabello,? en su mejor versi[oó]n/gi, 'Styling & Peinados');
+  return text.trim() || 'Servicios del Studio';
+};
+const appointmentNotificationServices = async (admin: ReturnType<typeof createClient>, services: unknown, fallback: unknown): Promise<string> => {
+  const { data, error } = await admin.from('studio_catalog').select('category');
+  if (error) console.error('[notification-service-names]', error.message);
+  const catalog = (data || []).flatMap((row: any) => row.category?.subservices || []);
+  return formatNotificationServices(services, fallback, catalog);
+};
+
 const detailsTable = (startsAt: string, servicesText: string, professional?: string | null) => {
   const rows = [
     `<tr><td style="padding:4px 0;color:#D6CBB8;width:92px;">Fecha</td><td style="padding:4px 0;color:#FFF8EE;">${escHtml(fmtDateMadrid(startsAt))}</td></tr>`,
@@ -231,7 +265,7 @@ const cancelAppointmentWhatsApp = async (admin: ReturnType<typeof createClient>,
     .in("status", ["scheduled", "failed"]);
   if (opts.cancelled) {
     const { data: appt } = await admin.from("studio_appointments")
-      .select("id, starts_at, client_snapshot")
+      .select("id, starts_at, services, client_snapshot")
       .eq("id", apptId).maybeSingle();
     const snap = ((appt?.client_snapshot || {}) as Record<string, unknown>);
     const phone = validPhoneE164(snap.phone);
@@ -242,7 +276,7 @@ const cancelAppointmentWhatsApp = async (admin: ReturnType<typeof createClient>,
         kind: "cancellation",
         clientName: String(snap.clientName ?? ""),
         startsAt: notificationInstant(appt.starts_at),
-        servicesText: String(snap.serviceSubcategory ?? "Servicios del Studio"),
+        servicesText: await appointmentNotificationServices(admin, appt.services, snap.serviceSubcategory),
         portalUrl,
         apptIdToken: apptId,
       });
@@ -353,7 +387,7 @@ const cancelAppointmentEmails = async (admin: ReturnType<typeof createClient>, a
     .in("status", ["scheduled", "failed"]);
   if (opts.cancelled) {
     const { data: appt } = await admin.from("studio_appointments")
-      .select("id, starts_at, client_snapshot")
+      .select("id, starts_at, services, client_snapshot")
       .eq("id", apptId).maybeSingle();
     const snap = ((appt?.client_snapshot || {}) as Record<string, unknown>);
     const email = validEmail(snap.email);
@@ -367,7 +401,7 @@ const cancelAppointmentEmails = async (admin: ReturnType<typeof createClient>, a
         body_html: emailLayout("Tu cita ha sido cancelada",
           `<p style="margin:0 0 12px;color:#FFF8EE;">Hola <strong>${escHtml(String(snap.clientName ?? ""))}</strong>,</p>
            <p style="margin:0 0 12px;color:#FFF8EE;">Tu cita ha quedado cancelada y el hueco liberado en la agenda del Studio. Los recordatorios pendientes han sido anulados.</p>
-           ${detailsTable(notificationInstant(appt.starts_at), String(snap.serviceSubcategory ?? "Servicios del Studio"))}
+           ${detailsTable(notificationInstant(appt.starts_at), await appointmentNotificationServices(admin, appt.services, snap.serviceSubcategory))}
            <p style="margin:12px 0 0;color:#D6CBB8;">Si quieres reservar otro día, puedes hacerlo desde el portal.</p>`),
         scheduled_at: new Date().toISOString(),
         status: "scheduled",
@@ -1002,9 +1036,7 @@ Deno.serve(async (req: Request) => {
         if ((error as any).code === "23505") return json({ error: "Reserva duplicada" }, 409);
         return json(failed(error), 500);
       }
-      const servicesText = (Array.isArray(body.services) && body.services.length
-        ? body.services.map((s: any) => [s?.sub?.name || "", s?.variant?.name].filter(Boolean).join(" (") + (s?.variant ? ")" : "")).join(" + ")
-        : String(body.serviceSubcategory ?? "")) || "Servicios del Studio";
+      const servicesText = await appointmentNotificationServices(admin, body.services, body.serviceSubcategory);
       const approvalPending = approvalStatus === "pending";
       const depositPending = depositStatus === "pending";
       await scheduleAppointmentEmails(admin, {
@@ -1098,9 +1130,7 @@ Deno.serve(async (req: Request) => {
           const approvalPending = updatedAppt.approval_status === "pending";
           const depositPending = updatedAppt.deposit_status === "pending";
           const confirmed = notificationConfirmed(updatedAppt);
-          const servicesText = (Array.isArray(updatedAppt.services) && updatedAppt.services.length
-            ? updatedAppt.services.map((s: any) => [s?.sub?.name || "", s?.variant?.name].filter(Boolean).join(" (") + (s?.variant ? ")" : "")).join(" + ")
-            : String(snap.serviceSubcategory ?? "")) || "Servicios del Studio";
+          const servicesText = await appointmentNotificationServices(admin, updatedAppt.services, snap.serviceSubcategory);
           const waCtx = {
             apptId: updatedAppt.id,
             startsAt: updatedAppt.starts_at,
