@@ -2029,6 +2029,8 @@ function StudioApp() {
   const [bizumSavingId, setBizumSavingId] = useState<string | null>(null);
   const [bizumSaveError, setBizumSaveError] = useState<{ id: string; message: string } | null>(null);
   const bizumSavingRef = useRef(false);
+  const [deletingAppointmentId, setDeletingAppointmentId] = useState<string | null>(null);
+  const deletingAppointmentRef = useRef(false);
 
   useEffect(() => {
     if (!viewApptModal || currentScreen !== 'adminPanel') return;
@@ -3323,15 +3325,39 @@ function StudioApp() {
     }
   };
 
-  const handleDeleteAppointment = (id: string, e?: React.MouseEvent) => {
-    if (e) e.stopPropagation();
-    if (window.confirm('¿Deseas cancelar esta cita de la agenda?')) {
-      const target = appointments.find(a => a.id === id);
-      setAppointments(appointments.filter(a => a.id !== id));
-      if (viewApptModal?.id === id) setViewApptModal(null);
-      if (studioApi.serverConfigured && (target?.serverId || studioApi.storedRole() === 'admin')) {
-        studioApi.deleteAppointmentOnServer(studioApi.currentToken()!, target?.serverId || id).catch(() => undefined);
+  const handleDeleteAppointment = async (id: string, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (deletingAppointmentRef.current) return;
+    const target = appointments.find(item => item.id === id);
+    if (!target) return;
+    if (!window.confirm('¿Eliminar definitivamente esta cita? Se quitará de la agenda y del registro. Si quieres conservarla en el historial, utiliza Cancelar cita.')) return;
+    deletingAppointmentRef.current = true;
+    setDeletingAppointmentId(id);
+    try {
+      const token = studioApi.currentToken();
+      if (!studioApi.serverConfigured || !token || studioApi.storedRole() !== 'admin') {
+        throw new Error('Necesitas conexión y una sesión de administración válida para eliminar la cita.');
       }
+      const before = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+      if (!Array.isArray(before.appointments)) throw new Error('No se ha podido consultar la agenda del servidor. Reintenta.');
+      const matches = (row: Record<string, any>) => row.id === target.serverId || row.id === id || String(row.source_legacy_id || '') === id;
+      const row = before.appointments.find(matches);
+      if (row) {
+        const result = await studioApi.deleteAppointmentOnServer(token, row.id);
+        if (!result.ok) throw new Error('El servidor no ha confirmado la eliminación.');
+        const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+        if (!Array.isArray(after.appointments) || after.appointments.some(item => item.id === row.id || matches(item))) {
+          throw new Error('No se ha podido verificar la eliminación. La cita sigue visible hasta comprobarlo. Reintenta para consultar su estado.');
+        }
+      }
+      // If it was already deleted on the server, reconcile this device without another DELETE.
+      setAppointments(previous => previous.filter(item => item.id !== id && !(target.serverId && item.serverId === target.serverId)));
+      setViewApptModal(previous => previous && (previous.id === id || (target.serverId && previous.serverId === target.serverId)) ? null : previous);
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'No se pudo eliminar la cita. Conservamos su estado en pantalla; vuelve a intentarlo.');
+    } finally {
+      deletingAppointmentRef.current = false;
+      setDeletingAppointmentId(null);
     }
   };
 
@@ -5492,7 +5518,7 @@ function StudioApp() {
             </div>}
 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'space-between', marginTop: '10px' }}>
 
-              <details className="lst-appt-more"><summary>Más acciones</summary><div>{!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && (<button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'no_show')} style={{ padding: '10px', border: '1px solid #C5A059', color: '#D6CBB8', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>No presentada</button>)}<button onClick={(e) => handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#F2DCD8', border: '1px solid #C0392B', color: '#8A2F23', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar Cita</button></div></details>
+              <details className="lst-appt-more"><summary>Más acciones</summary><div>{!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && (<button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'no_show')} style={{ padding: '10px', border: '1px solid #C5A059', color: '#D6CBB8', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>No presentada</button>)}<button disabled={deletingAppointmentId !== null} onClick={(e) => void handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#F2DCD8', border: '1px solid #C0392B', color: '#8A2F23', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>{deletingAppointmentId === viewApptModal.id ? 'Eliminando…' : 'Eliminar cita'}</button></div></details>
               <button onClick={() => setViewApptModal(null)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Cerrar</button>
             </div></footer></div></>) : (<div style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', maxWidth: '560px', width: '100%', boxSizing: 'border-box', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <p style={{ color: '#E4C687', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
@@ -5702,7 +5728,7 @@ function StudioApp() {
               </div>
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'space-between', marginTop: '10px' }}>
-              <button onClick={(e) => handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#F2DCD8', border: '1px solid #C0392B', color: '#8A2F23', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>Eliminar Cita</button>
+              <button disabled={deletingAppointmentId !== null} onClick={(e) => void handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#F2DCD8', border: '1px solid #C0392B', color: '#8A2F23', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>{deletingAppointmentId === viewApptModal.id ? 'Eliminando…' : 'Eliminar cita'}</button>
               <button onClick={() => setViewApptModal(null)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Cerrar</button>
             </div>
           </div>)}
