@@ -103,6 +103,7 @@ export const deleteTimeBlock = (token: string, id: string) =>
 
 export interface ServerAppointmentInput {
   promotionId?: string;
+  promotionOriginId?: string;
   id?: string;
   clientId?: string | null;
   dateKey: string;
@@ -268,3 +269,7 @@ export const updateFeedbackStatus = (token: string, id: string, resolved: boolea
   call<{ ok: true; resolvedAt: string | null }>('feedback-status', { method: 'PUT', token, body: { id, resolved } });
 
 export const fetchPublicBranding = () => call<{ brandLogoUrl: string | null; headerLogoUrl: string | null }>('branding', { method: 'GET' });
+
+export const fetchOfficialHolidays = (token: string, year: number) => call<{days:any[];state:any}>('official-holidays',{token,body:{year}});
+export const refreshOfficialHolidays = (token: string, year: number) => call<any>('official-holidays-refresh',{token,body:{year}});
+export const setOfficialHolidayOpen = (token: string, day: string, open: boolean) => call<any>('official-holidays-open',{method:'PUT',token,body:{day,open}});
