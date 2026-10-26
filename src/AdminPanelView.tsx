@@ -479,7 +479,7 @@ export default function AdminPanelView(props: Props) {
           <button type="button" aria-current={promotionsOpen ? "page" : undefined} onClick={() => { setAgendaExpanded(false); setPromotionsOpen(true); }} style={{minHeight:48,padding:14,borderRadius:9,border:"1px solid #C5A059",background:promotionsOpen ? "#C49A58" : "#322A25",color:promotionsOpen ? "#221D19" : "#FFF8EE",cursor:"pointer"}}>Promociones</button>
           </nav>
           <main className="studio-admin-content">
-          {promotionsOpen ? <PromotionsView onSaved={onPromotionsSaved} /> : <>
+          {promotionsOpen ? <PromotionsView onSaved={onPromotionsSaved} serviceOptions={catalog.flatMap(cat => cat.subservices.filter(sub => sub.active !== false).map(sub => ({ id: sub.id, label: cat.title + " · " + bookingName(sub) })))} /> : <>
           {activeEmployees.length === 0 && (
             <div style={{ padding: '12px 16px', backgroundColor: '#F2DCD8', border: '1px solid #C0392B', borderRadius: '8px', color: '#8A2F23', fontSize: '13px', lineHeight: 1.6, marginBottom: '4px' }}>
               No hay profesionales configurados. Ve a Configuración → Empleados y añade al menos una persona en activo para que las clientas puedan elegir profesional al reservar.
