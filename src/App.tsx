@@ -3823,6 +3823,7 @@ function StudioApp() {
           const serviceLabel = item.services?.length
             ? item.services.map(service => bookingName(service.sub)).join(' + ')
             : appointmentServiceNames(item);
+          const appointmentText = item.completedAt || item.saturdayApproval?.status === 'pending' ? '#FFF8EE' : '#243529';
           return <button type="button" className="studio-agenda-appointment" key={item.id} draggable onDragStart={event => handleDragStart(event, item.id)}
             onClick={() => setViewApptModal(item)} onDragOver={handleDragOver}
             onDrop={event => { event.stopPropagation(); handleDrop(event, day.dateObj, day.name, item.time); }}
@@ -3831,11 +3832,11 @@ function StudioApp() {
               marginLeft: (lane * 100 / lanes) + '%', width: (100 / lanes) + '%', boxSizing: 'border-box',
               alignSelf: 'stretch', minWidth: 0, textAlign: 'left', padding: '7px 8px',
               background: adminAppointmentColor(item).background, border: '1px solid #3A312A', borderLeft: '3px solid ' + adminAppointmentColor(item).border,
-              color: '#FFF8EE', borderRadius: '5px', cursor: 'pointer', overflow: 'hidden',
+              color: appointmentText, borderRadius: '5px', cursor: 'pointer', overflow: 'hidden',
               display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: '3px' }}>
-            <strong style={{ fontSize: '10px', letterSpacing: '0.3px', color: '#D6CBB8' }}>{item.time}–{minuteTime(end)}</strong>
-            <strong style={{ color: '#FFF8EE', fontSize: '13px', lineHeight: 1.25, overflowWrap: 'anywhere' }}>{item.clientName}</strong>
-            <span style={{ fontSize: '11px', lineHeight: 1.3, color: '#EFE5D4', overflowWrap: 'anywhere' }}>{serviceLabel}</span>
+            <strong style={{ fontSize: '10px', letterSpacing: '0.3px', color: appointmentText }}>{item.time}–{minuteTime(end)}</strong>
+            <strong style={{ color: appointmentText, fontSize: '13px', lineHeight: 1.25, overflowWrap: 'anywhere' }}>{item.clientName}</strong>
+            <span style={{ fontSize: '11px', lineHeight: 1.3, color: appointmentText, overflowWrap: 'anywhere' }}>{serviceLabel}</span>
           </button>;
         });
       })}
