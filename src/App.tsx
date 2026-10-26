@@ -4551,7 +4551,10 @@ function StudioApp() {
                         <h2 className="lst-c-name" style={{ margin: '0 0 8px', color: '#E4C687', fontSize: 19, lineHeight: 1.3, cursor: 'default' }}>{bookingName(sub)}</h2>
                         {name.trim() !== bookingName(sub).trim() && <p style={{ color: '#F0E6D2', fontSize: 14, lineHeight: 1.5, margin: '0 0 8px' }}>{name}</p>}
                         {!!serviceText(sub, 'slogan').trim() && <p className="lst-c-desc" style={{ color: '#BFCDB9', fontSize: 13, lineHeight: 1.5 }}>{serviceText(sub, 'slogan')}</p>}
-                        <p className="lst-c-meta">{portalShowsPrices ? sub.price : ''}{sub.duration ? (portalShowsPrices ? ' · ' : '') + sub.duration : ''}</p>
+                        <div className="lst-c-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '6px 12px', width: '100%' }}>
+                          {portalShowsPrices && <span>{sub.price}</span>}
+                          {sub.duration && <span style={{ marginLeft: 'auto', textAlign: 'right', color: '#D6CBB8', fontSize: 12, fontWeight: 400 }}>{sub.duration}</span>}
+                        </div>
                         <div className="lst-c-cta" style={{ display: 'flex' }}>
                           <button type="button" className="lst-btn-ver" style={{ width: '100%', justifyContent: 'center' }} onClick={() => openDetail(sub)}>{t('viewService')} <ArrowRight size={15} strokeWidth={2} aria-hidden="true" /></button>
                         </div>
