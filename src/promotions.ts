@@ -1,4 +1,5 @@
 export interface Promotion {
+  bookingServiceId?: string;
   id: string; title: string; description: string; imageUrl: string;
   price: string; conditions: string; startDate: string; endDate: string; active: boolean;
 }
