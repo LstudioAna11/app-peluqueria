@@ -1006,6 +1006,11 @@ function StudioApp() {
   const [expandedCategories, setExpandedCategories] = useState<{ [key: string]: boolean }>({});
   const [selectedVisualTime, setSelectedVisualTime] = useState<string>('');
   const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null);
+  const [visualBookingBusy, setVisualBookingBusy] = useState(false);
+  const [visualBookingError, setVisualBookingError] = useState('');
+  const visualBookingBusyRef = useRef(false);
+  const visualBookingAttemptRef = useRef<{ signature: string; draft: Appointment } | null>(null);
+
   const [editProximaVisita, setEditProximaVisita] = useState("");
   const [editFormulas, setEditFormulas] = useState("");
   const [editMsg, setEditMsg] = useState<string | null>(null);
@@ -3191,7 +3196,18 @@ function StudioApp() {
 
   };
 
-  const handleConfirmarCitaVisual = () => {
+  const visualBookingSignature = () => JSON.stringify({
+    client: currentClientRecord?.serverId || currentClientRecord?.email || '',
+    date: formatDateKey(bookingDate), time: selectedVisualTime, professional: selectedProfessionalId,
+    services: selectedServicesToBook.map(item => ({ id: item.sub.id, variant: item.variant?.id || null }))
+  });
+  const handleConfirmarCitaVisual = async () => {
+    if (visualBookingBusyRef.current) return;
+    const signature = visualBookingSignature();
+    const retry = visualBookingAttemptRef.current?.signature === signature;
+    setVisualBookingError('');
+    setBookingSuccessMsg(null);
+
     if (saturdayNeedsAcceptance && acceptedSaturdayPolicy !== saturdayPolicyKey) {
       setReservationPolicyChecked(false); setReservationPolicyOpen(true); return;
     }
@@ -3202,7 +3218,7 @@ function StudioApp() {
     const earliest = new Date(); earliest.setHours(0, 0, 0, 0); earliest.setDate(earliest.getDate() + bizConfig.minAdvanceDays);
     const latest = new Date(); latest.setHours(23, 59, 59, 999); latest.setMonth(latest.getMonth() + bizConfig.maxBookingMonths);
     if (bookingDate < earliest || bookingDate > latest) { alert(`Reserva con al menos ${bizConfig.minAdvanceDays} días de antelación y dentro de los próximos ${bizConfig.maxBookingMonths} meses.`); return; }
-    if (!selectedVisualTime || !portalAvailableTimes(bookingDate).includes(selectedVisualTime)) { alert(t('fullTimeRequired')); return; }
+    if (!selectedVisualTime || (!retry && !portalAvailableTimes(bookingDate).includes(selectedVisualTime))) { alert(t('fullTimeRequired')); return; }
     const inactiveError = getInactiveServiceError(selectedServicesToBook);
     if (inactiveError) { alert(inactiveError); setCurrentScreen('catalogBooking'); return; }
     const stylingError = getStylingError(selectedServicesToBook);
@@ -3272,43 +3288,35 @@ function StudioApp() {
       setAdvancePaymentModal(newApp);
       return;
     }
-    setAppointments([...appointments, newApp]);
-    setBookingSuccessMsg(tf('bookingConfirmed', {date: bookingDate.toLocaleDateString(portalLocale), time: selectedVisualTime}));
-    if (studioApi.serverConfigured) {
-      const clientPinRow = listaClientes.find(c => String(c.pinAcceso).trim() === pin);
-      studioApi.createAppointmentOnServer(studioApi.currentToken()!, {
-        id: newApp.id,
-        clientId: currentClientRecord?.serverId || studioApi.storedClientId() || null,
-        dateKey: newApp.dateKey,
-        time: newApp.time,
-        dayName: newApp.dayName,
-        durationMinutes: newApp.durationMinutes,
-        bookingChannel: 'portal',
-        approval: newApp.saturdayApproval ? { status: newApp.saturdayApproval.status, reason: newApp.saturdayApproval.reason, reference: newApp.saturdayApproval.reference } : null,
-        advancePayment: newApp.advancePayment ? { status: newApp.advancePayment.status, amount: newApp.advancePayment.amount, reference: newApp.advancePayment.reference } : null,
-        services: newApp.services,
-        clientName: newApp.clientName,
-        phone: newApp.phone,
-        email: newApp.email,
-        serviceCategory: newApp.serviceCategory,
-        serviceSubcategory: newApp.serviceSubcategory,
-        selectedVariant: newApp.selectedVariant,
-        remindersStatus: newApp.remindersStatus,
-        professionalId: newApp.professionalId,
-        professionalName: newApp.professionalName,
-      }).then(serverResult => {
-        const synced: Appointment = { ...newApp, serverId: serverResult.id };
-        setAppointments(previous => previous.map(item => item.id === synced.id ? synced : item));
-      }).catch(() => {
-        setBookingSuccessMsg('Cita registrada en este dispositivo, pero no se pudo confirmar en el servidor. Contacta con el estudio si no la ves reflejada.');
-      });
+    // Retain the reference after an uncertain response so a retry can recover
+    // the saved appointment through persistPendingAppointment instead of duplicating it.
+    const draft = retry ? visualBookingAttemptRef.current!.draft : newApp;
+    visualBookingAttemptRef.current = { signature, draft };
+    visualBookingBusyRef.current = true;
+    setVisualBookingBusy(true);
+    try {
+      const saved = await persistPendingAppointment(draft);
+      setAppointments(previous => [
+        ...previous.filter(item => item.id !== draft.id && item.id !== saved.id && !(saved.serverId && item.serverId === saved.serverId)),
+        saved
+      ]);
+      setRegisteredAppointment(saved);
+      const message = saved.saturdayApproval?.status === 'pending'
+        ? 'Solicitud enviada al Studio · Pendiente de confirmación de Ana.'
+        : saved.advancePayment?.status === 'pending'
+          ? 'Solicitud enviada al Studio · Pendiente de comprobar el anticipo.'
+          : tf('bookingConfirmed', { date: new Date(saved.dateKey + 'T12:00:00').toLocaleDateString(portalLocale), time: saved.time });
+      setBookingSuccessMsg(message);
+      visualBookingAttemptRef.current = null;
+      setSelectedServicesToBook([]);
+      setCurrentScreen('catalogBooking');
+      setTimeout(() => setBookingSuccessMsg(null), 8000);
+    } catch (error) {
+      setVisualBookingError((error instanceof Error ? error.message : 'No se pudo confirmar el guardado en el servidor.') + ' Conservamos tu selección. Pulsa «Comprobar y reintentar» para revisar si se guardó antes de volver a enviarla.');
+    } finally {
+      visualBookingBusyRef.current = false;
+      setVisualBookingBusy(false);
     }
-    setSelectedServicesToBook([]);
-    setCurrentScreen('catalogBooking');
-    const cleanPhone = clientPhoneStr.replace(/\s+/g, "");
-    const customMsg = generateWhatsAppMessage(clientNameStr, dateFormattedStr, selectedVisualTime);
-
-    setTimeout(() => setBookingSuccessMsg(null), 5000);
   };
 
   const handleDeleteAppointment = (id: string, e?: React.MouseEvent) => {
@@ -3989,7 +3997,7 @@ function StudioApp() {
       </div>
 
       {!['clientPin', 'clientRegistration', 'adminLogin', 'adminPanel'].includes(currentScreen) && (
-        <nav className="lst-bottom-nav" aria-label="Navegación principal">
+        <nav className="lst-bottom-nav" aria-label="Navegación principal" onClickCapture={event => { if (visualBookingBusyRef.current) { event.preventDefault(); event.stopPropagation(); } }} style={visualBookingBusy ? { pointerEvents: 'none', opacity: 0.6 } : undefined}>
           <button type="button" className={currentScreen === 'clientPortal' ? 'lst-bottom-active' : ''} onClick={() => { setViewServiceDetail(null); setCurrentScreen('clientPortal'); }}>
             <Home size={20} strokeWidth={1.7} aria-hidden="true" /><span>Inicio</span>
           </button>
@@ -4677,7 +4685,7 @@ function StudioApp() {
 
       {/* AGENDA CLIENTAS · SEMANA Y HORAS DISPONIBLES */}
       {currentScreen === 'visualAgenda' && (
-        <div style={{ maxWidth: '520px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+        <fieldset disabled={visualBookingBusy} aria-busy={visualBookingBusy} style={{ margin: 0, minWidth: 0, maxWidth: '520px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <button type="button" onClick={() => { setReservationPolicyChecked(saturdayNeedsAcceptance && acceptedSaturdayPolicy === saturdayPolicyKey); setReservationPolicyOpen(true); }} style={{ alignSelf: 'flex-end', color: '#E4C687', background: 'none', border: 'none', textDecoration: 'underline', padding: 10, minHeight: 44, cursor: 'pointer' }}>Políticas de reserva · Sábados</button>
           <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#D8C29A', padding: '10px 0', cursor: 'pointer' }}>{t('backServices')}</button>
           <div><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', color: '#FFF8EE', fontSize: '28px', fontWeight: 'normal', margin: '0 0 8px' }}>{t('chooseMoment')}</h2><p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('fullSlots')} · {getModalDuration(selectedServicesToBook)} min.</p></div>
@@ -4730,9 +4738,11 @@ function StudioApp() {
               <span style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6 }}>Autorizo a L'Studio Ana a enviarme avisos de mi cita por WhatsApp al teléfono de mi ficha (confirmaciones y cambios). Puedo retirar el consentimiento cuando quiera en el portal.</span>
             </label>
             {renderClientPushPanel()}
-            <button type="button" onClick={handleConfirmarCitaVisual} disabled={!portalTimes.includes(selectedVisualTime)} style={{ width: '100%', minHeight: '54px', padding: '14px', backgroundColor: portalTimes.includes(selectedVisualTime) ? '#C49A58' : '#322A25', color: portalTimes.includes(selectedVisualTime) ? '#29231F' : '#C9BCA9', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>{!selectedVisualTime ? t('chooseHour') : getApprovalReason(selectedServicesToBook, formatDateKey(bookingDate)) ? t('requestAppointment') : t('continueBooking')}</button>
+            {visualBookingError && <p role="alert" style={{ color: '#FFC4B5', fontSize: 13, lineHeight: 1.5 }}>{visualBookingError}</p>}
+            {visualBookingBusy && <p role="status" style={{ color: '#E4C687', fontSize: 13 }}>Guardando tu reserva en el Studio…</p>}
+            <button type="button" onClick={handleConfirmarCitaVisual} disabled={visualBookingBusy || (!portalTimes.includes(selectedVisualTime) && visualBookingAttemptRef.current?.signature !== visualBookingSignature())} style={{ width: '100%', minHeight: '54px', padding: '14px', backgroundColor: portalTimes.includes(selectedVisualTime) ? '#C49A58' : '#322A25', color: portalTimes.includes(selectedVisualTime) ? '#29231F' : '#C9BCA9', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>{visualBookingBusy ? 'Guardando…' : visualBookingError && visualBookingAttemptRef.current?.signature === visualBookingSignature() ? 'Comprobar y reintentar' : !selectedVisualTime ? t('chooseHour') : getApprovalReason(selectedServicesToBook, formatDateKey(bookingDate)) ? t('requestAppointment') : t('continueBooking')}</button>
           </div>
-        </div>
+        </fieldset>
       )}
 
       {/* 2.3. PASAPORTE DE EXPERIENCIAS DE AUTOR */}
