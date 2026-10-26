@@ -5296,35 +5296,34 @@ function StudioApp() {
       {viewApptModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
           {Boolean(currentScreen === 'adminPanel') ? (<><style>{`
-.lst-appt-dialog {width:min(1100px,100%);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;background:#322A25;border:1px solid #C5A059;border-radius:16px;box-shadow:0 24px 80px #0008;overflow:hidden;color:#FFF8EE;}
-.lst-appt-head {display:flex;align-items:flex-start;justify-content:space-between;gap:16px;padding:18px 22px;border-bottom:1px solid #655039;flex-shrink:0;}
-.lst-appt-head h3 {font-size:25px!important;margin-top:6px!important;}
-.lst-appt-body {display:grid;grid-template-columns:minmax(0,1.15fr) minmax(300px,.85fr);gap:20px;padding:20px 22px;overflow-y:auto;min-height:0;overscroll-behavior:contain;}
-.lst-appt-column {display:flex;flex-direction:column;gap:12px;min-width:0;}
-.lst-appt-footer {display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:12px 22px;border-top:1px solid #655039;background:#29231F;flex-shrink:0;}
+.lst-appt-dialog {width:min(780px,100%);max-width:100%;box-sizing:border-box;max-height:calc(100dvh - 40px);display:flex;flex-direction:column;background:#322A25;border:1px solid #C5A059;border-radius:16px;box-shadow:0 24px 80px #0008;overflow:hidden;color:#FFF8EE;}
+.lst-appt-head {display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid #655039;flex-shrink:0;}
+.lst-appt-head>div {min-width:0;flex:1;}
+.lst-appt-head>div>p:first-child {font-size:10px!important;letter-spacing:1.4px!important;}
+.lst-appt-head h3 {font-size:21px!important;margin:5px 0 0!important;line-height:1.25;overflow-wrap:anywhere;}
+.lst-appt-head p {line-height:1.4;}
+.lst-appt-head>div>span {padding:3px 8px;border:1px solid #67543C;border-radius:20px;}
+.lst-appt-body {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.85fr);gap:14px;padding:16px 18px;overflow-y:auto;min-height:0;overscroll-behavior:contain;}
+.lst-appt-column {display:flex;flex-direction:column;gap:10px;min-width:0;}
+.lst-appt-column h4 {margin-bottom:8px!important;font-size:13px!important;}
+.lst-appt-column>section>div {padding:10px!important;font-size:13px!important;}
+.lst-appt-column>div,.lst-appt-column>section,.lst-appt-column>aside {overflow-wrap:anywhere;}
+.lst-appt-column>div>p {font-size:17px!important;letter-spacing:.02em!important;}
+.lst-appt-footer {display:flex;flex-wrap:wrap;align-items:center;gap:7px;padding:10px 18px;border-top:1px solid #655039;background:#29231F;flex-shrink:0;}
 .lst-appt-footer>div {display:contents!important;}
-.lst-appt-footer button {font-size:12px!important;min-height:40px;padding:9px 12px!important;}
-.lst-appt-column>button {text-align:left;font-size:13px;}
-.lst-appt-notices {border:1px solid #655039;border-radius:10px;padding:12px;}
-.lst-appt-notices summary {cursor:pointer;color:#E4C687;font-size:13px;min-height:30px;}
-.lst-appt-notices[open] {display:flex;flex-direction:column;gap:12px;}
-@media(max-width:760px){.lst-appt-body{grid-template-columns:1fr;padding:14px;gap:14px}.lst-appt-head{padding:14px}.lst-appt-footer{padding:10px 14px}.lst-appt-dialog{max-height:calc(100dvh - 24px)}}
-
-.lst-appt-head {padding:14px 18px;gap:10px;}
-.lst-appt-head h3 {font-size:22px!important;margin-top:4px!important;}
-.lst-appt-body {gap:12px;padding:14px 18px;}
-.lst-appt-column {gap:9px;}
-.lst-appt-notices {padding:9px 11px;border-radius:8px;}
-.lst-appt-column h4 {margin-bottom:8px!important;}
-.lst-appt-footer {padding:10px 18px;gap:7px;}
+.lst-appt-footer button {font-size:12px!important;min-height:44px;padding:9px 11px!important;}
+.lst-appt-notices {border:1px solid #655039;border-radius:8px;padding:9px 11px;min-width:0;}
+.lst-appt-notices summary {cursor:pointer;color:#E4C687;font-size:13px;min-height:30px;line-height:1.4;}
+.lst-appt-notices[open] {display:flex;flex-direction:column;gap:10px;}
+.lst-appt-manage>div {display:flex;flex-direction:column;gap:8px;margin-top:8px;}
+.lst-appt-manage button {text-align:left;font-size:12px!important;min-height:44px;padding:10px!important;}
 .lst-appt-more {position:relative;}
-.lst-appt-more>summary {cursor:pointer;color:#D6CBB8;font-size:12px;min-height:44px;display:flex;align-items:center;padding:0 10px;}
+.lst-appt-more>summary {cursor:pointer;color:#D6CBB8;font-size:12px;min-height:44px;display:flex;align-items:center;padding:0 8px;}
 .lst-appt-more>div {position:absolute;bottom:100%;right:0;background:#221D19;border:1px solid #67543C;border-radius:9px;padding:8px;display:flex;flex-direction:column;gap:8px;width:190px;box-shadow:0 8px 24px #0008;z-index:5;}
-@media(max-width:760px){.lst-appt-head h3{font-size:20px!important}.lst-appt-body{padding:12px}.lst-appt-footer button{min-height:44px}.lst-appt-footer{padding:8px 10px;max-height:30dvh;overflow-y:auto}.lst-appt-more>div{position:static;width:auto}.lst-appt-head p{line-height:1.4}}
+@media(max-width:620px){.lst-appt-dialog{max-height:calc(100dvh - 24px)}.lst-appt-body{grid-template-columns:1fr;padding:12px;gap:12px}.lst-appt-head{padding:12px}.lst-appt-head h3{font-size:20px!important}.lst-appt-footer{padding:8px 10px;max-height:28dvh;overflow-y:auto}.lst-appt-more>div{position:static;width:auto}}
 `}</style><div className="lst-appt-dialog" role="dialog" aria-modal="true" aria-label="Detalle de la cita"><header className="lst-appt-head"><div><p style={{ color: '#E4C687', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
 <h3 style={{ color: '#FFF8EE', fontSize: '26px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{viewApptModal.clientName}</h3>
 <p style={{ color: '#E4C687', fontSize: 14, margin: '7px 0 0' }}>{viewApptModal.dateKey.split('-').reverse().join('/')} · {viewApptModal.time} · {viewApptModal.durationMinutes || 45} min</p>
-<p style={{ color: '#D6CBB8', fontSize: 12, margin: '5px 0 0', overflowWrap: 'anywhere' }}>{appointmentServiceNames(viewApptModal)}</p>
 <span style={{ display: 'inline-block', fontSize: 11, color: '#E4C687', marginTop: 7 }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada' : viewApptModal.completedAt ? 'Finalizada' : viewApptModal.saturdayApproval?.status === 'rejected' ? 'Solicitud rechazada' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Anticipo pendiente' : 'Confirmada'}</span>
 </div><button type="button" autoFocus onClick={() => setViewApptModal(null)} aria-label="Cerrar detalle de la cita" style={{background:'transparent',border:'1px solid #655039',borderRadius:8,color:'#FFF8EE',minWidth:40,minHeight:40,cursor:'pointer'}}>✕</button></header><div className="lst-appt-body"><div className="lst-appt-column">
 
@@ -5355,7 +5354,7 @@ function StudioApp() {
     <p style={{ margin: '8px 0 0', color: '#D6CBB8', fontSize: '12px' }}>Envía este aviso solo si han pasado 10 minutos y la clienta no ha llegado. Revísalo y pulsa Enviar en WhatsApp.</p>
   </section></details>;
 })()}
-{currentScreen === 'adminPanel' && <button type="button" onClick={() => {
+<details className="lst-appt-notices lst-appt-manage"><summary>Gestionar cita · Ficha, repetir y editar</summary><div>{currentScreen === 'adminPanel' && <button type="button" onClick={() => {
               const email = normalizeEmail(viewApptModal.email);
               const matches = email ? listaClientes.filter(client => normalizeEmail(client.email) === email) : [];
               if (matches.length !== 1) {
@@ -5370,7 +5369,7 @@ function StudioApp() {
               setAdminTab('clients'); setAgendaExpanded(false);
               window.scrollTo({ top: 0, behavior: 'smooth' });
             }} style={{ padding: '12px', background: '#322A25', color: '#FFF8EE',
-              border: '1px solid #C5A059', borderRadius: '8px', cursor: 'pointer' }}>Abrir ficha de la clienta · Diagnóstico y fórmulas</button>}
+              border: '1px solid #C5A059', borderRadius: '8px', cursor: 'pointer' }}>Ficha de clienta · Diagnóstico y fórmulas</button>}
 {currentScreen === 'adminPanel' && <button type="button" onClick={() => {
               if (!viewApptModal.services?.length) { alert('Esta cita antigua no tiene servicios estructurados. Crea una nueva cita y selecciona sus servicios.'); return; }
               const services = viewApptModal.services.map(item => {
@@ -5389,7 +5388,7 @@ function StudioApp() {
               setNewRescheduleDate(formatDateKey(next)); setNewRescheduleTime('');
               setViewApptModal(null);
             }} style={{ padding: '12px', background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059',
-              borderRadius: '8px', cursor: 'pointer' }}>Repetir cita · Elegir nueva fecha</button>}
+              borderRadius: '8px', cursor: 'pointer' }}>Repetir cita</button>}
 {!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && <button type="button" onClick={() => {
               setEditingAppointment(viewApptModal);
               setTargetDateObj(new Date(viewApptModal.dateKey + 'T12:00:00'));
@@ -5399,7 +5398,7 @@ function StudioApp() {
               setModalCatIndex(0); setModalSubIndex(0); setModalSelectedVariant(catalog[0]?.subservices[0]?.variants?.[0] || null);
               setViewApptModal(null); setIsModalOpen(true);
             }} style={{ background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059',
-              borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>Editar servicios y duración</button>}</div><aside className="lst-appt-column"><div style={{ backgroundColor: adminAppointmentColor(viewApptModal).background, border: `1px solid ${adminAppointmentColor(viewApptModal).border}`, borderRadius: '10px', padding: '18px', color: adminAppointmentText(viewApptModal) }}>
+              borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>Editar servicios y duración</button>}</div></details></div><aside className="lst-appt-column"><div style={{ backgroundColor: adminAppointmentColor(viewApptModal).background, border: `1px solid ${adminAppointmentColor(viewApptModal).border}`, borderRadius: '10px', padding: '18px', color: adminAppointmentText(viewApptModal) }}>
               <strong style={{ fontSize: '14px', color: adminAppointmentText(viewApptModal) }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada · Hueco liberado' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada · Registro conservado' : viewApptModal.completedAt ? 'Realizada · Registrada en el pasaporte' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Cita confirmada'}</strong>
               <p style={{ color: adminAppointmentText(viewApptModal), fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '21px', margin: '12px 0 8px' }}>{new Date(`${viewApptModal.dateKey}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {viewApptModal.time}</p>
               <span style={{ color: adminAppointmentText(viewApptModal), fontSize: '13px' }}>Duración total: {viewApptModal.durationMinutes || 45} min</span>
