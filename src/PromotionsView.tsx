@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import * as studioApi from './studioApi';
 import { Promotion, isVisiblePromotion, madridToday, safePromotionImage } from './promotions';
 import './promotions.css';
@@ -75,12 +76,28 @@ export default function PromotionsView({ onSaved }: { onSaved?: () => Promise<un
 export function PromotionsPortalButton({ promotions = [] }: { promotions?: Promotion[] }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
-  useEffect(() => { if (open) dialog.current?.showModal(); }, [open]);
-  const count = promotions.filter(p => isVisiblePromotion(p)).length;
-  return <div className="lst-promotions"><button type="button" style={{width:'100%'}} onClick={() => setOpen(true)}>Promociones · Descubre lo que tenemos para ti</button>
-    {open && <dialog ref={dialog} aria-label="Promociones del Studio" onClose={() => setOpen(false)} style={{background:'#221d19',color:'#fff8ee',border:'1px solid #c99e52',borderRadius:16,width:'min(640px, calc(100% - 48px))',maxHeight:'85vh',padding:20}}>
-      <button type="button" autoFocus onClick={() => dialog.current?.close()}>Volver a mi portal</button>
+  const [today, setToday] = useState(madridToday);
+  useEffect(() => {
+    if (!open) return;
+    setToday(madridToday());
+    const timer = window.setInterval(() => setToday(madridToday()), 60000);
+    if (dialog.current && !dialog.current.open) dialog.current.showModal();
+    return () => window.clearInterval(timer);
+  }, [open]);
+  const count = promotions.filter(p => isVisiblePromotion(p, today)).length;
+  return <>
+    <button type="button" aria-label="Ver promociones" aria-haspopup="dialog"
+      className={open ? 'lst-bottom-active' : ''} onClick={() => setOpen(true)}>
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M20 13 13 20a2 2 0 0 1-2.83 0L2 11.83V2h9.83L20 10.17a2 2 0 0 1 0 2.83Z" />
+        <circle cx="7" cy="7" r="1" />
+      </svg>
+      <span>Promos</span>
+    </button>
+    {open && createPortal(<dialog ref={dialog} className="lst-promotions lst-promo-dialog" aria-label="Promociones del Studio"
+      onClose={() => setOpen(false)}>
+      <button type="button" autoFocus onClick={() => dialog.current?.close()}>Cerrar promociones</button>
       {count ? <PromotionsPortal promotions={promotions} /> : <><h2>Promociones</h2><p>Ahora mismo no hay promociones activas. Las próximas aparecerán aquí.</p></>}
-    </dialog>}
-  </div>;
+    </dialog>, document.body)}
+  </>;
 }
