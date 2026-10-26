@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Maximize2, Minimize2, Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ChevronDown, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
 import * as studioApi from './studioApi';
+import OfficialHolidaysView from './OfficialHolidaysView';
 import PromotionsView from './PromotionsView';
 import type { StudioEmployee, BusinessConfig, ServiceVariant, Appointment, StylingPolicy, FinishKind, ServiceTranslation, SubService, CatalogCategory, ClientRecord, LostDemandRecord, FeedbackRecord, HolidayBlock } from './App';
 const LazyOpportunitiesView=React.lazy(()=>import('./OpportunitiesView'));
@@ -313,6 +314,8 @@ export default function AdminPanelView(props: Props) {
             </div>
           </section>);
  const [promotionsOpen, setPromotionsOpen] = useState(false);
+ const holidayWriteRef = useRef(false);
+ const [holidayWriteBusy, setHolidayWriteBusy] = useState(false);
  return (<div className={`studio-admin-shell ${!promotionsOpen && agendaExpanded && adminTab === 'agenda' ? 'studio-agenda-expanded' : ''}`} style={{ maxWidth: '1680px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '25px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <style>{`
             .studio-desktop-nav { display: none; }
@@ -1741,18 +1744,20 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
               `}</style>
               <div>
                 <h3 style={{ color: '#E4C687', fontSize: '24px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Vacaciones y festivos</h3>
-                <p style={{ color: '#D6CBB8', fontSize: '11px', margin: 0 }}>Planifica cierres de días completos. Se aplican a la agenda de Ana y a las horas disponibles del portal en este navegador.</p>
+                <p style={{ color: '#D6CBB8', fontSize: '11px', margin: 0 }}>Festivos oficiales y cierres guardados en el servidor. Las reservas existentes se conservan.</p>
               </div>
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', background: '#322A25', border: '1px solid #454634', borderRadius: '10px', padding: '14px', color: '#D6CBB8', fontSize: '12px' }}><span>Agenda de Ana + Portal de clientas · Bloqueo compartido local</span><button type="button" onClick={() => setAdminTab('agenda')} style={{ marginLeft: 'auto', cursor: 'pointer', color: '#E4C687', background: 'none', border: '1px solid #C5A059', borderRadius: '7px', padding: '9px 12px' }}>Ver agenda →</button></div>
+              <OfficialHolidaysView onChanged={onPromotionsSaved} appointments={appointments} />
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', background: '#322A25', border: '1px solid #454634', borderRadius: '10px', padding: '14px', color: '#D6CBB8', fontSize: '12px' }}><span>Agenda y portal · Cierres compartidos en Supabase</span><button type="button" onClick={() => setAdminTab('agenda')} style={{ marginLeft: 'auto', cursor: 'pointer', color: '#E4C687', background: 'none', border: '1px solid #C5A059', borderRadius: '7px', padding: '9px 12px' }}>Ver agenda →</button></div>
               {newHolidayStart && newHolidayEnd && newHolidayEnd >= newHolidayStart && appointments.some(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd) && <div style={{ color: '#E4C687', fontSize: '13px', padding: '14px', borderLeft: '2px solid #b69b60' }}>Hay {appointments.filter(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd).length} citas en estas fechas. Guardar el cierre no las cancela.</div>}
-              <form onSubmit={(e) => {
+              <form onSubmit={async (e) => {
                 e.preventDefault();
+                if (holidayWriteRef.current) return;
                 if (!newHolidayStart || !newHolidayEnd) {
                   alert('Por favor, indica fecha de inicio y fin.');
                   return;
                 }
                 if (newHolidayEnd < newHolidayStart) { alert('La fecha final debe ser igual o posterior a la inicial.'); return; }
-                if (holidaysList.some(block => newHolidayStart <= block.endDate && newHolidayEnd >= block.startDate)) { alert('Ya existe un cierre en estas fechas. Revisa los periodos guardados.'); return; }
+                if (holidaysList.some(block => !block.id.startsWith('auto-') && newHolidayStart <= block.endDate && newHolidayEnd >= block.startDate)) { alert('Ya existe un cierre en estas fechas. Revisa los periodos guardados.'); return; }
                 const affected = appointments.filter(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd);
                 if (affected.length && !window.confirm(`Hay ${affected.length} citas en este periodo. Se conservarán y tendrás que revisarlas. ¿Guardar el cierre?`)) return;
                 const newBlock: HolidayBlock = {
@@ -1762,11 +1767,19 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                   reason: newHolidayReason.trim() || (newHolidayType === 'vacaciones' ? 'Vacaciones' : 'Festivo'),
                   type: newHolidayType
                 };
-                setHolidaysList([...holidaysList, newBlock]);
+                holidayWriteRef.current = true; setHolidayWriteBusy(true);
+                try {
+                  const token = studioApi.currentToken();
+                  if (!token || studioApi.storedRole() !== 'admin') throw new Error('Vuelve a iniciar sesión en la intranet.');
+                  const result = await studioApi.createClosure(token, { ...newBlock });
+                  if (!result.ok || !result.id) throw new Error('No se ha confirmado el guardado del cierre.');
+                  setHolidaysList(previous => [...previous, { ...newBlock, id: result.id }]);
                 setNewHolidayStart("");
                 setNewHolidayEnd("");
                 setNewHolidayReason("");
                 alert('¡Periodo bloqueado correctamente y sincronizado con la agenda!');
+                } catch (error) { alert(error instanceof Error ? error.message : 'No se pudo guardar el cierre.'); }
+                finally { holidayWriteRef.current = false; setHolidayWriteBusy(false); }
               }} style={{ backgroundColor: '#322A25', border: '1px solid #B98A3E', borderRadius: '10px', padding: '16px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 <h4 style={{ color: '#E4C687', fontSize: '13px', margin: 0 }}>Nuevo cierre</h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
@@ -1791,7 +1804,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                   <input type="text" placeholder="Ej. Vacaciones de verano o Festivo local de Elche" value={newHolidayReason} onChange={(e) => setNewHolidayReason(e.target.value)} style={{ padding: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '11px' }} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <button type="submit" style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>
+                  <button type="submit" disabled={holidayWriteBusy} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>
                     Guardar cierre
                   </button>
                 </div>
@@ -1803,7 +1816,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                     No hay vacaciones ni festivos bloqueados actualmente.
                   </div>
                 ) : (
-                  [...holidaysList].sort((a,b) => a.startDate.localeCompare(b.startDate)).map((h) => (
+                  holidaysList.filter(item => !item.id.startsWith('auto-')).sort((a,b) => a.startDate.localeCompare(b.startDate)).map((h) => (
                     <div key={h.id} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -1814,10 +1827,16 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                         </div>
                         <span style={{ color: '#D6CBB8', fontSize: '11px' }}>Desde el <strong>{h.startDate.split('-').reverse().join('/')}</strong> hasta el <strong>{h.endDate.split('-').reverse().join('/')}</strong></span>
                       </div>
-                      <button onClick={() => {
-                        if (window.confirm('¿Eliminar este bloqueo y permitir reservas en estas fechas?')) {
-                          setHolidaysList(holidaysList.filter(item => item.id !== h.id));
-                        }
+                      <button disabled={holidayWriteBusy} onClick={async () => {
+                        if (holidayWriteRef.current || !window.confirm('¿Eliminar este cierre manual? Otros festivos o cierres seguirán aplicándose.')) return;
+                        holidayWriteRef.current = true; setHolidayWriteBusy(true);
+                        try {
+                          const token = studioApi.currentToken();
+                          if (!token || studioApi.storedRole() !== 'admin') throw new Error('Vuelve a iniciar sesión.');
+                          await studioApi.deleteClosure(token, h.id);
+                          setHolidaysList(previous => previous.filter(item => item.id !== h.id));
+                        } catch (error) { alert(error instanceof Error ? error.message : 'No se pudo eliminar.'); }
+                        finally { holidayWriteRef.current = false; setHolidayWriteBusy(false); }
                       }} style={{ backgroundColor: '#F2DCD8', border: '1px solid #8A2F23', color: '#C0392B', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>
                         Quitar cierre
                       </button>
