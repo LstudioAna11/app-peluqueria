@@ -3955,8 +3955,8 @@ function StudioApp() {
         .lst-c-body { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
         .lst-c-name { background: none; border: none; padding: 0; text-align: left; font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.02em; font-size: 18px; font-weight: 400; color: #FFF8EE; cursor: pointer; }
         .lst-c-desc { color: #4E443B; font-size: 12px; line-height: 1.55; margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-        .lst-c-meta { color: #E4C687; font-size: 13px; font-weight: 600; margin: 0; }
-        .lst-c-cta { margin-top: auto; justify-content: center; }
+        .lst-c-meta { color: #E4C687; font-size: 13px; font-weight: 600; margin: auto 0 0; padding-top: 10px; }
+        .lst-c-cta { margin-top: 4px; justify-content: center; }
         .lst-carousel-arrow { display: none; width: 36px; height: 36px; min-width: 36px; border-radius: 50%; border: 1px solid rgba(255, 248, 238, 0.14); background: #221D19; color: #E4C687; cursor: pointer; align-items: center; justify-content: center; padding: 0; }
         .lst-carousel-arrow:hover { background: #322A25; }
         @media (max-width: 640px) {
