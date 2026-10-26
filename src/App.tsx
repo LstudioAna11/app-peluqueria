@@ -3920,7 +3920,7 @@ function StudioApp() {
         .lst-bottom-nav button.lst-bottom-active { color: #C49A58; }
         .lst-bottom-nav button:hover { color: #E4C687; }
         .lst-detail-eyebrow { color: #D8C29A; font-size: 11px; letter-spacing: 1.5px; }
-        .lst-detail-title { font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.02em; font-size: 30px; font-weight: 400; color: #FFF8EE; margin: 6px 0 0; }
+        .lst-detail-title { font-family: 'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif; letter-spacing: 0.02em; font-size: 24px; font-weight: 400; color: #E4C687; margin: 6px 0 0; }
         .lst-detail-desc { color: #EFE5D4; font-size: 14px; line-height: 1.7; margin: 8px 0 0; }
         .lst-include-row { display: flex; align-items: center; gap: 14px; padding: 12px 0; border-bottom: 1px solid rgba(255, 248, 238, 0.14); }
         .lst-include-row:last-child { border-bottom: none; }
@@ -4548,9 +4548,9 @@ function StudioApp() {
                           : <span className="lst-c-media-fallback"><strong>LS</strong><small>{bizConfig.name}</small></span>}
                       </button>
                       <div className="lst-c-body">
-                        <h2 className="lst-c-name" style={{ margin: '0 0 10px', fontSize: 23, lineHeight: 1.25 }}>{bookingName(sub)}</h2>
-                        {name.trim() !== bookingName(sub).trim() && <p style={{ color: '#FFF8EE', fontSize: 16, lineHeight: 1.5, margin: '0 0 8px' }}>{name}</p>}
-                        {!!serviceText(sub, 'slogan').trim() && <p className="lst-c-desc" style={{ color: '#E5D7BF', lineHeight: 1.5 }}>{serviceText(sub, 'slogan')}</p>}
+                        <h2 className="lst-c-name" style={{ margin: '0 0 8px', color: '#E4C687', fontSize: 19, lineHeight: 1.3, cursor: 'default' }}>{bookingName(sub)}</h2>
+                        {name.trim() !== bookingName(sub).trim() && <p style={{ color: '#F0E6D2', fontSize: 14, lineHeight: 1.5, margin: '0 0 8px' }}>{name}</p>}
+                        {!!serviceText(sub, 'slogan').trim() && <p className="lst-c-desc" style={{ color: '#BFCDB9', fontSize: 13, lineHeight: 1.5 }}>{serviceText(sub, 'slogan')}</p>}
                         <p className="lst-c-meta">{portalShowsPrices ? sub.price : ''}{sub.duration ? (portalShowsPrices ? ' · ' : '') + sub.duration : ''}</p>
                         <div className="lst-c-cta" style={{ display: 'flex' }}>
                           <button type="button" className="lst-btn-ver" style={{ width: '100%', justifyContent: 'center' }} onClick={() => openDetail(sub)}>{t('viewService')} <ArrowRight size={15} strokeWidth={2} aria-hidden="true" /></button>
@@ -4605,7 +4605,7 @@ function StudioApp() {
           <header style={{ display: 'flex', flexDirection: 'column' }}>
             <span className="lst-detail-eyebrow">{categoryText(viewServiceDetail.cat)}</span>
             <h1 className="lst-detail-title">{bookingName(detailSub)}</h1>
-            {(serviceText(detailSub, 'name') || detailSub.name).trim() !== bookingName(detailSub).trim() && <p style={{ color: '#FFF8EE', fontSize: 17, lineHeight: 1.5, margin: '8px 0' }}>{serviceText(detailSub, 'name') || detailSub.name}</p>}
+            {(serviceText(detailSub, 'name') || detailSub.name).trim() !== bookingName(detailSub).trim() && <p style={{ color: '#F0E6D2', fontSize: 14, lineHeight: 1.5, margin: '8px 0' }}>{serviceText(detailSub, 'name') || detailSub.name}</p>}
             {!!serviceText(detailSub, 'description') && <p className="lst-detail-desc">{serviceText(detailSub, 'description')}</p>}
             {detailSub.imageCredit && <p style={{ fontSize: 10, color: '#D6CBB8', lineHeight: 1.5 }}>{detailSub.imageCredit}</p>}
           </header>
