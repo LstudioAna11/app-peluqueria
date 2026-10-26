@@ -4446,7 +4446,30 @@ function StudioApp() {
           {selectedServicesToBook.length > 0 && <section id="booking-selection-summary" aria-label="Resumen de tu selección" style={{ backgroundColor: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', padding: '20px', borderRadius: 12 }}>
             <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '20px', margin: '0 0 14px', fontWeight: 400 }}>Tu selección</h2>
             {selectedServicesToBook.map(item => <div key={item.sub.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid #E4DCCF' }}>
-              <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#E4C687' }}>{serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#E4C687' }}>{item.sub.hasVariants && !item.variant ? t('chooseOption') : (portalShowsPrices ? (item.variant?.price || item.sub.price) + ' · ' : '') + (item.variant?.duration || item.sub.duration)}</span></div>
+              <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#E4C687', flex: 1, minWidth: 0 }}>{serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#E4C687' }}>{item.sub.hasVariants && !item.variant ? t('chooseOption') : (portalShowsPrices ? (item.variant?.price || item.sub.price) + ' · ' : '') + (item.variant?.duration || item.sub.duration)}</span>
+                {(() => {
+                  const currentSub = catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub;
+                  if (!currentSub.hasVariants || !currentSub.variants?.length) return null;
+                  const selectedId = currentSub.variants.some(variant => variant.id === item.variant?.id) ? item.variant!.id : '';
+                  return <label style={{ display: 'block', marginTop: 10 }}>
+                    <span style={{ display: 'block', marginBottom: 6 }}>{t('chooseOption')}</span>
+                    <select
+                      aria-label={t('chooseOption') + ': ' + serviceText(currentSub, 'name')}
+                      value={selectedId}
+                      onChange={event => {
+                        const variant = currentSub.variants!.find(option => option.id === event.target.value) || null;
+                        setSelectedServicesToBook(previous => previous.map(selected => selected.sub.id === currentSub.id ? { ...selected, sub: currentSub, variant } : selected));
+                      }}
+                      style={{ width: '100%', boxSizing: 'border-box', minHeight: 48, padding: '10px 8px', background: '#221D19', color: '#FFF8EE', border: '1px solid #C49A58', borderRadius: 8, fontSize: 14 }}
+                    >
+                      <option value="">{t('chooseOption')}</option>
+                      {currentSub.variants.map(variant => <option key={variant.id} value={variant.id}>
+                        {variantText(variant, currentSub)}{portalShowsPrices ? ' · ' + variant.price : ''} · {variant.duration}
+                      </option>)}
+                    </select>
+                  </label>;
+                })()}
+              </div>
               <button type="button" aria-label={'Quitar ' + serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')} onClick={() => setSelectedServicesToBook(previous => previous.filter(selected => selected.sub.id !== item.sub.id))} style={{ background: 'none', border: 'none', color: '#D6CBB8', cursor: 'pointer', padding: '10px', minHeight: '44px', minWidth: '44px', fontSize: '12px' }}>{t('remove')}</button>
             </div>)}
             <p style={{ color: '#D6CBB8', fontSize: '13px', margin: '14px 0 0' }}>Duración total: {getModalDuration(selectedServicesToBook)} min</p>
