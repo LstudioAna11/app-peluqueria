@@ -1,1 +1,35 @@
 .lst-promotions{color:#fff8ee;min-width:0}.lst-promotions h2,.lst-promotions h3{color:#e4c687}.lst-promotions p{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6}.lst-promo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:16px;margin-top:18px}.lst-promo-card{background:#322a25;border:1px solid #67543c;border-radius:16px;overflow:hidden;min-width:0}.lst-promo-card img{width:100%;height:210px;object-fit:cover;display:block}.lst-promo-body{padding:18px}.lst-promo-body h3{margin-top:0}.lst-promo-price{font-size:23px;color:#e4c687}.lst-promotions button{min-height:44px;padding:10px 14px;background:#c99e52;color:#221d19;border:1px solid #c99e52;border-radius:8px;cursor:pointer;margin:4px 0}.lst-promotions button:disabled{opacity:.5;cursor:default}.lst-promotions fieldset{border:1px solid #67543c;border-radius:12px;padding:18px;margin:18px 0}.lst-promotions label{display:block;margin:12px 0}.lst-promotions input:not([type=checkbox]),.lst-promotions textarea{display:block;box-sizing:border-box;width:100%;min-height:44px;background:#221d19;color:#fff8ee;border:1px solid #897351;border-radius:7px;padding:10px;margin-top:6px;font:inherit}.lst-promotions textarea{min-height:100px}.lst-promotions summary{cursor:pointer;min-height:32px}.lst-promotions :focus-visible{outline:2px solid #e4c687;outline-offset:3px}
+
+/* Seis accesos en el portal; la ventana se monta fuera de la barra. */
+nav.lst-bottom-nav {
+  display: grid !important;
+  grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  gap: 0 !important;
+}
+nav.lst-bottom-nav > button {
+  min-width: 0;
+  width: 100%;
+  min-height: 48px;
+  padding-left: 2px !important;
+  padding-right: 2px !important;
+}
+nav.lst-bottom-nav > button > span {
+  font-size: 11px;
+  white-space: nowrap;
+}
+dialog.lst-promo-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  box-sizing: border-box;
+  width: min(640px, calc(100% - 32px));
+  max-height: 85vh;
+  overflow-y: auto;
+  padding: 20px;
+  background: #221D19;
+  color: #FFF8EE;
+  border: 1px solid #C99E52;
+  border-radius: 16px;
+  text-align: left;
+}
+dialog.lst-promo-dialog::backdrop { background: rgba(0,0,0,.75); }
