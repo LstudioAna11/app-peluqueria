@@ -4005,7 +4005,25 @@ function StudioApp() {
           <button type="button" aria-label="Mis notificaciones" aria-expanded={pushPanelOpen} onClick={() => { setPushPanelOpen(true); setPushError(null); setPushTestResult(null); void refreshPushStatus(); }}>
             <Bell size={20} strokeWidth={1.7} aria-hidden="true" /><span>Avisos</span>
           </button>
-          <PromotionsPortalButton promotions={bizConfig.promotions} />
+          <PromotionsPortalButton
+            promotions={bizConfig.promotions}
+            serviceOptions={catalog.flatMap(cat => cat.subservices.filter(sub => sub.active !== false).map(sub => ({ id: sub.id, label: bookingName(sub) })))}
+            onReserve={promotion => {
+              const currentPromotion = bizConfig.promotions?.find(item => item.id === promotion.id);
+              const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+              if (!currentPromotion || !currentPromotion.active || (currentPromotion.startDate && currentPromotion.startDate > today) || (currentPromotion.endDate && currentPromotion.endDate < today)) {
+                alert('Esta promoción ya no está disponible.'); return false;
+              }
+              const cat = catalog.find(category => category.subservices.some(sub => sub.id === currentPromotion.bookingServiceId && sub.active !== false));
+              const sub = cat?.subservices.find(service => service.id === currentPromotion.bookingServiceId && service.active !== false);
+              if (!cat || !sub) { alert('El servicio de esta promoción no está disponible para reservar ahora.'); return false; }
+              setActiveCatalogTab(cat.id);
+              setViewServiceDetail({ cat, sub });
+              setCurrentScreen('serviceDetail');
+              window.scrollTo({ top: 0 });
+              return true;
+            }}
+          />
           <button type="button" className={currentScreen === 'clientHistoryPage' ? 'lst-bottom-active' : ''} onClick={() => setCurrentScreen('clientHistoryPage')}>
             <User size={20} strokeWidth={1.7} aria-hidden="true" /><span>Perfil</span>
           </button>
