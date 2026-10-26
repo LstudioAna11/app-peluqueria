@@ -89,6 +89,11 @@ const settingsForClient = (configuration: unknown): unknown => {
   if (!configuration || typeof configuration !== "object" || Array.isArray(configuration)) return configuration ?? null;
   const safe: Record<string, unknown> = { ...(configuration as Record<string, unknown>) };
   for (const key of CLIENT_FORBIDDEN_SETTINGS) delete safe[key];
+  // Never send drafts, scheduled or expired promotions to a client.
+  if (Array.isArray(safe.promotions)) {
+    const today = new Intl.DateTimeFormat('sv-SE', { timeZone: MADRID_TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    safe.promotions = safe.promotions.filter((p: any) => p && p.active === true && typeof p.title === 'string' && p.title.trim() && (!p.startDate || p.startDate <= today) && (!p.endDate || p.endDate >= today));
+  }
   return safe;
 };
 
