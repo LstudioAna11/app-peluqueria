@@ -536,6 +536,7 @@ export interface SubService {
 }
 
 export interface CatalogCategory {
+  portalTitle?: string;
   slogan?: string;
   translations?: Record<string, { title?: string }>; 
   id: string;
@@ -917,7 +918,7 @@ function readStoredValue(key: string, raw: string): any {
   }));
   if (key === 'lst_master_catalog') return records.map(category => ({
     ...category, id: safeText(category.id), code: safeText(category.code),
-    title: safeText(category.title), slogan: safeText(category.slogan),
+    title: safeText(category.title), portalTitle: safeText(category.portalTitle), slogan: safeText(category.slogan),
     subservices: (Array.isArray(category.subservices) ? category.subservices : [])
       .filter((sub: any) => sub && typeof sub === 'object').map((sub: any) => ({
         ...sub, id: safeText(sub.id), name: safeText(sub.name), bookingName: safeText(sub.bookingName),
@@ -1379,7 +1380,7 @@ function StudioApp() {
       if (!categories || submitted.some(category => {
         const stored = categories.find(item => item.id === category.id);
         const keys = ['name', 'bookingName', 'imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
-        return !stored || (stored.slogan || '') !== (category.slogan || '') || (stored.imageUrl || '') !== (category.imageUrl || '') || category.subservices.some(service => {
+        return !stored || stored.title !== category.title || (stored.portalTitle || '') !== (category.portalTitle || '') || (stored.slogan || '') !== (category.slogan || '') || (stored.imageUrl || '') !== (category.imageUrl || '') || category.subservices.some(service => {
           const saved = stored.subservices?.find(s => s.id === service.id);
           return !saved || keys.some(key => JSON.stringify(saved[key] ?? null) !== JSON.stringify(service[key] ?? null));
         });
@@ -2978,6 +2979,7 @@ function StudioApp() {
   const categoryText = (category: CatalogCategory) => {
     const custom = category.translations?.[currentLang]?.title?.trim();
     if (custom) return custom;
+    if (category.portalTitle?.trim()) return category.portalTitle.trim();
     if (currentLang === 'es') return category.title;
     const normalized = category.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’']/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
     const known: Record<string, string> = {
@@ -4446,7 +4448,7 @@ function StudioApp() {
           {selectedServicesToBook.length > 0 && <section id="booking-selection-summary" aria-label="Resumen de tu selección" style={{ backgroundColor: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', padding: '20px', borderRadius: 12 }}>
             <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '20px', margin: '0 0 14px', fontWeight: 400 }}>Tu selección</h2>
             {selectedServicesToBook.map(item => <div key={item.sub.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid #E4DCCF' }}>
-              <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#E4C687', flex: 1, minWidth: 0 }}>{serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#E4C687' }}>{item.sub.hasVariants && !item.variant ? t('chooseOption') : (portalShowsPrices ? (item.variant?.price || item.sub.price) + ' · ' : '') + (item.variant?.duration || item.sub.duration)}</span>
+              <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#E4C687', flex: 1, minWidth: 0 }}>{bookingName(item.sub)}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#E4C687' }}>{item.sub.hasVariants && !item.variant ? t('chooseOption') : (portalShowsPrices ? (item.variant?.price || item.sub.price) + ' · ' : '') + (item.variant?.duration || item.sub.duration)}</span>
                 {(() => {
                   const currentSub = catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub;
                   if (!currentSub.hasVariants || !currentSub.variants?.length) return null;
@@ -4470,7 +4472,7 @@ function StudioApp() {
                   </label>;
                 })()}
               </div>
-              <button type="button" aria-label={'Quitar ' + serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name')} onClick={() => setSelectedServicesToBook(previous => previous.filter(selected => selected.sub.id !== item.sub.id))} style={{ background: 'none', border: 'none', color: '#D6CBB8', cursor: 'pointer', padding: '10px', minHeight: '44px', minWidth: '44px', fontSize: '12px' }}>{t('remove')}</button>
+              <button type="button" aria-label={'Quitar ' + bookingName(item.sub)} onClick={() => setSelectedServicesToBook(previous => previous.filter(selected => selected.sub.id !== item.sub.id))} style={{ background: 'none', border: 'none', color: '#D6CBB8', cursor: 'pointer', padding: '10px', minHeight: '44px', minWidth: '44px', fontSize: '12px' }}>{t('remove')}</button>
             </div>)}
             <p style={{ color: '#D6CBB8', fontSize: '13px', margin: '14px 0 0' }}>Duración total: {getModalDuration(selectedServicesToBook)} min</p>
             {(() => {
