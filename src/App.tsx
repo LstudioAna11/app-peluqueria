@@ -454,6 +454,7 @@ export interface ServiceVariant {
 }
 
 export interface Appointment {
+  promotionOrigin?: { id: string; title: string };
   promotion?: PromotionDiscount;
   clientId?: string | null;
   bookingChannel?: 'portal' | 'admin';
@@ -1009,6 +1010,7 @@ function StudioApp() {
   const [expandedCategories, setExpandedCategories] = useState<{ [key: string]: boolean }>({});
   const [selectedVisualTime, setSelectedVisualTime] = useState<string>('');
   const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null);
+  const [selectedPromotionOrigin, setSelectedPromotionOrigin] = useState<{ id: string; title: string } | null>(null);
   const [selectedPromotionId, setSelectedPromotionId] = useState<string | null>(null);
   const [visualBookingBusy, setVisualBookingBusy] = useState(false);
   const [visualBookingError, setVisualBookingError] = useState('');
@@ -1932,7 +1934,7 @@ function StudioApp() {
       setAppointments(previous => [...previous.filter(item => item.id !== saved.id && item.serverId !== saved.serverId), saved]);
       setRegisteredAppointment(saved);
       setBookingSuccessMsg('Solicitud enviada al Studio · Pendiente de confirmación de Ana.');
-      setSelectedServicesToBook([]); setSelectedPromotionId(null); setIsModalOpen(false); setSaturdayRequestModal(null);
+      setSelectedServicesToBook([]); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setIsModalOpen(false); setSaturdayRequestModal(null);
       setCurrentScreen('catalogBooking');
     } catch (error) {
       setPendingBookingError(error instanceof Error ? error.message : 'No se ha podido enviar la solicitud. Conservamos tus datos para reintentar.');
@@ -1962,7 +1964,7 @@ function StudioApp() {
       bookingClientId = matches.length === 1 ? String(matches[0].id) : null;
     }
     const result = await studioApi.createAppointmentOnServer(token, {
-      id: draft.id, clientId: bookingClientId, promotionId: draft.promotion?.promotionId,
+      id: draft.id, clientId: bookingClientId, promotionId: draft.promotion?.promotionId, promotionOriginId: draft.promotionOrigin?.id,
       dateKey: draft.dateKey, time: draft.time, dayName: draft.dayName,
       durationMinutes: draft.durationMinutes, bookingChannel: draft.bookingChannel || (studioApi.storedRole() === 'admin' ? 'admin' : 'portal'),
       approval: draft.saturdayApproval ? { status: draft.saturdayApproval.status, reason: draft.saturdayApproval.reason, reference: draft.saturdayApproval.reference } : null,
@@ -1988,7 +1990,7 @@ function StudioApp() {
       setAppointments(previous => [...previous.filter(item => item.id !== saved.id && item.serverId !== saved.serverId), saved]);
       setRegisteredAppointment(saved);
       setBookingSuccessMsg(saved.saturdayApproval?.status === 'pending' ? 'Solicitud enviada al Studio · Pendiente de confirmación de Ana.' : 'Solicitud enviada al Studio · Pendiente de comprobar el anticipo.');
-      setSelectedServicesToBook([]); setSelectedPromotionId(null); setIsModalOpen(false); setCurrentScreen('catalogBooking'); setAdvancePaymentModal(null);
+      setSelectedServicesToBook([]); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setIsModalOpen(false); setCurrentScreen('catalogBooking'); setAdvancePaymentModal(null);
     } catch (error) {
       setPendingBookingError(error instanceof Error ? error.message : 'No se ha podido enviar la solicitud. Conservamos tus datos para reintentar.');
     } finally { pendingBookingBusyRef.current = false; setPendingBookingBusy(false); }
@@ -2030,7 +2032,7 @@ function StudioApp() {
     return <section style={{ border: '1px solid #C99E52', borderRadius: 10, padding: 12, margin: '10px 0', color: '#E4C687', fontSize: 13 }}>
       <strong>Promoción: {selectedPromotion?.title || 'No disponible'}</strong>
       {preview.discount ? <p>{preview.discount.serviceName}{preview.discount.variantName ? ' · ' + preview.discount.variantName : ''}: <del>{preview.discount.originalAmount.toFixed(2)} €</del> → <strong>{preview.discount.finalAmount.toFixed(2)} €</strong> (−{preview.discount.percent} %). Los otros servicios conservan su precio.</p> : <p role="status">{preview.error}</p>}
-      <button type="button" onClick={() => setSelectedPromotionId(null)} style={{ minHeight: 44, background: 'transparent', border: '1px solid #67543C', color: '#FFF8EE', borderRadius: 6 }}>Continuar sin promoción</button>
+      <button type="button" onClick={() => { setSelectedPromotionId(null); setSelectedPromotionOrigin(null); }} style={{ minHeight: 44, background: 'transparent', border: '1px solid #67543C', color: '#FFF8EE', borderRadius: 6 }}>Continuar sin promoción</button>
     </section>;
   };
   const getSelectionTotal = (items: { sub: SubService; variant: ServiceVariant | null }[]) => {
@@ -2577,6 +2579,7 @@ function StudioApp() {
       professionalId: row.professional_id ?? null,
       professionalName: row.professional_name ?? null,
       promotion: snap.promotion || undefined,
+      promotionOrigin: snap.promotionOrigin || undefined,
     };
     if (row.lifecycle_status) appointment.lifecycleStatus = row.lifecycle_status as Appointment['lifecycleStatus'];
     if (['pending', 'accepted', 'rejected'].includes(String(row.approval_status))) {
@@ -3239,7 +3242,7 @@ function StudioApp() {
   const visualBookingSignature = () => JSON.stringify({
     client: currentClientRecord?.serverId || currentClientRecord?.email || '',
     date: formatDateKey(bookingDate), time: selectedVisualTime, professional: selectedProfessionalId,
-    promotionId: selectedPromotionId,
+    promotionId: selectedPromotionId, promotionOriginId: selectedPromotionOrigin?.id,
     services: selectedServicesToBook.map(item => ({ id: item.sub.id, variant: item.variant?.id || null }))
   });
   const handleConfirmarCitaVisual = async () => {
@@ -3300,6 +3303,7 @@ function StudioApp() {
     const newApp: Appointment = {
       bookingChannel: 'portal',
       promotion: promoPreview.discount || undefined,
+      promotionOrigin: selectedPromotionOrigin || undefined,
       id: Date.now().toString(),
       dateKey: dateKeyStr,
       dayName: dayNameStr,
@@ -3352,7 +3356,7 @@ function StudioApp() {
           : tf('bookingConfirmed', { date: new Date(saved.dateKey + 'T12:00:00').toLocaleDateString(portalLocale), time: saved.time });
       setBookingSuccessMsg(message);
       visualBookingAttemptRef.current = null;
-      setSelectedServicesToBook([]); setSelectedPromotionId(null);
+      setSelectedServicesToBook([]); setSelectedPromotionId(null); setSelectedPromotionOrigin(null);
       setCurrentScreen('catalogBooking');
       setTimeout(() => setBookingSuccessMsg(null), 8000);
     } catch (error) {
@@ -3940,6 +3944,15 @@ function StudioApp() {
     }
   };
 
+  const renderPromotionBadge = (appointment: Appointment) => {
+    const title = appointment.promotionOrigin?.title || appointment.promotion?.title;
+    if (!appointment.promotionOrigin?.id && !appointment.promotion?.promotionId) return null;
+    return <span title={'Reserva con promoción: ' + (title || 'Promoción')} aria-label={'Reserva con promoción: ' + (title || 'Promoción')}
+      style={{ display: 'inline-flex', alignItems: 'center', alignSelf: 'flex-start', gap: 4, padding: '3px 7px', borderRadius: 6, background: '#C99E52', color: '#221D19', fontSize: 10, fontWeight: 700, lineHeight: 1.3, marginTop: 3 }}>
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 13 13 20a2 2 0 0 1-2.83 0L2 11.83V2h9.83L20 10.17a2 2 0 0 1 0 2.83Z"/><circle cx="7" cy="7" r="1"/></svg>Promo
+    </span>;
+  };
+
   const renderDurationAgenda = (days: { name: string; dateObj: Date; dateFormatted: string }[]) => {
     const minutes = (time: string) => { const [hour, minute] = time.split(':').map(Number); return hour * 60 + minute; };
     return <div className="studio-agenda-grid" style={{ display: 'grid', gridTemplateColumns: '52px repeat(' + days.length + ', minmax(105px, 1fr))',
@@ -4020,7 +4033,7 @@ function StudioApp() {
               background: adminAppointmentColor(item).background, border: '1px solid #3A312A', borderLeft: '3px solid ' + adminAppointmentColor(item).border,
               color: appointmentText, borderRadius: '5px', cursor: 'pointer', overflow: 'hidden',
               display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: '3px' }}>
-            <strong style={{ fontSize: '10px', letterSpacing: '0.3px', color: appointmentText }}>{item.time}–{minuteTime(end)}</strong>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 3, width: '100%' }}><strong style={{ fontSize: '10px', letterSpacing: '0.3px', color: appointmentText }}>{item.time}–{minuteTime(end)}</strong>{renderPromotionBadge(item)}</div>
             <strong style={{ color: appointmentText, fontSize: '13px', lineHeight: 1.25, overflowWrap: 'anywhere' }}>{item.clientName}</strong>
             <span style={{ fontSize: '11px', lineHeight: 1.3, color: appointmentText, overflowWrap: 'anywhere' }}>{serviceLabel}</span>
           </button>;
@@ -4213,6 +4226,7 @@ function StudioApp() {
               if (selection.some(item => item.sub.isCutGoService) && selection.some(item => item.sub.isStylingService && !item.sub.isCutGoService)) {
                 alert('Esta promoción combina peinado y Cut & Go. Contacta con el Studio para revisar los servicios incluidos.'); return false;
               }
+              setSelectedPromotionOrigin({ id: currentPromotion.id, title: currentPromotion.title });
               setSelectedPromotionId(currentPromotion.discountPercent ? currentPromotion.id : null);
               setSelectedServicesToBook(selection);
               setViewServiceDetail(null);
@@ -4497,6 +4511,7 @@ function StudioApp() {
               <span style={{ backgroundColor: 'rgba(255, 248, 238, 0.08)', color: '#E0E8D9', fontSize: '10px', padding: '3px 9px', borderRadius: '20px' }}>{clientAppointmentStatus}</span>
             </div>
             {clientNextAppointment ? <>
+              {renderPromotionBadge(clientNextAppointment)}
               <div style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '19px', lineHeight: 1.35 }}>
                 {new Date(`${clientNextAppointment.dateKey}T12:00:00`).toLocaleDateString(portalLocale, { weekday: 'long', day: 'numeric', month: 'long' })}
                 <span style={{ color: '#E4C687' }}> · {clientNextAppointment.time}</span>
@@ -4518,6 +4533,7 @@ function StudioApp() {
               <span style={{ color: '#E4C687', fontSize: '11px', letterSpacing: '1px' }}>OTRAS CITAS PRÓXIMAS ({clientUpcomingAppointments.length - 1})</span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {clientUpcomingAppointments.slice(1).map(appointment => <article key={appointment.id} style={{ background: '#344239', border: '1px solid #64745D', borderRadius: '8px', padding: '10px' }}>
+                  {renderPromotionBadge(appointment)}
                   <strong style={{ fontSize: '12px', color: '#FFF8EE' }}>{new Date(`${appointment.dateKey}T12:00:00`).toLocaleDateString(portalLocale, { weekday: 'long', day: 'numeric', month: 'long' })} · {appointment.time}</strong>
                   <p style={{ color: '#E0E8D9', fontSize: '11px', margin: '4px 0 8px', overflowWrap: 'anywhere' }}>{appointmentServiceNames(appointment)}</p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
@@ -5410,6 +5426,7 @@ function StudioApp() {
 <h3 style={{ color: '#FFF8EE', fontSize: '26px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{viewApptModal.clientName}</h3>
 <p style={{ color: '#E4C687', fontSize: 14, margin: '7px 0 0' }}>{viewApptModal.dateKey.split('-').reverse().join('/')} · {viewApptModal.time} · {viewApptModal.durationMinutes || 45} min</p>
 <span style={{ display: 'inline-block', fontSize: 11, color: '#E4C687', marginTop: 7 }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada' : viewApptModal.completedAt ? 'Finalizada' : viewApptModal.saturdayApproval?.status === 'rejected' ? 'Solicitud rechazada' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Anticipo pendiente' : 'Confirmada'}</span>
+{renderPromotionBadge(viewApptModal)}
 </div><button type="button" autoFocus onClick={() => setViewApptModal(null)} aria-label="Cerrar detalle de la cita" style={{background:'transparent',border:'1px solid #655039',borderRadius:8,color:'#FFF8EE',minWidth:40,minHeight:40,cursor:'pointer'}}>✕</button></header><div className="lst-appt-body"><div className="lst-appt-column">
 
 
@@ -5510,6 +5527,7 @@ function StudioApp() {
                 {viewApptModal.saturdayApproval.status === 'accepted' && <a style={{ color: '#E4C687' }} target="_blank" rel="noreferrer" href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(viewApptModal.advancePayment?.status === 'pending' ? `Hola ${viewApptModal.clientName}. Ana ha aceptado tu solicitud para el ${viewApptModal.dateKey.split('-').reverse().join('/')} a las ${viewApptModal.time}. Para confirmar, realiza un Bizum de ${viewApptModal.advancePayment?.amount} € al ${bizConfig.bizumNumber}. Concepto: ${advancePaymentConcept(viewApptModal)}. Confirmaremos al comprobar el pago.` : generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time))}`}>Abrir WhatsApp para avisar a la clienta</a>}
               </div>
             )}
+{viewApptModal.promotionOrigin && !viewApptModal.promotion && <p style={{ color: '#E4C687', fontSize: 13 }}>Promoción: {viewApptModal.promotionOrigin.title}</p>}
 {viewApptModal.promotion && <section style={{ border: '1px solid #C99E52', padding: 12, borderRadius: 8, color: '#E4C687', fontSize: 13 }}><strong>Promoción aplicada · {viewApptModal.promotion.title}</strong><p>{viewApptModal.promotion.serviceName} · {viewApptModal.promotion.variantName}</p><p>{viewApptModal.promotion.originalAmount.toFixed(2)} € → {viewApptModal.promotion.finalAmount.toFixed(2)} € (−{viewApptModal.promotion.percent} %)</p>{viewApptModal.promotion.totalAfter != null && <p>{viewApptModal.promotion.orientative ? 'Total orientativo' : 'Total acordado'}: {viewApptModal.promotion.totalAfter.toFixed(2)} €</p>}<small>Descuento solo en este servicio. Los demás mantienen su precio.</small></section>}
 {viewApptModal.advancePayment && ['pending', 'confirmed', 'received', 'paid'].includes(String(viewApptModal.advancePayment.status)) && Number(viewApptModal.advancePayment.amount) > 0 && isActiveAppointment(viewApptModal) && (
               <div style={{ border: '1px solid #C5A059', borderRadius: '8px', padding: '12px', color: '#FFF8EE', fontSize: '14px' }}>
@@ -5629,6 +5647,7 @@ function StudioApp() {
               <button onClick={() => setViewApptModal(null)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Cerrar</button>
             </div></footer></div></>) : (<div style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', maxWidth: '560px', width: '100%', boxSizing: 'border-box', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
             <p style={{ color: '#E4C687', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
+            {renderPromotionBadge(viewApptModal)}
             <h3 style={{ color: '#FFF8EE', fontSize: '26px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{viewApptModal.clientName}</h3>
             <div style={{ backgroundColor: adminAppointmentColor(viewApptModal).background, border: `1px solid ${adminAppointmentColor(viewApptModal).border}`, borderRadius: '10px', padding: '18px', color: adminAppointmentText(viewApptModal) }}>
               <strong style={{ fontSize: '14px', color: adminAppointmentText(viewApptModal) }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada · Hueco liberado' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada · Registro conservado' : viewApptModal.completedAt ? 'Realizada · Registrada en el pasaporte' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Cita confirmada'}</strong>
@@ -5712,7 +5731,8 @@ function StudioApp() {
                 {viewApptModal.saturdayApproval.status === 'accepted' && <a style={{ color: '#E4C687' }} target="_blank" rel="noreferrer" href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(viewApptModal.advancePayment?.status === 'pending' ? `Hola ${viewApptModal.clientName}. Ana ha aceptado tu solicitud para el ${viewApptModal.dateKey.split('-').reverse().join('/')} a las ${viewApptModal.time}. Para confirmar, realiza un Bizum de ${viewApptModal.advancePayment?.amount} € al ${bizConfig.bizumNumber}. Concepto: ${advancePaymentConcept(viewApptModal)}. Confirmaremos al comprobar el pago.` : generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time))}`}>Abrir WhatsApp para avisar a la clienta</a>}
               </div>
             )}
-            {viewApptModal.promotion && <section style={{ border: '1px solid #C99E52', padding: 12, borderRadius: 8, color: '#E4C687', fontSize: 13 }}><strong>Promoción aplicada · {viewApptModal.promotion.title}</strong><p>{viewApptModal.promotion.serviceName} · {viewApptModal.promotion.variantName}</p><p>{viewApptModal.promotion.originalAmount.toFixed(2)} € → {viewApptModal.promotion.finalAmount.toFixed(2)} € (−{viewApptModal.promotion.percent} %)</p>{viewApptModal.promotion.totalAfter != null && <p>{viewApptModal.promotion.orientative ? 'Total orientativo' : 'Total acordado'}: {viewApptModal.promotion.totalAfter.toFixed(2)} €</p>}<small>Descuento solo en este servicio. Los demás mantienen su precio.</small></section>}
+            {viewApptModal.promotionOrigin && !viewApptModal.promotion && <p style={{ color: '#E4C687', fontSize: 13 }}>Promoción: {viewApptModal.promotionOrigin.title}</p>}
+{viewApptModal.promotion && <section style={{ border: '1px solid #C99E52', padding: 12, borderRadius: 8, color: '#E4C687', fontSize: 13 }}><strong>Promoción aplicada · {viewApptModal.promotion.title}</strong><p>{viewApptModal.promotion.serviceName} · {viewApptModal.promotion.variantName}</p><p>{viewApptModal.promotion.originalAmount.toFixed(2)} € → {viewApptModal.promotion.finalAmount.toFixed(2)} € (−{viewApptModal.promotion.percent} %)</p>{viewApptModal.promotion.totalAfter != null && <p>{viewApptModal.promotion.orientative ? 'Total orientativo' : 'Total acordado'}: {viewApptModal.promotion.totalAfter.toFixed(2)} €</p>}<small>Descuento solo en este servicio. Los demás mantienen su precio.</small></section>}
 {viewApptModal.advancePayment && ['pending', 'confirmed', 'received', 'paid'].includes(String(viewApptModal.advancePayment.status)) && Number(viewApptModal.advancePayment.amount) > 0 && isActiveAppointment(viewApptModal) && (
               <div style={{ border: '1px solid #C5A059', borderRadius: '8px', padding: '12px', color: '#FFF8EE', fontSize: '14px' }}>
                 <strong>Reserva anticipada: {viewApptModal.advancePayment.amount} € · {['confirmed', 'received', 'paid'].includes(String(viewApptModal.advancePayment.status)) ? 'Pago confirmado' : 'Pendiente de pago'}</strong>
