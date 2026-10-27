@@ -499,7 +499,7 @@ const FINISH_COPY: Record<StylingPolicy, string> = {
   not_applicable: 'Este servicio no necesita este complemento. No impide reservarlo con otros servicios.'
 };
 
-export type ServiceTranslation = Partial<Pick<SubService, 'name' | 'slogan' | 'description' | 'includesText' | 'achievedText' | 'forWhomText' | 'alertText'>>;
+export type ServiceTranslation = Partial<Pick<SubService, 'name' | 'slogan' | 'description' | 'includesText' | 'achievedText' | 'forWhomText' | 'conditionsText' | 'alertText'>>;
 
 export interface SubService {
   bookingName?: string;
@@ -532,6 +532,7 @@ export interface SubService {
   includesText?: string;
   achievedText?: string;
   forWhomText?: string;
+  conditionsText?: string;
   priceType?: 'desde' | 'aprox' | 'fijo' | 'consultar';
   hasVariants?: boolean;
   variants?: ServiceVariant[];
@@ -1390,7 +1391,7 @@ function StudioApp() {
       const categories = verify?.catalog?.map(row => row.category).filter(Boolean) as CatalogCategory[] | undefined;
       if (!categories || submitted.some(category => {
         const stored = categories.find(item => item.id === category.id);
-        const keys = ['name', 'bookingName', 'imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
+        const keys = ['name', 'bookingName', 'imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'conditionsText', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
         return !stored || stored.title !== category.title || (stored.portalTitle || '') !== (category.portalTitle || '') || (stored.slogan || '') !== (category.slogan || '') || (stored.imageUrl || '') !== (category.imageUrl || '') || category.subservices.some(service => {
           const saved = stored.subservices?.find(s => s.id === service.id);
           return !saved || keys.some(key => JSON.stringify(saved[key] ?? null) !== JSON.stringify(service[key] ?? null));
@@ -4843,6 +4844,7 @@ function StudioApp() {
             { field: 'includesText', title: '¿Qué incluye?', icon: Scissors },
             { field: 'achievedText', title: '¿Qué te llevas?', icon: Sparkles },
             { field: 'forWhomText', title: '¿Es para ti?', icon: UserRoundSearch },
+            { field: 'conditionsText', title: 'Condiciones del servicio', icon: Info },
           ] as const).map(({ field, title, icon: Icon }) => {
             const text = serviceText(detailSub, field).trim();
             if (!text) return null;
@@ -5126,7 +5128,7 @@ function StudioApp() {
                   </button>)}
                 </div>
               </section>}
-              {([{ title: '¿Qué incluye?', text: previewService.includesText }, { title: '¿Qué te llevas?', text: previewService.achievedText }, { title: '¿Es para ti?', text: previewService.forWhomText }]
+              {([{ title: '¿Qué incluye?', text: previewService.includesText }, { title: '¿Qué te llevas?', text: previewService.achievedText }, { title: '¿Es para ti?', text: previewService.forWhomText }, { title: 'Condiciones del servicio', text: previewService.conditionsText }]
                 .filter(section => !!section.text?.trim()).map(section => <section key={section.title} style={{ borderTop: '1px solid #C5A059', paddingTop: '20px', marginTop: '22px' }}>
                   <h3 style={{ color: '#E4C687', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '16px', fontWeight: 'normal', margin: '0 0 10px' }}>{section.title}</h3>
                   <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.8, whiteSpace: 'pre-wrap', margin: 0, overflowWrap: 'anywhere' }}>{section.text}</p>
