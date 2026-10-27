@@ -1,3 +1,4 @@
+import { AddonChoices, addonError, type AddonGroup } from './ServiceAddons';
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ChevronDown, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
 import './catalog.css';
@@ -502,6 +503,7 @@ const FINISH_COPY: Record<StylingPolicy, string> = {
 export type ServiceTranslation = Partial<Pick<SubService, 'name' | 'slogan' | 'description' | 'includesText' | 'achievedText' | 'forWhomText' | 'conditionsText' | 'alertText'>>;
 
 export interface SubService {
+  addonGroups?: AddonGroup[];
   bookingName?: string;
   consultationPhotoVersion?: number;
   cutPhotoVersion?: number;
@@ -1381,6 +1383,8 @@ function StudioApp() {
   const handleSaveCatalogMaster = async () => {
     if (catalogSavingRef.current || photoUploadBusy) return;
     catalogSavingRef.current = true;
+    const invalidAddon = catalog.flatMap(c=>c.subservices).find(sub=>sub.addonGroups?.some(g=>!g.title.trim() || (g.mode!=='included'&&!g.serviceIds.some(id=>catalog.some(c=>c.subservices.some(s=>s.id===id&&s.id!==sub.id&&s.active!==false))))));
+    if(invalidAddon){catalogSavingRef.current=false;setCatalogSavedMsg('Revisa los complementos de '+bookingName(invalidAddon)+': cada grupo necesita nombre y opciones activas, salvo los incluidos en el pack.');return;}
     const submitted = structuredClone(catalog);
     setCatalogSavedMsg('Guardando catálogo…');
     try {
@@ -1393,7 +1397,7 @@ function StudioApp() {
       const categories = verify?.catalog?.map(row => row.category).filter(Boolean) as CatalogCategory[] | undefined;
       if (!categories || submitted.some(category => {
         const stored = categories.find(item => item.id === category.id);
-        const keys = ['name', 'bookingName', 'imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'conditionsText', 'cutAllowedIds', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
+        const keys = ['name', 'bookingName', 'imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'conditionsText', 'cutAllowedIds', 'addonGroups', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
         return !stored || stored.title !== category.title || (stored.portalTitle || '') !== (category.portalTitle || '') || (stored.slogan || '') !== (category.slogan || '') || (stored.imageUrl || '') !== (category.imageUrl || '') || category.subservices.some(service => {
           const saved = stored.subservices?.find(s => s.id === service.id);
           return !saved || keys.some(key => JSON.stringify(saved[key] ?? null) !== JSON.stringify(service[key] ?? null));
@@ -2916,7 +2920,7 @@ function StudioApp() {
 
   // Reglas explícitas del catálogo: no se deducen por nombres ni descripciones.
   const latestSub = (sub: SubService) => catalog.flatMap(c => c.subservices).find(s => s.id === sub.id) || sub;
-  const finishPolicy = (sub: SubService, kind: FinishKind) => kind === 'styling' ? sub.stylingPolicy : sub.tonerPolicy;
+  const finishPolicy = (sub: SubService, kind: FinishKind) => sub.addonGroups !== undefined ? undefined : kind === 'styling' ? sub.stylingPolicy : sub.tonerPolicy;
   const isFinish = (sub: SubService, kind: FinishKind) => kind === 'styling' ? !!sub.isStylingService : !!sub.isTonerService;
   const finishCandidates = (owner: SubService, kind: FinishKind) => {
     const ids = kind === 'styling' ? owner.stylingAllowedIds : owner.tonerAllowedIds;
@@ -2954,7 +2958,7 @@ function StudioApp() {
     }
     return null;
   };
-  const getStylingError = (items: { sub: SubService; variant: ServiceVariant | null }[]) => getFinishError(items, 'styling');
+  const getStylingError = (items: { sub: SubService; variant: ServiceVariant | null }[]) => addonError(items, catalog) || getFinishError(items, 'styling');
   const previewService = catalog.flatMap(category => category.subservices).find(sub => sub.id === previewServiceId);
   const getInactiveServiceError = (items: { sub: SubService }[]) => {
     const unavailable = items.filter(item => {
@@ -2996,6 +3000,8 @@ function StudioApp() {
     });
   };
   const renderFinishChoices = (items: { sub: SubService; variant: ServiceVariant | null }[], onlyKind?: FinishKind) => <>
+    {items.map(item=>latestSub(item.sub)).filter(owner=>owner.addonGroups!==undefined).map(owner=><AddonChoices key={owner.id} owner={owner} catalog={catalog} items={selectedServicesToBook} setItems={setSelectedServicesToBook} showPrices={portalShowsPrices}/>)}
+
     {items.map(item => latestSub(item.sub)).map(owner => (['styling', 'toner'] as const).map(kind => {
       if (onlyKind && kind !== onlyKind) return null;
       const policy = finishPolicy(owner, kind);
@@ -4882,30 +4888,7 @@ function StudioApp() {
               </div>
             </section>
           )}
-          {detailSelection && <section style={{padding:14,border:'1px solid #C5A059',borderRadius:12}}>
-            <h2 style={{fontSize:16,color:'#E4C687'}}>Completa tu servicio</h2>
-            <div style={{display:'flex',gap:8}}>
-              {(['styling','cut','toner'] as const).map(kind=><button type="button" key={kind} aria-pressed={detailAddonTab===kind} onClick={()=>setDetailAddonTab(kind)} style={{flex:1,minHeight:44,border:'1px solid #C5A059',borderRadius:8,background:detailAddonTab===kind?'#C5A059':'#322A25',color:detailAddonTab===kind?'#121212':'#FFF8EE'}}>{kind==='styling'?'Peinado':kind==='cut'?'Corte':'Matiz'}</button>)}
-            </div>
-            {detailAddonTab!=='cut' ? <>
-              {finishPolicy(detailSub,detailAddonTab)==='included' ? <p>{detailAddonTab==='toner'?'Matiz':'Peinado'} incluido en precio y duración.</p> : (finishPolicy(detailSub,detailAddonTab)==='required'||finishPolicy(detailSub,detailAddonTab)==='optional') ? renderFinishChoices([detailSelection],detailAddonTab) : <p style={{fontSize:13}}>No hay opciones configuradas para este servicio.</p>}
-            </> : <div style={{display:'grid',gap:8,marginTop:12}}>
-              {!catalog.some(c=>c.subservices.some(s=>s.active!==false&&detailSub.cutAllowedIds?.includes(s.id)))&&<p style={{fontSize:13}}>No hay cortes adicionales configurados para este servicio.</p>}
-              {catalog.flatMap(c=>c.subservices).filter(s=>s.id!==detailSub.id&&s.active!==false&&detailSub.cutAllowedIds?.includes(s.id)).map(sub=><div key={sub.id}>
-                <strong style={{fontSize:14}}>{bookingName(sub)}</strong>
-                {(sub.hasVariants&&sub.variants?.length?sub.variants:[null]).map(variant=>{
-                  const selected=selectedServicesToBook.some(i=>i.sub.id===sub.id&&(i.variant?.id||'')===(variant?.id||''));
-                  return <button type="button" key={variant?.id||sub.id} aria-pressed={selected} onClick={()=>setSelectedServicesToBook(previous=>selected?previous.filter(i=>i.sub.id!==sub.id):[...previous.filter(i=>i.sub.id!==sub.id),{sub,variant}])} style={{display:'block',width:'100%',minHeight:44,padding:10,marginTop:6,border:'1px solid #C5A059',borderRadius:8,background:selected?'#C5A059':'#322A25',color:selected?'#121212':'#FFF8EE'}}>{selected?'✓ Quitar':'Añadir'}{variant?' · '+variantText(variant,sub):''}{portalShowsPrices?' · '+clientPrice(variant?.price||sub.price):''} · {variant?.duration||sub.duration}</button>;
-                })}
-              </div>)}
-            </div>}
-            <div aria-live="polite" style={{marginTop:14,borderTop:'1px solid #67543C',paddingTop:10}}>
-              <strong>Tu selección</strong>
-              {selectedServicesToBook.map(item=><p key={item.sub.id} style={{fontSize:13}}>{bookingName(item.sub)}{item.variant?' · '+variantText(item.variant,item.sub):''} <button type="button" onClick={()=>setSelectedServicesToBook(previous=>previous.filter(i=>i.sub.id!==item.sub.id))} style={{background:'transparent',color:'#E4C687',border:0,minHeight:44}}>Quitar</button></p>)}
-              <p>{portalShowsPrices?(getSelectionTotal(selectedServicesToBook).orientative?'Total estimado: ':'Total: ')+getSelectionTotal(selectedServicesToBook).total.toFixed(2)+' € · ':''}{getModalDuration(selectedServicesToBook)} min</p>
-            </div>
-          </section>}
-          {detailSelection && renderFinishChoices(selectedServicesToBook.filter(item=>item.sub.id!==detailSub.id))}
+          {detailSelection && renderFinishChoices(selectedServicesToBook)}
           {detailSelection ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 10, padding: '12px 14px' }}>
