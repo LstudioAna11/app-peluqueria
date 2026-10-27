@@ -2007,7 +2007,7 @@ function StudioApp() {
     const category = catalog[modalCatIndex];
     const sub = category?.subservices[modalSubIndex];
     if (!category || !sub) return null;
-    if (sub.active === false) { alert('Este servicio está desactivado. Selecciona otro.'); return null; }
+
     if (sub.hasVariants && sub.variants?.length && !modalSelectedVariant) {
       alert('Por favor, selecciona una variante.');
       return null;
@@ -3138,12 +3138,8 @@ function StudioApp() {
     const current = modalServices.length ? null : getModalService();
     const services = modalServices.length ? modalServices : current ? [current] : [];
     if (!services.length) return;
-    const inactiveError = getInactiveServiceError(services);
-    if (inactiveError) { alert(inactiveError); return; }
-    const stylingError = getStylingError(services);
-    if (stylingError) { alert(stylingError); return; }
-    const tonerError = getTonerError(services);
-    if (tonerError) { alert(tonerError); return; }
+    // Staff choose all services directly; portal complement rules do not apply here.
+    if (services.some(item=>item.sub.hasVariants&&item.sub.variants?.length&&!item.sub.variants.some(v=>v.id===item.variant?.id))) {alert('Selecciona una variante válida para cada servicio.');return;}
     const durationMin = getModalDuration(services);
     if (timeBlockConflict(formatDateKey(targetDateObj), targetTime, durationMin)) { alert('La cita coincide con un periodo bloqueado.'); return; }
     if (!enableOutOfHours && !isAgendaTimeWorking(targetDateObj, targetTime, durationMin)) {
@@ -5369,7 +5365,7 @@ function StudioApp() {
                 const sub = catalog[modalCatIndex]?.subservices[sIdx];
                 setModalSelectedVariant(sub?.variants?.[0] || null);
               }} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }}>
-                {catalog[modalCatIndex]?.subservices.map((sub, idx) => (<option key={sub.id} value={idx} disabled={sub.active === false}>{bookingName(sub)}{sub.active === false ? " · Desactivado" : ""}</option>))}
+                {catalog[modalCatIndex]?.subservices.map((sub, idx) => (<option key={sub.id} value={idx}>{bookingName(sub)}{sub.active === false ? " · Oculto en el portal" : ""}</option>))}
               </select>
               {catalog[modalCatIndex]?.subservices[modalSubIndex]?.hasVariants && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
