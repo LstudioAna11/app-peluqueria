@@ -305,3 +305,5 @@ export const setOfficialHolidayOpen = (token: string, day: string, open: boolean
 export interface ClientDeleteInfo {deleted:boolean; appointments:number;visits:number;feedback:number;}
 export const inspectClientDelete=(token:string,id:string)=>call<ClientDeleteInfo>('client-delete',{token,body:{id,inspect:true}});
 export const deleteClientPermanently=(token:string,id:string)=>call<ClientDeleteInfo>('client-delete',{method:'DELETE',token,body:{id}});
+
+export const saveClientDetailsOnServer=(token:string,id:string,details:unknown)=>call<{ok:true}>('client-details',{method:'PUT',token,body:{id,details}});
