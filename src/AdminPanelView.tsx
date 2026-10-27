@@ -1,3 +1,4 @@
+import { AddonEditor } from './ServiceAddons';
 import React, { useState, useEffect, useRef } from 'react';
 import { Maximize2, Minimize2, Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ChevronDown, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
 import * as studioApi from './studioApi';
@@ -1295,17 +1296,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                         setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, description: val } : s) } : c));
                                       }} rows={2} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
                                     </div>
-                                    {!isCutCategory(cat) && <>
-                                    <div className="studio-editor-booking" style={{marginTop:14}}>
-                                      <strong style={{color:'#E4C687',fontSize:13}}>Cortes para añadir desde esta ficha</strong>
-                                      <p style={{fontSize:12}}>Marca los servicios de corte compatibles. Peinado y matiz utilizan sus opciones compatibles ya configuradas.</p>
-                                      <div style={{maxHeight:180,overflowY:'auto'}}>
-                                        {catalog.filter(isCutCategory).flatMap(category=>category.subservices).filter(candidate=>candidate.id!==sub.id&&candidate.active!==false).map(candidate=><label key={candidate.id} style={{display:'block',padding:6,fontSize:13}}>
-                                          <input type="checkbox" checked={(sub.cutAllowedIds||[]).includes(candidate.id)} onChange={event=>{const checked=event.target.checked;setCatalog(previous=>previous.map(category=>category.id!==cat.id?category:{...category,subservices:category.subservices.map(service=>service.id!==sub.id?service:{...service,cutAllowedIds:checked?Array.from(new Set([...(service.cutAllowedIds||[]),candidate.id])):(service.cutAllowedIds||[]).filter(id=>id!==candidate.id)})}));}} /> {candidate.bookingName||candidate.name}
-                                        </label>)}
-                                      </div>
-                                    </div>
-                                    </>}
+
 <section className="studio-editor-booking studio-booking-buttons" style={{ padding: '16px', border: '1px solid #3A312A', borderRadius: '10px', background: '#322A25' }}>
                                       <h4 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '17px', margin: '0 0 18px' }}>Condiciones de reserva</h4>
                                       <fieldset>
@@ -1320,40 +1311,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                           {([{ value: 'main', label: 'Principal' }, { value: 'toner', label: 'Complemento de matiz' }, { value: 'styling', label: 'Complemento de peinado' }] as const).map(option => <button type="button" key={option.value} aria-pressed={option.value === 'main' ? !sub.isTonerService && !sub.isStylingService : option.value === 'toner' ? !!sub.isTonerService : !!sub.isStylingService} onClick={() => setCatalog(previous => previous.map(category => category.id !== cat.id ? category : { ...category, subservices: category.subservices.map(service => service.id !== sub.id ? service : { ...service, isTonerService: option.value === 'toner', isStylingService: option.value === 'styling', tonerPolicy: option.value === 'toner' ? undefined : service.tonerPolicy, stylingPolicy: option.value === 'styling' ? undefined : service.stylingPolicy }) }))}>{option.label}</button>)}
                                         </div>
                                       </fieldset>
-                                      {(!sub.isTonerService || !sub.isStylingService) && <div className="studio-condition-finishes">
-                                        <h5 style={{ fontSize: '13px', color: '#E4C687', margin: '0 0 12px', fontWeight: 'normal' }}>Acabados del servicio</h5>
-                                        {([{ field: 'tonerPolicy', label: 'Matiz', hidden: !!sub.isTonerService }, { field: 'stylingPolicy', label: 'Peinado', hidden: !!sub.isStylingService }] as const).filter(row => !row.hidden).map(row => <fieldset key={row.field}>
-                                          <legend>{row.label}</legend>
-                                          <div className="studio-condition-choices">
-                                            {([{ value: 'included', label: 'Incluido en el pack' }, { value: 'required', label: 'Obligatorio · Aparte' }, { value: 'optional', label: 'Ofrecer complementos' }, { value: 'not_applicable', label: 'No ofrecer' }] as const).map(option => <button type="button" key={option.value} aria-pressed={sub[row.field] === option.value} onClick={() => setCatalog(previous => previous.map(category => category.id !== cat.id ? category : { ...category, subservices: category.subservices.map(service => service.id !== sub.id ? service : { ...service, [row.field]: option.value }) }))}>{option.label}</button>)}
-                                          </div>
-                                          {sub[row.field] && <p style={{ fontSize: 12, color: '#E4C687', lineHeight: 1.5 }}>{FINISH_COPY[sub[row.field]!]}</p>}
-                                          {(() => {
-                                            const kind: FinishKind = row.field === 'stylingPolicy' ? 'styling' : 'toner';
-                                            const idsField = kind === 'styling' ? 'stylingAllowedIds' : 'tonerAllowedIds';
-                                            const messageField = kind === 'styling' ? 'stylingMessage' : 'tonerMessage';
-                                            const options = catalog.flatMap(c => c.subservices).filter(s => s.id !== sub.id && isFinish(s, kind) && s.active !== false && (!s.isCutGoService || sub.allowCutGo));
-                                            const patch = (changes: Partial<SubService>) => setCatalog(previous => previous.map(c => c.id !== cat.id ? c : { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, ...changes } : s) }));
-                                            return <div style={{ padding: 12, border: '1px solid #5A5248', borderRadius: 8, marginTop: 10 }}>
-                                              {kind === 'styling' && <label style={{ display: 'block', fontSize: 13, marginBottom: 12 }}><input type="checkbox" checked={!!sub.allowCutGo} onChange={e => patch({ allowCutGo: e.target.checked })} /> Permitir Cut & Go como alternativa sin secado</label>}
-                                              <strong style={{ fontSize: 12 }}>Marca los servicios que podrá añadir la clienta</strong>
-                                              <p style={{ fontSize: 12, color: '#D6CBB8' }}>Marcar una casilla activa el complemento opcional en la ficha del portal. Si seleccionas «Incluido en el pack», no se añade otro cargo ni tiempo extra.</p>
-                                              <label style={{ display: 'block', fontSize: 12, marginBottom: 8 }}><input type="checkbox" checked={(sub[row.field] === 'optional' || sub[row.field] === 'required') && sub[idsField] === undefined} onChange={e => patch({ [row.field]: e.target.checked ? 'optional' : 'not_applicable', [idsField]: e.target.checked ? undefined : [] })} /> Todos los complementos compatibles, incluidos los futuros</label>
-                                              {options.map(option => <label key={option.id} style={{ display: 'block', fontSize: 13, padding: '6px 0' }}><input type="checkbox" checked={(sub[row.field] === 'optional' || sub[row.field] === 'required') && (sub[idsField] === undefined || sub[idsField]!.includes(option.id))} onChange={e => {
-                                                const ids = sub[row.field] === 'optional' || sub[row.field] === 'required' ? sub[idsField] ?? options.map(o => o.id) : [];
-                                                const nextIds = e.target.checked ? Array.from(new Set([...ids, option.id])) : ids.filter(id => id !== option.id);
-                                                patch({ [idsField]: nextIds, [row.field]: nextIds.length ? (sub[row.field] === 'required' ? 'required' : 'optional') : 'not_applicable' });
-                                              }} /> {option.name} · {option.price} · {option.duration}</label>)}
-                                              {!options.length && <p role="alert" style={{ fontSize: 12 }}>Configura primero un servicio del catálogo como complemento de {row.label.toLowerCase()}.</p>}
-                                              <label style={{ display: 'block', fontSize: 12, marginTop: 12 }}>Mensaje para la clienta
-                                                <textarea rows={3} value={sub[messageField] || ''} placeholder="Selecciona el acabado para completar tu servicio. Consulta aquí sus opciones, precios y duración." onChange={e => patch({ [messageField]: e.target.value })} style={{ width: '100%', boxSizing: 'border-box', background: '#29231F', color: '#FFF8EE', padding: 10, marginTop: 6, borderRadius: 8 }} />
-                                              </label>
-                                            </div>;
-                                          })()}
-                                          {!sub[row.field] && <span className="studio-condition-unset">Sin configurar · Conserva la reserva actual</span>}
-                                          {!!sub[row.field] && <button type="button" className="studio-condition-reset" onClick={() => setCatalog(previous => previous.map(category => category.id !== cat.id ? category : { ...category, subservices: category.subservices.map(service => service.id !== sub.id ? service : { ...service, [row.field]: undefined }) }))}>Restablecer</button>}
-                                        </fieldset>)}
-                                      </div>}
+                                      <AddonEditor sub={sub} catalog={catalog} onChange={groups=>setCatalog(previous=>previous.map(category=>category.id!==cat.id?category:{...category,subservices:category.subservices.map(service=>service.id!==sub.id?service:{...service,addonGroups:groups,stylingPolicy:undefined,tonerPolicy:undefined,cutAllowedIds:undefined})}))}/>
                                       {sub.isStylingService && <div style={{ padding: 12, border: '1px solid #5A5248', borderRadius: 8 }}>
                                         <label style={{ fontSize: 13 }}><input type="checkbox" checked={!!sub.isCutGoService} onChange={e => {
                                           const checked = e.target.checked;
