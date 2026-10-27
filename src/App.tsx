@@ -1630,7 +1630,8 @@ function StudioApp() {
     if (listaClientes.some(client => client.idNum !== excludeId && String(client.pinAcceso).trim() === normalizedPin)) return 'Este PIN ya está asignado a otra clienta. Elige otro.';
     return null;
   };
-  const saveClientDetails = (event: React.FormEvent) => {
+  const clientDetailsSavingRef = useRef(false);
+  const saveClientDetails = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!clientDetailsDraft) return;
     const original = listaClientes.find(client => client.idNum === clientDetailsDraft.idNum);
@@ -1645,12 +1646,20 @@ function StudioApp() {
     const updated = { ...original, nombre: clientDetailsDraft.nombre.trim(), apellidos: clientDetailsDraft.apellidos.trim(),
       telefono: clientDetailsDraft.telefono.trim(), email: normalizeEmail(clientDetailsDraft.email),
       pinAcceso: clientDetailsDraft.pinAcceso.trim(), fechaNacimiento: clientDetailsDraft.fechaNacimiento.trim() };
+    if(clientDetailsSavingRef.current)return;
+    clientDetailsSavingRef.current=true;
+    try {
+      const token=studioApi.currentToken();
+      if(!token||!original.serverId)throw new Error('La ficha debe estar sincronizada y la sesión de administración activa.');
+      await studioApi.saveClientDetailsOnServer(token,original.serverId,updated);
+    }catch(error){alert(error instanceof Error?error.message:'No se pudieron guardar los datos en el servidor.');return;}
+    finally{clientDetailsSavingRef.current=false;}
     setListaClientes(previous => previous.map(client => client.idNum === original.idNum ? updated : client));
     if (oldEmail) setAppointments(previous => previous.map(appointment => normalizeEmail(appointment.email) === oldEmail ? {
       ...appointment, email: updated.email, phone: updated.telefono, clientName: (updated.nombre + ' ' + updated.apellidos).trim()
     } : appointment));
     setBusquedaCliente(updated.registroId || updated.email); setClientDetailsDraft(null);
-    alert('Datos guardados y citas vinculadas actualizadas.');
+    alert('Datos y PIN guardados en el servidor. Ya puedes entrar al portal con este PIN.');
   };
 
   const [isAddingClient, setIsAddingClient] = useState(false);
