@@ -1846,10 +1846,11 @@ function StudioApp() {
       const token=studioApi.currentToken();
       if(!token||studioApi.storedRole()!=='admin'||!client.serverId)throw new Error('Necesitas una ficha sincronizada y sesión de administración.');
       const info=await studioApi.inspectClientDelete(token,client.serverId);
-      if(info.appointments||info.visits||info.feedback)throw new Error(`Esta ficha tiene ${info.appointments} citas, ${info.visits} visitas y ${info.feedback} opiniones asociadas. Se conserva para no perder el historial. Puedes darla de baja.`);
-      if(!window.confirm(`¿Eliminar definitivamente la ficha de ${client.nombre} ${client.apellidos} (registro ${client.registroId||client.idNum})? Se borrarán su ficha, pasaporte y accesos. Esta acción no se puede deshacer.`))return;
+      if(!window.confirm(`¿Eliminar definitivamente a ${client.nombre} ${client.apellidos} (registro ${client.registroId||client.idNum})? Se borrarán ${info.appointments} citas, ${info.visits} visitas y ${info.feedback} opiniones, además de su ficha, pasaporte y accesos. No se puede deshacer.`))return;
       const result=await studioApi.deleteClientPermanently(token,client.serverId);
       if(!result.deleted)throw new Error('El servidor no confirmó la eliminación.');
+      const removed = new Set((result as any).appointmentIds || []);
+      setAppointments(previous=>previous.filter(item=>!item.serverId || !removed.has(item.serverId)));
       setListaClientes(previous=>previous.filter(item=>item.serverId!==client.serverId));
       setExpandedClientId(null);setEditingClientId(null);
     }catch(error){setClientStatusError(error instanceof Error?error.message:'No se pudo eliminar la ficha.');}
