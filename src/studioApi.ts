@@ -301,3 +301,7 @@ export const fetchPublicBranding = () => call<{ brandLogoUrl: string | null; hea
 export const fetchOfficialHolidays = (token: string, year: number) => call<{days:any[];state:any}>('official-holidays',{token,body:{year}});
 export const refreshOfficialHolidays = (token: string, year: number) => call<any>('official-holidays-refresh',{token,body:{year}});
 export const setOfficialHolidayOpen = (token: string, day: string, open: boolean) => call<any>('official-holidays-open',{method:'PUT',token,body:{day,open}});
+
+export interface ClientDeleteInfo {deleted:boolean; appointments:number;visits:number;feedback:number;}
+export const inspectClientDelete=(token:string,id:string)=>call<ClientDeleteInfo>('client-delete',{token,body:{id,inspect:true}});
+export const deleteClientPermanently=(token:string,id:string)=>call<ClientDeleteInfo>('client-delete',{method:'DELETE',token,body:{id}});
