@@ -4,6 +4,9 @@ import * as studioApi from './studioApi';
 import OfficialHolidaysView from './OfficialHolidaysView';
 import PromotionsView from './PromotionsView';
 import type { StudioEmployee, BusinessConfig, ServiceVariant, Appointment, StylingPolicy, FinishKind, ServiceTranslation, SubService, CatalogCategory, ClientRecord, LostDemandRecord, FeedbackRecord, HolidayBlock } from './App';
+const isCutCategory = (category: {id: string; title: string}) => category.id === 'c2' || /cort[eo]/i.test(category.title);
+const isStylingCategory = (category: {id: string; title: string}) => category.id === 'c3' || /styling|peinado|acabado/i.test(category.title);
+
 const LazyOpportunitiesView=React.lazy(()=>import('./OpportunitiesView'));
 
 const LazyCrmView=React.lazy(()=>import('./CrmView'));
@@ -1294,6 +1297,16 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                         setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, description: val } : s) } : c));
                                       }} rows={2} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '6px', borderRadius: '4px', fontSize: '14px' }} />
                                     </div>
+                                    {!isCutCategory(cat) && <>
+                                    <div className="studio-editor-booking" style={{marginTop:14}}>
+                                      <strong style={{color:'#E4C687',fontSize:13}}>Cortes para añadir desde esta ficha</strong>
+                                      <p style={{fontSize:12}}>Marca los servicios de corte compatibles. Peinado y matiz utilizan sus opciones compatibles ya configuradas.</p>
+                                      <div style={{maxHeight:180,overflowY:'auto'}}>
+                                        {catalog.filter(isCutCategory).flatMap(category=>category.subservices).filter(candidate=>candidate.id!==sub.id&&candidate.active!==false).map(candidate=><label key={candidate.id} style={{display:'block',padding:6,fontSize:13}}>
+                                          <input type="checkbox" checked={(sub.cutAllowedIds||[]).includes(candidate.id)} onChange={event=>{const checked=event.target.checked;setCatalog(previous=>previous.map(category=>category.id!==cat.id?category:{...category,subservices:category.subservices.map(service=>service.id!==sub.id?service:{...service,cutAllowedIds:checked?Array.from(new Set([...(service.cutAllowedIds||[]),candidate.id])):(service.cutAllowedIds||[]).filter(id=>id!==candidate.id)})}));}} /> {candidate.bookingName||candidate.name}
+                                        </label>)}
+                                      </div>
+                                    </>}
 <section className="studio-editor-booking studio-booking-buttons" style={{ padding: '16px', border: '1px solid #3A312A', borderRadius: '10px', background: '#322A25' }}>
                                       <h4 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '17px', margin: '0 0 18px' }}>Condiciones de reserva</h4>
                                       <fieldset>
@@ -1406,14 +1419,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                         <textarea value={sub.conditionsText || ''} onChange={e => { const value = e.target.value; setCatalog(previous => previous.map(category => category.id === cat.id ? { ...category, subservices: category.subservices.map(service => service.id === sub.id ? { ...service, conditionsText: value } : service) } : category)); }} rows={3} placeholder="Ej. Incluye lavado profesional. El peinado se reserva aparte." style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: 10, borderRadius: 5, marginTop: 6 }} />
                                       </label>
                                     </div>
-                                    <div style={{marginTop:14}}>
-                                      <strong style={{color:'#E4C687',fontSize:13}}>Cortes para añadir desde esta ficha</strong>
-                                      <p style={{fontSize:12}}>Marca los servicios de corte compatibles. Peinado y matiz utilizan sus opciones compatibles ya configuradas.</p>
-                                      <div style={{maxHeight:180,overflowY:'auto'}}>
-                                        {catalog.flatMap(category=>category.subservices).filter(candidate=>candidate.id!==sub.id&&candidate.active!==false).map(candidate=><label key={candidate.id} style={{display:'block',padding:6,fontSize:13}}>
-                                          <input type="checkbox" checked={(sub.cutAllowedIds||[]).includes(candidate.id)} onChange={event=>{const checked=event.target.checked;setCatalog(previous=>previous.map(category=>category.id!==cat.id?category:{...category,subservices:category.subservices.map(service=>service.id!==sub.id?service:{...service,cutAllowedIds:checked?Array.from(new Set([...(service.cutAllowedIds||[]),candidate.id])):(service.cutAllowedIds||[]).filter(id=>id!==candidate.id)})}));}} /> {candidate.bookingName||candidate.name}
-                                        </label>)}
-                                      </div>
+
                                     </div>
                                   </div>
                                 )}
