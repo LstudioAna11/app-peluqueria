@@ -55,7 +55,7 @@ export const authenticate = async (pin: string): Promise<AuthResult> => {
   return data;
 };
 
-const call = async <T = Record<string, unknown>>(
+const rawCall = async <T = Record<string, unknown>>(
   action: string,
   opts: { method?: string; token?: string; body?: unknown } = {}
 ): Promise<T> => {
@@ -72,7 +72,35 @@ const call = async <T = Record<string, unknown>>(
   return data as T;
 };
 
-export const syncAll = <T>(token: string) => call<T>("sync", { token });
+// Share only identical requests that are currently in flight; never cache appointment results.
+const pendingReads = new Map<string, Promise<unknown>>();
+let readGeneration = 0;
+const readActions = new Set(['sync', 'public-catalog', 'public-professionals', 'branding', 'official-holidays', 'email-status', 'email-config', 'whatsapp-status', 'whatsapp-config', 'push-status', 'push-public-key']);
+const call = async <T = Record<string, unknown>>(
+  action: string,
+  opts: {method?: string; token?: string; body?: unknown} = {},
+): Promise<T> => {
+  if (!readActions.has(action)) {
+    // A read begun before a write cannot satisfy the verification after that write.
+    readGeneration++;
+    try { return await rawCall<T>(action, opts); }
+    finally { readGeneration++; }
+  }
+  const key = JSON.stringify([readGeneration, action, opts.method || 'POST', opts.token || '', opts.body ?? null]);
+  const pending = pendingReads.get(key);
+  if (pending) return pending as Promise<T>;
+  const request = rawCall<T>(action, opts);
+  pendingReads.set(key, request);
+  try { return await request; }
+  finally { if (pendingReads.get(key) === request) pendingReads.delete(key); }
+};
+
+export type SyncSection = 'catalog' | 'settings' | 'closures' | 'timeBlocks' | 'clients' | 'appointments' | 'feedback';
+export const syncAll = <T>(token: string, sections?: SyncSection[]) =>
+  call<T>('sync', {token, body: sections ? {sections: [...new Set(sections)].sort()} : undefined});
+
+export const fetchPublicProfessionals = <T = {employees: {id:string;name:string;role:string;photo:string;status:string}[]}>() =>
+  call<T>('public-professionals', {method:'GET'});
 
 export const fetchPublicCatalog = <T = { catalog: { id: string; category: unknown }[]; employees?: { id: string; name: string; role: string; photo: string; status: string }[] }>() =>
   call<T>("public-catalog", { method: "GET" });
