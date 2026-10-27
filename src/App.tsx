@@ -1164,7 +1164,7 @@ function StudioApp() {
     let cancelled = false;
     setProfessionalsLoading(true);
     setProfessionalsError('');
-    void statusWithTimeout(studioApi.fetchPublicCatalog<{ employees?: StudioEmployee[] }>())
+    void statusWithTimeout(studioApi.fetchPublicProfessionals<{ employees?: StudioEmployee[] }>())
       .then(data => {
         if (cancelled) return;
         if (!Array.isArray(data.employees)) throw new Error('missing employees');
@@ -1386,7 +1386,7 @@ function StudioApp() {
         throw new Error('Necesitas una sesión de administración y conexión con el servidor para guardar el catálogo.');
       }
       await studioApi.pushCatalog(token, submitted);
-      const verify = await studioApi.syncAll<{ catalog?: { category?: CatalogCategory }[] }>(token);
+      const verify = await studioApi.syncAll<{ catalog?: { category?: CatalogCategory }[] }>(token, ['catalog']);
       const categories = verify?.catalog?.map(row => row.category).filter(Boolean) as CatalogCategory[] | undefined;
       if (!categories || submitted.some(category => {
         const stored = categories.find(item => item.id === category.id);
@@ -1948,7 +1948,7 @@ function StudioApp() {
     const token = studioApi.currentToken();
     if (!studioApi.serverConfigured || !token) throw new Error('Necesitas conexión y una sesión válida para enviar la solicitud. Tus datos siguen aquí.');
     // Recover an earlier successful send if its response was lost; do not create a second booking.
-    const before = await studioApi.syncAll<{ appointments?: Record<string, any>[]; clients?: Record<string, any>[] }>(token);
+    const before = await studioApi.syncAll<{ appointments?: Record<string, any>[]; clients?: Record<string, any>[] }>(token, ['appointments', 'clients']);
     const existing = before.appointments?.find(row => row.id === draft.serverId || String(row.source_legacy_id || '') === draft.id);
     if (existing) {
       const saved = mapServerAppointment(existing);
@@ -1976,7 +1976,7 @@ function StudioApp() {
     });
     if (!result.ok || !result.id) throw new Error('El servidor no ha confirmado el guardado. Reintenta sin cerrar esta ventana.');
     try {
-      const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+      const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token, ['appointments']);
       const row = after.appointments?.find(item => item.id === result.id);
       if (row) return mapServerAppointment(row);
     } catch { /* The successful POST already confirms persistence. */ }
@@ -2091,11 +2091,11 @@ function StudioApp() {
     try {
       const token = studioApi.currentToken();
       if (!studioApi.serverConfigured || !token || studioApi.storedRole() !== 'admin') throw new Error('Necesitas una sesión de administración y conexión para guardar las notas.');
-      const before = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+      const before = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token, ['appointments']);
       const row = before.appointments?.find(item => item.id === appointment.serverId || item.id === appointment.id || String(item.source_legacy_id || '') === appointment.id);
       if (!row) throw new Error('La cita no está guardada en el servidor. Actualiza la agenda antes de reintentar.');
       await studioApi.updateAppointmentOnServer(token, { id: row.id, internalNotes: note });
-      const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+      const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token, ['appointments']);
       const savedRow = after.appointments?.find(item => item.id === row.id);
       if (!savedRow || String(savedRow.client_snapshot?.internalNotes || '') !== note) throw new Error('No se ha podido verificar el guardado. Conservamos tu texto; comprueba que studio-api esté actualizado y reintenta.');
       setAppointments(previous => previous.map(item => item.id === appointment.id || item.serverId === row.id ? { ...item, internalNotes: note } : item));
@@ -2803,12 +2803,12 @@ function StudioApp() {
       if (!studioApi.serverConfigured) throw new Error('Servidor no configurado. No se han guardado los cambios.');
       if (!token || studioApi.storedRole() !== 'admin') throw new Error('Se necesita una sesión de administración válida. Vuelve a iniciar sesión con el PIN maestro.');
       // Read the latest settings before merging to preserve unrelated server values.
-      const before = await studioApi.syncAll<Record<string, any>>(token);
+      const before = await studioApi.syncAll<Record<string, any>>(token, ['settings']);
       if (!before?.settings || typeof before.settings !== 'object') throw new Error('No se pudo leer la configuración del servidor.');
       const toSave = { ...bizConfigRef.current, ...before.settings } as BusinessConfig;
       for (const key of changedKeys) (toSave as any)[key] = normalizedConfig[key];
       await studioApi.pushSettings(token, toSave);
-      const verify = await studioApi.syncAll<Record<string, any>>(token);
+      const verify = await studioApi.syncAll<Record<string, any>>(token, ['settings']);
       const reloaded = verify?.settings;
       if (!reloaded || typeof reloaded !== 'object') throw new Error('El servidor no devolvió la configuración guardada.');
       if (changedKeys.some(key => !configEqual(reloaded[key], normalizedConfig[key]))) {
@@ -3195,7 +3195,7 @@ function StudioApp() {
           },
         }).then(() => {
           if (!serverId) {
-            return studioApi.syncAll<Record<string, any>>(studioApi.currentToken()!).then(data => {
+            return studioApi.syncAll<Record<string, any>>(studioApi.currentToken()!, ['appointments']).then(data => {
               const row = Array.isArray(data?.appointments) ? data.appointments.find((r: Record<string, any>) => r.source_legacy_id === updated.id) : null;
               if (row) {
                 const synced: Appointment = { ...updated, serverId: row.id };
@@ -3395,14 +3395,14 @@ function StudioApp() {
       if (!studioApi.serverConfigured || !token || studioApi.storedRole() !== 'admin') {
         throw new Error('Necesitas conexión y una sesión de administración válida para eliminar la cita.');
       }
-      const before = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+      const before = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token, ['appointments']);
       if (!Array.isArray(before.appointments)) throw new Error('No se ha podido consultar la agenda del servidor. Reintenta.');
       const matches = (row: Record<string, any>) => row.id === target.serverId || row.id === id || String(row.source_legacy_id || '') === id;
       const row = before.appointments.find(matches);
       if (row) {
         const result = await studioApi.deleteAppointmentOnServer(token, row.id);
         if (!result.ok) throw new Error('El servidor no ha confirmado la eliminación.');
-        const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+        const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token, ['appointments']);
         if (!Array.isArray(after.appointments) || after.appointments.some(item => item.id === row.id || matches(item))) {
           throw new Error('No se ha podido verificar la eliminación. La cita sigue visible hasta comprobarlo. Reintenta para consultar su estado.');
         }
@@ -3851,7 +3851,7 @@ function StudioApp() {
     try {
       const token = studioApi.currentToken();
       if (!studioApi.serverConfigured || !token || studioApi.storedRole() !== 'admin') throw new Error('Necesitas conexión y una sesión de administración válida.');
-      const before = await studioApi.syncAll<{ appointments?: Record<string, any>[]; settings?: BusinessConfig }>(token);
+      const before = await studioApi.syncAll<{ appointments?: Record<string, any>[]; settings?: BusinessConfig }>(token, ['appointments', 'settings']);
       let row = before.appointments?.find(item => item.id === source.serverId || item.id === source.id || String(item.source_legacy_id || '') === source.id);
       if (!row) throw new Error('No se ha encontrado la solicitud en el servidor. Actualiza la agenda.');
       if (row.lifecycle_status === 'cancelled' || row.lifecycle_status === 'no_show' || row.completed_at) throw new Error('Esta cita ya no admite una decisión de aprobación. Actualiza la agenda.');
@@ -3876,7 +3876,7 @@ function StudioApp() {
         }
         const result = await studioApi.updateAppointmentOnServer(token, patch);
         if (!result.ok) throw new Error('El servidor no ha confirmado el guardado.');
-        const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+        const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token, ['appointments']);
         const verified = after.appointments?.find(item => item.id === row!.id);
         if (!verified || verified.approval_status !== status) throw new Error('No se ha podido verificar la decisión. Reintenta para consultar su estado antes de enviarla otra vez.');
         row = verified;
@@ -3905,7 +3905,7 @@ function StudioApp() {
       if (!studioApi.serverConfigured || !token || studioApi.storedRole() !== 'admin') {
         throw new Error('Necesitas conexión y una sesión de administración válida para confirmar el Bizum.');
       }
-      const before = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+      const before = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token, ['appointments']);
       let row = before.appointments?.find(item => item.id === source.serverId || item.id === source.id || String(item.source_legacy_id || '') === source.id);
       if (!row) throw new Error('No se ha encontrado esta cita en el servidor. Actualiza la agenda antes de reintentar.');
       const current = mapServerAppointment(row);
@@ -3921,7 +3921,7 @@ function StudioApp() {
           advancePayment: { status: 'confirmed', amount: current.advancePayment.amount, reference: current.advancePayment.reference }
         });
         if (!result.ok) throw new Error('El servidor no ha confirmado el guardado.');
-        const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+        const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token, ['appointments']);
         const verified = after.appointments?.find(item => item.id === row!.id);
         if (!verified || !['confirmed', 'received', 'paid'].includes(String(verified.deposit_status))) {
           throw new Error('No se ha podido verificar la confirmación. Reintenta para consultar el estado guardado antes de volver a enviarlo.');
@@ -5957,14 +5957,14 @@ function StudioApp() {
                   const token = studioApi.currentToken();
                   if (!studioApi.serverConfigured || !token) throw new Error('Necesitas conexión y una sesión válida para guardar el cambio.');
                   const source = rescheduleModalAppt;
-                  const before = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+                  const before = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token, ['appointments']);
                   const row = before.appointments?.find(item => item.id === source.serverId || item.id === source.id || String(item.source_legacy_id || '') === source.id);
                   if (!row) throw new Error('No se ha encontrado la cita en el servidor. Actualiza la agenda antes de reintentar.');
                   const dayName = date.toLocaleDateString('es-ES', { weekday: 'long' });
                   await studioApi.updateAppointmentOnServer(token, { id: row.id, dateKey: newRescheduleDate, time: newRescheduleTime, dayName, durationMinutes: source.durationMinutes || 45 });
                   let saved: Appointment = { ...source, serverId: row.id, dateKey: newRescheduleDate, time: newRescheduleTime, dayName };
                   try {
-                    const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token);
+                    const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token, ['appointments']);
                     const updatedRow = after.appointments?.find(item => item.id === row.id);
                     if (updatedRow) saved = mapServerAppointment(updatedRow);
                   } catch { /* The successful update already confirms persistence. */ }
