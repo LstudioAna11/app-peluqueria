@@ -533,6 +533,7 @@ export interface SubService {
   achievedText?: string;
   forWhomText?: string;
   conditionsText?: string;
+  cutAllowedIds?: string[];
   priceType?: 'desde' | 'aprox' | 'fijo' | 'consultar';
   hasVariants?: boolean;
   variants?: ServiceVariant[];
@@ -995,6 +996,7 @@ function StudioApp() {
   const [previewVariantId, setPreviewVariantId] = useState<string>('');
   const [selectedServicesToBook, setSelectedServicesToBook] = useState<{ sub: SubService; variant: ServiceVariant | null }[]>([]);
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(null);
+  const [detailAddonTab, setDetailAddonTab] = useState<'styling' | 'cut' | 'toner'>('styling');
   const [viewServiceDetail, setViewServiceDetail] = useState<{ cat: CatalogCategory; sub: SubService } | null>(null);
   const [activeCatalogTab, setActiveCatalogTab] = useState<string>('');
   const carouselScrollerRef = useRef<HTMLDivElement | null>(null);
@@ -1391,7 +1393,7 @@ function StudioApp() {
       const categories = verify?.catalog?.map(row => row.category).filter(Boolean) as CatalogCategory[] | undefined;
       if (!categories || submitted.some(category => {
         const stored = categories.find(item => item.id === category.id);
-        const keys = ['name', 'bookingName', 'imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'conditionsText', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
+        const keys = ['name', 'bookingName', 'imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'conditionsText', 'cutAllowedIds', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
         return !stored || stored.title !== category.title || (stored.portalTitle || '') !== (category.portalTitle || '') || (stored.slogan || '') !== (category.slogan || '') || (stored.imageUrl || '') !== (category.imageUrl || '') || category.subservices.some(service => {
           const saved = stored.subservices?.find(s => s.id === service.id);
           return !saved || keys.some(key => JSON.stringify(saved[key] ?? null) !== JSON.stringify(service[key] ?? null));
@@ -2993,8 +2995,9 @@ function StudioApp() {
       return [...next, { sub, variant }];
     });
   };
-  const renderFinishChoices = (items: { sub: SubService; variant: ServiceVariant | null }[]) => <>
+  const renderFinishChoices = (items: { sub: SubService; variant: ServiceVariant | null }[], onlyKind?: FinishKind) => <>
     {items.map(item => latestSub(item.sub)).map(owner => (['styling', 'toner'] as const).map(kind => {
+      if (onlyKind && kind !== onlyKind) return null;
       const policy = finishPolicy(owner, kind);
       if (isFinish(owner, kind) || policy !== 'required' && policy !== 'optional') return null;
       const candidates = finishCandidates(owner, kind);
@@ -3009,7 +3012,7 @@ function StudioApp() {
             <strong style={{ color: '#FFF8EE', fontSize: 14 }}>{sub.name}</strong>
             <p style={{ fontSize: 12, color: '#D6CBB8' }}>{sub.description}</p>
             {(sub.hasVariants && sub.variants?.length ? sub.variants : [null]).map(variant => {
-              const selected = items.some(i => i.sub.id === sub.id && (i.variant?.id || '') === (variant?.id || ''));
+              const selected = selectedServicesToBook.some(i => i.sub.id === sub.id && (i.variant?.id || '') === (variant?.id || ''));
               return <button key={variant?.id || sub.id} type="button" aria-pressed={selected} onClick={() => selectFinish(owner, kind, sub, variant)} style={{ display: 'block', width: '100%', minHeight: 48, padding: 10, marginTop: 6, borderRadius: 8, border: '1px solid #C5A059', background: selected ? '#C5A059' : '#322A25', color: selected ? '#121212' : '#FFF8EE', cursor: 'pointer' }}>
                 {selected ? '✓ ' : ''}{variant?.name || 'Seleccionar'}{portalShowsPrices ? ' · ' + clientPrice(variant?.price || sub.price) : ''} · {variant?.duration || sub.duration}
               </button>;
@@ -4712,7 +4715,7 @@ function StudioApp() {
               if (missing) { alert(tf('requiredVariant', { service: bookingName(missing.sub) })); return; }
               const conditionError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook);
               if (conditionError) { alert(conditionError); return; }
-              const finishError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook); if (finishError) { alert(finishError); setCurrentScreen('catalogBooking'); return; } setCurrentScreen('visualAgenda');
+              const finishError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook); if (finishError) { alert(finishError); return; } setCurrentScreen('visualAgenda');
             }} style={{ background: '#C49A58', color: '#29231F', border: 'none', padding: '14px', borderRadius: 8, fontSize: '13px', fontWeight: '600', cursor: 'pointer', textAlign: 'center', minHeight: '48px' }}>
               {t('chooseDateTime')}
             </button>
@@ -4805,7 +4808,7 @@ function StudioApp() {
               <button type="button" onClick={() => {
                 const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant);
                 if (missing) { alert(tf('requiredVariant', { service: bookingName(missing.sub) })); return; }
-                const finishError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook); if (finishError) { alert(finishError); setCurrentScreen('catalogBooking'); return; } setCurrentScreen('visualAgenda');
+                const finishError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook); if (finishError) { alert(finishError); return; } setCurrentScreen('visualAgenda');
               }} style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 12, minHeight: '54px', padding: '16px', fontSize: '14px', fontWeight: 600, color: '#E4C687', cursor: 'pointer' }}>
                 {t('reviewSelection')} ({selectedServicesToBook.length}) → {t('chooseDateTime')}
               </button>
@@ -4879,7 +4882,30 @@ function StudioApp() {
               </div>
             </section>
           )}
-          {detailSelection && renderFinishChoices(selectedServicesToBook)}
+          {detailSelection && <section style={{padding:14,border:'1px solid #C5A059',borderRadius:12}}>
+            <h2 style={{fontSize:16,color:'#E4C687'}}>Completa tu servicio</h2>
+            <div style={{display:'flex',gap:8}}>
+              {(['styling','cut','toner'] as const).map(kind=><button type="button" key={kind} aria-pressed={detailAddonTab===kind} onClick={()=>setDetailAddonTab(kind)} style={{flex:1,minHeight:44,border:'1px solid #C5A059',borderRadius:8,background:detailAddonTab===kind?'#C5A059':'#322A25',color:detailAddonTab===kind?'#121212':'#FFF8EE'}}>{kind==='styling'?'Peinado':kind==='cut'?'Corte':'Matiz'}</button>)}
+            </div>
+            {detailAddonTab!=='cut' ? <>
+              {finishPolicy(detailSub,detailAddonTab)==='included' ? <p>{detailAddonTab==='toner'?'Matiz':'Peinado'} incluido en precio y duración.</p> : (finishPolicy(detailSub,detailAddonTab)==='required'||finishPolicy(detailSub,detailAddonTab)==='optional') ? renderFinishChoices([detailSelection],detailAddonTab) : <p style={{fontSize:13}}>No hay opciones configuradas para este servicio.</p>}
+            </> : <div style={{display:'grid',gap:8,marginTop:12}}>
+              {!catalog.some(c=>c.subservices.some(s=>s.active!==false&&detailSub.cutAllowedIds?.includes(s.id)))&&<p style={{fontSize:13}}>No hay cortes adicionales configurados para este servicio.</p>}
+              {catalog.flatMap(c=>c.subservices).filter(s=>s.id!==detailSub.id&&s.active!==false&&detailSub.cutAllowedIds?.includes(s.id)).map(sub=><div key={sub.id}>
+                <strong style={{fontSize:14}}>{bookingName(sub)}</strong>
+                {(sub.hasVariants&&sub.variants?.length?sub.variants:[null]).map(variant=>{
+                  const selected=selectedServicesToBook.some(i=>i.sub.id===sub.id&&(i.variant?.id||'')===(variant?.id||''));
+                  return <button type="button" key={variant?.id||sub.id} aria-pressed={selected} onClick={()=>setSelectedServicesToBook(previous=>selected?previous.filter(i=>i.sub.id!==sub.id):[...previous.filter(i=>i.sub.id!==sub.id),{sub,variant}])} style={{display:'block',width:'100%',minHeight:44,padding:10,marginTop:6,border:'1px solid #C5A059',borderRadius:8,background:selected?'#C5A059':'#322A25',color:selected?'#121212':'#FFF8EE'}}>{selected?'✓ Quitar':'Añadir'}{variant?' · '+variantText(variant,sub):''}{portalShowsPrices?' · '+clientPrice(variant?.price||sub.price):''} · {variant?.duration||sub.duration}</button>;
+                })}
+              </div>)}
+            </div>}
+            <div aria-live="polite" style={{marginTop:14,borderTop:'1px solid #67543C',paddingTop:10}}>
+              <strong>Tu selección</strong>
+              {selectedServicesToBook.map(item=><p key={item.sub.id} style={{fontSize:13}}>{bookingName(item.sub)}{item.variant?' · '+variantText(item.variant,item.sub):''} <button type="button" onClick={()=>setSelectedServicesToBook(previous=>previous.filter(i=>i.sub.id!==item.sub.id))} style={{background:'transparent',color:'#E4C687',border:0,minHeight:44}}>Quitar</button></p>)}
+              <p>{portalShowsPrices?(getSelectionTotal(selectedServicesToBook).orientative?'Total estimado: ':'Total: ')+getSelectionTotal(selectedServicesToBook).total.toFixed(2)+' € · ':''}{getModalDuration(selectedServicesToBook)} min</p>
+            </div>
+          </section>}
+          {detailSelection && renderFinishChoices(selectedServicesToBook.filter(item=>item.sub.id!==detailSub.id))}
           {detailSelection ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 10, padding: '12px 14px' }}>
@@ -4888,7 +4914,7 @@ function StudioApp() {
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button type="button" onClick={() => { setViewServiceDetail(null); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="lst-cta-full" style={{ flex: 1, background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.16)' }}>Añadir otro servicio</button>
-                <button type="button" onClick={() => { const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant); if (missing) { alert(tf('requiredVariant', { service: bookingName(missing.sub) })); return; } const finishError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook); if (finishError) { alert(finishError); setCurrentScreen('catalogBooking'); return; } setCurrentScreen('visualAgenda'); }} className="lst-cta-full" style={{ flex: 1 }}>{t('chooseDateTime')} <ArrowRight size={18} strokeWidth={2} aria-hidden="true" /></button>
+                <button type="button" onClick={() => { const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant); if (missing) { alert(tf('requiredVariant', { service: bookingName(missing.sub) })); return; } const finishError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook); if (finishError) { alert(finishError); return; } setCurrentScreen('visualAgenda'); }} className="lst-cta-full" style={{ flex: 1 }}>{t('chooseDateTime')} <ArrowRight size={18} strokeWidth={2} aria-hidden="true" /></button>
               </div>
             </div>
           ) : (
