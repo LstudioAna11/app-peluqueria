@@ -2958,6 +2958,12 @@ function StudioApp() {
     }
     return null;
   };
+  useEffect(()=>{
+    if(currentScreen!=='serviceDetail'||!viewServiceDetail)return;
+    const sub=catalog.flatMap(c=>c.subservices).find(s=>s.id===viewServiceDetail.sub.id);
+    if(!sub?.addonGroups?.length)return;
+    setSelectedServicesToBook(previous=>previous.map(item=>item.sub.id===sub.id?{...item,sub:{...sub,hasVariants:false,variants:undefined},variant:null}:item));
+  },[currentScreen,viewServiceDetail?.sub.id,catalog]);
   const getStylingError = (items: { sub: SubService; variant: ServiceVariant | null }[]) => addonError(items, catalog) || getFinishError(items, 'styling');
   const previewService = catalog.flatMap(category => category.subservices).find(sub => sub.id === previewServiceId);
   const getInactiveServiceError = (items: { sub: SubService }[]) => {
@@ -4822,7 +4828,9 @@ function StudioApp() {
 
       {/* FICHA DE SERVICIO */}
       {currentScreen === 'serviceDetail' && viewServiceDetail && (() => {
-        const detailSub = catalog.flatMap(category => category.subservices).find(service => service.id === viewServiceDetail.sub.id) || viewServiceDetail.sub;
+        const originalDetailSub = catalog.flatMap(category => category.subservices).find(service => service.id === viewServiceDetail.sub.id) || viewServiceDetail.sub;
+        // A configured portal pack uses its base price/time; variants remain available to staff.
+        const detailSub = originalDetailSub.addonGroups?.length ? {...originalDetailSub,hasVariants:false,variants:undefined} : originalDetailSub;
         const detailImage = detailSub.imageUrl;
         const detailSelection = selectedServicesToBook.find(item => item.sub.id === detailSub.id);
         return (
