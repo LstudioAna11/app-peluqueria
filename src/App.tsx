@@ -10,6 +10,10 @@ import { calculatePromotionDiscount, exactPrice } from './promotionPricing';
 import type { PromotionDiscount } from './promotionPricing';
 import { getBookingName, getAppointmentServiceNames, compactServiceText } from './serviceNames';
 import * as studioApi from './studioApi';
+function clientDisplayNumber(client: {registroId?: string} | null | undefined): string {
+  const match = /^LSTUDIO-(\d+)$/.exec(client?.registroId || '');
+  return match ? String(Number(match[1])) : 'Pendiente';
+}
 const LazyAdminPanelView = React.lazy(() => import('./AdminPanelView'));
 // Optimized copies of bundled photos only; custom uploads remain unchanged.
 const FAST_PHOTO_URLS: Readonly<Record<string,string>> = {
@@ -1774,7 +1778,15 @@ function StudioApp() {
     setAiRecommendation(ranked.map(item => item.id));
   };
 
-  const handleGuardarNuevoCliente = (e: React.FormEvent) => {
+  const clientCreationBusyRef = useRef(false);
+  const persistNumberedClient = async (client: ClientRecord): Promise<ClientRecord> => {
+    const token=studioApi.currentToken();
+    if(!token||studioApi.storedRole()!=='admin')throw new Error('Accede a la intranet para crear la ficha.');
+    const result=await studioApi.createClientOnServer(token,{...client,pin:client.pinAcceso});
+    if(!result.id||!result.registrationId)throw new Error('No se confirmó el número de ficha. Actualiza Clientas antes de reintentar.');
+    return {...client,serverId:result.id,idNum:result.legacyId,registroId:result.registrationId};
+  };
+  const handleGuardarNuevoCliente = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!novoNombre.trim()) return;
     const identityError = validateClientIdentity(novoEmail, novoPin);
@@ -1797,7 +1809,13 @@ function StudioApp() {
       dniCapilar: 'Porosidad: Pendiente | Hidratación: Pendiente',
       prescripcionCasa: 'Pendiente de recomendación'
     };
-    setListaClientes([...listaClientes, nuevoCliente]);
+    if(clientCreationBusyRef.current)return;
+    clientCreationBusyRef.current=true;
+    try {
+      const saved=await persistNumberedClient(nuevoCliente);
+      setListaClientes(previous=>[...previous.filter(c=>c.serverId!==saved.serverId),saved]);
+    } catch(error) { alert(error instanceof Error?error.message:'No se pudo guardar la ficha.');return; }
+    finally {clientCreationBusyRef.current=false;}
     setNovoNombre(""); setNovoApellidos(""); setNovoNacimiento(""); setNovoTelefono(""); setNovoEmail(""); setNovoPin(""); setNovoDiagnostico("");
     setIsAddingClient(false);
   };
@@ -1913,7 +1931,7 @@ function StudioApp() {
   const [quickClientPin, setQuickClientPin] = useState('');
   const [quickClientSurname, setQuickClientSurname] = useState('');
   const [quickClientMessage, setQuickClientMessage] = useState('');
-  const saveQuickClient = () => {
+  const saveQuickClient = async () => {
     if (!modalClientName.trim()) { alert('Indica el nombre de la clienta.'); return; }
     const error = validateClientIdentity(modalEmail, quickClientPin);
     if (error) { alert(error); return; }
@@ -1923,7 +1941,13 @@ function StudioApp() {
       telefono: modalPhone.trim(), email: normalizeEmail(modalEmail), pinAcceso: quickClientPin,
       diagnostico: 'Pendiente de diagnóstico', ultimaVisita: 'Nuevo registro', proximaVisitaSugerida: '',
       formulasAplicadas: '', dniCapilar: '', prescripcionCasa: '', pastVisits: [] };
-    setListaClientes(previous => [...previous, client]);
+    if(clientCreationBusyRef.current)return;
+    clientCreationBusyRef.current=true;
+    try {
+      Object.assign(client,await persistNumberedClient(client));
+      setListaClientes(previous=>[...previous.filter(c=>c.serverId!==client.serverId),client]);
+    } catch(error) {setQuickClientMessage(error instanceof Error?error.message:'No se pudo guardar la ficha.');return;}
+    finally {clientCreationBusyRef.current=false;}
     setModalClientName((client.nombre + ' ' + client.apellidos).trim()); setModalEmail(client.email);
     setQuickClientMode(false); setQuickClientPin(''); setQuickClientSurname('');
     setQuickClientMessage('Ficha creada: ' + client.registroId + '. Puedes continuar con los servicios.');
@@ -2688,7 +2712,7 @@ function StudioApp() {
         fechaNacimiento: c.birth_date || '',
         telefono: c.phone || '',
         email: c.email || '',
-        pinAcceso: String(c.legacy_id ?? ''),
+        pinAcceso: String(c.legacy_id ?? '').padStart(4, '0'),
         diagnostico: c.passport?.hair_diagnosis || 'Diagnóstico inicial pendiente',
         ultimaVisita: c.passport?.last_visit_text || 'Nuevo registro',
         proximaVisitaSugerida: c.passport?.next_visit_text || 'Pendiente de agendar',
@@ -2741,7 +2765,7 @@ function StudioApp() {
         fechaNacimiento: c.birth_date || '',
         telefono: c.phone || '',
         email: c.email || '',
-        pinAcceso: String(c.legacy_id ?? ''),
+        pinAcceso: String(c.legacy_id ?? '').padStart(4, '0'),
         diagnostico: data.passport?.hair_diagnosis || 'Diagnóstico inicial pendiente',
         ultimaVisita: data.passport?.last_visit_text || 'Nuevo registro',
         proximaVisitaSugerida: data.passport?.next_visit_text || 'Pendiente de agendar',
@@ -4439,7 +4463,7 @@ function StudioApp() {
             <p style={{ color: '#D6CBB8', fontSize: '15px', lineHeight: 1.6, margin: 0 }}>{currentLang === 'es' ? t('careIntro') : `${t('hello')}, ${currentClientRecord?.nombre || t('welcome')}. ${t('careIntro')}`}</p>
             <details style={{ color: '#FFF8EE', fontSize: '12px', marginTop: '6px' }}>
               <summary style={{ cursor: 'pointer', padding: '6px 0' }}>{t('myDetails')}</summary>
-              <p style={{ overflowWrap: 'anywhere' }}>{currentClientRecord?.email} · ID #{currentClientRecord?.idNum} · {currentClientRecord?.registroId}</p>
+              <p style={{ overflowWrap: 'anywhere' }}>{currentClientRecord?.email} · ID #{clientDisplayNumber(currentClientRecord)} · {currentClientRecord?.registroId}</p>
             </details>
           </div>
           <section aria-label="Reserva tu cita" style={{ background: 'linear-gradient(135deg, #221D19 0%, #322A25 100%)', border: '1px solid rgba(212, 175, 55, 0.45)', borderRadius: '14px', padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
