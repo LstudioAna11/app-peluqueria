@@ -6098,11 +6098,12 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[])=>void)
             if(state==='SUBSCRIBED'){setStatus('Agenda conectada en directo');void refresh();}
             else if(state==='CHANNEL_ERROR'||state==='TIMED_OUT'||state==='CLOSED')setStatus('Conexión de agenda interrumpida. Pulsa Actualizar.');
           });
-      }catch{if(!stopped)setStatus('No se pudo conectar la agenda en directo. Pulsa Actualizar.');}
+      }catch(error){if(!stopped)setStatus((error instanceof Error?error.message:'No se pudo conectar la agenda en directo.')+' Pulsa Actualizar.');}
     };
     const disconnect=()=>{connectionGeneration++;if(client&&channel)void client.removeChannel(channel);channel=null;if(client)client.realtime.disconnect();client=null;};
     const visibility=()=>{if(document.hidden){disconnect();setStatus('Agenda en pausa mientras esta pestaña está oculta');}else void connect();};
     const focus=()=>{if(!document.hidden)void refresh();};
+    refreshRef.current=()=>{setStatus('Reconectando la agenda…');disconnect();void connect();void refresh();};
     document.addEventListener('visibilitychange',visibility);window.addEventListener('focus',focus);
     void connect();
     return()=>{stopped=true;clearTimeout(timer);disconnect();document.removeEventListener('visibilitychange',visibility);window.removeEventListener('focus',focus);refreshRef.current=()=>{};};
