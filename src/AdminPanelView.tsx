@@ -467,7 +467,7 @@ export default function AdminPanelView(props: Props) {
               <p style={{ color: '#C9BCA9', fontSize: '12px', letterSpacing: '1px', margin: 0 }}>{bizConfig.name} - {t('adminSubtitle')}</p>
             </div>
             </div>
-            <button onClick={onLogout} style={{ background: 'none', border: '1px solid rgba(234, 220, 199, 0.4)', color: '#E4C687', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
+            <button type="button" onClick={onLogout} style={{ background: 'none', border: '1px solid rgba(234, 220, 199, 0.4)', color: '#E4C687', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
               {t('logout')}
             </button>
           </div>
@@ -1337,6 +1337,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                     </section>
                                     <div className="studio-editor-data" style={{ display: 'flex', flexDirection: 'column', gap: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px' }}>
                                       <label style={{ color: '#E4C687', fontSize: '12px', fontWeight: 'bold' }}>Fotografía del servicio</label>
+                                      {catalogSavedMsg && <p role="status" aria-live="polite" style={{margin:0,color:'#E4C687',fontSize:12,lineHeight:1.5}}>{catalogSavedMsg}</p>}
                                       <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                                         <div style={{ width: '140px', height: '105px', borderRadius: '8px', overflow: 'hidden', background: '#3E342C', flexShrink: 0, border: '1px solid #3A312A' }}>
                                           {sub.imageUrl
