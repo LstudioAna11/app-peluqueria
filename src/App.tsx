@@ -1,3 +1,4 @@
+import { prepareCatalogImage, catalogImageSizeMessage } from './catalogImage';
 import {createClient} from '@supabase/supabase-js';
 import { AddonChoices, addonError, type AddonGroup } from './ServiceAddons';
 import React, { useState, useEffect, useRef } from 'react';
@@ -1267,6 +1268,7 @@ function StudioApp() {
   const catalogHasChanges = JSON.stringify(catalog) !== savedCatalogSnapshot;
 
   const [photoUploadBusy, setPhotoUploadBusy] = useState(false);
+  const photoUploadBusyRef = useRef(false);
   const updateSubserviceField = (categoryId: string, subId: string, patch: Partial<SubService>) => {
     setCatalog(previous => previous.map(c => c.id !== categoryId ? c : {
       ...c,
@@ -1274,58 +1276,51 @@ function StudioApp() {
     }));
   };
   const handleServicePhotoSelect = async (categoryId: string, subId: string, file: File | undefined) => {
-    if (!file) return;
-    if (!file.type.startsWith('image/')) { alert('Elige un archivo de imagen.'); return; }
-    if (file.size > 8 * 1024 * 1024) { alert('La imagen supera 8 MB. Elige una más ligera.'); return; }
+    if (!file || photoUploadBusyRef.current) return;
     if (!studioApi.serverConfigured || studioApi.storedRole() !== 'admin' || !studioApi.currentToken()) {
       alert('Para gestionar fotografías necesitas entrar en 360studio con el PIN maestro.'); return;
     }
+    photoUploadBusyRef.current = true;
     setPhotoUploadBusy(true);
     try {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
-        reader.readAsDataURL(file);
-      });
+      const prepared = await prepareCatalogImage(file);
+      const {dataUrl} = prepared;
       const uploaded = await studioApi.uploadServiceImage(studioApi.currentToken()!, dataUrl);
+      if (!uploaded?.ok || typeof uploaded.url !== 'string' || !uploaded.url.startsWith('https://')) throw new Error('No se recibió una dirección válida para la foto.');
       updateSubserviceField(categoryId, subId, { imageUrl: uploaded.url, imageIsAiPlaceholder: false });
-      alert('Foto subida. Pulsa "Guardar catálogo" para hacerla visible en el portal de clientas.');
+      alert(catalogImageSizeMessage(prepared) + ' Pulsa "Guardar catálogo" para hacerla visible en el portal de clientas.');
     } catch (error) {
       alert(error instanceof Error ? error.message : 'No se pudo subir la foto.');
     } finally {
+      photoUploadBusyRef.current = false;
       setPhotoUploadBusy(false);
     }
   };
   const storagePathFromUrl = (url: string | undefined) =>
     (/^https:\/\/.+\/storage\/v1\/object\/public\/service-images\/(.+)$/.exec(url || '') || [])[1];
   const handleCategoryPhotoSelect = async (catId: string, file: File | undefined) => {
-    if (!file || photoUploadBusy) return;
-    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) { alert('Elige una foto PNG, JPG o WebP. Convierte otros formatos antes de subirlos.'); return; }
-    if (file.size > 4 * 1024 * 1024) { alert('La imagen supera 4 MB. Elige una más ligera.'); return; }
+    if (!file || photoUploadBusyRef.current) return;
     if (!studioApi.serverConfigured || studioApi.storedRole() !== 'admin' || !studioApi.currentToken()) {
       alert('Para gestionar fotografías necesitas entrar en 360studio con el PIN maestro.'); return;
     }
+    photoUploadBusyRef.current = true;
     setPhotoUploadBusy(true);
     try {
-      const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
-        reader.readAsDataURL(file);
-      });
+      const prepared = await prepareCatalogImage(file);
+      const {dataUrl} = prepared;
       const uploaded = await studioApi.uploadServiceImage(studioApi.currentToken()!, dataUrl);
       if (!uploaded?.ok || typeof uploaded.url !== 'string' || !uploaded.url.startsWith('https://')) {
         throw new Error('El servidor no devolvió una dirección válida para la foto. La imagen anterior se conserva.');
       }
       setCatalog(previous => previous.map(c => c.id !== catId ? c : { ...c, imageUrl: uploaded.url, imageIsAiPlaceholder: false }));
-      alert('Foto de la categoría subida. Pulsa "Guardar catálogo" para hacerla visible en el portal de clientas.');
+      alert(catalogImageSizeMessage(prepared) + ' Pulsa "Guardar catálogo" para hacerla visible en el portal de clientas.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo subir la foto.';
       alert(message.includes('publicUrl')
         ? 'La función de subida del servidor necesita la corrección de publicUrl. La foto anterior se conserva. Actualiza y despliega studio-api antes de reintentar.'
         : message);
     } finally {
+      photoUploadBusyRef.current = false;
       setPhotoUploadBusy(false);
     }
   };
