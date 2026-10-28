@@ -112,7 +112,7 @@ export const pushSettings = (token: string, settings: unknown) =>
   call<{ ok: true }>("settings", { method: "PUT", token, body: { settings } });
 
 export const createClientOnServer = (token: string, client: Record<string, unknown>) =>
-  call<{ ok: true; id: string; legacyId: number }>("client", { token, body: client });
+  call<{ ok: true; id: string; legacyId: number; registrationId: string }>("client", { token, body: client });
 
 export const pushPassport = (token: string, passport: Record<string, unknown>) =>
   call<{ ok: true }>("passport", { token, body: passport });
