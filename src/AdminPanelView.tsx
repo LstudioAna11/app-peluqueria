@@ -5,6 +5,10 @@ import * as studioApi from './studioApi';
 import OfficialHolidaysView from './OfficialHolidaysView';
 import PromotionsView from './PromotionsView';
 import type { StudioEmployee, BusinessConfig, ServiceVariant, Appointment, StylingPolicy, FinishKind, ServiceTranslation, SubService, CatalogCategory, ClientRecord, LostDemandRecord, FeedbackRecord, HolidayBlock } from './App';
+function clientDisplayNumber(client: {registroId?: string} | null | undefined): string {
+  const match = /^LSTUDIO-(\d+)$/.exec(client?.registroId || '');
+  return match ? String(Number(match[1])) : 'Pendiente';
+}
 const isCutCategory = (category: {id: string; title: string}) => category.id === 'c2' || /cort[eo]/i.test(category.title);
 const LazyOpportunitiesView=React.lazy(()=>import('./OpportunitiesView'));
 
@@ -1498,14 +1502,14 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                     return (
                       <article key={c.idNum} style={{background:'#322A25',border:'1px solid #655039',borderRadius:9,overflow:'hidden'}}>
 <button type="button" aria-expanded={expandedClientId === c.idNum} aria-controls={`client-details-${c.idNum}`} onClick={() => { setExpandedClientId(previous => previous === c.idNum ? null : c.idNum); setEditingClientId(null); }} style={{width:'100%',display:'flex',alignItems:'center',gap:12,padding:'11px 14px',border:0,background:'transparent',color:'#FFF8EE',cursor:'pointer',textAlign:'left',flexWrap:'wrap'}}>
-<strong style={{fontSize:14,flex:'1 1 220px'}}>{c.nombre} {c.apellidos}</strong><span style={{fontSize:12,color:'#D6CBB8'}}>{c.telefono || 'Sin teléfono'}</span><span style={{fontSize:11,color:c.archivedAt ? '#F5C7B8' : '#BDE1B8'}}>{c.archivedAt ? 'De baja' : 'Activa'}</span><span style={{fontSize:11,color:'#D6CBB8'}}>#{c.idNum}</span><span aria-hidden="true" style={{color:'#E4C687'}}>{expandedClientId === c.idNum ? '▴' : '▾'}</span>
+<strong style={{fontSize:14,flex:'1 1 220px'}}>{c.nombre} {c.apellidos}</strong><span style={{fontSize:12,color:'#D6CBB8'}}>{c.telefono || 'Sin teléfono'}</span><span style={{fontSize:11,color:c.archivedAt ? '#F5C7B8' : '#BDE1B8'}}>{c.archivedAt ? 'De baja' : 'Activa'}</span><span style={{fontSize:11,color:'#D6CBB8'}}>#{clientDisplayNumber(c)}</span><span aria-hidden="true" style={{color:'#E4C687'}}>{expandedClientId === c.idNum ? '▴' : '▾'}</span>
 </button>
 {expandedClientId === c.idNum && <div id={`client-details-${c.idNum}`} style={{display:'flex',flexDirection:'column',gap:10,padding:14,borderTop:'1px solid #655039'}}>
 {c.archivedAt && <p style={{margin:0,fontSize:12,color:'#F5C7B8'}}>De baja desde {new Date(c.archivedAt).toLocaleDateString('es-ES')}. Su historial se conserva.</p>}
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                             <span style={{ backgroundColor: '#322A25', color: '#FFF8EE', padding: '3px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
-                              ID #{c.idNum} ({c.registroId})
+                              ID #{clientDisplayNumber(c)} ({c.registroId})
                             </span>
                             <span style={{ color: '#FFF8EE', fontSize: '14px', fontWeight: 'bold' }}>{c.nombre} {c.apellidos}</span>
                           </div>
