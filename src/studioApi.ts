@@ -307,3 +307,5 @@ export const inspectClientDelete=(token:string,id:string)=>call<ClientDeleteInfo
 export const deleteClientPermanently=(token:string,id:string)=>call<ClientDeleteInfo>('client-delete',{method:'DELETE',token,body:{id}});
 
 export const saveClientDetailsOnServer=(token:string,id:string,details:unknown)=>call<{ok:true}>('client-details',{method:'PUT',token,body:{id,details}});
+
+export const fetchAgendaLive=(token:string)=>call<{topic:string}>('agenda-live',{token});
