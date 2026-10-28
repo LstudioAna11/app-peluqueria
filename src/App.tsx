@@ -1670,6 +1670,14 @@ function StudioApp() {
     const query = busquedaCliente.trim().toLocaleLowerCase('es');
     return [client.nombre, client.apellidos, `${client.nombre} ${client.apellidos}`, client.email,
       client.telefono, client.registroId, String(client.idNum)].some(value => String(value || '').toLocaleLowerCase('es').includes(query));
+  }).sort((left, right) => {
+    const leftNumber = Number(clientDisplayNumber(left));
+    const rightNumber = Number(clientDisplayNumber(right));
+    const leftValid = Number.isFinite(leftNumber);
+    const rightValid = Number.isFinite(rightNumber);
+    if (leftValid && rightValid) return leftNumber - rightNumber;
+    if (leftValid !== rightValid) return leftValid ? -1 : 1;
+    return (left.nombre + ' ' + left.apellidos).localeCompare(right.nombre + ' ' + right.apellidos, 'es');
   });
   const clientsPageCount = Math.max(1, Math.ceil(filteredClientRows.length / 15));
   const effectiveClientsPage = Math.min(clientsPage, clientsPageCount);
