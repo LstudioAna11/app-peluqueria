@@ -1300,6 +1300,11 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
 
 <section className="studio-editor-booking studio-booking-buttons" style={{ padding: '16px', border: '1px solid #3A312A', borderRadius: '10px', background: '#322A25' }}>
                                       <h4 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '17px', margin: '0 0 18px' }}>Condiciones de reserva</h4>
+                                      <label style={{display:'block',fontSize:13,color:'#E4C687',marginBottom:14}}>Tiempo extra al finalizar · Limpieza, preparación y recogida
+                                        <input type="number" min={0} max={120} step={1} value={sub.bufferMinutes??0} onChange={event=>{const value=Number(event.target.value);updateSubserviceField(cat.id,sub.id,{bufferMinutes:Math.max(0,Math.min(120,Number.isFinite(value)?Math.round(value):0))});}} style={{display:'block',width:100,padding:10,marginTop:8,background:'#29231F',color:'#FFF8EE',border:'1px solid #C5A059',borderRadius:6}}/> minutos
+                                        <small style={{display:'block',fontSize:12,marginTop:6}}>Se bloquea al final de la cita. Si hay varios servicios se utiliza solo el mayor, no se suman. No modifica el precio ni las citas ya guardadas.</small>
+                                      </label>
+
                                       <fieldset>
                                         <legend>Reserva</legend>
                                         <div className="studio-condition-choices">
