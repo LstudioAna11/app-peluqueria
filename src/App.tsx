@@ -1802,33 +1802,26 @@ function StudioApp() {
     setIsAddingClient(false);
   };
 
-  const handleRegistroClientaPortalSubmit = (e: React.FormEvent) => {
+  const [registrationBusy,setRegistrationBusy]=useState(false);
+  const [registrationError,setRegistrationError]=useState('');
+  const registrationBusyRef=useRef(false);
+  const registrationRequest=useRef<{signature:string;id:string}|null>(null);
+  const handleRegistroClientaPortalSubmit = async (e:React.FormEvent) => {
     e.preventDefault();
-    if (!regNombre.trim() || !regEmail.trim() || !regPin.trim()) return;
-    const identityError = validateClientIdentity(regEmail, regPin);
-    if (identityError) { alert(identityError); return; }
-    const siguienteIdNum = listaClientes.length > 0 ? Math.max(...listaClientes.map(c => c.idNum || 0)) + 1 : 1;
-    const idFormateado = `LSTUDIO-${String(siguienteIdNum).padStart(3, '0')}`;
-    const nuevaClienta: ClientRecord = { createdAt: new Date().toISOString(),
-      idNum: siguienteIdNum,
-      registroId: idFormateado,
-      nombre: regNombre.trim(),
-      apellidos: regApellidos.trim(),
-      fechaNacimiento: regNacimiento.trim(),
-      telefono: regTelefono.trim(),
-      email: normalizeEmail(regEmail),
-      pinAcceso: regPin.trim(),
-      diagnostico: 'Primera visita registrada desde app',
-      ultimaVisita: 'Nuevo registro',
-      proximaVisitaSugerida: 'Pendiente',
-      formulasAplicadas: 'Registro inicial completado',
-      dniCapilar: 'Porosidad: Media | Hidratación: En estudio',
-      prescripcionCasa: 'Champú Orgánico & Cuidado Inicial'
-    };
-    trackTraffic('registration');
-    setListaClientes([...listaClientes, nuevaClienta]);
-    setCurrentClientRecord(nuevaClienta);
-    setCurrentScreen('clientPortal');
+    if(registrationBusyRef.current)return;
+    const details={nombre:regNombre.trim(),apellidos:regApellidos.trim(),fechaNacimiento:regNacimiento.trim(),telefono:regTelefono.trim(),email:normalizeEmail(regEmail),pin:regPin.trim()};
+    if(!details.nombre||!details.email||!/^\d{4}$/.test(details.pin)){setRegistrationError('Completa nombre, email y un PIN de cuatro cifras.');return;}
+    const signature=JSON.stringify(details);
+    if(registrationRequest.current?.signature!==signature)registrationRequest.current={signature,id:crypto.randomUUID()};
+    registrationBusyRef.current=true;setRegistrationBusy(true);setRegistrationError('');
+    try{
+      const result=await studioApi.registerPortalClient(details,registrationRequest.current!.id);
+      const record:ClientRecord={serverId:result.clientId,idNum:Number(details.pin),registroId:result.registrationId,nombre:details.nombre,apellidos:details.apellidos,fechaNacimiento:details.fechaNacimiento,telefono:details.telefono,email:details.email,pinAcceso:details.pin,createdAt:result.createdAt,diagnostico:'Diagnóstico inicial pendiente',ultimaVisita:'Nuevo registro',proximaVisitaSugerida:'Pendiente',formulasAplicadas:'',dniCapilar:'',prescripcionCasa:'',pastVisits:[]};
+      setListaClientes(previous=>[...previous.filter(c=>c.serverId!==record.serverId&&normalizeEmail(c.email)!==details.email),record]);
+      setCurrentClientRecord(record);setFeedbackSubmitted(false);trackTraffic('registration');
+      registrationRequest.current=null;setRegPin('');setCurrentScreen('clientPortal');
+    }catch(error){setRegistrationError(error instanceof Error?error.message:'No se pudo crear la ficha. Conservamos tus datos para reintentar.');}
+    finally{registrationBusyRef.current=false;setRegistrationBusy(false);}
   };
 
   const clientDeleteBusyRef = useRef(false);
@@ -4376,7 +4369,9 @@ function StudioApp() {
           <img src={optimizedImageUrl(brandLogoSrc)} onError={fallbackBrandLogo} decoding="async" alt="L’A · Hair Experience" style={{ width: '150px', height: 'auto', mixBlendMode: 'screen', display: 'block', margin: '0 auto 12px' }} />
           <h2 style={{ color: '#FFF8EE', fontSize: '25px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0, textAlign: 'center' }}>{t('clientRegistrationTitle')}</h2>
           <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.7, textAlign: 'center', margin: '0 0 10px 0' }}>{t('clientRegistrationDesc')}</p>
-          <form onSubmit={handleRegistroClientaPortalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <form aria-busy={registrationBusy} onSubmit={handleRegistroClientaPortalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <fieldset disabled={registrationBusy} style={{border:0,padding:0,margin:0,display:'contents'}}>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
               <label style={{ color: '#D6CBB8', fontSize: '11px', fontWeight: 'bold' }}>{t('nameLabel')}</label>
               <input type="text" placeholder="Ej. Ana" value={regNombre} onChange={(e) => setRegNombre(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '10px', backgroundColor: '#3E342C', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
@@ -4403,11 +4398,13 @@ function StudioApp() {
               <label style={{ color: '#D6CBB8', fontSize: '11px', fontWeight: 'bold' }}>{t('pinLabel')}</label>
               <input type="password" inputMode="numeric" pattern="[0-9]{4}" placeholder="••••" maxLength={4} value={regPin} onChange={(e) => setRegPin(e.target.value.replace(/[^0-9]/g, '').slice(0, 4))} onFocus={(e) => e.target.select()} required style={{ padding: '10px', backgroundColor: '#3E342C', border: '1px solid #B98A3E', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px', textAlign: 'center', letterSpacing: '4px' }} />
             </div>
-            <button type="submit" disabled={adminBookingSaving} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '14px', minHeight: '48px', borderRadius: '3px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginTop: '10px' }}>
-              {t('completeRegisterBtn')}
+            <button type="submit" disabled={registrationBusy} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '14px', minHeight: '48px', borderRadius: '3px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginTop: '10px' }}>
+              {registrationBusy?'Creando tu ficha…':t('completeRegisterBtn')}
             </button>
-          </form>
-          <button onClick={() => setCurrentScreen('clientPin')} style={{ background: 'none', border: 'none', color: '#D6CBB8', fontSize: '12px', minHeight: '44px', cursor: 'pointer', textAlign: 'center' }}>
+                      {registrationError&&<p role="alert" style={{color:'#FFC4B5',fontSize:13,lineHeight:1.5}}>{registrationError}</p>}
+            </fieldset>
+</form>
+          <button disabled={registrationBusy} onClick={() => setCurrentScreen('clientPin')} style={{ background: 'none', border: 'none', color: '#D6CBB8', fontSize: '12px', minHeight: '44px', cursor: 'pointer', textAlign: 'center' }}>
             {t('backToPin')}
           </button>
         </div>
