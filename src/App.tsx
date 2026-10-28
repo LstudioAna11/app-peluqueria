@@ -1598,25 +1598,7 @@ function StudioApp() {
 
   const [listaClientes, setListaClientes] = useState<ClientRecord[]>(() => {
     const saved = localStorage.getItem('lst_studio_clientes_ids');
-    return saved ? readStoredValue('lst_studio_clientes_ids', saved) : [
-      {
-        idNum: 1,
-        registroId: "LSTUDIO-001",
-        nombre: "Ana",
-        apellidos: "Moreno Fernández",
-        fechaNacimiento: "30/10/1979",
-        telefono: "691888588",
-        email: "anamorenofernandez79@gmail.com",
-        pinAcceso: "7009",
-        diagnostico: "Diagnóstico inicial pendiente",
-        ultimaVisita: "Nuevo registro",
-        proximaVisitaSugerida: "Pendiente de agendar",
-        formulasAplicadas: "Sin fórmulas registradas",
-        dniCapilar: "Porosidad: Pendiente | Hidratación: Pendiente",
-        prescripcionCasa: "Pendiente de recomendación",
-        pastVisits: []
-      }
-    ];
+    return saved ? readStoredValue('lst_studio_clientes_ids', saved) : [];
   });
 
   const [clientDetailsDraft, setClientDetailsDraft] = useState<ClientRecord | null>(null);
@@ -2686,7 +2668,7 @@ function StudioApp() {
         return Array.from(byId.values());
       });
     }
-    if (Array.isArray(data.clients) && data.clients.length) {
+    if (data.role === 'admin' && Array.isArray(data.clients)) {
       const serverClients = data.clients.map((c: Record<string, any>): ClientRecord => ({
         archivedAt: c.archived_at ?? null,
         createdAt: c.created_at,
@@ -2709,11 +2691,14 @@ function StudioApp() {
           date: v.visit_date || '', service: v.service || '', stylist: v.stylist || '', notes: v.shared_notes || '',
         })),
       }));
-      setListaClientes(previous => {
-        const byId = new Map(previous.map(client => [client.idNum, client]));
-        serverClients.forEach(client => { if (client.idNum) byId.set(client.idNum, client); });
-        return Array.from(byId.values()).sort((left, right) => left.idNum - right.idNum);
-      });
+      // A successful admin sync is authoritative, including an empty server list.
+      // Keep a local recovery copy before retiring stale, unsynchronised entries.
+      const oldClientCache = localStorage.getItem('lst_studio_clientes_ids');
+      if (oldClientCache && !localStorage.getItem('lst_clientas_respaldo_20261028')) {
+        localStorage.setItem('lst_clientas_respaldo_20261028', oldClientCache);
+      }
+      const uniqueClients = new Map(serverClients.map(client => [client.serverId, client]));
+      setListaClientes(Array.from(uniqueClients.values()).sort((left,right)=>left.idNum-right.idNum));
       if (Array.isArray(data.feedback)) {
         const nameByClientId = new Map(data.clients.map((c: Record<string, any>) => [c.id, `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Clienta']));
         const serverFeedback: FeedbackRecord[] = data.feedback.map((f: Record<string, any>) => ({
