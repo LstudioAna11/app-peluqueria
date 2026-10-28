@@ -1123,7 +1123,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '180px' }}>
                                 <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', minHeight: '44px', padding: '10px 14px', background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: photoUploadBusy ? 'wait' : 'pointer' }}>
                                   <ImagePlus size={16} strokeWidth={1.8} aria-hidden="true" />
-                                  {photoUploadBusy ? 'Subiendo…' : (cat.imageUrl ? 'Sustituir foto de la categoría' : 'Subir foto de la categoría')}
+                                  {photoUploadBusy ? 'Preparando y subiendo…' : (cat.imageUrl ? 'Sustituir foto de la categoría' : 'Subir foto de la categoría')}
                                   <input type="file" accept="image/png,image/jpeg,image/webp" disabled={photoUploadBusy} onChange={(e) => { handleCategoryPhotoSelect(cat.id, e.target.files?.[0]); e.target.value = ''; }} style={{ display: 'none' }} />
                                 </label>
                                 {cat.imageUrl && <button type="button" disabled={photoUploadBusy} onClick={() => handleCategoryPhotoDelete(cat.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 14px', background: '#322A25', color: '#C0392B', border: '1px solid #dfaaa3', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>
@@ -1346,7 +1346,7 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, minWidth: '180px' }}>
                                           <label style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', minHeight: '44px', padding: '10px 14px', background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', cursor: photoUploadBusy ? 'wait' : 'pointer' }}>
                                             <ImagePlus size={16} strokeWidth={1.8} aria-hidden="true" />
-                                            {photoUploadBusy ? 'Subiendo…' : (sub.imageUrl ? 'Sustituir por otra foto' : 'Subir foto desde el dispositivo')}
+                                            {photoUploadBusy ? 'Preparando y subiendo…' : (sub.imageUrl ? 'Sustituir por otra foto' : 'Subir foto desde el dispositivo')}
                                             <input type="file" accept="image/*" disabled={photoUploadBusy} onChange={(e) => { handleServicePhotoSelect(cat.id, sub.id, e.target.files?.[0]); e.target.value = ''; }} style={{ display: 'none' }} />
                                           </label>
                                           {sub.imageUrl && <button type="button" disabled={photoUploadBusy} onClick={() => handleServicePhotoDelete(cat.id, sub.id)} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '10px 14px', background: '#322A25', color: '#C0392B', border: '1px solid #dfaaa3', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>
