@@ -1,3 +1,4 @@
+import { rememberCatalogPhoto, restoreCatalogPhotos, clearCatalogPhotos, forgetCatalogPhoto, verifyCatalogPhotoUrl } from './catalogPhotoDrafts';
 import { prepareCatalogImage, catalogImageSizeMessage } from './catalogImage';
 import {createClient} from '@supabase/supabase-js';
 import { AddonChoices, addonError, type AddonGroup } from './ServiceAddons';
@@ -1278,19 +1279,22 @@ function StudioApp() {
   const handleServicePhotoSelect = async (categoryId: string, subId: string, file: File | undefined) => {
     if (!file || photoUploadBusyRef.current) return;
     if (!studioApi.serverConfigured || studioApi.storedRole() !== 'admin' || !studioApi.currentToken()) {
-      alert('Para gestionar fotografías necesitas entrar en 360studio con el PIN maestro.'); return;
+      setCatalogSavedMsg('Para subir la foto, vuelve a entrar en la intranet.'); return;
     }
     photoUploadBusyRef.current = true;
     setPhotoUploadBusy(true);
+    setCatalogSavedMsg('Preparando y subiendo la foto…');
     try {
       const prepared = await prepareCatalogImage(file);
       const {dataUrl} = prepared;
       const uploaded = await studioApi.uploadServiceImage(studioApi.currentToken()!, dataUrl);
       if (!uploaded?.ok || typeof uploaded.url !== 'string' || !uploaded.url.startsWith('https://')) throw new Error('No se recibió una dirección válida para la foto.');
+      await verifyCatalogPhotoUrl(uploaded.url);
+      rememberCatalogPhoto(categoryId,subId,uploaded.url);
       updateSubserviceField(categoryId, subId, { imageUrl: uploaded.url, imageIsAiPlaceholder: false });
-      alert(catalogImageSizeMessage(prepared) + ' Pulsa "Guardar catálogo" para hacerla visible en el portal de clientas.');
+      setCatalogSavedMsg(catalogImageSizeMessage(prepared) + ' Pulsa "Guardar catálogo" para hacerla visible en el portal de clientas.');
     } catch (error) {
-      alert(error instanceof Error ? error.message : 'No se pudo subir la foto.');
+      setCatalogSavedMsg(error instanceof Error ? error.message : 'No se pudo subir la foto.');
     } finally {
       photoUploadBusyRef.current = false;
       setPhotoUploadBusy(false);
@@ -1301,10 +1305,11 @@ function StudioApp() {
   const handleCategoryPhotoSelect = async (catId: string, file: File | undefined) => {
     if (!file || photoUploadBusyRef.current) return;
     if (!studioApi.serverConfigured || studioApi.storedRole() !== 'admin' || !studioApi.currentToken()) {
-      alert('Para gestionar fotografías necesitas entrar en 360studio con el PIN maestro.'); return;
+      setCatalogSavedMsg('Para subir la foto, vuelve a entrar en la intranet.'); return;
     }
     photoUploadBusyRef.current = true;
     setPhotoUploadBusy(true);
+    setCatalogSavedMsg('Preparando y subiendo la foto…');
     try {
       const prepared = await prepareCatalogImage(file);
       const {dataUrl} = prepared;
@@ -1312,11 +1317,13 @@ function StudioApp() {
       if (!uploaded?.ok || typeof uploaded.url !== 'string' || !uploaded.url.startsWith('https://')) {
         throw new Error('El servidor no devolvió una dirección válida para la foto. La imagen anterior se conserva.');
       }
+      await verifyCatalogPhotoUrl(uploaded.url);
+      rememberCatalogPhoto(catId,undefined,uploaded.url);
       setCatalog(previous => previous.map(c => c.id !== catId ? c : { ...c, imageUrl: uploaded.url, imageIsAiPlaceholder: false }));
-      alert(catalogImageSizeMessage(prepared) + ' Pulsa "Guardar catálogo" para hacerla visible en el portal de clientas.');
+      setCatalogSavedMsg(catalogImageSizeMessage(prepared) + ' Pulsa "Guardar catálogo" para hacerla visible en el portal de clientas.');
     } catch (error) {
       const message = error instanceof Error ? error.message : 'No se pudo subir la foto.';
-      alert(message.includes('publicUrl')
+      setCatalogSavedMsg(message.includes('publicUrl')
         ? 'La función de subida del servidor necesita la corrección de publicUrl. La foto anterior se conserva. Actualiza y despliega studio-api antes de reintentar.'
         : message);
     } finally {
@@ -1333,6 +1340,7 @@ function StudioApp() {
     try {
       const marker = storagePathFromUrl(catalog.find(c => c.id === catId)?.imageUrl);
       if (marker) await studioApi.deleteServiceImage(studioApi.currentToken()!, marker);
+      forgetCatalogPhoto(catId);
       const updated = catalog.map(c => c.id !== catId ? c : { ...c, imageUrl: undefined, imageIsAiPlaceholder: false });
       setCatalog(updated);
       localStorage.setItem('lst_master_catalog', JSON.stringify(updated));
@@ -1360,6 +1368,7 @@ function StudioApp() {
     try {
       const marker = /^https:\/\/.+\/storage\/v1\/object\/public\/service-images\/(.+)$/.exec(sub.imageUrl || '');
       if (marker) await studioApi.deleteServiceImage(studioApi.currentToken()!, marker[1]);
+      forgetCatalogPhoto(categoryId,subId);
       const updated = catalog.map(c => c.id !== categoryId ? c : {
         ...c,
         subservices: c.subservices.map(s => s.id !== subId ? s : { ...s, imageUrl: undefined, imageIsAiPlaceholder: false })
@@ -1404,6 +1413,7 @@ function StudioApp() {
           return !saved || keys.some(key => JSON.stringify(saved[key] ?? null) !== JSON.stringify(service[key] ?? null));
         });
       })) throw new Error('El servidor no ha conservado todas las fotos o condiciones de reserva. Los cambios siguen pendientes; revisa la API antes de continuar.');
+      clearCatalogPhotos();
       setSavedCatalogSnapshot(JSON.stringify(submitted));
       try { localStorage.setItem('lst_master_catalog', JSON.stringify(submitted)); } catch { /* optional cache */ }
       setCatalogSavedMsg('Catálogo guardado. Fotos y condiciones de reserva comprobadas en el servidor.');
@@ -2456,7 +2466,8 @@ function StudioApp() {
       const result = await studioApi.authenticate(pushLoginPin);
       setPushLoginPin('');
       if (result.role !== 'client' || (previousClientId && result.clientId !== previousClientId)) {
-        studioApi.clearStoredToken();
+        if (catalogHasChanges && !window.confirm('Hay cambios del catálogo pendientes. ¿Quieres cerrar sesión sin guardarlos?')) return;
+    studioApi.clearStoredToken();
         throw new Error('Usa el PIN de la clienta de esta reserva.');
       }
       setPushNeedsLogin(false);
@@ -2665,7 +2676,7 @@ function StudioApp() {
           }),
         }));
       if (serverCatalog.length) {
-        setCatalog(serverCatalog);
+        setCatalog(studioApi.storedRole() === 'admin' ? restoreCatalogPhotos(serverCatalog) : serverCatalog);
         localStorage.setItem('lst_master_catalog', JSON.stringify(serverCatalog));
         setSavedCatalogSnapshot(JSON.stringify(serverCatalog));
       }
@@ -3429,7 +3440,7 @@ function StudioApp() {
   };
 
   const handleLogout = () => {
-    if (approvalSavingRef.current || visualBookingBusyRef.current || pendingBookingBusyRef.current || bizumSavingRef.current || deletingAppointmentRef.current || configSavingRef.current || catalogSavingRef.current) {
+    if (approvalSavingRef.current || visualBookingBusyRef.current || pendingBookingBusyRef.current || bizumSavingRef.current || deletingAppointmentRef.current || configSavingRef.current || catalogSavingRef.current || photoUploadBusyRef.current) {
       alert('Espera a que termine el guardado antes de cerrar sesión.');
       return;
     }
