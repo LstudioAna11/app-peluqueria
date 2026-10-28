@@ -532,6 +532,7 @@ export interface SubService {
   duration: string;
   price: string;
   bufferTime?: string;
+  bufferMinutes?: number;
   includesText?: string;
   achievedText?: string;
   forWhomText?: string;
@@ -1398,7 +1399,7 @@ function StudioApp() {
       const categories = verify?.catalog?.map(row => row.category).filter(Boolean) as CatalogCategory[] | undefined;
       if (!categories || submitted.some(category => {
         const stored = categories.find(item => item.id === category.id);
-        const keys = ['name', 'bookingName', 'imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'conditionsText', 'cutAllowedIds', 'addonGroups', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
+        const keys = ['name', 'bookingName', 'imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'conditionsText', 'cutAllowedIds', 'addonGroups', 'bufferMinutes', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
         return !stored || stored.title !== category.title || (stored.portalTitle || '') !== (category.portalTitle || '') || (stored.slogan || '') !== (category.slogan || '') || (stored.imageUrl || '') !== (category.imageUrl || '') || category.subservices.some(service => {
           const saved = stored.subservices?.find(s => s.id === service.id);
           return !saved || keys.some(key => JSON.stringify(saved[key] ?? null) !== JSON.stringify(service[key] ?? null));
@@ -2033,8 +2034,14 @@ function StudioApp() {
       return existing < 0 ? [...previous, item] : previous.map((entry, index) => index === existing ? item : entry);
     });
   };
-  const getModalDuration = (items: { sub: SubService; variant: ServiceVariant | null }[]) =>
+  const getServiceDuration = (items: { sub: SubService; variant: ServiceVariant | null }[]) =>
     items.reduce((total, item) => total + (parseInt((item.variant?.duration || item.sub.duration).match(/\d+/)?.[0] || '45', 10)), 0);
+
+  const getBufferDuration = (items: {sub:SubService}[]) => Math.max(0,...items.map(item=>{
+    const current=catalog.flatMap(c=>c.subservices).find(s=>s.id===item.sub.id)||item.sub;
+    return Number.isFinite(current.bufferMinutes)?Math.max(0,Math.min(120,Math.round(current.bufferMinutes!))):0;
+  }));
+  const getModalDuration = (items: {sub:SubService;variant:ServiceVariant|null}[]) => getServiceDuration(items)+getBufferDuration(items);
 
   const selectedPromotion = bizConfig.promotions?.find(item => item.id === selectedPromotionId);
   const promotionPreview = (date = '') => {
@@ -3330,6 +3337,7 @@ function StudioApp() {
         totalDurationMinutes += match ? parseInt(match[0], 10) : 45;
       }
     });
+    totalDurationMinutes += getBufferDuration(selectedServicesToBook);
     const clientNameStr = currentClientRecord ? `${currentClientRecord.nombre} ${currentClientRecord.apellidos}` : 'Clienta Web';
     const clientPhoneStr = currentClientRecord?.telefono || '600000000';
     const dateFormattedStr = `${String(bookingDate.getDate()).padStart(2, '0')}/${String(bookingDate.getMonth() + 1).padStart(2, '0')}/${bookingDate.getFullYear()}`;
@@ -4312,7 +4320,7 @@ function StudioApp() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <strong style={{ display: 'block', color: '#FFF8EE', fontSize: 14 }}>{selectedServicesToBook.length} {selectedServicesToBook.length === 1 ? 'servicio elegido' : 'servicios elegidos'}</strong>
-                <p style={{ margin: '4px 0 0', color: '#D6CBB8', fontSize: 12 }}>{getModalDuration(selectedServicesToBook)} min{portalShowsPrices && total.total > 0 && <> · {total.orientative ? 'Orientativo: ' : ''}{total.total.toFixed(2).replace('.', ',')} €</>}</p>
+                <p style={{ margin: '4px 0 0', color: '#D6CBB8', fontSize: 12 }}>{getServiceDuration(selectedServicesToBook)} min{portalShowsPrices && total.total > 0 && <> · {total.orientative ? 'Orientativo: ' : ''}{total.total.toFixed(2).replace('.', ',')} €</>}</p>
               </div>
               <button type="button" onClick={continueBooking} style={{ minHeight: 46, padding: '10px 16px', border: 0, borderRadius: 9, background: '#C49A58', color: '#221D19', fontWeight: 600, cursor: 'pointer' }}>Continuar →</button>
             </div>
@@ -4728,7 +4736,7 @@ function StudioApp() {
               </div>
               <button type="button" aria-label={'Quitar ' + bookingName(item.sub)} onClick={() => setSelectedServicesToBook(previous => previous.filter(selected => selected.sub.id !== item.sub.id))} style={{ background: 'none', border: 'none', color: '#D6CBB8', cursor: 'pointer', padding: '10px', minHeight: '44px', minWidth: '44px', fontSize: '12px' }}>{t('remove')}</button>
             </div>)}
-            <p style={{ color: '#D6CBB8', fontSize: '13px', margin: '14px 0 0' }}>Duración total: {getModalDuration(selectedServicesToBook)} min</p>
+            <p style={{ color: '#D6CBB8', fontSize: '13px', margin: '14px 0 0' }}>Duración total: {getServiceDuration(selectedServicesToBook)} min</p>
             {(() => {
               const totalSel = getSelectionTotal(selectedServicesToBook);
               if (portalShowsPrices && totalSel.total > 0 && !totalSel.orientative) return <p style={{ color: '#FFF8EE', fontSize: '14px', margin: '6px 0 0' }}>Importe total: {totalSel.total.toFixed(2).replace('.', ',')} €</p>;
@@ -4943,7 +4951,7 @@ function StudioApp() {
         <fieldset disabled={visualBookingBusy} aria-busy={visualBookingBusy} style={{ margin: 0, minWidth: 0, maxWidth: '520px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
           <button type="button" onClick={() => { setReservationPolicyChecked(saturdayNeedsAcceptance && acceptedSaturdayPolicy === saturdayPolicyKey); setReservationPolicyOpen(true); }} style={{ alignSelf: 'flex-end', color: '#E4C687', background: 'none', border: 'none', textDecoration: 'underline', padding: 10, minHeight: 44, cursor: 'pointer' }}>Políticas de reserva · Sábados</button>
           <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#D8C29A', padding: '10px 0', cursor: 'pointer' }}>{t('backServices')}</button>
-          <div><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', color: '#FFF8EE', fontSize: '28px', fontWeight: 'normal', margin: '0 0 8px' }}>{t('chooseMoment')}</h2><p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('fullSlots')} · {getModalDuration(selectedServicesToBook)} min.</p></div>
+          <div><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', color: '#FFF8EE', fontSize: '28px', fontWeight: 'normal', margin: '0 0 8px' }}>{t('chooseMoment')}</h2><p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('fullSlots')} · {getServiceDuration(selectedServicesToBook)} min.</p></div>
           {<section aria-label="Selecciona profesional" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <h3 style={{ color: '#FFF8EE', fontSize: '15px', margin: 0 }}>Elige profesional</h3>
             <div aria-live="polite">
@@ -5423,7 +5431,7 @@ function StudioApp() {
                       <button type="button" aria-label={`Quitar ${bookingName(item.sub)}`} onClick={() => setModalServices(previous => previous.filter(entry => entry.sub.id !== item.sub.id))} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '6px', borderRadius: '4px', cursor: 'pointer' }}>Quitar</button>
                     </div>
                   ))}
-                  <p style={{ color: '#E4C687', marginBottom: 0 }}>Duración total: {getModalDuration(modalServices)} min</p>
+                  <p style={{ color: '#E4C687', marginBottom: 0 }}>Tiempo de servicio: {getServiceDuration(modalServices)} min · Buffer: {getBufferDuration(modalServices)} min · Agenda: {getModalDuration(modalServices)} min</p>
                 </div>
               )}
               <small style={{ color: '#D6CBB8' }}>Selecciona cada servicio y pulsa «Añadir servicio». Si repites uno, se actualiza su variante. Se guardarán los servicios de la lista; sin lista, se guardará el servicio seleccionado.</small>
