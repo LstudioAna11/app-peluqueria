@@ -309,3 +309,12 @@ export const deleteClientPermanently=(token:string,id:string)=>call<ClientDelete
 export const saveClientDetailsOnServer=(token:string,id:string,details:unknown)=>call<{ok:true}>('client-details',{method:'PUT',token,body:{id,details}});
 
 export const fetchAgendaLive=(token:string)=>call<{topic:string}>('agenda-live',{token});
+
+export interface PortalRegistration extends AuthResult {clientId:string;registrationId:string;createdAt:string;}
+export const registerPortalClient=async(details:Record<string,string>,requestId:string):Promise<PortalRegistration>=>{
+  const result=await call<PortalRegistration>('register',{body:{details,requestId}});
+  if(result.role!=='client'||!result.token||!result.clientId)throw new Error('El servidor no confirmó el registro. Reintenta sin cerrar el formulario.');
+  storeSession(result);
+  if(currentToken()!==result.token)throw new Error('La ficha se ha creado, pero no se pudo guardar la sesión. Permite el almacenamiento del navegador y reintenta.');
+  return result;
+};
