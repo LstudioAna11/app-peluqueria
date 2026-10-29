@@ -1,3 +1,4 @@
+import { canChangePortalAppointment, CANCELLATION_NOTICE } from './appointmentPolicy';
 import PinRecovery from './PinRecovery';
 import { calculateServiceDeposit, validateServiceDeposit, type ServiceDepositPolicy } from './serviceDeposits';
 import { rememberCatalogPhoto, restoreCatalogPhotos, clearCatalogPhotos, forgetCatalogPhoto, verifyCatalogPhotoUrl } from './catalogPhotoDrafts';
@@ -2357,26 +2358,38 @@ function StudioApp() {
     }
   };
 
-  const handleConfirmCancelAppointment = (appointment: Appointment) => {
+  const cancellationBusyRef=useRef(false);
+  const [cancellationBusy,setCancellationBusy]=useState(false);
+  const [cancellationError,setCancellationError]=useState('');
+  const staffCanManageAppointments=currentScreen==='adminPanel'&&studioApi.storedRole()==='admin';
+  const canManageAppointment=(appointment:Appointment)=>staffCanManageAppointments||canChangePortalAppointment(appointment);
+  const contactPhone=String(bizConfig.studioWhatsapp||bizConfig.phone||'').replace(/\D/g,'');
+  const contactNumber=contactPhone.length===9?'34'+contactPhone:contactPhone;
+  const policyContact=/^\d{10,15}$/.test(contactNumber)?'https://wa.me/'+contactNumber:undefined;
+  const policyNotice=()=> <p role="status" style={{color:'#E4C687',fontSize:13,lineHeight:1.6}}>{CANCELLATION_NOTICE}{policyContact&&<> <a href={policyContact} target="_blank" rel="noopener noreferrer" style={{color:'#E4C687',textDecoration:'underline'}}>Contactar con el Studio</a></>}</p>;
+  const handleConfirmCancelAppointment = async (appointment: Appointment) => {
+    if(cancellationBusyRef.current)return;
+    setCancellationError('');
     if (appointment.lifecycleStatus === 'cancelled' || appointment.completedAt) { setCancelApptModal(null); return; }
-    const updated: Appointment = { ...appointment, lifecycleStatus: 'cancelled', statusChangedAt: new Date().toISOString(),
-      remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false } };
-    setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
-    setCancelApptModal(null);
-    if (studioApi.serverConfigured && studioApi.currentToken()) {
-      studioApi.updateAppointmentOnServer(studioApi.currentToken()!, {
-        id: updated.serverId || updated.id,
-        lifecycleStatus: 'cancelled',
-        clientSnapshot: {
-          clientName: appointment.clientName, phone: appointment.phone, email: appointment.email,
-          serviceCategory: appointment.serviceCategory, serviceSubcategory: appointment.serviceSubcategory,
-          dayName: appointment.dayName, selectedVariant: appointment.selectedVariant ?? null,
-          remindersStatus: updated.remindersStatus,
-        },
-      }).catch(() => {
-        alert('No se pudo comunicar la cancelación al Studio. Inténtalo de nuevo en unos segundos o avísanos por WhatsApp.');
-      });
-    }
+    if(!canManageAppointment(appointment)){setCancellationError(CANCELLATION_NOTICE);return;}
+    cancellationBusyRef.current=true;setCancellationBusy(true);
+    try{
+      const token=studioApi.currentToken();
+      if(!studioApi.serverConfigured||!token)throw new Error('Necesitas conexión y una sesión válida para cancelar. La cita se conserva.');
+      const before=await studioApi.syncAll<{appointments?:Record<string,any>[]}>(token,['appointments']);
+      const row=before.appointments?.find(item=>item.id===appointment.serverId||item.id===appointment.id||String(item.source_legacy_id||'')===appointment.id);
+      if(!row)throw new Error('No se encontró la cita. Actualiza el portal antes de reintentar.');
+      const fresh=mapServerAppointment(row);
+      if(row.lifecycle_status!=='cancelled'){
+        if(!canManageAppointment(fresh))throw new Error(CANCELLATION_NOTICE);
+        const result=await studioApi.updateAppointmentOnServer(token,{id:row.id,lifecycleStatus:'cancelled'});
+        if(!result.ok)throw new Error('No se pudo confirmar la cancelación. La cita se conserva.');
+      }
+      const updated:Appointment={...fresh,lifecycleStatus:'cancelled',statusChangedAt:new Date().toISOString(),remindersStatus:{email48h:false,whatsapp48h:false,whatsapp24h:false,whatsapp2h:false}};
+      setAppointments(previous=>previous.map(item=>item.id===appointment.id||item.serverId===row.id?updated:item));
+      setCancelApptModal(null);
+    }catch(error){setCancellationError(error instanceof Error?error.message:'No se pudo confirmar la cancelación. Conservamos tu cita para reintentar.');}
+    finally{cancellationBusyRef.current=false;setCancellationBusy(false);}
   };
 
   const [showInstallBanner, setShowInstallBanner] = useState<boolean>(false);
@@ -3455,7 +3468,7 @@ function StudioApp() {
   };
 
   const handleLogout = () => {
-    if (approvalSavingRef.current || visualBookingBusyRef.current || pendingBookingBusyRef.current || bizumSavingRef.current || deletingAppointmentRef.current || configSavingRef.current || catalogSavingRef.current || photoUploadBusyRef.current) {
+    if (cancellationBusyRef.current || approvalSavingRef.current || visualBookingBusyRef.current || pendingBookingBusyRef.current || bizumSavingRef.current || deletingAppointmentRef.current || configSavingRef.current || catalogSavingRef.current || photoUploadBusyRef.current) {
       alert('Espera a que termine el guardado antes de cerrar sesión.');
       return;
     }
@@ -4625,9 +4638,10 @@ function StudioApp() {
               </div>
               <p style={{ color: '#E0E8D9', margin: 0, lineHeight: 1.5, fontSize: '13px', overflowWrap: 'anywhere' }}>{appointmentServiceNames(clientNextAppointment)}</p>
               <p style={{ color: '#E0E8D9', margin: 0, fontSize: '12px' }}>Estilista: Ana · L’Studio Ana — Hair Experience</p>
+              <p style={{color:'#E0E8D9',fontSize:12,lineHeight:1.6,margin:0}}>Cambios y cancelaciones online con un mínimo de 24 horas de antelación.</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', paddingTop: '2px' }}>
                 <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(clientNextAppointment); setNewRescheduleTime(clientNextAppointment.time); setNewRescheduleDate(clientNextAppointment.dateKey); }} style={{ background: 'transparent', border: '1px solid #88927B', color: '#F0D89E', minHeight: '44px', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>{t('changeDate')}</button>
-                <button type="button" onClick={() => setCancelApptModal(clientNextAppointment)} style={{ background: 'transparent', border: '1px solid #D58D7C', color: '#FFC4B5', minHeight: '44px', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>Cancelar cita</button>
+                <button type="button" onClick={() => {setCancellationError('');setCancelApptModal(clientNextAppointment);}} style={{ background: 'transparent', border: '1px solid #D58D7C', color: '#FFC4B5', minHeight: '44px', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>Cancelar cita</button>
                 <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola Ana, quiero consultar mi cita del ${clientNextAppointment.dateKey.split('-').reverse().join('/')} a las ${clientNextAppointment.time}.`)}`} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', color: '#E4C687', padding: '10px 0', minHeight: '44px', fontSize: '12px' }}>{t('askAppointment')}</a>
               </div>
             </> : <>
@@ -4645,7 +4659,7 @@ function StudioApp() {
                   <p style={{ color: '#E0E8D9', fontSize: '11px', margin: '4px 0 8px', overflowWrap: 'anywhere' }}>{appointmentServiceNames(appointment)}</p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(appointment); setNewRescheduleTime(appointment.time); setNewRescheduleDate(appointment.dateKey); }} style={{ background: 'transparent', border: '1px solid #88927B', color: '#F0D89E', minHeight: '40px', padding: '6px 12px', borderRadius: '7px', cursor: 'pointer', fontSize: '11px' }}>{t('changeDate')}</button>
-                    <button type="button" onClick={() => setCancelApptModal(appointment)} style={{ background: 'transparent', border: '1px solid #D58D7C', color: '#FFC4B5', minHeight: '40px', padding: '6px 12px', borderRadius: '7px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>Cancelar cita</button>
+                    <button type="button" onClick={() => {setCancellationError('');setCancelApptModal(appointment);}} style={{ background: 'transparent', border: '1px solid #D58D7C', color: '#FFC4B5', minHeight: '40px', padding: '6px 12px', borderRadius: '7px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>Cancelar cita</button>
                   </div>
                 </article>)}
               </div>
@@ -5988,15 +6002,16 @@ function StudioApp() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold' }}>Nueva Fecha:</label>
-              <input type="date" disabled={rescheduleSaving} value={newRescheduleDate} onChange={(e) => { setNewRescheduleDate(e.target.value); setNewRescheduleTime(''); setRescheduleError(''); }} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '16px', minHeight: 44 }} />
+              <input type="date" disabled={rescheduleSaving||(!repeatAppointmentMode&&!canManageAppointment(rescheduleModalAppt))} value={newRescheduleDate} onChange={(e) => { setNewRescheduleDate(e.target.value); setNewRescheduleTime(''); setRescheduleError(''); }} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '16px', minHeight: 44 }} />
             </div>
+            {!repeatAppointmentMode&&!canManageAppointment(rescheduleModalAppt)&&policyNotice()}
             <section aria-label="Elegir nueva hora">
               <p style={{ color: '#E4C687', fontSize: 14, margin: '0 0 8px' }}>Elige un hueco para la duración completa</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, maxHeight: '32vh', overflowY: 'auto', padding: 3 }}>
                 {Array.from({ length: Math.ceil(1440 / agendaStep) }, (_, index) => minuteTime(index * agendaStep))
                   .filter(time => /^\d{4}-\d{2}-\d{2}$/.test(newRescheduleDate) && (enableOutOfHours || isAgendaTimeWorking(new Date(newRescheduleDate + 'T12:00:00'), time, rescheduleModalAppt.durationMinutes || 45)))
                   .map(time => {
-                    const unavailable = isDateBlockedByHoliday(newRescheduleDate) || timeBlockConflict(newRescheduleDate, time, rescheduleModalAppt.durationMinutes || 45) ||
+                    const unavailable = (!repeatAppointmentMode&&!canManageAppointment(rescheduleModalAppt)) || (!staffCanManageAppointments&&!canChangePortalAppointment({dateKey:newRescheduleDate,time})) || isDateBlockedByHoliday(newRescheduleDate) || timeBlockConflict(newRescheduleDate, time, rescheduleModalAppt.durationMinutes || 45) ||
                       (!!getRescheduleConflict(repeatAppointmentMode ? { ...rescheduleModalAppt, id: '' } : rescheduleModalAppt, newRescheduleDate, time) && !enableDoubleBooking);
                     const selected = newRescheduleTime === time;
                     return <button key={time} type="button" disabled={rescheduleSaving || unavailable} aria-pressed={selected} onClick={() => { setNewRescheduleTime(time); setRescheduleError(''); }}
@@ -6011,8 +6026,10 @@ function StudioApp() {
             </section>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
               <button type="button" disabled={rescheduleSaving} onClick={() => setRescheduleModalAppt(null)} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
-              <button type="button" disabled={rescheduleSaving} onClick={async () => {
+              <button type="button" disabled={rescheduleSaving||(!repeatAppointmentMode&&!canManageAppointment(rescheduleModalAppt))} onClick={async () => {
                 if (rescheduleSavingRef.current) return;
+                if(!repeatAppointmentMode&&!canManageAppointment(rescheduleModalAppt)){setRescheduleError(CANCELLATION_NOTICE);return;}
+                if(!staffCanManageAppointments&&!canChangePortalAppointment({dateKey:newRescheduleDate,time:newRescheduleTime})){setRescheduleError('La nueva cita debe tener al menos 24 horas de antelación.');return;}
                 if (!repeatAppointmentMode && !isActiveAppointment(rescheduleModalAppt)) { alert('Esta cita está cancelada o no presentada. Crea una nueva reserva.'); return; }
                 if (!/^\d{4}-\d{2}-\d{2}$/.test(newRescheduleDate) || !/^\d{2}:\d{2}$/.test(newRescheduleTime)) { alert('Elige una fecha y una hora válidas.'); return; }
                 if (isDateBlockedByHoliday(newRescheduleDate)) { alert('Este día está bloqueado por vacaciones o festivo.'); return; }
@@ -6087,6 +6104,8 @@ function StudioApp() {
               {cancelApptModal.dateKey.split('-').reverse().join('/')} · {cancelApptModal.time}<br />
               <span style={{ color: '#D6CBB8' }}>{(cancelApptModal.services?.length ? cancelApptModal.services.map(item => bookingName(item.sub) + (item.variant ? ` (${item.variant.name})` : '')).join(' + ') : appointmentServiceNames(cancelApptModal))}</span>
             </div>
+            {!canManageAppointment(cancelApptModal)&&policyNotice()}
+            {cancellationError&&<p role="alert" style={{fontSize:13,color:'#FFB4A9',lineHeight:1.6}}>{cancellationError}</p>}
             {cancelApptModal.advancePayment?.status === 'pending' && (
               <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.6, margin: 0, background: 'rgba(201, 158, 82, 0.1)', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px', padding: '10px 12px' }}>
                 Esta cita tiene un anticipo pendiente de {cancelApptModal.advancePayment.amount} € (ref. {cancelApptModal.advancePayment.reference}). Al cancelar, la reserva queda liberada; el tratamiento del anticipo se ajusta a la política de reservas del Studio y lo revisa Ana. No se aplica ningún reembolso automático.
@@ -6094,8 +6113,8 @@ function StudioApp() {
             )}
             <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>La cita pasará a “Cancelada” en tu historial y se liberará el hueco en la agenda del Studio. Los recordatorios programados quedan anulados.</p>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: '4px' }}>
-              <button type="button" onClick={() => setCancelApptModal(null)} style={{ background: 'none', border: '1px solid rgba(212, 175, 55, 0.4)', color: '#FFF8EE', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>Mantener mi cita</button>
-              <button type="button" onClick={() => handleConfirmCancelAppointment(cancelApptModal)} style={{ background: '#9B3C2D', border: 'none', color: '#FFF8EE', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>Confirmar cancelación</button>
+              <button type="button" disabled={cancellationBusy} onClick={() => {setCancelApptModal(null);setCancellationError('');}} style={{ background: 'none', border: '1px solid rgba(212, 175, 55, 0.4)', color: '#FFF8EE', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>Mantener mi cita</button>
+              <button type="button" disabled={cancellationBusy||!canManageAppointment(cancelApptModal)} onClick={() => void handleConfirmCancelAppointment(cancelApptModal)} style={{ background: '#9B3C2D', border: 'none', color: '#FFF8EE', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>{cancellationBusy?'Cancelando…':'Confirmar cancelación'}</button>
             </div>
           </div>
         </div>
