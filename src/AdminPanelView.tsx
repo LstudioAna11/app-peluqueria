@@ -1309,6 +1309,21 @@ const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, cr
                                         <small style={{display:'block',fontSize:12,marginTop:6}}>Se bloquea al final de la cita. Si hay varios servicios se utiliza solo el mayor, no se suman. No modifica el precio ni las citas ya guardadas.</small>
                                       </label>
 
+                                      <fieldset style={{border:'1px solid #655039',borderRadius:8,padding:12,marginBottom:16}}>
+                                        <legend>Anticipo por Bizum</legend>
+                                        <label style={{display:'block',fontSize:13}}>Anticipo de este servicio
+                                          <select value={sub.bizumPolicy||'general'} onChange={event=>updateSubserviceField(cat.id,sub.id,{bizumPolicy:event.target.value as 'general'|'none'|'fixed'})} style={{display:'block',width:'100%',padding:10,marginTop:6,background:'#29231F',color:'#FFF8EE',border:'1px solid #C5A059',borderRadius:6}}>
+                                            <option value="general">Mantener la regla actual de servicios largos</option>
+                                            <option value="none">No solicitar anticipo</option>
+                                            <option value="fixed">Solicitar un importe propio</option>
+                                          </select>
+                                        </label>
+                                        {sub.bizumPolicy==='fixed' && <label style={{display:'block',marginTop:12,fontSize:13}}>Importe del anticipo (€)
+                                          <input type="number" min="0.01" max="9999.99" step="0.01" value={sub.bizumAmount??''} onChange={event=>updateSubserviceField(cat.id,sub.id,{bizumAmount:event.target.value===''?undefined:Number(event.target.value)})} style={{display:'block',width:130,padding:10,marginTop:6,background:'#29231F',color:'#FFF8EE',border:'1px solid #C5A059',borderRadius:6}}/>
+                                        </label>}
+                                        <p style={{fontSize:12,lineHeight:1.5,color:'#D6CBB8'}}>El importe propio se pide al reservar este servicio. Si se eligen varios servicios con anticipo, se solicita una sola cantidad: la mayor. El tiempo de limpieza no aumenta el anticipo. Los pagos ya guardados se conservan.</p>
+                                        {!tempConfig.advancePaymentEnabled && <p style={{fontSize:12,color:'#E4C687'}}>Activa «Solicitar reserva anticipada» en Configuración para que se pidan anticipos en el portal.</p>}
+                                      </fieldset>
                                       <fieldset>
                                         <legend>Reserva</legend>
                                         <div className="studio-condition-choices">
