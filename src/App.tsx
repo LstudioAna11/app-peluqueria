@@ -192,7 +192,9 @@ export function StudioNews({admin=false,serviceOptions=[],onService}:{admin?:boo
     <div className="lst-news-inner"><small>{NEWS_CATEGORIES[item.category]}</small><h3>{item.title||'Título de la novedad'}</h3><p className="lst-news-lead">{item.summary}</p><p className="lst-news-body">{item.body||'Aquí aparecerá el texto completo.'}</p>
       {item.action!=='none'&&item.service_id&&(forPreview||serviceOptions.some(s=>s.id===item.service_id))&&<button type="button" disabled={forPreview} className="lst-news-primary" onClick={()=>{if(!forPreview)onService?.(item.service_id!,item.action as 'service'|'booking');}}>{item.action==='booking'?'Elegir y reservar':'Ver servicio'} <ArrowRight size={15}/></button>}
     </div></article>;
-  return <section className="lst-news" aria-label="El universo L’Studio">
+  // No empty placeholder or loading flash on the portal home. Keep all hooks above this return.
+  if(!admin&&view==='latest'&&!error&&(!list||list.items.length===0))return null;
+  return <section className={`lst-news ${admin?'lst-news-admin':'lst-news-portal'}`} aria-label="El universo L’Studio">
     <style>{`
       .lst-news{color:#302822;min-width:0;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
       .lst-news *{box-sizing:border-box}.lst-news h2,.lst-news h3,.lst-news p{margin:0}.lst-news h2{font-family:Georgia,serif;font-size:23px;font-weight:400;color:#E4C687;line-height:1.3}.lst-news h3{font-family:Georgia,serif;font-size:21px;font-weight:400;color:#876431;line-height:1.3}
@@ -200,14 +202,40 @@ export function StudioNews({admin=false,serviceOptions=[],onService}:{admin?:boo
       .lst-news button{min-height:44px;padding:9px 13px;border:1px solid #BBA47F;border-radius:9px;cursor:pointer;font-size:12px;background:#F4EFE7;color:#302822;display:inline-flex;align-items:center;justify-content:center;gap:6px}.lst-news button:disabled{opacity:.55;cursor:default}.lst-news button:focus-visible,.lst-news input:focus-visible,.lst-news textarea:focus-visible,.lst-news select:focus-visible{outline:2px solid #C49A58;outline-offset:3px}
       .lst-news button.lst-news-primary{background:#C49A58;color:#29231F;border-color:#C49A58;font-weight:600}.lst-news-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px}.lst-news-card,.lst-news-article,.lst-news-editor{background:#F4EFE7;border:1px solid #C8B79A;border-radius:13px;overflow:hidden}.lst-news-inner{padding:16px;display:flex;flex-direction:column;gap:10px}.lst-news small{font-size:11px;color:#705B40;letter-spacing:.03em}.lst-news-cover{width:100%;height:180px;object-fit:cover;display:block}.lst-news-article .lst-news-cover{height:auto;max-height:420px;object-fit:contain;background:#E8DFD1}.lst-news-lead{font-size:13px;color:#665448}.lst-news-body{font-size:13px;line-height:1.8;white-space:pre-wrap;color:#302822}.lst-news-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.lst-news-pagination{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:14px;color:#E8D9C4}
       .lst-news-editor{padding:18px;margin-bottom:18px;display:grid;gap:12px}.lst-news-editor label{display:grid;gap:5px;font-size:12px;color:#493B2E}.lst-news-editor input,.lst-news-editor select,.lst-news-editor textarea{font:inherit;font-size:13px;width:100%;min-height:44px;background:#FFFDF9;color:#302822;border:1px solid #BBA47F;border-radius:7px;padding:10px;resize:vertical;color-scheme:light}.lst-news-editor fieldset{border:0;padding:0;margin:0;min-width:0;display:grid;gap:12px}.lst-news-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px}.lst-news-status{color:#DFD1BB;margin:8px 0!important}.lst-news-error{background:#F8DFD7;color:#782D20;padding:12px;border-radius:9px;margin-bottom:12px!important}.lst-news-message{background:#E4EAD9;color:#35452B;padding:12px;border-radius:9px;margin-bottom:12px!important}.lst-news-empty{background:#F4EFE7;border-radius:12px;padding:18px;color:#5C4A37}.lst-news-preview{border-top:1px solid #C8B79A;padding-top:12px;margin-top:8px}
+
+      .lst-news-portal{padding-top:19px;border-top:1px solid rgba(212,187,143,.22)}
+      .lst-news-portal .lst-news-header{margin-bottom:17px;align-items:flex-start}
+      .lst-news-portal h2{font-family:'Cormorant Garamond','Playfair Display',Georgia,serif;font-size:21px;letter-spacing:.025em;color:#DDC49B}
+      .lst-news-portal .lst-news-sub{font-size:11px;line-height:1.6;color:#B9AA96;margin-top:5px!important}
+      .lst-news-portal button:not(.lst-news-primary){background:transparent;border:0;border-radius:3px;padding:9px 0;color:#DCC6A4;font-size:11px;letter-spacing:.035em;min-height:44px;justify-content:flex-start}
+      .lst-news-portal button:not(.lst-news-primary):hover{text-decoration:underline;text-underline-offset:5px}
+      .lst-news-portal .lst-news-card{border:1px solid rgba(200,173,129,.23);background:#2C251F;border-radius:9px;box-shadow:none}
+      .lst-news-portal .lst-news-card h3{font-size:19px;color:#E7D8C0}
+      .lst-news-portal .lst-news-card .lst-news-lead{color:#C9BCA9;font-size:12px}
+      .lst-news-portal .lst-news-card small{color:#BBA687;font-size:10px}
+      .lst-news-portal .lst-news-grid{gap:17px}
+      .lst-news-portal .lst-news-article{border:1px solid #C8B79A;border-radius:9px}
+      .lst-news-portal .lst-news-article h3{font-size:22px;color:#795C36}
+      .lst-news-portal .lst-news-article .lst-news-inner{padding:22px;gap:14px}
+      .lst-news-portal .lst-news-article .lst-news-body{font-size:13px;line-height:1.9}
+      .lst-news-portal .lst-news-article .lst-news-primary{font-size:12px;align-self:flex-start;padding:10px 17px}
+      .lst-news-feature{position:relative;isolation:isolate;overflow:hidden;border-radius:10px;border:1px solid rgba(200,173,129,.32);background:linear-gradient(135deg,#44362B,#231D18);min-height:250px;display:flex;align-items:flex-end}
+      .lst-news-feature>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
+      .lst-news-feature::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(16,12,9,.08) 0%,rgba(16,12,9,.36) 28%,rgba(16,12,9,.90) 68%,rgba(16,12,9,.97) 100%);z-index:-1;pointer-events:none}
+      .lst-news-feature-content{width:100%;padding:62px 22px 17px;display:flex;flex-direction:column;align-items:flex-start;gap:9px}
+      .lst-news-feature-content>small{color:#E4CEAC;font-size:9px;letter-spacing:.15em;text-transform:uppercase}
+      .lst-news-feature-content>h3{color:#FFF5E5;font-size:25px;line-height:1.22;max-width:28ch;letter-spacing:.015em;text-wrap:pretty}
+      .lst-news-feature-content>p{font-size:12px;line-height:1.65;color:#E2D5C2;max-width:48ch;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+      .lst-news-portal .lst-news-feature button{color:#F1D7B1;border-bottom:1px solid rgba(228,198,151,.55);min-height:44px;border-radius:0;padding:7px 0;gap:12px;font-size:11px}
+      .lst-news-footer{display:flex;justify-content:flex-end;margin-top:3px}
+      @media(max-width:420px){.lst-news-portal h2{font-size:20px}.lst-news-feature{min-height:245px}.lst-news-feature-content{padding:58px 18px 16px}.lst-news-feature-content>h3{font-size:23px}.lst-news-portal .lst-news-article .lst-news-inner{padding:18px}}
     `}</style>
-    <header className="lst-news-header"><div><h2>El universo L’Studio</h2><p className="lst-news-sub">Novedades, inspiración y cuidados para tu cabello.</p></div><div className="lst-news-actions">
+    <header className="lst-news-header"><div><h2>El universo L’Studio</h2><p className="lst-news-sub">{admin?'Novedades, inspiración y cuidados para tu cabello.':'Inspiración y novedades del estudio.'}</p></div><div className="lst-news-actions">
       {admin&&<button type="button" disabled={writing||uploading||busy} className="lst-news-primary" onClick={()=>{setDraft(emptyNews());setPreview(false);setError('');setMessage('');setDeleting(null);}}>+ Nueva publicación</button>}
-      {!admin&&view==='latest'&&<button type="button" onClick={()=>{setPage(0);setView('list');}}>Ver todas</button>}
       {!admin&&view!=='latest'&&<button type="button" onClick={()=>{setDetail(null);setView(view==='detail'?'list':'latest');setPage(0);setError('');}}> <ArrowLeft size={15}/> {view==='detail'?'Novedades':'Volver'}</button>}
-      {view!=='detail'&&<button type="button" disabled={busy||writing||uploading} onClick={()=>void load()} aria-label="Actualizar novedades">Actualizar</button>}
+      {admin&&view!=='detail'&&<button type="button" disabled={busy||writing||uploading} onClick={()=>void load()} aria-label="Actualizar novedades">Actualizar</button>}
     </div></header>
-    {error&&<p role="alert" className="lst-news-error">{error}</p>}{message&&<p role="status" className="lst-news-message">{message}</p>}
+    {error&&<div className="lst-news-error"><p role="alert">{error}</p>{!admin&&<button type="button" disabled={busy} onClick={()=>void load()}>Reintentar</button>}</div>}{message&&<p role="status" className="lst-news-message">{message}</p>}
     {admin&&draft&&<form onSubmit={save} className="lst-news-editor"><h3>{draft.updated_at?'Editar publicación':'Nueva publicación'}</h3><fieldset disabled={writing||uploading}>
       <label>Título<input required maxLength={100} value={draft.title} onChange={e=>change({title:e.target.value})} placeholder="Una novedad para tu cabello"/></label>
       <label>Resumen de la tarjeta<textarea required maxLength={240} rows={2} value={draft.summary} onChange={e=>change({summary:e.target.value})}/></label>
@@ -223,7 +251,15 @@ export function StudioNews({admin=false,serviceOptions=[],onService}:{admin?:boo
       <div className="lst-news-actions"><button type="submit" className="lst-news-primary">{writing?'Guardando…':draft.status==='draft'?'Guardar borrador':'Guardar publicación'}</button><button type="button" onClick={()=>setPreview(v=>!v)}>{preview?'Ocultar vista previa':'Vista previa'}</button><button type="button" onClick={()=>{setDraft(null);setPreview(false);setMessage('');}}>Cerrar editor</button></div>
     </fieldset>{uploading&&<p role="status">Optimizando y preparando la foto…</p>}{preview&&<div className="lst-news-preview"><small>Vista previa del portal</small>{article(draft,true)}</div>}</form>}
     {busy&&<p role="status" className="lst-news-status">Cargando novedades…</p>}
-    {view==='detail'&&detail?article(detail):<>
+    {view==='detail'&&detail?article(detail):!admin&&view==='latest'?<>
+      {list?.items.slice(0,1).map(item=><article key={item.id} className="lst-news-feature">
+        {item.image_url&&<img src={item.image_url} alt="" loading="lazy" decoding="async"/>}
+        <div className="lst-news-feature-content"><small>{NEWS_CATEGORIES[item.category]}</small><h3>{item.title}</h3><p>{item.summary}</p>
+          <button type="button" disabled={busy} aria-label={'Descubrir: '+item.title} onClick={()=>void open(item.id)}>Descubrir <ArrowRight size={15}/></button>
+        </div>
+      </article>)}
+      {!!list?.total&&<div className="lst-news-footer"><button type="button" onClick={()=>{setPage(0);setView('list');}}>Ver todas las novedades <ArrowRight size={14}/></button></div>}
+    </>:<>
       {!busy&&list?.items.length===0&&<p className="lst-news-empty">{admin?'Todavía no hay publicaciones. Crea la primera novedad del estudio.':'Pronto compartiremos novedades y cuidados para ti.'}</p>}
       <div className="lst-news-grid">{list?.items.map(item=><article key={item.id} className="lst-news-card">
         {item.image_url&&<img src={item.image_url} alt={item.title} loading="lazy" decoding="async" className="lst-news-cover"/>}<div className="lst-news-inner"><small>{NEWS_CATEGORIES[item.category]}{admin?' · '+newsState(item):''}</small><h3>{item.title}</h3><p className="lst-news-lead">{item.summary}</p><small>{newsDate(item.start_date||item.created_at)}</small>
