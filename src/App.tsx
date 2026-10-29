@@ -45,6 +45,99 @@ function canOfferCourtesyMessage(appointment: {dateKey:string;time:string;lifecy
   return appointment.dateKey===today&&Number.isFinite(start)&&now-start>=15*60000;
 }
 
+export function ClientPhotoGallery({clientId,editable=false}:{clientId?:string;editable?:boolean}){
+  const [photos,setPhotos]=useState<studioApi.ClientPhoto[]>([]),[total,setTotal]=useState(0),[page,setPage]=useState(0);
+  const [loading,setLoading]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
+  const [file,setFile]=useState<File|null>(null),[takenOn,setTakenOn]=useState(()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()));
+  const [label,setLabel]=useState('seguimiento'),[note,setNote]=useState(''),[pendingDelete,setPendingDelete]=useState<string|null>(null),[selected,setSelected]=useState<studioApi.ClientPhoto|null>(null);
+  const mounted=useRef(true),generation=useRef(0),locked=useRef(false),loadBusy=useRef(false),lastRenew=useRef(0),fileInput=useRef<HTMLInputElement|null>(null);
+  const attempt=useRef<{file:File;signature:string;id:string;dataUrl:string}|null>(null);
+  const canEdit=editable&&studioApi.storedRole()==='admin';
+  const [opened,setOpened]=useState(!editable);
+  const name=(value:string)=>value==='antes'?'Antes':value==='despues'?'Después':'Seguimiento';
+  const load=async(target=page)=>{
+    const run=++generation.current;loadBusy.current=true;setLoading(true);setError('');
+    try{
+      const token=studioApi.currentToken();if(!token)throw new Error('Inicia sesión para ver tus fotos.');
+      if(editable&&!clientId)throw new Error('Guarda primero la ficha para añadir fotografías.');
+      const result=await studioApi.fetchClientPhotos(token,clientId,target);
+      if(!mounted.current||generation.current!==run)return;
+      if(target>0&&!result.photos.length&&result.total>0){setPage(Math.max(0,target-1));return;}
+      setPhotos(result.photos);setTotal(result.total);setPage(target);
+    }catch(value){if(mounted.current&&generation.current===run){setPhotos([]);setSelected(null);setError(value instanceof Error?value.message:'No se pudo abrir la galería.');}}
+    finally{if(mounted.current&&generation.current===run){loadBusy.current=false;setLoading(false);}}
+  };
+  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;generation.current++;};},[]);
+  useEffect(()=>{setSelected(null);if(opened)void load(page);},[opened,page,clientId]);
+  const expired=(photo:studioApi.ClientPhoto)=>{
+    if(Date.parse(photo.expiresAt)<=Date.now()&&!loadBusy.current&&!locked.current&&Date.now()-lastRenew.current>60000){lastRenew.current=Date.now();setSelected(null);void load(page);}
+    else setError('No se pudo abrir una foto. Pulsa «Actualizar fotos» para volver a intentarlo.');
+  };
+  const upload=async(event:React.FormEvent)=>{
+    event.preventDefault();if(locked.current)return;setError('');setMessage('');
+    if(!canEdit||!clientId||!file){setError('Selecciona una foto y una ficha guardada.');return;}
+    locked.current=true;setBusy(true);
+    try{
+      const token=studioApi.currentToken();if(!token||studioApi.storedRole()!=='admin')throw new Error('Entra de nuevo en la intranet para subir la foto.');
+      const signature=JSON.stringify([takenOn,label,note.trim()]);
+      if(!attempt.current||attempt.current.file!==file||attempt.current.signature!==signature){
+        setMessage('Optimizando la foto…');const prepared=await prepareCatalogImage(file,true);
+        attempt.current={file,signature,id:crypto.randomUUID(),dataUrl:prepared.dataUrl};
+      }
+      if(!mounted.current)return;
+      setMessage('Guardando en la ficha…');
+      const result=await studioApi.uploadClientPhoto(token,{clientId,takenOn,label,note:note.trim(),dataUrl:attempt.current.dataUrl,requestId:attempt.current.id});
+      if(!result.ok)throw new Error('No se confirmó el guardado. Conservamos la selección para reintentar.');
+      if(!mounted.current)return;
+      attempt.current=null;setFile(null);setNote('');if(fileInput.current)fileInput.current.value='';
+      setSelected(null);setMessage('Foto guardada. Ya está disponible para la clienta en su portal.');await load(0);
+    }catch(value){if(mounted.current){setMessage('');setError(value instanceof Error?value.message:'No se pudo guardar la foto.');}}
+    finally{locked.current=false;if(mounted.current)setBusy(false);}
+  };
+  const remove=async(id:string)=>{
+    if(locked.current||!canEdit||!clientId)return;locked.current=true;setBusy(true);setError('');setMessage('');
+    try{
+      const token=studioApi.currentToken();if(!token)throw new Error('Inicia sesión de nuevo.');
+      const result=await studioApi.deleteClientPhoto(token,clientId,id);
+      if(!result.ok)throw new Error('No se confirmó la eliminación.');
+      if(!mounted.current)return;
+      setPendingDelete(null);setSelected(null);setMessage(result.cleanupPending?'La foto se ha retirado de la ficha. La limpieza del archivo sigue pendiente; se reintentará en la siguiente gestión de fotos.':'Foto eliminada de la ficha y del portal.');await load(page);
+    }catch(value){if(mounted.current)setError(value instanceof Error?value.message:'No se pudo eliminar la foto.');}
+    finally{locked.current=false;if(mounted.current)setBusy(false);}
+  };
+  const input:React.CSSProperties={display:'block',width:'100%',boxSizing:'border-box',padding:10,marginTop:6,border:'1px solid #8C6A4B',borderRadius:6,background:'#29231F',color:'#FFF8EE',fontSize:13};
+  const button:React.CSSProperties={padding:'10px 12px',minHeight:42,border:'1px solid #8C6A4B',borderRadius:6,background:'#29231F',color:'#E4C687',fontSize:12,cursor:busy?'wait':'pointer'};
+  return <section style={{padding:14,border:'1px solid #655039',borderRadius:10,background:'#322A25',color:'#FFF8EE',minWidth:0}} aria-busy={busy||loading}>
+    <button type="button" onClick={()=>setOpened(value=>!value)} disabled={busy} aria-expanded={opened} style={{background:'none',border:0,color:'#E4C687',padding:'4px 0',minHeight:36,fontSize:16,cursor:'pointer',textAlign:'left',width:'100%'}}>Galería de seguimiento <span aria-hidden="true">{opened?'▴':'▾'}</span></button>
+    {opened&&<>
+      <p style={{fontSize:12,lineHeight:1.6,color:'#D6CBB8',margin:'8px 0 12px'}}>{canEdit?'Estas fotos y sus notas serán visibles para esta clienta en su portal.':'Tus fotos de antes, después y seguimiento, añadidas por el Studio.'}</p>
+      {canEdit&&<form onSubmit={upload} style={{display:'flex',flexDirection:'column',gap:10,marginBottom:16}}>
+        <label style={{fontSize:12}}>Foto<input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={event=>{setFile(event.target.files?.[0]||null);attempt.current=null;setError('');setMessage('');}} style={input}/></label>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:10}}>
+          <label style={{fontSize:12}}>Fecha<input type="date" required disabled={busy} max={new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())} value={takenOn} onChange={event=>setTakenOn(event.target.value)} style={input}/></label>
+          <label style={{fontSize:12}}>Tipo<select disabled={busy} value={label} onChange={event=>setLabel(event.target.value)} style={input}><option value="antes">Antes</option><option value="despues">Después</option><option value="seguimiento">Seguimiento</option></select></label>
+        </div>
+        <label style={{fontSize:12}}>Nota visible a la clienta · opcional<textarea disabled={busy} maxLength={1000} rows={2} value={note} onChange={event=>setNote(event.target.value)} style={input}/></label>
+        <button type="submit" disabled={busy||!file||!clientId} style={{...button,background:'#C99E52',color:'#29231F',fontWeight:600}}>{busy?'Guardando…':'Subir foto a la ficha'}</button>
+      </form>}
+      <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'center',marginBottom:12}}><span style={{fontSize:12,color:'#D6CBB8'}}>{loading?'Cargando…':`${total} fotos`}</span><button type="button" disabled={busy||loading} onClick={()=>{setSelected(null);void load(page);}} style={button}>Actualizar fotos</button></div>
+      {message&&<p role="status" aria-live="polite" style={{fontSize:12,color:'#E4C687',lineHeight:1.6}}>{message}</p>}
+      {error&&<p role="alert" style={{fontSize:12,color:'#FFB4A9',lineHeight:1.6}}>{error}</p>}
+      {!loading&&!photos.length&&!error&&<p style={{fontSize:13,color:'#D6CBB8'}}>Todavía no hay fotos de seguimiento.</p>}
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))',gap:12}}>
+        {photos.map(photo=><article key={photo.id} style={{minWidth:0,border:'1px solid #655039',borderRadius:8,overflow:'hidden',background:'#29231F'}}>
+          <button type="button" onClick={()=>setSelected(photo)} style={{display:'block',width:'100%',padding:0,border:0,background:'none',cursor:'pointer'}} aria-label={'Ampliar foto: '+name(photo.label)}><img src={photo.url} alt={name(photo.label)+' · '+photo.taken_on} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={()=>expired(photo)} style={{display:'block',width:'100%',height:180,objectFit:'cover'}}/></button>
+          <div style={{padding:10,fontSize:12,lineHeight:1.6}}><strong style={{color:'#E4C687'}}>{name(photo.label)}</strong><br/>{photo.taken_on.split('-').reverse().join('/')}{photo.note&&<p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',margin:'6px 0'}}>{photo.note}</p>}
+            {canEdit&&(pendingDelete===photo.id?<div role="group" aria-label="Confirmar eliminación"><p>¿Eliminarla de ambos sitios?</p><button type="button" disabled={busy} onClick={()=>void remove(photo.id)} style={button}>Sí, eliminar</button> <button type="button" disabled={busy} onClick={()=>setPendingDelete(null)} style={button}>Volver</button></div>:<button type="button" disabled={busy} onClick={()=>setPendingDelete(photo.id)} style={{...button,color:'#FFC4B5',marginTop:8}}>Eliminar foto</button>)}
+          </div>
+        </article>)}
+      </div>
+      {total>12&&<div style={{display:'flex',gap:10,alignItems:'center',justifyContent:'center',marginTop:14}}><button type="button" disabled={busy||loading||page===0} onClick={()=>setPage(value=>value-1)} style={button}>Anterior</button><span style={{fontSize:12}}>{page+1} / {Math.ceil(total/12)}</span><button type="button" disabled={busy||loading||(page+1)*12>=total} onClick={()=>setPage(value=>value+1)} style={button}>Siguiente</button></div>}
+      {selected&&<div role="dialog" aria-modal="true" aria-label="Foto de seguimiento" style={{position:'fixed',inset:0,zIndex:8000,background:'rgba(10,8,6,.96)',overflowY:'auto',padding:20,boxSizing:'border-box',display:'flex',flexDirection:'column',alignItems:'center',gap:12}}><button type="button" onClick={()=>setSelected(null)} style={{...button,alignSelf:'flex-end'}}>Cerrar foto</button><img src={selected.url} alt={name(selected.label)} referrerPolicy="no-referrer" onError={()=>expired(selected)} style={{maxWidth:'100%',maxHeight:'75vh',objectFit:'contain'}}/><p style={{maxWidth:650,fontSize:13,whiteSpace:'pre-wrap',lineHeight:1.7}}>{name(selected.label)} · {selected.taken_on.split('-').reverse().join('/')}<br/>{selected.note}</p></div>}
+    </>}
+  </section>;
+}
+
 const LazyAdminPanelView = React.lazy(() => import('./AdminPanelView'));
 // Optimized copies of bundled photos only; custom uploads remain unchanged.
 const FAST_PHOTO_URLS: Readonly<Record<string,string>> = {
@@ -1904,9 +1997,10 @@ function StudioApp() {
       const token=studioApi.currentToken();
       if(!token||studioApi.storedRole()!=='admin'||!client.serverId)throw new Error('Necesitas una ficha sincronizada y sesión de administración.');
       const info=await studioApi.inspectClientDelete(token,client.serverId);
-      if(!window.confirm(`¿Eliminar definitivamente a ${client.nombre} ${client.apellidos} (registro ${client.registroId||client.idNum})? Se borrarán ${info.appointments} citas, ${info.visits} visitas y ${info.feedback} opiniones, además de su ficha, pasaporte y accesos. No se puede deshacer.`))return;
+      if(!window.confirm(`¿Eliminar definitivamente a ${client.nombre} ${client.apellidos} (registro ${client.registroId||client.idNum})? Se borrarán ${info.appointments} citas, ${info.visits} visitas y ${info.feedback} opiniones, además de su ficha, pasaporte, fotos y accesos. No se puede deshacer.`))return;
       const result=await studioApi.deleteClientPermanently(token,client.serverId);
       if(!result.deleted)throw new Error('El servidor no confirmó la eliminación.');
+      if(result.photoCleanupPending)setClientStatusError('Ficha eliminada. Queda pendiente la limpieza de algunos archivos de fotos; se reintentará en la siguiente gestión de fotos.');
       const removed = new Set((result as any).appointmentIds || []);
       setAppointments(previous=>previous.filter(item=>!item.serverId || !removed.has(item.serverId)));
       setListaClientes(previous=>previous.filter(item=>item.serverId!==client.serverId));
@@ -5132,6 +5226,7 @@ function StudioApp() {
             <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '24px', fontWeight: 'normal', lineHeight: 1.25, margin: '0 0 12px' }}>{t('passportTitle')}</h2>
             <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6, margin: 0 }}>{currentClientRecord?.nombre && <span>{currentClientRecord.nombre} · </span>}{t('passportIntro')}</p>
           </header>
+          <ClientPhotoGallery key={currentClientRecord?.serverId||'own-gallery'} clientId={currentClientRecord?.serverId}/>
           <section style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '10px', padding: '15px' }}>
             <span style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1px' }}>01 · CONOCEMOS TU CABELLO</span>
             <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontWeight: 'normal', fontSize: '19px', margin: '8px 0' }}>{t('hairDna')}</h3>
