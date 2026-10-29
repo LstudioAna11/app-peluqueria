@@ -1,3 +1,4 @@
+import { calculateServiceDeposit, validateServiceDeposit, type ServiceDepositPolicy } from './serviceDeposits';
 import { rememberCatalogPhoto, restoreCatalogPhotos, clearCatalogPhotos, forgetCatalogPhoto, verifyCatalogPhotoUrl } from './catalogPhotoDrafts';
 import { prepareCatalogImage, catalogImageSizeMessage } from './catalogImage';
 import {createClient} from '@supabase/supabase-js';
@@ -539,6 +540,8 @@ export interface SubService {
   price: string;
   bufferTime?: string;
   bufferMinutes?: number;
+  bizumPolicy?: ServiceDepositPolicy;
+  bizumAmount?: number;
   includesText?: string;
   achievedText?: string;
   forWhomText?: string;
@@ -1395,6 +1398,8 @@ function StudioApp() {
     catalogSavingRef.current = true;
     const invalidAddon = catalog.flatMap(c=>c.subservices).find(sub=>sub.addonGroups?.some(g=>!g.title.trim() || (g.mode!=='included'&&!g.serviceIds.some(id=>catalog.some(c=>c.subservices.some(s=>s.id===id&&s.id!==sub.id&&s.active!==false))))));
     if(invalidAddon){catalogSavingRef.current=false;setCatalogSavedMsg('Revisa los complementos de '+bookingName(invalidAddon)+': cada grupo necesita nombre y opciones activas, salvo los incluidos en el pack.');return;}
+    const invalidDeposit=catalog.flatMap(category=>category.subservices).find(sub=>validateServiceDeposit(sub));
+    if(invalidDeposit){catalogSavingRef.current=false;setCatalogSavedMsg(bookingName(invalidDeposit)+': '+validateServiceDeposit(invalidDeposit));return;}
     const submitted = structuredClone(catalog);
     setCatalogSavedMsg('Guardando catálogo…');
     try {
@@ -1407,7 +1412,7 @@ function StudioApp() {
       const categories = verify?.catalog?.map(row => row.category).filter(Boolean) as CatalogCategory[] | undefined;
       if (!categories || submitted.some(category => {
         const stored = categories.find(item => item.id === category.id);
-        const keys = ['name', 'bookingName', 'imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'conditionsText', 'cutAllowedIds', 'addonGroups', 'bufferMinutes', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
+        const keys = ['name', 'bookingName', 'imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'conditionsText', 'cutAllowedIds', 'addonGroups', 'bufferMinutes', 'bizumPolicy', 'bizumAmount', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
         return !stored || stored.title !== category.title || (stored.portalTitle || '') !== (category.portalTitle || '') || (stored.slogan || '') !== (category.slogan || '') || (stored.imageUrl || '') !== (category.imageUrl || '') || category.subservices.some(service => {
           const saved = stored.subservices?.find(s => s.id === service.id);
           return !saved || keys.some(key => JSON.stringify(saved[key] ?? null) !== JSON.stringify(service[key] ?? null));
@@ -1990,7 +1995,8 @@ function StudioApp() {
     } finally { pendingBookingBusyRef.current = false; setPendingBookingBusy(false); }
   };
   const [advancePaymentModal, setAdvancePaymentModal] = useState<Appointment | null>(null);
-  const createAdvancePayment = () => ({ amount: parseFloat(bizConfig.depositAmount.replace(',', '.')) || 60, reference: `LS-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, status: 'pending' as const });
+  const serviceDepositAmount = (items: Appointment['services'], legacyDuration = 0) => calculateServiceDeposit(items || [],catalog.flatMap(category=>category.subservices),bizConfig,legacyDuration);
+  const createAdvancePayment = (items: Appointment['services'], legacyDuration = 0) => ({ amount: serviceDepositAmount(items,legacyDuration), reference: `LS-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, status: 'pending' as const });
   const advancePaymentConcept = (appointment: Appointment) => `${appointment.clientName} · Reserva anticipada · ${appointment.advancePayment?.reference || ''}`;
   useEffect(() => { setPendingBookingError(''); }, [saturdayRequestModal?.id, advancePaymentModal?.id]);
   const persistPendingAppointment = async (draft: Appointment): Promise<Appointment> => {
@@ -3239,7 +3245,7 @@ function StudioApp() {
       const approval = needsNewAssessment ? { status: 'pending' as const, reason: 'assessment' as const,
         reference: 'REV-' + crypto.randomUUID().slice(0, 8).toUpperCase() } : editingAppointment.saturdayApproval;
       const payment = editingAppointment.advancePayment ||
-        (approval?.status !== 'pending' && bizConfig.advancePaymentEnabled && durationMin > bizConfig.advancePaymentThresholdMinutes ? createAdvancePayment() : undefined);
+        (approval?.status !== 'pending' && serviceDepositAmount(services,durationMin)>0 ? createAdvancePayment(services,durationMin) : undefined);
       const prefix = approval?.status === 'pending' ? 'PENDIENTE VALORACIÓN' :
         payment?.status === 'pending' ? 'PENDIENTE BIZUM' : 'RESERVADO';
       const updated: Appointment = { ...editingAppointment, clientName: modalClientName,
@@ -3288,8 +3294,8 @@ function StudioApp() {
       setSaturdayRequestModal(newApp);
       return;
     }
-    if (bizConfig.advancePaymentEnabled && (newApp.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes) {
-      newApp.advancePayment = createAdvancePayment();
+    if (serviceDepositAmount(newApp.services,newApp.durationMinutes)>0) {
+      newApp.advancePayment = createAdvancePayment(newApp.services,newApp.durationMinutes);
       newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE BIZUM');
       newApp.remindersStatus = { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false };
       setAdvancePaymentModal(newApp);
@@ -3401,8 +3407,8 @@ function StudioApp() {
       setSaturdayRequestModal(newApp);
       return;
     }
-    if (bizConfig.advancePaymentEnabled && (newApp.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes) {
-      newApp.advancePayment = createAdvancePayment();
+    if (serviceDepositAmount(newApp.services,newApp.durationMinutes)>0) {
+      newApp.advancePayment = createAdvancePayment(newApp.services,newApp.durationMinutes);
       newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE BIZUM');
       newApp.remindersStatus = { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false };
       setAdvancePaymentModal(newApp);
@@ -3923,7 +3929,7 @@ function StudioApp() {
     try {
       const token = studioApi.currentToken();
       if (!studioApi.serverConfigured || !token || studioApi.storedRole() !== 'admin') throw new Error('Necesitas conexión y una sesión de administración válida.');
-      const before = await studioApi.syncAll<{ appointments?: Record<string, any>[]; settings?: BusinessConfig }>(token, ['appointments', 'settings']);
+      const before = await studioApi.syncAll<{ appointments?: Record<string, any>[]; settings?: BusinessConfig; catalog?: {category:CatalogCategory}[] }>(token, ['appointments', 'settings', 'catalog']);
       let row = before.appointments?.find(item => item.id === source.serverId || item.id === source.id || String(item.source_legacy_id || '') === source.id);
       if (!row) throw new Error('No se ha encontrado la solicitud en el servidor. Actualiza la agenda.');
       if (row.lifecycle_status === 'cancelled' || row.lifecycle_status === 'no_show' || row.completed_at) throw new Error('Esta cita ya no admite una decisión de aprobación. Actualiza la agenda.');
@@ -3936,13 +3942,10 @@ function StudioApp() {
         if (status === 'accepted') {
           const cfg = before.settings;
           if (!cfg) throw new Error('No se ha podido leer la configuración de anticipos. Reintenta.');
-          const threshold = Number(cfg.advancePaymentThresholdMinutes);
-          if (cfg.advancePaymentEnabled !== false && !Number.isFinite(threshold)) throw new Error('Revisa la duración mínima para pedir anticipo en Configuración.');
-          const needsDeposit = cfg.advancePaymentEnabled !== false && Number(row.duration_minutes) > threshold;
+          if(!Array.isArray(before.catalog))throw new Error('No se pudo leer el catálogo de anticipos. Reintenta.');
+          const amount=calculateServiceDeposit(row.services||[],before.catalog.flatMap(category=>category.category.subservices),cfg,Number(row.duration_minutes));
           // Preserve an existing payment, including one already received.
-          if (needsDeposit && !['pending', 'confirmed', 'received', 'paid'].includes(String(row.deposit_status))) {
-            const amount = parseFloat(String(cfg.depositAmount || '').replace(',', '.'));
-            if (!Number.isFinite(amount) || amount <= 0) throw new Error('Revisa el importe del anticipo en Configuración.');
+          if (amount>0 && !['pending', 'confirmed', 'received', 'paid'].includes(String(row.deposit_status))) {
             patch.advancePayment = { status: 'pending', amount, reference: 'LS-' + crypto.randomUUID().slice(0, 8).toUpperCase() };
           }
         }
@@ -5288,7 +5291,7 @@ function StudioApp() {
               : t('reviewExplanation')}</p>
             <p>{saturdayRequestModal.dateKey.split('-').reverse().join('/')} · {saturdayRequestModal.time}</p>
             <p>{appointmentServiceNames(saturdayRequestModal)}</p>
-            {bizConfig.advancePaymentEnabled && (saturdayRequestModal.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes && <p>{tf('reviewDeposit', {amount: bizConfig.depositAmount})}</p>}
+            {serviceDepositAmount(saturdayRequestModal.services,saturdayRequestModal.durationMinutes)>0 && <p>{tf('reviewDeposit', {amount: serviceDepositAmount(saturdayRequestModal.services,saturdayRequestModal.durationMinutes)+' €'})}</p>}
             <p style={{ color: '#D6CBB8', fontSize: '12px' }}>{t('localRequestNotice')}</p>
             {pendingBookingError && <p role="alert" style={{color:'#F5C7B8',fontSize:13,lineHeight:1.6}}>{pendingBookingError}</p>}
             <button type="button" disabled={pendingBookingBusy} onClick={() => setSaturdayRequestModal(null)} style={{ padding: '10px', marginRight: '10px' }}>{t('backAction')}</button>
@@ -5300,7 +5303,7 @@ function StudioApp() {
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 2000 }}>
           <div role="dialog" aria-modal="true" aria-labelledby="advance-payment-title" style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', maxWidth: '440px', width: '100%', maxHeight: '85vh', overflowY: 'auto', color: '#FFF8EE' }}>
             <h3 id="advance-payment-title" style={{ color: '#E4C687', marginTop: 0 }}>{t('depositTitle')} · {advancePaymentModal.advancePayment?.amount} €</h3>
-            <p>{tf('bizumExplanation', {minutes: bizConfig.advancePaymentThresholdMinutes, amount: advancePaymentModal.advancePayment?.amount, phone: bizConfig.bizumNumber})}</p>
+            <p>Para completar esta reserva, realiza el anticipo de <strong>{advancePaymentModal.advancePayment?.amount} €</strong> por Bizum al <strong>{bizConfig.bizumNumber}</strong>. Se descontará del precio final del servicio.</p>
             <p>{advancePaymentModal.dateKey.split('-').reverse().join('/')} · {advancePaymentModal.time} · {advancePaymentModal.durationMinutes} min</p>
             <p>{t('paymentConceptHelp')}</p>
             <div dir="ltr" style={{ padding: '12px', border: '1px solid #B98A3E', borderRadius: '6px', overflowWrap: 'anywhere' }}>{advancePaymentConcept(advancePaymentModal)}</div>
@@ -6028,8 +6031,8 @@ function StudioApp() {
                     repeated.serviceSubcategory = repeated.serviceSubcategory.replace(/^RESERVADO/, reason === 'saturday' ? 'PENDIENTE SÁBADO' : 'PENDIENTE VALORACIÓN');
                     setSaturdayRequestModal(repeated); return;
                   }
-                  if (bizConfig.advancePaymentEnabled && (repeated.durationMinutes || 0) > bizConfig.advancePaymentThresholdMinutes) {
-                    repeated.advancePayment = createAdvancePayment();
+                  if (serviceDepositAmount(repeated.services,repeated.durationMinutes)>0) {
+                    repeated.advancePayment = createAdvancePayment(repeated.services,repeated.durationMinutes);
                     repeated.serviceSubcategory = repeated.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE BIZUM');
                   }
                   setAppointments(previous => [...previous, repeated]); setFechaSeleccionada(date); setViewApptModal(repeated);
