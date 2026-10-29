@@ -1,3 +1,4 @@
+import PinRecovery from './PinRecovery';
 import { calculateServiceDeposit, validateServiceDeposit, type ServiceDepositPolicy } from './serviceDeposits';
 import { rememberCatalogPhoto, restoreCatalogPhotos, clearCatalogPhotos, forgetCatalogPhoto, verifyCatalogPhotoUrl } from './catalogPhotoDrafts';
 import { prepareCatalogImage, catalogImageSizeMessage } from './catalogImage';
@@ -996,6 +997,14 @@ function StudioApp() {
   const portalLocale = ({ es: 'es-ES', en: 'en-GB', fr: 'fr-FR', it: 'it-IT', pt: 'pt-PT', de: 'de-DE', nl: 'nl-NL', pl: 'pl-PL', cs: 'cs-CZ', nb: 'nb-NO', sv: 'sv-SE', ar: 'ar-MA' } as Record<string, string>)[currentLang] || 'es-ES';
   const t = (key: string) => TRANSLATIONS[currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang]?.[key] || TRANSLATIONS['es'][key] || key;
   const tf = (key: string, values: Record<string, string | number | undefined>) => t(key).replace(/\{(\w+)\}/g, (token, name: string) => values[name] === undefined ? token : String(values[name]));
+  const [recoveryToken,setRecoveryToken]=useState(()=>new URLSearchParams(window.location.hash.slice(1)).get('recuperar')||'');
+  const [recoveryOpen,setRecoveryOpen]=useState(()=>new URLSearchParams(window.location.hash.slice(1)).has('recuperar'));
+  useEffect(()=>{
+    const fragment=new URLSearchParams(window.location.hash.slice(1));
+    if(!fragment.has('recuperar'))return;
+    fragment.delete('recuperar');
+    window.history.replaceState(window.history.state,'',window.location.pathname+window.location.search+(fragment.toString()?'#'+fragment.toString():''));
+  },[]);
   const [pin, setPin] = useState<string>("");
   const [pinError, setPinError] = useState<boolean>(false);
   const [currentClientRecord, setCurrentClientRecord] = useState<ClientRecord | null>(null);
@@ -4371,6 +4380,10 @@ function StudioApp() {
         </>;
       })()}
 
+      <PinRecovery open={recoveryOpen} initialToken={recoveryToken}
+        onClose={()=>{setRecoveryOpen(false);setRecoveryToken('');setCurrentScreen('clientPin');}}
+        onSuccess={()=>{studioApi.clearStoredToken();setCurrentClientRecord(null);setListaClientes([]);setAppointments([]);setPin('');setPinError(false);setCurrentScreen('clientPin');}} />
+
       {/* 1. ACCESO PIN CLIENTE */}
       {currentScreen === 'clientPin' && (
         <main style={{ width: '100%', maxWidth: '460px', boxSizing: 'border-box', padding: '60px 24px 30px', textAlign: 'center' }}>
@@ -4389,9 +4402,10 @@ function StudioApp() {
           <form onSubmit={handleClientPinSubmit} style={{ maxWidth: '280px', margin: '0 auto' }}>
             <label htmlFor="client-access-pin" style={{ display: 'block', color: '#D6CBB8', fontSize: '13px', marginBottom: '10px' }}>{t('enterPin')}</label>
             <input id="client-access-pin" className="studio-editorial-pin" dir="ltr" type="password" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} autoComplete="off" value={pin} onChange={event => { setPin(event.target.value.replace(/[^0-9]/g, '').slice(0, 4)); setPinError(false); }} aria-invalid={pinError} aria-describedby={pinError ? 'client-pin-error' : undefined} required />
-            {pinError && <p id="client-pin-error" role="alert" style={{ color: '#F2B8AC', fontSize: '13px' }}>PIN incorrecto. Comprueba que es el correcto o usa «Primera vez» para registrarte.</p>}
+            {pinError && <p id="client-pin-error" role="alert" style={{ color: '#F2B8AC', fontSize: '13px' }}>PIN incorrecto. Compruébalo o usa «¿Has olvidado tu PIN?» para recuperar el acceso.</p>}
             <button className="studio-editorial-enter" type="submit" disabled={pin.length !== 4} style={{ width: '100%', minHeight: '48px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', borderRadius: '3px', padding: '14px', marginTop: '24px', fontSize: '13px', letterSpacing: '1px', cursor: 'pointer', opacity: pin.length === 4 ? 1 : 0.45 }}>{t('enterPortal')}</button>
           </form>
+          <button type="button" onClick={()=>{setRecoveryToken('');setRecoveryOpen(true);}} style={{background:'none',border:0,color:'#E4C687',padding:'14px 4px',minHeight:44,fontSize:12,cursor:'pointer'}}>¿Has olvidado tu PIN?</button>
           <div style={{ width: '34px', height: '1px', background: 'rgba(212, 175, 55, 0.5)', margin: '30px auto 20px' }} />
           <button type="button" onClick={() => setCurrentScreen('clientRegistration')} style={{ background: 'none', border: 'none', color: '#D8C29A', padding: '12px 4px', minHeight: '44px', fontSize: '12px', cursor: 'pointer', lineHeight: 1.6 }}>{t('firstTimeRegister')}</button>
           {showInstallBanner && <p style={{ color: '#C9BCA9', fontSize: '11px', lineHeight: 1.7, margin: '16px 0 0' }}>{t('installDesc')}</p>}
