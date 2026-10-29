@@ -325,3 +325,6 @@ export const completePinReset = async(token:string,pin:string):Promise<void> => 
   const result=await call<{ok:true}>('pin-reset-complete',{body:{token,pin}});
   if(result.ok!==true)throw new Error('El servidor no confirmó el cambio de PIN.');
 };
+
+// Explicit administrator-only download; never part of background synchronization.
+export const fetchStudioBackup = <T>(token:string) => call<T>('backup',{token});
