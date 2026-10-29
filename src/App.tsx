@@ -1,4 +1,3 @@
-import { canChangePortalAppointment, CANCELLATION_NOTICE } from './appointmentPolicy';
 import PinRecovery from './PinRecovery';
 import { calculateServiceDeposit, validateServiceDeposit, type ServiceDepositPolicy } from './serviceDeposits';
 import { rememberCatalogPhoto, restoreCatalogPhotos, clearCatalogPhotos, forgetCatalogPhoto, verifyCatalogPhotoUrl } from './catalogPhotoDrafts';
@@ -19,6 +18,33 @@ function clientDisplayNumber(client: {registroId?: string} | null | undefined): 
   const match = /^LSTUDIO-(\d+)$/.exec(client?.registroId || '');
   return match ? String(Number(match[1])) : 'Pendiente';
 }
+const CANCELLATION_HOURS = 24;
+const CANCELLATION_NOTICE = 'Para cambiar o cancelar tu cita con menos de 24 horas de antelación, contacta directamente con L’Studio Ana.';
+// The existing database stores appointment wall-clock values as ISO UTC text.
+function appointmentPolicyInstant(wallIso: string): number {
+  const target=Date.parse(wallIso.slice(0,19)+'Z');
+  if(!Number.isFinite(target))return NaN;
+  let guess=target;
+  for(let i=0;i<4;i++){
+    const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).formatToParts(new Date(guess));
+    const values=Object.fromEntries(parts.map(part=>[part.type,part.value]));
+    const represented=Date.parse(`${values.year}-${values.month}-${values.day}T${values.hour}:${values.minute}:${values.second}Z`);
+    const adjustment=target-represented;if(!adjustment)return guess;guess+=adjustment;
+  }
+  return NaN;
+}
+function canChangePortalAppointment(appointment:{dateKey:string;time:string},now=Date.now()):boolean {
+  const start=appointmentPolicyInstant(`${appointment.dateKey}T${appointment.time}:00`);
+  return Number.isFinite(start)&&start-now>=CANCELLATION_HOURS*3600000;
+}
+
+function canOfferCourtesyMessage(appointment: {dateKey:string;time:string;lifecycleStatus?:string;completedAt?:string},now=Date.now()):boolean {
+  if(appointment.lifecycleStatus!=='cancelled'||appointment.completedAt)return false;
+  const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(now));
+  const start=appointmentPolicyInstant(`${appointment.dateKey}T${appointment.time}:00`);
+  return appointment.dateKey===today&&Number.isFinite(start)&&now-start>=15*60000;
+}
+
 const LazyAdminPanelView = React.lazy(() => import('./AdminPanelView'));
 // Optimized copies of bundled photos only; custom uploads remain unchanged.
 const FAST_PHOTO_URLS: Readonly<Record<string,string>> = {
@@ -59,7 +85,7 @@ function cancelledWhatsAppUrl(phone: string): string | null {
   if (number.startsWith('00')) number = number.slice(2);
   if (number.length === 9) number = '34' + number;
   if (!/^[1-9]\d{8,14}$/.test(number)) return null;
-  const message = "Hola, te escribo desde L'STUDIO ANA 🌿.\n\nSiento informarte que, al haber transcurrido los 15 minutos de cortesía sin haber recibido noticias tuyas, me veo en la necesidad de cancelar tu cita de hoy para no perjudicar el horario de las siguientes clientas.\n\nComo profesional, cuido mucho el tiempo de cada servicio para daros la mejor calidad. ⏳✨\n\nPuedes volver a consultar mis huecos disponibles y reservar una nueva cita aquí:\n\n🗓️ RESERVA ONLINE: https://lstudioana.es\n\n¡Espero verte en otra ocasión!";
+  const message = "Hola, te escribo desde L'STUDIO ANA 🌿.\n\nSiento informarte que, al haber transcurrido los 15 minutos de cortesía sin haber recibido noticias tuyas, me veo en la necesidad de cancelar tu cita de hoy para no perjudicar el horario de las siguientes clientas.\n\nComo profesional, cuido mucho el tiempo de cada servicio para daros la mejor calidad. ⏳✨\n\nPuedes volver a consultar mis huecos disponibles y reservar una nueva cita aquí:\n\n🗓️ RESERVA ONLINE: https://studio-ana-hair-expe-jwal.bolt.host/\n\n¡Espero verte en otra ocasión!";
   return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
 }
 
@@ -2328,34 +2354,43 @@ function StudioApp() {
       .catch(() => setWhatsappConfigStatus(null));
   }, [currentScreen]);
   useEffect(() => { setAppointmentNoteDraft(viewApptModal?.internalNotes || ''); }, [viewApptModal?.id]);
-  const changeAppointmentStatus = async (appointment: Appointment, status: 'cancelled' | 'no_show') => {
-    if (appointment.completedAt) { alert('Una visita realizada ya consta en el pasaporte.'); return; }
-    if (status === 'no_show' && new Date(appointment.dateKey + 'T' + appointment.time + ':00').getTime() > Date.now()) {
-      alert('La cita todavía no ha comenzado.'); return;
-    }
-    const alreadyCancelled = status === 'cancelled' && appointment.lifecycleStatus === 'cancelled';
-    if (!alreadyCancelled) {
-      if (!window.confirm(status === 'cancelled' ? '¿Marcar esta cita como cancelada y liberar su hueco?' : '¿Registrar que la clienta no se ha presentado?')) return;
-      const updated = { ...appointment, internalNotes: appointmentNoteDraft, lifecycleStatus: status,
-        statusChangedAt: new Date().toISOString(),
-        remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false } };
-      if (studioApi.serverConfigured) {
-        const token = studioApi.currentToken();
-        if (!token || studioApi.storedRole() !== 'admin') { alert('Inicia sesión de nuevo en la intranet.'); return; }
-        try {
-          await studioApi.updateAppointmentOnServer(token, { id: updated.serverId || updated.id, lifecycleStatus: status });
-        } catch {
-          alert('No se pudo guardar el cambio. La cita no se ha marcado como cancelada ni se abrirá WhatsApp. Inténtalo de nuevo.'); return;
-        }
+  const [adminStatusRequest,setAdminStatusRequest]=useState<{appointment:Appointment;status:'cancelled'|'no_show'}|null>(null);
+  const [adminStatusBusy,setAdminStatusBusy]=useState(false);
+  const [adminStatusError,setAdminStatusError]=useState('');
+  const adminStatusBusyRef=useRef(false);
+  const changeAppointmentStatus=(appointment:Appointment,status:'cancelled'|'no_show')=>{
+    if(adminStatusBusyRef.current)return;
+    setAdminStatusError('');setAdminStatusRequest({appointment,status});
+  };
+  const confirmAdminAppointmentStatus=async()=>{
+    if(!adminStatusRequest||adminStatusBusyRef.current)return;
+    const {appointment,status}=adminStatusRequest;
+    adminStatusBusyRef.current=true;setAdminStatusBusy(true);setAdminStatusError('');
+    try{
+      const token=studioApi.currentToken();
+      if(!studioApi.serverConfigured||!token||studioApi.storedRole()!=='admin'||currentScreen!=='adminPanel')throw new Error('Accede a la intranet para gestionar esta cita.');
+      const data=await studioApi.syncAll<{appointments?:Record<string,any>[]}>(token,['appointments']);
+      const row=data.appointments?.find(item=>item.id===appointment.serverId||item.id===appointment.id||String(item.source_legacy_id||'')===appointment.id);
+      if(!row)throw new Error('No se encontró la cita. Actualiza la agenda antes de reintentar.');
+      const fresh=mapServerAppointment(row);
+      if(fresh.completedAt)throw new Error('Una visita realizada ya consta en el pasaporte.');
+      if(status==='no_show'&&appointmentPolicyInstant(`${fresh.dateKey}T${fresh.time}:00`)>Date.now())throw new Error('La cita todavía no ha comenzado.');
+      if(fresh.lifecycleStatus!==status){
+        const result=await studioApi.updateAppointmentOnServer(token,{id:row.id,lifecycleStatus:status});
+        if(!result.ok)throw new Error('El servidor no confirmó el cambio. Actualiza la agenda antes de reintentar.');
       }
-      setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
-      setViewApptModal(updated);
-    }
-    if (status === 'cancelled' && window.confirm('¿La cancelación es por haber superado los 15 minutos de cortesía sin aviso? Aceptar abre tu mensaje en WhatsApp. Cancelar mantiene la cita cancelada sin abrir WhatsApp.')) {
-      const url = cancelledWhatsAppUrl(appointment.phone);
-      if (!url) { alert('La cita no tiene un teléfono válido.'); return; }
-      window.open(url, '_blank', 'noopener,noreferrer');
-    }
+      const updated:Appointment={...fresh,lifecycleStatus:status,statusChangedAt:new Date().toISOString(),remindersStatus:{email48h:false,whatsapp48h:false,whatsapp24h:false,whatsapp2h:false}};
+      setAppointments(previous=>previous.map(item=>item.id===appointment.id||item.serverId===row.id?updated:item));
+      setViewApptModal(previous=>previous&&(previous.id===appointment.id||previous.serverId===row.id)?updated:previous);
+      setAdminStatusRequest(null);
+    }catch(error){setAdminStatusError(error instanceof Error?error.message:'No se pudo confirmar el cambio. La cita se conserva.');}
+    finally{adminStatusBusyRef.current=false;setAdminStatusBusy(false);}
+  };
+  const renderCourtesyAction=(appointment:Appointment)=>{
+    if(currentScreen!=='adminPanel'||!canOfferCourtesyMessage(appointment))return null;
+    const url=cancelledWhatsAppUrl(appointment.phone);
+    if(!url)return null;
+    return <details style={{padding:10,border:'1px solid #655039',borderRadius:8,color:'#D6CBB8',fontSize:12}}><summary style={{cursor:'pointer'}}>Aviso opcional por retraso</summary><p style={{lineHeight:1.6}}>Solo utiliza este mensaje si la cancelación se debe a que la clienta no llegó y no avisó. La cita ya está cancelada.</p><a href={url} target="_blank" rel="noopener noreferrer" style={{color:'#E4C687',display:'inline-block',padding:'10px 0'}}>Preparar WhatsApp de los 15 minutos de cortesía</a></details>;
   };
 
   const cancellationBusyRef=useRef(false);
@@ -3468,7 +3503,7 @@ function StudioApp() {
   };
 
   const handleLogout = () => {
-    if (cancellationBusyRef.current || approvalSavingRef.current || visualBookingBusyRef.current || pendingBookingBusyRef.current || bizumSavingRef.current || deletingAppointmentRef.current || configSavingRef.current || catalogSavingRef.current || photoUploadBusyRef.current) {
+    if (adminStatusBusyRef.current || cancellationBusyRef.current || approvalSavingRef.current || visualBookingBusyRef.current || pendingBookingBusyRef.current || bizumSavingRef.current || deletingAppointmentRef.current || configSavingRef.current || catalogSavingRef.current || photoUploadBusyRef.current) {
       alert('Espera a que termine el guardado antes de cerrar sesión.');
       return;
     }
@@ -4396,6 +4431,19 @@ function StudioApp() {
       <PinRecovery open={recoveryOpen} initialToken={recoveryToken}
         onClose={()=>{setRecoveryOpen(false);setRecoveryToken('');setCurrentScreen('clientPin');}}
         onSuccess={()=>{studioApi.clearStoredToken();setCurrentClientRecord(null);setListaClientes([]);setAppointments([]);setPin('');setPinError(false);setCurrentScreen('clientPin');}} />
+
+      {adminStatusRequest&&<div role="dialog" aria-modal="true" aria-labelledby="admin-status-title" aria-busy={adminStatusBusy} style={{position:'fixed',inset:0,zIndex:6000,background:'rgba(20,16,13,.85)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
+        <section style={{width:'100%',maxWidth:420,boxSizing:'border-box',padding:24,border:'1px solid #8C6A4B',borderRadius:12,background:'#322A25',color:'#FFF8EE'}}>
+          <h3 id="admin-status-title" style={{fontSize:21,fontWeight:400,color:'#E4C687',margin:'0 0 14px'}}>{adminStatusRequest.status==='cancelled'?'Cancelar cita':'Registrar no presentada'}</h3>
+          <p style={{fontSize:14,lineHeight:1.6}}>{adminStatusRequest.appointment.clientName}<br/>{adminStatusRequest.appointment.dateKey.split('-').reverse().join('/')} · {adminStatusRequest.appointment.time}</p>
+          <p style={{fontSize:13,lineHeight:1.6,color:'#D6CBB8'}}>El registro se conservará y el hueco se liberará cuando el servidor confirme el cambio.</p>
+          {adminStatusError&&<p role="alert" style={{fontSize:13,lineHeight:1.6,color:'#FFB4A9'}}>{adminStatusError}</p>}
+          <div style={{display:'flex',gap:10,justifyContent:'flex-end',marginTop:16,flexWrap:'wrap'}}>
+            <button type="button" disabled={adminStatusBusy} onClick={()=>{setAdminStatusRequest(null);setAdminStatusError('');}} style={{padding:12,minHeight:44,border:'1px solid #8C6A4B',borderRadius:6,background:'none',color:'#FFF8EE'}}>Volver</button>
+            <button type="button" disabled={adminStatusBusy} onClick={()=>void confirmAdminAppointmentStatus()} style={{padding:12,minHeight:44,border:0,borderRadius:6,background:'#C99E52',color:'#29231F',fontWeight:600}}>{adminStatusBusy?'Guardando…':adminStatusRequest.status==='cancelled'?'Confirmar cancelación':'Confirmar no presentada'}</button>
+          </div>
+        </section>
+      </div>}
 
       {/* 1. ACCESO PIN CLIENTE */}
       {currentScreen === 'clientPin' && (
@@ -5552,6 +5600,7 @@ function StudioApp() {
 @media(max-width:620px){.lst-appt-dialog{max-height:calc(100dvh - 24px)}.lst-appt-body{grid-template-columns:1fr;padding:12px;gap:12px}.lst-appt-head{padding:12px}.lst-appt-head h3{font-size:20px!important}.lst-appt-footer{padding:8px 10px;max-height:28dvh;overflow-y:auto}.lst-appt-more>div{position:static;width:auto}}
 `}</style><div className="lst-appt-dialog" role="dialog" aria-modal="true" aria-label="Detalle de la cita"><header className="lst-appt-head"><div><p style={{ color: '#E4C687', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
 <h3 style={{ color: '#FFF8EE', fontSize: '26px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{viewApptModal.clientName}</h3>
+            {renderCourtesyAction(viewApptModal)}
 <p style={{ color: '#E4C687', fontSize: 14, margin: '7px 0 0' }}>{viewApptModal.dateKey.split('-').reverse().join('/')} · {viewApptModal.time} · {viewApptModal.durationMinutes || 45} min</p>
 <span style={{ display: 'inline-block', fontSize: 11, color: '#E4C687', marginTop: 7 }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada' : viewApptModal.completedAt ? 'Finalizada' : viewApptModal.saturdayApproval?.status === 'rejected' ? 'Solicitud rechazada' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Anticipo pendiente' : 'Confirmada'}</span>
 {renderPromotionBadge(viewApptModal)}
@@ -5766,7 +5815,7 @@ function StudioApp() {
             </div></details></aside></div><footer className="lst-appt-footer">{viewApptModal.completedAt ? <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6 }}>Visita registrada en el pasaporte. Puedes editar o borrar esa visita desde Clientes → Editar pasaporte e historial.</p> : <button type="button" onClick={() => markAppointmentCompleted(viewApptModal)} style={{ backgroundColor: '#8FC98F', border: '1px solid #3E6B47', color: '#2C5538', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Finalizar servicio</button>}
 <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(viewApptModal); setNewRescheduleDate(viewApptModal.dateKey); setNewRescheduleTime(viewApptModal.time); setViewApptModal(null); }} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Cambiar cita</button>
 {!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-              <button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'cancelled')} style={{ padding: '10px', border: '1px solid #3A312A', color: '#C0392B', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cita cancelada · WhatsApp' : 'Cancelar cita'}</button>
+              <button type="button" disabled={adminStatusBusy||viewApptModal.lifecycleStatus==='cancelled'} onClick={() => changeAppointmentStatus(viewApptModal, 'cancelled')} style={{ padding: '10px', border: '1px solid #3A312A', color: '#C0392B', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cita cancelada' : 'Cancelar cita'}</button>
 
             </div>}
 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'space-between', marginTop: '10px' }}>
@@ -5777,6 +5826,7 @@ function StudioApp() {
             <p style={{ color: '#E4C687', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
             {renderPromotionBadge(viewApptModal)}
             <h3 style={{ color: '#FFF8EE', fontSize: '26px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{viewApptModal.clientName}</h3>
+            {renderCourtesyAction(viewApptModal)}
             <div style={{ backgroundColor: adminAppointmentColor(viewApptModal).background, border: `1px solid ${adminAppointmentColor(viewApptModal).border}`, borderRadius: '10px', padding: '18px', color: adminAppointmentText(viewApptModal) }}>
               <strong style={{ fontSize: '14px', color: adminAppointmentText(viewApptModal) }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada · Hueco liberado' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada · Registro conservado' : viewApptModal.completedAt ? 'Realizada · Registrada en el pasaporte' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Cita confirmada'}</strong>
               <p style={{ color: adminAppointmentText(viewApptModal), fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '21px', margin: '12px 0 8px' }}>{new Date(`${viewApptModal.dateKey}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {viewApptModal.time}</p>
@@ -5885,7 +5935,7 @@ function StudioApp() {
               {notesFeedback && <p role="status" style={{ color: '#E4C687', fontSize: 12, lineHeight: 1.5 }}>{notesFeedback}</p>}
             </section>
             {!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-              <button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'cancelled')} style={{ padding: '10px', border: '1px solid #3A312A', color: '#C0392B', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cita cancelada · WhatsApp' : 'Marcar cancelada'}</button>
+              <button type="button" disabled={adminStatusBusy||viewApptModal.lifecycleStatus==='cancelled'} onClick={() => changeAppointmentStatus(viewApptModal, 'cancelled')} style={{ padding: '10px', border: '1px solid #3A312A', color: '#C0392B', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cita cancelada' : 'Marcar cancelada'}</button>
               <button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'no_show')} style={{ padding: '10px', border: '1px solid #C5A059', color: '#D6CBB8', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>No presentada</button>
             </div>}
             {!isActiveAppointment(viewApptModal) && <p style={{ color: '#D6CBB8', fontSize: '12px' }}>El registro se conserva en «Citas del día» y en el buscador. No ocupa un hueco ni se añade como visita realizada al pasaporte.</p>}
