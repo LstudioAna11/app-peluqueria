@@ -75,7 +75,7 @@ const rawCall = async <T = Record<string, unknown>>(
 // Share only identical requests that are currently in flight; never cache appointment results.
 const pendingReads = new Map<string, Promise<unknown>>();
 let readGeneration = 0;
-const readActions = new Set(['client-photos', 'sync', 'public-catalog', 'public-professionals', 'branding', 'official-holidays', 'email-status', 'email-config', 'whatsapp-status', 'whatsapp-config', 'push-status', 'push-public-key']);
+const readActions = new Set(['news-list','news-detail','client-photos', 'sync', 'public-catalog', 'public-professionals', 'branding', 'official-holidays', 'email-status', 'email-config', 'whatsapp-status', 'whatsapp-config', 'push-status', 'push-public-key']);
 const call = async <T = Record<string, unknown>>(
   action: string,
   opts: {method?: string; token?: string; body?: unknown} = {},
@@ -334,3 +334,16 @@ export interface ClientPhotoPage {photos:ClientPhoto[];total:number;page:number;
 export const fetchClientPhotos=(token:string,clientId?:string,page=0)=>call<ClientPhotoPage>('client-photos',{token,body:{clientId,page}});
 export const uploadClientPhoto=(token:string,details:{clientId:string;takenOn:string;label:string;note:string;dataUrl:string;requestId:string})=>call<{ok:true;id:string}>('client-photo',{token,body:details});
 export const deleteClientPhoto=(token:string,clientId:string,id:string)=>call<{ok:true;cleanupPending:boolean}>('client-photo',{method:'DELETE',token,body:{clientId,id}});
+
+// Studio news: only summaries in lists; full text is requested on opening.
+export interface StudioNews {
+  id:string;title:string;summary:string;body:string;category:'servicios'|'cuidados'|'studio'|'avisos';
+  image_url:string;status:'draft'|'published';start_date:string|null;end_date:string|null;
+  action:'none'|'service'|'booking';service_id:string|null;created_at:string;updated_at:string;
+}
+export type StudioNewsSummary=Omit<StudioNews,'body'>;
+export interface StudioNewsPage {items:StudioNewsSummary[];total:number;page:number;pageSize:number;}
+export const fetchNews=(token:string,page=0,latest=false)=>call<StudioNewsPage>('news-list',{token,body:{page,latest}});
+export const fetchNewsDetail=(token:string,id:string)=>call<{item:StudioNews}>('news-detail',{token,body:{id}});
+export const saveNews=(token:string,item:StudioNews)=>call<{ok:true;item:StudioNews}>('news-save',{token,body:{id:item.id,expectedUpdatedAt:item.updated_at||null,item}});
+export const deleteNews=(token:string,id:string,expectedUpdatedAt:string)=>call<{ok:true}>('news-delete',{token,body:{id,expectedUpdatedAt}});
