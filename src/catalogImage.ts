@@ -10,7 +10,7 @@ export interface PreparedCatalogImage {
 }
 
 /** Resize proportionally in the browser; never crop or enlarge an image. */
-export async function prepareCatalogImage(file: File): Promise<PreparedCatalogImage> {
+export async function prepareCatalogImage(file: File, alwaysEncode = false): Promise<PreparedCatalogImage> {
   if (!SUPPORTED.includes(file.type)) throw new Error('Elige una foto JPG, PNG o WebP. Convierte otros formatos antes de subirlos.');
   if (!file.size || file.size > MAX_INPUT_BYTES) throw new Error('La foto original debe pesar entre 1 byte y 12 MB.');
   let objectUrl = '';
@@ -27,7 +27,7 @@ export async function prepareCatalogImage(file: File): Promise<PreparedCatalogIm
     const height = image.naturalHeight;
     if (!width || !height || width * height > 40_000_000) throw new Error('La foto tiene demasiada resolución. Elige una versión de menos de 40 megapíxeles.');
     let output: Blob = file;
-    if (Math.max(width, height) > MAX_EDGE || file.size > TARGET_BYTES) {
+    if (alwaysEncode || Math.max(width, height) > MAX_EDGE || file.size > TARGET_BYTES) {
       canvas = document.createElement('canvas');
       let scale = Math.min(1, MAX_EDGE / width, MAX_EDGE / height);
       for (let attempt = 0; attempt < 9; attempt++) {
@@ -49,7 +49,7 @@ export async function prepareCatalogImage(file: File): Promise<PreparedCatalogIm
         if (attempt >= 2) scale *= 0.8;
       }
       if (output.size > TARGET_BYTES) throw new Error('No se pudo reducir esta foto lo suficiente. Elige una imagen más sencilla.');
-      if (file.size < output.size && Math.max(width, height) <= MAX_EDGE) output = file;
+      if (!alwaysEncode && file.size < output.size && Math.max(width, height) <= MAX_EDGE) output = file;
     }
     const dataUrl = await new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
