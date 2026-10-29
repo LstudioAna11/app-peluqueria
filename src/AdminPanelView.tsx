@@ -1,3 +1,4 @@
+import { ClientPhotoGallery } from './App';
 import { AddonEditor } from './ServiceAddons';
 import React, { useState, useEffect, useRef } from 'react';
 import { Maximize2, Minimize2, Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ChevronDown, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
@@ -337,7 +338,7 @@ async function validateStudioBackup(document:StudioBackupFile):Promise<void>{
   if(document.media.included&&document.media.files.length!==document.media.expected)throw new Error('Faltan fotos en esta copia.');
   let total=0;const paths=new Set<string>();
   for(const asset of document.media.files){
-    if(asset.bucket!=='service-images'||typeof asset.path!=='string'||!asset.path||asset.path.split('/').some(part=>part==='..'||part==='.')||paths.has(asset.path))throw new Error('El índice de fotos tiene rutas no válidas.');paths.add(asset.path);
+    if(!['service-images','client-photos'].includes(asset.bucket)||typeof asset.path!=='string'||!asset.path||asset.path.split('/').some(part=>part==='..'||part==='.')||paths.has(asset.bucket+'/'+asset.path))throw new Error('El índice de fotos tiene rutas no válidas.');paths.add(asset.bucket+'/'+asset.path);
     const bytes=backupUnbase64(asset.base64);total+=bytes.byteLength;
     if(total>BACKUP_MAX_MEDIA||bytes.byteLength!==asset.size||await backupSha256(bytes)!==asset.sha256)throw new Error('Una foto está incompleta o dañada.');
   }
@@ -349,7 +350,8 @@ async function collectStudioBackup(source:StudioBackupSource,withPhotos:boolean,
   if(withPhotos)for(let index=0;index<source.media.length;index++){
     if(signal.aborted)throw new DOMException('Copia cancelada','AbortError');
     const asset=source.media[index],url=new URL(asset.url);
-    if(asset.bucket!=='service-images'||url.origin!==origin.origin||!url.pathname.startsWith('/storage/v1/object/public/service-images/'))throw new Error('La dirección de una foto no pertenece al almacenamiento del Studio.');
+    const validPath=asset.bucket==='service-images'?url.pathname.startsWith('/storage/v1/object/public/service-images/'):asset.bucket==='client-photos'&&url.pathname.startsWith('/storage/v1/object/sign/client-photos/');
+    if(url.origin!==origin.origin||!validPath)throw new Error('La dirección de una foto no pertenece al almacenamiento del Studio.');
     progress(`Descargando foto ${index+1} de ${source.media.length}…`);
     const timeout=new AbortController();const abort=()=>timeout.abort();signal.addEventListener('abort',abort,{once:true});const timer=setTimeout(abort,30000);
     try{
@@ -381,7 +383,7 @@ function StudioBackupPanel({hasUnsavedChanges}:{hasUnsavedChanges:boolean}){
     lock.current=true;setBusy(true);const control=new AbortController();controller.current=control;
     try{
       setMessage('Leyendo los datos guardados del Studio…');
-      const source=await studioApi.fetchStudioBackup<StudioBackupSource>(token);
+      const source=await studioApi.fetchStudioBackup<StudioBackupSource>(token,withPhotos);
       if(control.signal.aborted)throw new DOMException('Copia cancelada','AbortError');
       const data=await collectStudioBackup(source,withPhotos,control.signal,setMessage);
       setMessage('Protegiendo la copia con tu contraseña…');const blob=await encryptStudioBackup(data,password);
@@ -406,7 +408,7 @@ function StudioBackupPanel({hasUnsavedChanges}:{hasUnsavedChanges:boolean}){
     {hasUnsavedChanges&&<p style={{fontSize:13,color:'#E4C687'}}>Tienes cambios sin guardar. Guarda el catálogo y la configuración antes de exportar.</p>}
     <label style={{fontSize:13}}>Contraseña de la copia<input type="password" autoComplete="new-password" minLength={12} disabled={busy} value={password} onChange={event=>setPassword(event.target.value)} style={input}/></label>
     <label style={{fontSize:13}}>Repite la contraseña<input type="password" autoComplete="new-password" disabled={busy} value={repeat} onChange={event=>setRepeat(event.target.value)} style={input}/></label>
-    <label style={{fontSize:13,lineHeight:1.6}}><input type="checkbox" disabled={busy} checked={withPhotos} onChange={event=>setWithPhotos(event.target.checked)}/> Incluir fotos y logos subidos a la app</label>
+    <label style={{fontSize:13,lineHeight:1.6}}><input type="checkbox" disabled={busy} checked={withPhotos} onChange={event=>setWithPhotos(event.target.checked)}/> Incluir fotos, logos y galerías privadas</label>
     <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6,margin:0}}>Las fotos aumentan el tamaño y consumen transferencia al descargarlas. Las imágenes externas o incluidas en el código de la app se conservan como enlaces.</p>
     <button type="button" disabled={busy||hasUnsavedChanges} onClick={()=>void download()} style={button}>{busy?'Un momento…':withPhotos?'Descargar datos y fotos':'Descargar copia de datos'}</button>
     <details style={{borderTop:'1px solid #655039',paddingTop:12}}>
@@ -1713,6 +1715,7 @@ export default function AdminPanelView(props: Props) {
                           <div><strong>PIN Acceso:</strong> <span style={{ color: '#E4C687', fontWeight: 'bold' }}>{c.pinAcceso}</span></div>
                           <div><strong>F. Nacimiento:</strong> {c.fechaNacimiento}</div>
                         </div>
+<ClientPhotoGallery key={c.serverId||String(c.idNum)} clientId={c.serverId} editable/>
 {isEditing ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#322A25', padding: '14px', borderRadius: '8px', border: '1px solid #B98A3E' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
