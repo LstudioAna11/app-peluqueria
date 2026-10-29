@@ -138,6 +138,103 @@ export function ClientPhotoGallery({clientId,editable=false}:{clientId?:string;e
   </section>;
 }
 
+const NEWS_CATEGORIES:Record<string,string>={servicios:'Nuevos servicios',cuidados:'Cuidados e inspiración',studio:'Vida en L’Studio',avisos:'Avisos del estudio'};
+type NewsOption={id:string;label:string};
+const newsToday=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+const newsDate=(date:string)=>new Intl.DateTimeFormat('es-ES',{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Madrid'}).format(new Date(date.slice(0,10)+'T12:00:00Z'));
+function newsState(item:studioApi.StudioNewsSummary){return item.status==='draft'?'Borrador':item.start_date&&item.start_date>newsToday()?'Programada':item.end_date&&item.end_date<newsToday()?'Finalizada':'Publicada';}
+const emptyNews=():studioApi.StudioNews=>({id:crypto.randomUUID(),title:'',summary:'',body:'',category:'studio',image_url:'',status:'draft',start_date:null,end_date:null,action:'none',service_id:null,created_at:'',updated_at:''});
+export function StudioNews({admin=false,serviceOptions=[],onService}:{admin?:boolean;serviceOptions?:NewsOption[];onService?:(id:string,action:'service'|'booking')=>void}){
+  const [view,setView]=useState<'latest'|'list'|'detail'>(admin?'list':'latest');
+  const [page,setPage]=useState(0),[list,setList]=useState<studioApi.StudioNewsPage|null>(null),[detail,setDetail]=useState<studioApi.StudioNews|null>(null);
+  const [draft,setDraft]=useState<studioApi.StudioNews|null>(null),[preview,setPreview]=useState(false),[deleting,setDeleting]=useState<string|null>(null);
+  const [busy,setBusy]=useState(false),[writing,setWriting]=useState(false),[uploading,setUploading]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
+  const mounted=useRef(false),generation=useRef(0),writeLock=useRef(false),photoLock=useRef(false);
+  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;generation.current++;};},[]);
+  const token=()=>{const t=studioApi.currentToken();if(!t)throw new Error('Vuelve a iniciar sesión para consultar las novedades.');return t;};
+  const report=(value:unknown)=>setError(value instanceof Error?value.message:'No se pudo completar la operación.');
+  const load=async()=>{
+    const request=++generation.current;setBusy(true);setError('');
+    try{const data=await studioApi.fetchNews(token(),page,!admin&&view==='latest');if(mounted.current&&request===generation.current)setList(data);}
+    catch(e){if(mounted.current&&request===generation.current)report(e);}
+    finally{if(mounted.current&&request===generation.current)setBusy(false);}
+  };
+  useEffect(()=>{if(view!=='detail')void load();},[admin,page,view]);
+  // Refresh when returning to the app; no polling or background downloads.
+  useEffect(()=>{const refresh=()=>{if(document.visibilityState==='visible'&&view!=='detail'&&!writeLock.current&&!photoLock.current)void load();};document.addEventListener('visibilitychange',refresh);return()=>document.removeEventListener('visibilitychange',refresh);},[admin,page,view]);
+  const open=async(id:string,editing=false)=>{
+    if(writeLock.current||photoLock.current)return;const request=++generation.current;setBusy(true);setError('');setMessage('');
+    try{const {item}=await studioApi.fetchNewsDetail(token(),id);if(!mounted.current||request!==generation.current)return;if(editing){setDraft(item);setPreview(false);setDeleting(null);}else{setDetail(item);setView('detail');}}
+    catch(e){if(mounted.current&&request===generation.current)report(e);}
+    finally{if(mounted.current&&request===generation.current)setBusy(false);}
+  };
+  const change=(patch:Partial<studioApi.StudioNews>)=>setDraft(current=>current?{...current,...patch}:current);
+  const save=async(event:React.FormEvent)=>{
+    event.preventDefault();if(!draft||writeLock.current||photoLock.current)return;writeLock.current=true;setWriting(true);setError('');setMessage('');
+    try{const {item}=await studioApi.saveNews(token(),draft);if(!mounted.current)return;setDraft(item);setMessage(item.status==='draft'?'Borrador guardado. Solo se ve en intranet.':newsState(item)==='Programada'?'Publicación programada. Aparecerá en la fecha indicada.':newsState(item)==='Finalizada'?'Guardada fuera de las fechas de publicación. No se muestra en el portal.':'Publicación guardada. Ya está disponible en el portal.');await load();}
+    catch(e){if(mounted.current)report(e);}
+    finally{writeLock.current=false;if(mounted.current)setWriting(false);}
+  };
+  const remove=async(item:studioApi.StudioNewsSummary)=>{
+    if(writeLock.current||photoLock.current)return;writeLock.current=true;setWriting(true);setError('');setMessage('');
+    try{await studioApi.deleteNews(token(),item.id,item.updated_at);if(!mounted.current)return;if(draft?.id===item.id)setDraft(null);setDeleting(null);setMessage('Publicación eliminada.');if(page>0&&list?.items.length===1)setPage(p=>p-1);else await load();}
+    catch(e){if(mounted.current)report(e);}
+    finally{writeLock.current=false;if(mounted.current)setWriting(false);}
+  };
+  const upload=async(file:File|undefined)=>{
+    if(!file||!draft||writeLock.current||photoLock.current)return;photoLock.current=true;setUploading(true);setError('');setMessage('');const id=draft.id;
+    try{const prepared=await prepareCatalogImage(file,true);const result=await studioApi.uploadServiceImage(token(),prepared.dataUrl);await verifyCatalogPhotoUrl(result.url);if(mounted.current){setDraft(current=>current?.id===id?{...current,image_url:result.url}:current);setMessage('Foto preparada. Guarda la publicación para conservarla.');}}
+    catch(e){if(mounted.current)report(e);}
+    finally{photoLock.current=false;if(mounted.current)setUploading(false);}
+  };
+  const article=(item:studioApi.StudioNews,forPreview=false)=><article className="lst-news-article">
+    {item.image_url&&<img src={item.image_url} alt={item.title} loading="lazy" decoding="async" className="lst-news-cover"/>}
+    <div className="lst-news-inner"><small>{NEWS_CATEGORIES[item.category]}</small><h3>{item.title||'Título de la novedad'}</h3><p className="lst-news-lead">{item.summary}</p><p className="lst-news-body">{item.body||'Aquí aparecerá el texto completo.'}</p>
+      {item.action!=='none'&&item.service_id&&(forPreview||serviceOptions.some(s=>s.id===item.service_id))&&<button type="button" disabled={forPreview} className="lst-news-primary" onClick={()=>{if(!forPreview)onService?.(item.service_id!,item.action as 'service'|'booking');}}>{item.action==='booking'?'Elegir y reservar':'Ver servicio'} <ArrowRight size={15}/></button>}
+    </div></article>;
+  return <section className="lst-news" aria-label="El universo L’Studio">
+    <style>{`
+      .lst-news{color:#302822;min-width:0;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
+      .lst-news *{box-sizing:border-box}.lst-news h2,.lst-news h3,.lst-news p{margin:0}.lst-news h2{font-family:Georgia,serif;font-size:23px;font-weight:400;color:#E4C687;line-height:1.3}.lst-news h3{font-family:Georgia,serif;font-size:21px;font-weight:400;color:#876431;line-height:1.3}
+      .lst-news-header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px}.lst-news-sub{color:#D6CBB8;font-size:12px;margin-top:4px!important}
+      .lst-news button{min-height:44px;padding:9px 13px;border:1px solid #BBA47F;border-radius:9px;cursor:pointer;font-size:12px;background:#F4EFE7;color:#302822;display:inline-flex;align-items:center;justify-content:center;gap:6px}.lst-news button:disabled{opacity:.55;cursor:default}.lst-news button:focus-visible,.lst-news input:focus-visible,.lst-news textarea:focus-visible,.lst-news select:focus-visible{outline:2px solid #C49A58;outline-offset:3px}
+      .lst-news button.lst-news-primary{background:#C49A58;color:#29231F;border-color:#C49A58;font-weight:600}.lst-news-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px}.lst-news-card,.lst-news-article,.lst-news-editor{background:#F4EFE7;border:1px solid #C8B79A;border-radius:13px;overflow:hidden}.lst-news-inner{padding:16px;display:flex;flex-direction:column;gap:10px}.lst-news small{font-size:11px;color:#705B40;letter-spacing:.03em}.lst-news-cover{width:100%;height:180px;object-fit:cover;display:block}.lst-news-article .lst-news-cover{height:auto;max-height:420px;object-fit:contain;background:#E8DFD1}.lst-news-lead{font-size:13px;color:#665448}.lst-news-body{font-size:13px;line-height:1.8;white-space:pre-wrap;color:#302822}.lst-news-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.lst-news-pagination{display:flex;gap:12px;align-items:center;justify-content:center;margin-top:14px;color:#E8D9C4}
+      .lst-news-editor{padding:18px;margin-bottom:18px;display:grid;gap:12px}.lst-news-editor label{display:grid;gap:5px;font-size:12px;color:#493B2E}.lst-news-editor input,.lst-news-editor select,.lst-news-editor textarea{font:inherit;font-size:13px;width:100%;min-height:44px;background:#FFFDF9;color:#302822;border:1px solid #BBA47F;border-radius:7px;padding:10px;resize:vertical;color-scheme:light}.lst-news-editor fieldset{border:0;padding:0;margin:0;min-width:0;display:grid;gap:12px}.lst-news-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,180px),1fr));gap:12px}.lst-news-status{color:#DFD1BB;margin:8px 0!important}.lst-news-error{background:#F8DFD7;color:#782D20;padding:12px;border-radius:9px;margin-bottom:12px!important}.lst-news-message{background:#E4EAD9;color:#35452B;padding:12px;border-radius:9px;margin-bottom:12px!important}.lst-news-empty{background:#F4EFE7;border-radius:12px;padding:18px;color:#5C4A37}.lst-news-preview{border-top:1px solid #C8B79A;padding-top:12px;margin-top:8px}
+    `}</style>
+    <header className="lst-news-header"><div><h2>El universo L’Studio</h2><p className="lst-news-sub">Novedades, inspiración y cuidados para tu cabello.</p></div><div className="lst-news-actions">
+      {admin&&<button type="button" disabled={writing||uploading||busy} className="lst-news-primary" onClick={()=>{setDraft(emptyNews());setPreview(false);setError('');setMessage('');setDeleting(null);}}>+ Nueva publicación</button>}
+      {!admin&&view==='latest'&&<button type="button" onClick={()=>{setPage(0);setView('list');}}>Ver todas</button>}
+      {!admin&&view!=='latest'&&<button type="button" onClick={()=>{setDetail(null);setView(view==='detail'?'list':'latest');setPage(0);setError('');}}> <ArrowLeft size={15}/> {view==='detail'?'Novedades':'Volver'}</button>}
+      {view!=='detail'&&<button type="button" disabled={busy||writing||uploading} onClick={()=>void load()} aria-label="Actualizar novedades">Actualizar</button>}
+    </div></header>
+    {error&&<p role="alert" className="lst-news-error">{error}</p>}{message&&<p role="status" className="lst-news-message">{message}</p>}
+    {admin&&draft&&<form onSubmit={save} className="lst-news-editor"><h3>{draft.updated_at?'Editar publicación':'Nueva publicación'}</h3><fieldset disabled={writing||uploading}>
+      <label>Título<input required maxLength={100} value={draft.title} onChange={e=>change({title:e.target.value})} placeholder="Una novedad para tu cabello"/></label>
+      <label>Resumen de la tarjeta<textarea required maxLength={240} rows={2} value={draft.summary} onChange={e=>change({summary:e.target.value})}/></label>
+      <label>Texto completo<textarea required maxLength={6000} rows={7} value={draft.body} onChange={e=>change({body:e.target.value})}/></label>
+      <div className="lst-news-fields"><label>Sección<select value={draft.category} onChange={e=>change({category:e.target.value as studioApi.StudioNews['category']})}>{Object.entries(NEWS_CATEGORIES).map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></label><label>Visibilidad<select value={draft.status} onChange={e=>change({status:e.target.value as 'draft'|'published'})}><option value="draft">Borrador · solo intranet</option><option value="published">Publicar en el portal</option></select></label></div>
+      <div className="lst-news-fields"><label>Publicar desde (opcional)<input type="date" value={draft.start_date||''} onChange={e=>change({start_date:e.target.value||null})}/></label><label>Mostrar hasta (opcional)<input type="date" min={draft.start_date||undefined} value={draft.end_date||''} onChange={e=>change({end_date:e.target.value||null})}/></label></div>
+      <small>Las fechas siguen el horario de Elche. La fecha final está incluida. Sin fechas, una publicación activa se muestra hasta que la retires.</small>
+      <label>Foto pública de la novedad (opcional)<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{const file=e.target.files?.[0];e.target.value='';void upload(file);}}/></label>
+      {draft.image_url&&<div className="lst-news-actions"><img src={draft.image_url} alt="Foto elegida" style={{width:120,height:85,objectFit:'cover',borderRadius:8}}/><button type="button" onClick={()=>change({image_url:''})}>Quitar de la publicación</button></div>}
+      <div className="lst-news-fields"><label>Botón al final<select value={draft.action} onChange={e=>change({action:e.target.value as studioApi.StudioNews['action'],service_id:e.target.value==='none'?null:draft.service_id})}><option value="none">Sin botón</option><option value="service">Ver servicio</option><option value="booking">Elegir y reservar</option></select></label>
+      {draft.action!=='none'&&<label>Servicio del botón<select required value={draft.service_id||''} onChange={e=>change({service_id:e.target.value||null})}><option value="">Selecciona un servicio</option>{draft.service_id&&!serviceOptions.some(s=>s.id===draft.service_id)&&<option value={draft.service_id}>Servicio no disponible · elige otro</option>}{serviceOptions.map(s=><option key={s.id} value={s.id}>{s.label}</option>)}</select></label>}</div>
+      {draft.action==='booking'&&<small>El botón abre la ficha del servicio para elegir sus opciones y complementos antes de reservar.</small>}
+      <div className="lst-news-actions"><button type="submit" className="lst-news-primary">{writing?'Guardando…':draft.status==='draft'?'Guardar borrador':'Guardar publicación'}</button><button type="button" onClick={()=>setPreview(v=>!v)}>{preview?'Ocultar vista previa':'Vista previa'}</button><button type="button" onClick={()=>{setDraft(null);setPreview(false);setMessage('');}}>Cerrar editor</button></div>
+    </fieldset>{uploading&&<p role="status">Optimizando y preparando la foto…</p>}{preview&&<div className="lst-news-preview"><small>Vista previa del portal</small>{article(draft,true)}</div>}</form>}
+    {busy&&<p role="status" className="lst-news-status">Cargando novedades…</p>}
+    {view==='detail'&&detail?article(detail):<>
+      {!busy&&list?.items.length===0&&<p className="lst-news-empty">{admin?'Todavía no hay publicaciones. Crea la primera novedad del estudio.':'Pronto compartiremos novedades y cuidados para ti.'}</p>}
+      <div className="lst-news-grid">{list?.items.map(item=><article key={item.id} className="lst-news-card">
+        {item.image_url&&<img src={item.image_url} alt={item.title} loading="lazy" decoding="async" className="lst-news-cover"/>}<div className="lst-news-inner"><small>{NEWS_CATEGORIES[item.category]}{admin?' · '+newsState(item):''}</small><h3>{item.title}</h3><p className="lst-news-lead">{item.summary}</p><small>{newsDate(item.start_date||item.created_at)}</small>
+        <div className="lst-news-actions"><button type="button" disabled={busy||writing||uploading} onClick={()=>void open(item.id,admin)}>{admin?'Editar':'Leer novedad'} <ArrowRight size={14}/></button>{admin&&<button type="button" disabled={writing||uploading||busy} onClick={()=>setDeleting(deleting===item.id?null:item.id)}>Eliminar</button>}</div>
+        {admin&&deleting===item.id&&<div role="group" aria-label="Confirmar eliminación"><p>¿Eliminar esta publicación del estudio?</p><div className="lst-news-actions"><button type="button" disabled={writing||uploading} onClick={()=>void remove(item)}>Sí, eliminar</button><button type="button" disabled={writing} onClick={()=>setDeleting(null)}>Conservar</button></div></div>}
+      </div></article>)}</div>
+      {view==='list'&&list&&list.total>8&&<div className="lst-news-pagination"><button type="button" disabled={page===0||busy||writing||uploading} onClick={()=>setPage(p=>p-1)}>Anterior</button><span>{page+1} / {Math.max(1,Math.ceil(list.total/8))}</span><button type="button" disabled={(page+1)*8>=list.total||busy||writing||uploading} onClick={()=>setPage(p=>p+1)}>Siguiente</button></div>}
+    </>}
+  </section>;
+}
+
 const LazyAdminPanelView = React.lazy(() => import('./AdminPanelView'));
 // Optimized copies of bundled photos only; custom uploads remain unchanged.
 const FAST_PHOTO_URLS: Readonly<Record<string,string>> = {
@@ -1172,7 +1269,7 @@ function StudioApp() {
   const [adminLoginBusy, setAdminLoginBusy] = useState(false);
   const [adminLoginMessage, setAdminLoginMessage] = useState('');
   const [adminError, setAdminError] = useState<boolean>(false);
-  const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'demands' | 'holidays'>('agenda');
+  const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'demands' | 'holidays' | 'news'>('agenda');
   const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule' | 'reservas' | 'anticipada' | 'avisos' | 'backup' | 'precios' | 'empleados'>('marca');
   const [adminCatalogStatus, setAdminCatalogStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [adminCatalogSearch, setAdminCatalogSearch] = useState('');
@@ -4662,6 +4759,12 @@ function StudioApp() {
             </div>
             <button type="button" onClick={() => { setViewServiceDetail(null); setPortalSearch(''); setPortalSearchExpanded({}); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ width: '100%', minHeight: '52px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>{t('bookNext')} <ArrowRight size={17} strokeWidth={2} aria-hidden="true" /></button>
           </section>
+          <StudioNews serviceOptions={catalog.flatMap(cat=>cat.subservices.filter(sub=>sub.active!==false).map(sub=>({id:sub.id,label:bookingName(sub)})))} onService={(id,action)=>{
+            const cat=catalog.find(category=>category.subservices.some(sub=>sub.id===id&&sub.active!==false));
+            const sub=cat?.subservices.find(service=>service.id===id&&service.active!==false);
+            if(!cat||!sub)return;
+            setViewServiceDetail({cat,sub});setCurrentScreen('serviceDetail');window.scrollTo({top:0,behavior:'smooth'});
+          }}/>
           <div style={{ textAlign: 'center', padding: '10px 0', color: '#FFF8EE', fontSize: '13px', lineHeight: 1.7 }}>
             <strong style={{ display: 'block', fontWeight: 500 }}>¿Prefieres hablar con Ana?</strong>
             <p style={{ margin: '3px 0 8px', color: '#D6CBB8', fontSize: 12 }}>Resolvemos tus dudas antes de reservar.</p>
