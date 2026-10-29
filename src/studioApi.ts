@@ -318,3 +318,10 @@ export const registerPortalClient=async(details:Record<string,string>,requestId:
   if(currentToken()!==result.token)throw new Error('La ficha se ha creado, pero no se pudo guardar la sesión. Permite el almacenamiento del navegador y reintenta.');
   return result;
 };
+
+// Public recovery never sends a saved session or stores the recovery secret.
+export const requestPinReset = (email:string) => call<{ok:true;message:string}>('pin-reset-request',{body:{email}});
+export const completePinReset = async(token:string,pin:string):Promise<void> => {
+  const result=await call<{ok:true}>('pin-reset-complete',{body:{token,pin}});
+  if(result.ok!==true)throw new Error('El servidor no confirmó el cambio de PIN.');
+};
