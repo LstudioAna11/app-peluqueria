@@ -75,7 +75,7 @@ const rawCall = async <T = Record<string, unknown>>(
 // Share only identical requests that are currently in flight; never cache appointment results.
 const pendingReads = new Map<string, Promise<unknown>>();
 let readGeneration = 0;
-const readActions = new Set(['sync', 'public-catalog', 'public-professionals', 'branding', 'official-holidays', 'email-status', 'email-config', 'whatsapp-status', 'whatsapp-config', 'push-status', 'push-public-key']);
+const readActions = new Set(['client-photos', 'sync', 'public-catalog', 'public-professionals', 'branding', 'official-holidays', 'email-status', 'email-config', 'whatsapp-status', 'whatsapp-config', 'push-status', 'push-public-key']);
 const call = async <T = Record<string, unknown>>(
   action: string,
   opts: {method?: string; token?: string; body?: unknown} = {},
@@ -302,7 +302,7 @@ export const fetchOfficialHolidays = (token: string, year: number) => call<{days
 export const refreshOfficialHolidays = (token: string, year: number) => call<any>('official-holidays-refresh',{token,body:{year}});
 export const setOfficialHolidayOpen = (token: string, day: string, open: boolean) => call<any>('official-holidays-open',{method:'PUT',token,body:{day,open}});
 
-export interface ClientDeleteInfo {deleted:boolean; appointments:number;visits:number;feedback:number;}
+export interface ClientDeleteInfo {photoCleanupPending?:boolean;deleted:boolean; appointments:number;visits:number;feedback:number;}
 export const inspectClientDelete=(token:string,id:string)=>call<ClientDeleteInfo>('client-delete',{token,body:{id,inspect:true}});
 export const deleteClientPermanently=(token:string,id:string)=>call<ClientDeleteInfo>('client-delete',{method:'DELETE',token,body:{id}});
 
@@ -327,4 +327,10 @@ export const completePinReset = async(token:string,pin:string):Promise<void> => 
 };
 
 // Explicit administrator-only download; never part of background synchronization.
-export const fetchStudioBackup = <T>(token:string) => call<T>('backup',{token});
+export const fetchStudioBackup = <T>(token:string,includePhotos=false) => call<T>('backup',{token,body:{includePhotos}});
+
+export interface ClientPhoto {id:string;client_id:string;object_path:string;taken_on:string;label:'antes'|'despues'|'seguimiento';note:string;mime:string;byte_size:number;created_at:string;url:string;expiresAt:string;}
+export interface ClientPhotoPage {photos:ClientPhoto[];total:number;page:number;pageSize:number;}
+export const fetchClientPhotos=(token:string,clientId?:string,page=0)=>call<ClientPhotoPage>('client-photos',{token,body:{clientId,page}});
+export const uploadClientPhoto=(token:string,details:{clientId:string;takenOn:string;label:string;note:string;dataUrl:string;requestId:string})=>call<{ok:true;id:string}>('client-photo',{token,body:details});
+export const deleteClientPhoto=(token:string,clientId:string,id:string)=>call<{ok:true;cleanupPending:boolean}>('client-photo',{method:'DELETE',token,body:{clientId,id}});
