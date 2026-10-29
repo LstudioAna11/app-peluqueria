@@ -267,6 +267,167 @@ interface Props {
   setNewHolidayType: React.Dispatch<React.SetStateAction<"festivo" | "vacaciones">>;
 }
 
+// Data export is explicit and read-only. No session credentials are written to the file.
+type StudioBackupSnapshot={snapshotVersion:1;exportedAt:string;tables:Record<string,Record<string,unknown>[]>;counts:Record<string,number>;missingOptional:string[];excluded:string[]};
+type StudioBackupSource={snapshot:StudioBackupSnapshot;source:string;media:{bucket:string;path:string;url:string}[]};
+type StudioBackupFile={format:'lstudio-business-backup';version:2;createdAt:string;source:string;snapshot:StudioBackupSnapshot;local:Record<string,string>;media:{included:boolean;expected:number;files:{bucket:string;path:string;mime:string;size:number;sha256:string;base64:string}[]}};
+type BackupEnvelope={format:'lstudio-encrypted-backup';version:2;cipher:'AES-GCM';kdf:'PBKDF2-SHA256';iterations:600000;compression:'gzip'|'none';salt:string;iv:string;data:string};
+const BACKUP_MAX_BYTES=128*1024*1024;
+const BACKUP_MAX_MEDIA=64*1024*1024;
+const BACKUP_CORE_TABLES=['studio_clients','studio_passports','studio_visits','studio_appointments','studio_catalog','studio_settings','studio_closures','studio_time_blocks','studio_feedback'];
+const backupBuffer=(bytes:Uint8Array):ArrayBuffer=>new Uint8Array(bytes).buffer;
+function backupBase64(bytes:Uint8Array):string {
+  let binary='';for(let offset=0;offset<bytes.length;offset+=16384)binary+=String.fromCharCode(...bytes.subarray(offset,offset+16384));return btoa(binary);
+}
+function backupUnbase64(text:string):Uint8Array {
+  if(typeof text!=='string'||text.length>BACKUP_MAX_BYTES*1.5||!/^[A-Za-z0-9+/]*={0,2}$/.test(text)||text.length%4!==0)throw new Error('El archivo no tiene un formato válido.');
+  return Uint8Array.from(atob(text),char=>char.charCodeAt(0));
+}
+const backupSha256=async(bytes:Uint8Array)=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',backupBuffer(bytes)))).map(value=>value.toString(16).padStart(2,'0')).join('');
+async function backupReadStream(stream:ReadableStream<Uint8Array>,limit:number):Promise<Uint8Array> {
+  const reader=stream.getReader();const chunks:Uint8Array[]=[];let size=0;
+  try{while(true){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>limit)throw new Error('La copia supera el tamaño admitido por este navegador.');chunks.push(value);}}
+  catch(error){try{await reader.cancel();}catch{}throw error;}finally{reader.releaseLock();}
+  const output=new Uint8Array(size);let offset=0;for(const chunk of chunks){output.set(chunk,offset);offset+=chunk.byteLength;}return output;
+}
+async function backupKey(password:string,salt:Uint8Array):Promise<CryptoKey>{
+  const material=await crypto.subtle.importKey('raw',new TextEncoder().encode(password),{name:'PBKDF2'},false,['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',hash:'SHA-256',salt:backupBuffer(salt),iterations:600000},material,{name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+}
+function backupHeader(envelope:Omit<BackupEnvelope,'data'>):Uint8Array {
+  return new TextEncoder().encode(JSON.stringify({format:envelope.format,version:envelope.version,cipher:envelope.cipher,kdf:envelope.kdf,iterations:envelope.iterations,compression:envelope.compression,salt:envelope.salt,iv:envelope.iv}));
+}
+async function encryptStudioBackup(document:StudioBackupFile,password:string):Promise<Blob>{
+  if(password.length<12)throw new Error('La contraseña de la copia debe tener al menos 12 caracteres.');
+  let bytes=new TextEncoder().encode(JSON.stringify(document));
+  if(bytes.byteLength>BACKUP_MAX_BYTES)throw new Error('La copia supera 128 MB. Prueba una copia de datos sin fotos.');
+  let compression:'gzip'|'none'='none';
+  if(typeof CompressionStream!=='undefined'){
+    bytes=new Uint8Array(await backupReadStream(new Blob([backupBuffer(bytes)]).stream().pipeThrough(new CompressionStream('gzip')),BACKUP_MAX_BYTES));compression='gzip';
+  }
+  const salt=crypto.getRandomValues(new Uint8Array(16)),iv=crypto.getRandomValues(new Uint8Array(12));
+  const header:Omit<BackupEnvelope,'data'>={format:'lstudio-encrypted-backup',version:2,cipher:'AES-GCM',kdf:'PBKDF2-SHA256',iterations:600000,compression,salt:backupBase64(salt),iv:backupBase64(iv)};
+  const encrypted=await crypto.subtle.encrypt({name:'AES-GCM',iv:backupBuffer(iv),additionalData:backupBuffer(backupHeader(header)),tagLength:128},await backupKey(password,salt),backupBuffer(bytes));
+  return new Blob([JSON.stringify({...header,data:backupBase64(new Uint8Array(encrypted))})],{type:'application/octet-stream'});
+}
+async function openStudioBackup(file:File,password:string):Promise<StudioBackupFile>{
+  if(file.size>180*1024*1024)throw new Error('El archivo supera el tamaño admitido.');
+  let envelope:BackupEnvelope;
+  try{envelope=JSON.parse(await file.text());}catch{throw new Error('El archivo no es una copia cifrada válida.');}
+  if(envelope?.format!=='lstudio-encrypted-backup'||envelope.version!==2||envelope.cipher!=='AES-GCM'||envelope.kdf!=='PBKDF2-SHA256'||envelope.iterations!==600000||!['gzip','none'].includes(envelope.compression))throw new Error('Esta versión o formato de copia no es compatible.');
+  const salt=backupUnbase64(envelope.salt),iv=backupUnbase64(envelope.iv),encrypted=backupUnbase64(envelope.data);
+  if(salt.byteLength!==16||iv.byteLength!==12)throw new Error('La copia tiene datos de protección no válidos.');
+  let bytes:Uint8Array;
+  try{bytes=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:backupBuffer(iv),additionalData:backupBuffer(backupHeader(envelope)),tagLength:128},await backupKey(password,salt),backupBuffer(encrypted)));}
+  catch{throw new Error('La contraseña no es correcta o el archivo está dañado.');}
+  if(envelope.compression==='gzip'){
+    if(typeof DecompressionStream==='undefined')throw new Error('Abre esta copia con un navegador actualizado que admita descompresión.');
+    bytes=await backupReadStream(new Blob([backupBuffer(bytes)]).stream().pipeThrough(new DecompressionStream('gzip')),BACKUP_MAX_BYTES);
+  }
+  if(bytes.byteLength>BACKUP_MAX_BYTES)throw new Error('La copia supera el tamaño admitido.');
+  let document:StudioBackupFile;try{document=JSON.parse(new TextDecoder().decode(bytes));}catch{throw new Error('La copia no contiene datos válidos.');}
+  await validateStudioBackup(document);return document;
+}
+async function validateStudioBackup(document:StudioBackupFile):Promise<void>{
+  if(document?.format!=='lstudio-business-backup'||document.version!==2||document.snapshot?.snapshotVersion!==1||!Number.isFinite(Date.parse(document.createdAt)))throw new Error('El contenido de la copia no es válido.');
+  for(const table of BACKUP_CORE_TABLES)if(!Array.isArray(document.snapshot.tables?.[table]))throw new Error('Faltan datos esenciales: '+table);
+  for(const [table,rows]of Object.entries(document.snapshot.tables))if(!Array.isArray(rows)||document.snapshot.counts?.[table]!==rows.length)throw new Error('El recuento de datos no coincide: '+table);
+  if(!document.media||typeof document.media.included!=='boolean'||!Array.isArray(document.media.files)||!Number.isInteger(document.media.expected)||document.media.expected<0)throw new Error('El índice de fotos no es válido.');
+  if(!document.media.included&&document.media.files.length)throw new Error('El índice de fotos no coincide con el tipo de copia.');
+  if(document.media.included&&document.media.files.length!==document.media.expected)throw new Error('Faltan fotos en esta copia.');
+  let total=0;const paths=new Set<string>();
+  for(const asset of document.media.files){
+    if(asset.bucket!=='service-images'||typeof asset.path!=='string'||!asset.path||asset.path.split('/').some(part=>part==='..'||part==='.')||paths.has(asset.path))throw new Error('El índice de fotos tiene rutas no válidas.');paths.add(asset.path);
+    const bytes=backupUnbase64(asset.base64);total+=bytes.byteLength;
+    if(total>BACKUP_MAX_MEDIA||bytes.byteLength!==asset.size||await backupSha256(bytes)!==asset.sha256)throw new Error('Una foto está incompleta o dañada.');
+  }
+}
+async function collectStudioBackup(source:StudioBackupSource,withPhotos:boolean,signal:AbortSignal,progress:(message:string)=>void):Promise<StudioBackupFile>{
+  if(source.snapshot?.snapshotVersion!==1||!Array.isArray(source.media))throw new Error('El servidor no devolvió una copia válida.');
+  const origin=new URL(source.source);if(origin.protocol!=='https:')throw new Error('Origen de copia no válido.');
+  const files:StudioBackupFile['media']['files']=[];let total=0;
+  if(withPhotos)for(let index=0;index<source.media.length;index++){
+    if(signal.aborted)throw new DOMException('Copia cancelada','AbortError');
+    const asset=source.media[index],url=new URL(asset.url);
+    if(asset.bucket!=='service-images'||url.origin!==origin.origin||!url.pathname.startsWith('/storage/v1/object/public/service-images/'))throw new Error('La dirección de una foto no pertenece al almacenamiento del Studio.');
+    progress(`Descargando foto ${index+1} de ${source.media.length}…`);
+    const timeout=new AbortController();const abort=()=>timeout.abort();signal.addEventListener('abort',abort,{once:true});const timer=setTimeout(abort,30000);
+    try{
+      const response=await fetch(url.href,{signal:timeout.signal,cache:'no-store',credentials:'omit'});
+      if(!response.ok||!response.body)throw new Error('No se pudo copiar '+asset.path+'. No se descargará una copia parcial con fotos.');
+      const bytes=await backupReadStream(response.body,8*1024*1024);total+=bytes.byteLength;
+      if(total>BACKUP_MAX_MEDIA)throw new Error('Las fotos superan 64 MB. Descarga los datos sin fotos y conserva aparte los archivos de Storage.');
+      files.push({bucket:asset.bucket,path:asset.path,mime:response.headers.get('content-type')||'application/octet-stream',size:bytes.byteLength,sha256:await backupSha256(bytes),base64:backupBase64(bytes)});
+    }finally{clearTimeout(timer);signal.removeEventListener('abort',abort);}
+  }
+  const local:Record<string,string>={};
+  for(const key of ['lst_lost_demands_detailed','lst_booking_attempts','lst_traffic_events','lst_app_visits','lst_studio_clientes_ids','lst_studio_appointments','lst_feedback_list','lst_holidays_list','lst_time_blocks','lst_clientas_respaldo_20261028']){try{const value=localStorage.getItem(key);if(value!==null)local[key]=value;}catch{}}
+  const document:StudioBackupFile={format:'lstudio-business-backup',version:2,createdAt:new Date().toISOString(),source:origin.origin,snapshot:source.snapshot,local,media:{included:withPhotos,expected:source.media.length,files}};
+  await validateStudioBackup(document);return document;
+}
+function StudioBackupPanel({hasUnsavedChanges}:{hasUnsavedChanges:boolean}){
+  const [password,setPassword]=useState(''),[repeat,setRepeat]=useState(''),[withPhotos,setWithPhotos]=useState(false);
+  const [file,setFile]=useState<File|null>(null),[openPassword,setOpenPassword]=useState('');
+  const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
+  const [summary,setSummary]=useState<{date:string;clients:number;appointments:number;passports:number;visits:number;photos:number;included:boolean;source:string}|null>(null);
+  const lock=useRef(false),controller=useRef<AbortController|null>(null);
+  useEffect(()=>()=>controller.current?.abort(),[]);
+  const showSummary=(data:StudioBackupFile)=>setSummary({date:data.createdAt,clients:data.snapshot.tables.studio_clients.length,appointments:data.snapshot.tables.studio_appointments.length,passports:data.snapshot.tables.studio_passports.length,visits:data.snapshot.tables.studio_visits.length,photos:data.media.files.length,included:data.media.included,source:data.source});
+  const download=async()=>{
+    if(lock.current)return;setError('');setSummary(null);
+    if(hasUnsavedChanges){setError('Guarda los cambios del catálogo y la configuración antes de crear la copia.');return;}
+    if(password.length<12||password!==repeat){setError('Escribe dos veces la misma contraseña de al menos 12 caracteres.');return;}
+    const token=studioApi.currentToken();if(!token||studioApi.storedRole()!=='admin'){setError('Accede a la intranet para crear la copia.');return;}
+    lock.current=true;setBusy(true);const control=new AbortController();controller.current=control;
+    try{
+      setMessage('Leyendo los datos guardados del Studio…');
+      const source=await studioApi.fetchStudioBackup<StudioBackupSource>(token);
+      if(control.signal.aborted)throw new DOMException('Copia cancelada','AbortError');
+      const data=await collectStudioBackup(source,withPhotos,control.signal,setMessage);
+      setMessage('Protegiendo la copia con tu contraseña…');const blob=await encryptStudioBackup(data,password);
+      if(control.signal.aborted)throw new DOMException('Copia cancelada','AbortError');
+      const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`LStudio_${withPhotos?'datos-y-fotos':'datos'}_${new Date().toISOString().replace(/[:.]/g,'-')}.lstbackup`;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
+      showSummary(data);setPassword('');setRepeat('');setMessage('Descarga preparada. Comprueba que el archivo se haya guardado y utiliza «Verificar una copia» para abrirlo.');
+    }catch(value){setMessage('');setError(value instanceof Error?value.message:'No se pudo crear la copia.');}
+    finally{lock.current=false;setBusy(false);controller.current=null;}
+  };
+  const verify=async()=>{
+    if(lock.current||!file)return;lock.current=true;setBusy(true);setError('');setSummary(null);setMessage('Abriendo y verificando la copia…');
+    try{const data=await openStudioBackup(file,openPassword);showSummary(data);setOpenPassword('');setMessage('Copia abierta y comprobada. No se ha modificado ningún dato de la app.');}
+    catch(value){setMessage('');setError(value instanceof Error?value.message:'No se pudo verificar la copia.');}
+    finally{lock.current=false;setBusy(false);}
+  };
+  const input:React.CSSProperties={display:'block',width:'100%',boxSizing:'border-box',padding:10,marginTop:6,background:'#29231F',color:'#FFF8EE',border:'1px solid #8C6A4B',borderRadius:6};
+  const button:React.CSSProperties={padding:12,minHeight:44,background:'#C99E52',color:'#29231F',border:0,borderRadius:6,fontWeight:600,cursor:busy?'wait':'pointer'};
+  return <section style={{display:'flex',flexDirection:'column',gap:12}} aria-busy={busy}>
+    <p style={{fontSize:13,lineHeight:1.6,margin:0}}>Descarga las clientas, citas, pasaportes, historial guardado, catálogo, promociones, ajustes y bloqueos desde el servidor. La copia se protege con una contraseña que eliges tú.</p>
+    <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6,margin:0}}>También conserva una sección de datos locales de este dispositivo, incluidas las fórmulas que todavía no se sincronizan.</p>
+    <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6,margin:0}}>Guarda esa contraseña por separado: si la pierdes, no podremos abrir la copia. No uses tu PIN de acceso.</p>
+    {hasUnsavedChanges&&<p style={{fontSize:13,color:'#E4C687'}}>Tienes cambios sin guardar. Guarda el catálogo y la configuración antes de exportar.</p>}
+    <label style={{fontSize:13}}>Contraseña de la copia<input type="password" autoComplete="new-password" minLength={12} disabled={busy} value={password} onChange={event=>setPassword(event.target.value)} style={input}/></label>
+    <label style={{fontSize:13}}>Repite la contraseña<input type="password" autoComplete="new-password" disabled={busy} value={repeat} onChange={event=>setRepeat(event.target.value)} style={input}/></label>
+    <label style={{fontSize:13,lineHeight:1.6}}><input type="checkbox" disabled={busy} checked={withPhotos} onChange={event=>setWithPhotos(event.target.checked)}/> Incluir fotos y logos subidos a la app</label>
+    <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6,margin:0}}>Las fotos aumentan el tamaño y consumen transferencia al descargarlas. Las imágenes externas o incluidas en el código de la app se conservan como enlaces.</p>
+    <button type="button" disabled={busy||hasUnsavedChanges} onClick={()=>void download()} style={button}>{busy?'Un momento…':withPhotos?'Descargar datos y fotos':'Descargar copia de datos'}</button>
+    <details style={{borderTop:'1px solid #655039',paddingTop:12}}>
+      <summary style={{cursor:'pointer',fontSize:14,color:'#E4C687'}}>Verificar una copia</summary>
+      <p style={{fontSize:12,lineHeight:1.6}}>Abre el archivo descargado y comprueba sus registros y las fotos incluidas. Esta opción no restaura ni sobrescribe datos.</p>
+      <input type="file" accept=".lstbackup" disabled={busy} onChange={event=>{setFile(event.target.files?.[0]||null);setSummary(null);setError('');}} style={{maxWidth:'100%',fontSize:12}}/>
+      <label style={{display:'block',fontSize:13,marginTop:12}}>Contraseña de esa copia<input type="password" autoComplete="off" disabled={busy} value={openPassword} onChange={event=>setOpenPassword(event.target.value)} style={input}/></label>
+      <button type="button" disabled={busy||!file||!openPassword} onClick={()=>void verify()} style={{...button,marginTop:12}}>Abrir y verificar</button>
+    </details>
+    {message&&<p role="status" aria-live="polite" style={{fontSize:13,color:'#E4C687',lineHeight:1.6,margin:0}}>{message}</p>}
+    {error&&<p role="alert" style={{fontSize:13,color:'#FFB4A9',lineHeight:1.6,margin:0}}>{error}</p>}
+    {summary&&<div style={{background:'#29231F',border:'1px solid #655039',borderRadius:8,padding:12,fontSize:13,lineHeight:1.8}}>
+      <strong>{new Date(summary.date).toLocaleString('es-ES',{timeZone:'Europe/Madrid'})}</strong><br/>
+      {summary.clients} clientas · {summary.appointments} citas · {summary.passports} pasaportes · {summary.visits} visitas<br/>
+      {summary.included?`${summary.photos} fotos incluidas`:'Copia de datos sin archivos de fotos'}<br/>
+      <span style={{fontSize:11,color:'#D6CBB8',overflowWrap:'anywhere'}}>Origen: {summary.source}</span>
+    </div>}
+    <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6,margin:0}}>No incluye sesiones, claves de envío ni el código de la aplicación. La restauración automática todavía no está incluida.</p>
+  </section>;
+}
+
 export default function AdminPanelView(props: Props) {
  const { onLogout, onPromotionsSaved, bookingName, appointmentServiceNames, compactVisitText, AGENDA_SWATCHES, DEFAULT_BRAND_LOGO, DEFAULT_HEADER_LOGO, FINISH_COPY, TRANSLATIONS, activeEmployees, adminCatalogSearch, adminCatalogStatus, adminTab, agendaExpanded, agendaLayoutRef, agendaSwatch, agendaViewMode, anioMini, appointmentSearch, appointmentSearchQuery, appointmentSearchResults, appointments, attemptClock, bizConfig, bookingAttempts, busquedaCliente, cambiarMesMiniCal, catalog, catalogEditorId, catalogEditorTab, catalogHasChanges, catalogSavedMsg, catalogTranslationLang, clientStatusBusy, clientStatusError, clientStatusFilter, clientsPageCount, configHasPendingChanges, configSubTab, crmPeriod, crmView, dashboardEnd, dashboardStart, demandEnd, demandFilter, demandStart, detractorReplies, diaSeleccionadoObj, diasRejillaMini, editAdminDniCapilar, editAdminFormulas, editAdminPrescripcionCasa, editAdminProxima, editAdminUltimaVisita, editingClientId, effectiveClientsPage, emailConfigStatus, employeePhotoBusy, enableDoubleBooking, enableOutOfHours, expandedCategories, expandedClientId, fallbackHeaderLogo, fechaSeleccionada, feedbackList, feedbackRatingFilter, feedbackStatusBusy, filteredClientRows, formatDateKey, googleCalendarConnected, googleCalendarSyncActive, handleAddCategorySubmit, handleAddSubserviceSubmit, handleAddVariant, handleCategoryPhotoDelete, handleCategoryPhotoSelect, handleCellClick, handleClientStatus, handleDeleteClient, handleDeleteCategory, handleDeleteSubservice, handleDeleteVariant, handleFeedbackResolution, handleGuardarEdicionAdminCliente, handleGuardarNuevoCliente, handleMoveCategory, handleSaveCatalogMaster, handleSaveSection, handleServicePhotoDelete, handleServicePhotoSelect, handleToggleVariants, handleUpdateCategoryCode, handleUpdateCategoryTitle, headerLogoSrc, holidaysList, hoursList, isActiveAppointment, isAddingCategory, isAddingClient, isAddingSub, isDateBlockedByHoliday, isFinish, isTimeSlotOccupied, listaClientes, logoUploadBusy, logoUploadMessage, lostDemandsList, mailboxError, mailboxFilter, mesMini, newCatCode, newCatTitle, newHolidayEnd, newHolidayReason, newHolidayStart, newHolidayType, newSubAchieved, newSubAlertBadge, newSubAlertText, newSubDesc, newSubDur, newSubIncludes, newSubName, newSubPrice, newSubPriceType, newVariantDuration, newVariantName, newVariantPrice, nombresMeses, normalizeCatalogSearch, normalizeEmail, novoApellidos, novoDiagnostico, novoEmail, novoNacimiento, novoNombre, novoPin, novoTelefono, openPassportEditor, opportunityPage, opportunitySearch, opportunityStatus, photoUploadBusy, renderAgendaLinks, renderDurationAgenda, returnToAppointmentId, saveErrorMsg, saveState, savedMsg, semanaActual, setAdminCatalogSearch, setAdminCatalogStatus, setAdminTab, setAgendaExpanded, setAgendaSidePanel, setAgendaSwatch, setAgendaViewMode, setAppointmentSearch, setBookingAttempts, setBusquedaCliente, setCatalog, setCatalogEditorId, setCatalogEditorTab, setCatalogTranslationLang, setClientDetailsDraft, setClientStatusFilter, setClientsPage, setConfigSubTab, setCrmPeriod, setCrmView, setCurrentScreen, setDashboardEnd, setDashboardStart, setDemandEnd, setDemandFilter, setDemandStart, setDetractorReplies, setEditAdminDniCapilar, setEditAdminFormulas, setEditAdminPrescripcionCasa, setEditAdminProxima, setEditAdminUltimaVisita, setEditingClientId, setEnableDoubleBooking, setEnableOutOfHours, setExpandedCategories, setExpandedClientId, setFechaSeleccionada, setFeedbackRatingFilter, setGoogleCalendarConnected, setGoogleCalendarSyncActive, setHolidaysList, setIsAddingCategory, setIsAddingClient, setIsAddingSub, setLogoUploadMessage, setLostDemandsList, setMailboxFilter, setMesNavegacion, setModalServices, setNewCatCode, setNewCatTitle, setNewHolidayEnd, setNewHolidayReason, setNewHolidayStart, setNewHolidayType, setNewSubAchieved, setNewSubAlertBadge, setNewSubAlertText, setNewSubDesc, setNewSubDur, setNewSubIncludes, setNewSubName, setNewSubPrice, setNewSubPriceType, setNewVariantDuration, setNewVariantName, setNewVariantPrice, setNovoApellidos, setNovoDiagnostico, setNovoEmail, setNovoNacimiento, setNovoNombre, setNovoPin, setNovoTelefono, setOpportunityPage, setOpportunitySearch, setOpportunityStatus, setPendingPanelFilter, setPreviewServiceId, setPreviewVariantId, setReturnToAppointmentId, setSelectedServicesToBook, setTempConfig, setViewApptModal, t, tempConfig, timeBlocks, trafficEvents, translationLanguagePicker, updateEmployee, updateServiceTranslation, updateSubserviceField, uploadEmployeePhoto, uploadStudioLogo, visibleClientRows, whatsappConfigStatus, workingRanges } = props;
  const [summaryNow, setSummaryNow] = useState(() => new Date());
@@ -771,11 +932,7 @@ export default function AdminPanelView(props: Props) {
 {configSubTab === 'reservas' && <div className="studio-reservas-compact" style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Reservas y cancelaciones</h3><label>Antelación mínima (días)<input type="number" min="0" value={tempConfig.minAdvanceDays} onChange={(e) => setTempConfig(previous => ({ ...previous, minAdvanceDays: Number(e.target.value) }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Hasta cuántos meses se puede reservar<input type="number" min="0" value={tempConfig.maxBookingMonths} onChange={(e) => setTempConfig(previous => ({ ...previous, maxBookingMonths: Number(e.target.value) }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Intervalo entre horas disponibles (minutos)<input type="number" min="0" value={tempConfig.slotIntervalMinutes} onChange={(e) => setTempConfig(previous => ({ ...previous, slotIntervalMinutes: Number(e.target.value) }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Antelación para solicitar cambios o cancelaciones (horas)<input type="number" readOnly value={24} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><p>El portal aplica un mínimo de 24 horas para cambiar o cancelar. Con menos antelación, la clienta debe contactar con el Studio. Ana puede gestionar la cita desde la intranet. El intervalo organiza las horas disponibles; no añade tiempo de preparación entre citas.</p></div>}{configSubTab === 'reservas' && <div className="studio-reservas-compact" style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Reserva anticipada y sábados</h3><label><input type="checkbox" checked={tempConfig.advancePaymentEnabled} onChange={(e) => setTempConfig(previous => ({ ...previous, advancePaymentEnabled: e.target.checked }))} /> Solicitar reserva anticipada</label><label>Importe de la reserva anticipada (€)<input type="text"  value={tempConfig.depositAmount} onChange={(e) => setTempConfig(previous => ({ ...previous, depositAmount: e.target.value }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Solicitarla cuando la cita supere estos minutos<input type="number" min="0" value={tempConfig.advancePaymentThresholdMinutes} onChange={(e) => setTempConfig(previous => ({ ...previous, advancePaymentThresholdMinutes: Number(e.target.value) }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Número de Bizum<input type="tel"  value={tempConfig.bizumNumber} onChange={(e) => setTempConfig(previous => ({ ...previous, bizumNumber: e.target.value }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><p>Las citas de los sábados requieren siempre la confirmación de Ana.</p><p>Los sábados se aprueban antes de solicitar el pago. El plazo de pago se acuerda con la clienta; no hay caducidad automática.</p></div>}{configSubTab === 'avisos' && <div className="studio-avisos-compact" style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Avisos y recordatorios</h3><label>WhatsApp del Studio<input type="tel"  value={tempConfig.studioWhatsapp} onChange={(e) => setTempConfig(previous => ({ ...previous, studioWhatsapp: e.target.value }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Correo del Studio<input type="email"  value={tempConfig.studioEmail} onChange={(e) => setTempConfig(previous => ({ ...previous, studioEmail: e.target.value }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Recordatorio antes de la cita (horas)<input type="number" min="0" value={tempConfig.reminderHours} onChange={(e) => setTempConfig(previous => ({ ...previous, reminderHours: Number(e.target.value) }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><p style={{ color: '#E4C687' }}>Envío automático pendiente de configurar.</p><p>Estos datos guardan tus preferencias. No envían mensajes ni programan recordatorios hasta conectar un servicio de envío. El registro de entregas y errores estará disponible con esa conexión.</p></div>}{configSubTab === 'backup' && <section className="studio-security-pin"><h3>PIN de administración</h3>                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold' }}>PIN Maestro de Administración (4 dígitos):</label>
                     <input type="password" maxLength={4} value={tempConfig.masterPin} onChange={(e) => setTempConfig(previous => ({ ...previous, masterPin: e.target.value }))} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px', textAlign: 'center', letterSpacing: '4px' }} />
-                  </div></section>}{configSubTab === 'backup' && <div className="studio-security-compact" style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Copia de seguridad</h3><p>Descarga el catálogo, las citas, la configuración y los registros locales. Guarda el archivo en un lugar privado: puede contener datos personales y PIN.</p><button type="button" onClick={() => {
-const data: Record<string, string | null> = {}; for (let index = 0; index < localStorage.length; index++) { const key = localStorage.key(index); if (key?.startsWith('lst_')) data[key] = localStorage.getItem(key); }
-data.lst_master_catalog = JSON.stringify(catalog); data.lst_business_config = JSON.stringify(bizConfig);
-const blob = new Blob([JSON.stringify({ format: 'lstudio-backup', version: 1, createdAt: new Date().toISOString(), data }, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `LStudio_copia_${new Date().toISOString().slice(0,10)}.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-}} style={{ padding: '12px', cursor: 'pointer' }}>Descargar copia de seguridad</button><p>La restauración no está incluida: la descarga no cambia ni elimina tus datos.</p>
+                  </div></section>}{configSubTab === 'backup' && <div className="studio-security-compact" style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Copia de seguridad</h3><StudioBackupPanel hasUnsavedChanges={catalogHasChanges||configHasPendingChanges}/>
 <div style={{ marginTop: '14px', padding: '14px', background: '#29231F', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px' }}>
   <strong style={{ color: '#E4C687', fontSize: '13px' }}>Emails automáticos de citas</strong>
   {emailConfigStatus === null && <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: '8px 0 0' }}>No se pudo consultar el estado de la configuración de email en este momento.</p>}
