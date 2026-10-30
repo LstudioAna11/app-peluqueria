@@ -75,7 +75,7 @@ const rawCall = async <T = Record<string, unknown>>(
 // Share only identical requests that are currently in flight; never cache appointment results.
 const pendingReads = new Map<string, Promise<unknown>>();
 let readGeneration = 0;
-const readActions = new Set(['news-list','news-detail','client-photos', 'sync', 'public-catalog', 'public-professionals', 'branding', 'official-holidays', 'email-status', 'email-config', 'whatsapp-status', 'whatsapp-config', 'push-status', 'push-public-key']);
+const readActions = new Set(['voucher-list','voucher-quote','news-list','news-detail','client-photos', 'sync', 'public-catalog', 'public-professionals', 'branding', 'official-holidays', 'email-status', 'email-config', 'whatsapp-status', 'whatsapp-config', 'push-status', 'push-public-key']);
 const call = async <T = Record<string, unknown>>(
   action: string,
   opts: {method?: string; token?: string; body?: unknown} = {},
@@ -130,6 +130,8 @@ export const deleteTimeBlock = (token: string, id: string) =>
   call<{ ok: true }>("timeblock", { method: "DELETE", token, body: { id } });
 
 export interface ServerAppointmentInput {
+  voucherId?: string | null;
+  voucherExpectedCents?: number;
   promotionId?: string;
   promotionOriginId?: string;
   id?: string;
@@ -155,7 +157,7 @@ export interface ServerAppointmentInput {
 }
 
 export const createAppointmentOnServer = (token: string, appointment: ServerAppointmentInput) =>
-  call<{ ok: true; id: string }>("appointment", { token, body: appointment });
+  call<{ ok: true; id: string;voucherSummary?:VoucherQuote|null;depositStatus?:string;depositAmount?:number|null;depositReference?:string|null }>("appointment", { token, body: appointment });
 
 export interface ServerAppointmentPatch {
   id: string;
@@ -347,3 +349,18 @@ export const fetchNews=(token:string,page=0,latest=false)=>call<StudioNewsPage>(
 export const fetchNewsDetail=(token:string,id:string)=>call<{item:StudioNews}>('news-detail',{token,body:{id}});
 export const saveNews=(token:string,item:StudioNews)=>call<{ok:true;item:StudioNews}>('news-save',{token,body:{id:item.id,expectedUpdatedAt:item.updated_at||null,item}});
 export const deleteNews=(token:string,id:string,expectedUpdatedAt:string)=>call<{ok:true}>('news-delete',{token,body:{id,expectedUpdatedAt}});
+
+export interface VoucherProduct {id:string;title:string;kind:'gift'|'sessions';price_cents:number;unit_cents:number;sessions:number;valid_months:number;service_ids:string[];enabled:boolean;}
+export interface VoucherQuote {voucherId:string;title:string;kind:'gift'|'sessions';code:string;amountCents:number;sessions:number;totalCents:number|null;dueCents:number|null;coveredServiceId:string|null;coveredServiceName:string|null;expiresOn:string;state?:'held'|'consumed'|'released';}
+export interface VoucherUse {voucher_id:string;appointment_id:string|null;amount_cents:number;sessions:number;state:'held'|'consumed'|'released';booked_for:string;service_text:string;updated_at:string;}
+export interface StudioVoucher {id:string;product_id:string;client_id:string;buyer_id:string;title:string;kind:'gift'|'sessions';price_cents:number;unit_cents:number;sessions:number;valid_months:number;code:string;payment_reference:string;status:'pending'|'active'|'cancelled';payment_reported_at:string|null;activated_at:string|null;expires_on:string|null;dedication:string;created_at:string;used_cents:number;held_cents:number;used_sessions:number;held_sessions:number;history:VoucherUse[];}
+export interface VoucherPage {products:VoucherProduct[];vouchers:StudioVoucher[];total:number;page:number;bizumNumber:string;}
+export const fetchVouchers=(token:string,clientId?:string,page=0,usableOnly=false)=>call<VoucherPage>('voucher-list',{token,body:{clientId,page,usableOnly}});
+export const orderVoucher=(token:string,body:{id:string;productId:string;clientId?:string;dedication:string})=>call<{ok:true;id:string}>('voucher-order',{token,body});
+export const activateVoucher=(token:string,id:string,amountCents:number)=>call<{ok:true}>('voucher-activate',{token,body:{id,amountCents}});
+export const reportVoucherPayment=(token:string,id:string)=>call<{ok:true}>('voucher-report',{token,body:{id}});
+export const cancelVoucherOrder=(token:string,id:string)=>call<{ok:true}>('voucher-cancel',{token,body:{id}});
+export const claimGiftVoucher=(token:string,code:string,clientId?:string)=>call<{ok:true}>('voucher-claim',{token,body:{code,clientId}});
+export const configureVoucher=(token:string,productId:string,serviceIds:string[],enabled=true)=>call<{ok:true}>('voucher-config',{token,body:{productId,serviceIds,enabled}});
+export const quoteVoucher=(token:string,body:{voucherId:string;services:unknown;dateKey:string;clientId?:string;promotionId?:string|null})=>call<{quote:VoucherQuote}>('voucher-quote',{token,body});
+export const attachAppointmentVoucher=(token:string,appointmentId:string,voucherId:string|null)=>call<{ok:true}>('voucher-attach',{token,body:{appointmentId,voucherId}});
