@@ -271,6 +271,83 @@ export function StudioNews({admin=false,serviceOptions=[],onService}:{admin?:boo
   </section>;
 }
 
+type VoucherServiceOption={id:string;label:string;price:number|null;variantPrices:number[]};
+type VoucherClientOption={id:string;label:string};
+const voucherMoney=(cents:number)=>new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(cents/100);
+const voucherDate=(date:string|null)=>date?date.slice(0,10).split('-').reverse().join('/'):'Al activar';
+const voucherToday=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+const voucherAvailable=(v:studioApi.StudioVoucher)=>v.kind==='gift'?v.price_cents-v.used_cents-v.held_cents:v.sessions-v.used_sessions-v.held_sessions;
+const voucherUsable=(v:studioApi.StudioVoucher)=>v.status==='active'&&!!v.expires_on&&v.expires_on>=voucherToday()&&voucherAvailable(v)>0;
+const voucherToken=()=>{const token=studioApi.currentToken();if(!token)throw new Error('Vuelve a iniciar sesión para consultar tus bonos.');return token;};
+function VoucherStyles(){return <style>{`
+ .lst-bonos{min-width:0;color:#F4EADB;font-size:13px;line-height:1.65;overflow-wrap:anywhere}.lst-bonos *{box-sizing:border-box}.lst-bonos h2,.lst-bonos h3,.lst-bonos p{margin:0}.lst-bonos h2,.lst-bonos h3{font-family:Georgia,serif;font-weight:400}.lst-bonos h2{color:#DDC49B;font-size:23px}.lst-bonos h3{color:#DDC49B;font-size:19px}.lst-bonos small{font-size:11px;color:#C3B29A}.lst-bonos button{min-height:44px;padding:9px 13px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid #92764F;background:transparent;color:#E6CC9F;border-radius:7px;font-size:12px;cursor:pointer}.lst-bonos button:disabled{opacity:.5;cursor:default}.lst-bonos button:focus-visible,.lst-bonos input:focus-visible,.lst-bonos select:focus-visible{outline:2px solid #E4C687;outline-offset:3px}.lst-bonos .vb-primary{background:#C49A58;color:#29231F;border-color:#C49A58}.lst-bonos .vb-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.lst-bonos .vb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px}.lst-bonos .vb-card{position:relative;background:linear-gradient(135deg,#403329,#241E19);border:1px solid #917447;border-radius:12px;padding:21px;display:flex;flex-direction:column;gap:11px;box-shadow:0 8px 22px rgba(0,0,0,.10)}.lst-bonos .vb-gift{background:linear-gradient(130deg,#F0E4CF,#D9C19B);color:#3C3024;border-color:#C1A16D}.lst-bonos .vb-gift h3{color:#69502E}.lst-bonos .vb-gift small{color:#68543D}.lst-bonos .vb-gift button{border-color:#8B704D;color:#4B3820}.lst-bonos .vb-amount{font-family:Georgia,serif;font-size:32px;line-height:1.2;letter-spacing:.02em}.lst-bonos .vb-kicker{font-size:9px;letter-spacing:.16em;text-transform:uppercase}.lst-bonos .vb-meta{font-size:11px;border-top:1px solid rgba(160,133,90,.35);padding-top:10px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.lst-bonos .vb-code{font-family:monospace;font-size:11px;letter-spacing:.025em;overflow-wrap:anywhere;user-select:all}.lst-bonos .vb-dots{display:flex;gap:9px;margin:5px 0}.lst-bonos .vb-dot{width:15px;height:15px;border-radius:50%;border:1px solid #C3A16A}.lst-bonos .vb-dot.used{background:#C3A16A}.lst-bonos .vb-dot.held{background:linear-gradient(90deg,#C3A16A 50%,transparent 50%)}.lst-bonos .vb-panel{background:#30271F;border:1px solid #746044;border-radius:10px;padding:17px;display:grid;gap:12px;margin:14px 0}.lst-bonos input,.lst-bonos select,.lst-bonos textarea{min-height:44px;width:100%;padding:10px;background:#F5EFE5;color:#352B23;border:1px solid #A58B64;border-radius:7px;font:inherit;font-size:13px}.lst-bonos label{display:grid;gap:5px;font-size:12px}.lst-bonos input[type=checkbox]{width:18px;min-height:18px;margin:0;accent-color:#C49A58}.lst-bonos .vb-check{display:flex;align-items:center;gap:9px}.lst-bonos .vb-note{color:#D1C0A7;font-size:12px}.lst-bonos .vb-error{background:#F5DED6;color:#792C20;padding:12px;border-radius:7px;margin:12px 0}.lst-bonos .vb-message{background:#E5EAD9;color:#35452A;padding:12px;border-radius:7px;margin:12px 0}.lst-bonos summary{cursor:pointer;min-height:44px;padding:10px 0;font-size:12px}.lst-bonos details p{font-size:11px;margin:8px 0}.lst-bonos .vb-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:15px}.lst-bonos .vb-pager{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:14px}.lst-bonos .vb-entry{padding:19px;width:100%;justify-content:space-between;text-align:left;border-radius:11px;background:linear-gradient(120deg,#362B23,#251F1A)}.lst-bonos .vb-entry strong{font-family:Georgia,serif;font-size:19px;font-weight:400;display:block}.lst-bonos .vb-entry small{display:block;margin-top:4px;font-size:11px}.lst-bonos .vb-wallet-heading{margin:22px 0 12px}.lst-bonos .vb-eligible{max-height:230px;overflow-y:auto;display:grid;gap:8px}.lst-bonos .vb-current{font-size:12px;background:#EAE0CF;color:#483821;padding:13px;border-radius:8px;margin:9px 0}.lst-bonos .vb-disabled{opacity:.7}
+ `}</style>;}
+export function VoucherHub(props:{services:VoucherServiceOption[];onReserve?:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void}){
+ const [opened,setOpened]=useState(false);
+ return <section className="lst-bonos"><VoucherStyles/><button type="button" className="vb-entry" aria-expanded={opened} onClick={()=>setOpened(v=>!v)}><span><strong>Bonos & tarjetas regalo</strong><small>Regala cuidado. Reserva tu próximo ritual.</small></span><Sparkles size={21}/></button>{opened&&<VoucherPanel services={props.services} onReserve={props.onReserve}/>}</section>;
+}
+export function VoucherPanel({admin=false,services=[],clients=[],onReserve}:{admin?:boolean;services:VoucherServiceOption[];clients?:VoucherClientOption[];onReserve?:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void}){
+ const [data,setData]=useState<studioApi.VoucherPage|null>(null),[page,setPage]=useState(0),[client,setClient]=useState('');
+ const [busy,setBusy]=useState(false),[writing,setWriting]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
+ const [dedication,setDedication]=useState(''),[code,setCode]=useState(''),[confirming,setConfirming]=useState<string|null>(null),[amount,setAmount]=useState(''),[checked,setChecked]=useState(false);
+ const [config,setConfig]=useState<Record<string,string[]>>({}),[reserveId,setReserveId]=useState<string|null>(null),[pendingCancel,setPendingCancel]=useState<string|null>(null);
+ const lock=useRef(false),mounted=useRef(false),gen=useRef(0),attempt=useRef<{key:string;id:string}|null>(null);
+ useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;gen.current++;};},[]);
+ const load=async()=>{const request=++gen.current;setBusy(true);setError('');try{const result=await studioApi.fetchVouchers(voucherToken(),admin?client||undefined:undefined,page);if(mounted.current&&request===gen.current){setData(result);setConfig(Object.fromEntries(result.products.map(p=>[p.id,p.service_ids])));}}catch(e){if(mounted.current&&request===gen.current)setError(e instanceof Error?e.message:'No se pudieron cargar los bonos.');}finally{if(mounted.current&&request===gen.current)setBusy(false);}};
+ useEffect(()=>{void load();},[page,client,admin]);
+ const act=async(action:()=>Promise<unknown>,success:string)=>{if(lock.current)return;lock.current=true;setWriting(true);setError('');setMessage('');try{await action();if(mounted.current){setMessage(success);setConfirming(null);setChecked(false);setPendingCancel(null);await load();}}catch(e){if(mounted.current)setError(e instanceof Error?e.message:'No se pudo completar la operación.');}finally{lock.current=false;if(mounted.current)setWriting(false);}};
+ const order=(product:studioApi.VoucherProduct)=>{
+  if(admin&&!client){setError('Selecciona primero la clienta a la que asignarás el bono.');return;}
+  const key=JSON.stringify([client,product.id,dedication]);if(attempt.current?.key!==key)attempt.current={key,id:crypto.randomUUID()};const id=attempt.current.id;
+  void act(async()=>{await studioApi.orderVoucher(voucherToken(),{id,productId:product.id,clientId:admin?client:undefined,dedication});attempt.current=null;},admin?'Solicitud creada. Confirma el ingreso cuando hayas comprobado el cobro.':'Solicitud guardada. Abajo encontrarás el Bizum y la referencia del pago.');
+ };
+ const copy=async(text:string)=>{try{await navigator.clipboard.writeText(text);setMessage('Código copiado.');}catch{setMessage('Selecciona el código mostrado para copiarlo manualmente.');}};
+ return <section className="lst-bonos"><VoucherStyles/><header className="vb-header"><div><h2>{admin?'Bonos y tarjetas regalo':'Tu colección de cuidados'}</h2><small>{admin?'Compras, cobros y sesiones del estudio.':'Un detalle para regalar. Un cuidado para volver.'}</small></div><button type="button" disabled={busy||writing} onClick={()=>void load()}>Actualizar</button></header>
+  {error&&<p role="alert" className="vb-error">{error}</p>}{message&&<p role="status" className="vb-message">{message}</p>}{busy&&<p role="status">Consultando tus bonos…</p>}
+  {admin&&<label>Clienta · filtrar y emitir<select disabled={writing} value={client} onChange={e=>{setClient(e.target.value);setPage(0);}}><option value="">Todas · elige una para emitir</option>{clients.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</select></label>}
+  {admin&&data&&<details className="vb-panel"><summary>Servicios incluidos en los bonos 5×4</summary><p className="vb-note">Marca todos los tratamientos intensivos de 38 € y el corte caballero de 20 €. Las variantes de otro precio no están cubiertas. Los complementos se pagan aparte.</p>{data.products.filter(p=>p.kind==='sessions').map(p=><div key={p.id}><h3>{p.title}</h3><div className="vb-eligible">{services.filter(s=>s.price===p.unit_cents/100||s.variantPrices.includes(p.unit_cents/100)).map(s=><label className="vb-check" key={s.id}><input type="checkbox" disabled={writing} checked={(config[p.id]||[]).includes(s.id)} onChange={e=>setConfig(current=>({...current,[p.id]:e.target.checked?[...(current[p.id]||[]),s.id]:(current[p.id]||[]).filter(id=>id!==s.id)}))}/>{s.label}</label>)}</div><button type="button" disabled={writing} onClick={()=>void act(()=>studioApi.configureVoucher(voucherToken(),p.id,config[p.id]||[]),'Servicios incluidos guardados.')}>Guardar servicios de este bono</button></div>)}</details>}
+  <details className="vb-panel"><summary>{admin?'Emitir un bono para la clienta seleccionada':'Comprar un bono o regalar L’Studio'}</summary><label>Dedicatoria opcional · tarjetas regalo<textarea maxLength={300} rows={2} value={dedication} disabled={writing} onChange={e=>setDedication(e.target.value)}/></label><div className="vb-grid">{data?.products.map(p=>{const ready=p.enabled&&(p.kind==='gift'||p.service_ids.length>0)&&!!data.bizumNumber;return <article key={p.id} className={'vb-card '+(p.kind==='gift'?'vb-gift':'')}><small className="vb-kicker">L’STUDIO ANA · {p.kind==='gift'?'EL ARTE DE REGALAR':'TU RITUAL 5×4'}</small><h3>{p.title}</h3><strong className="vb-amount">{voucherMoney(p.price_cents)}</strong><p>{p.kind==='gift'?'Saldo para disfrutar en tus servicios.':`5 sesiones por el precio de 4 · ahorras ${voucherMoney(p.unit_cents)}.`}</p><small>Validez: {p.valid_months===12?'1 año':'6 meses'} desde la confirmación del pago.</small>{p.kind==='sessions'&&<small>Una sesión por cita. Complementos aparte. No acumulable a otra promoción.</small>}<button type="button" disabled={!ready||writing||busy||(admin&&!client)} onClick={()=>order(p)}>{ready?'Solicitar compra por Bizum':'Disponible próximamente'}</button></article>;})}</div><small>El pago se comprueba manualmente en el estudio. Solicitar o avisar del Bizum no activa el bono.</small></details>
+  {!admin&&<details className="vb-panel"><summary>Me han regalado una tarjeta</summary><label>Código completo<input autoComplete="off" maxLength={35} placeholder="LS-…" value={code} disabled={writing} onChange={e=>setCode(e.target.value.toUpperCase())}/></label><small>Una tarjeta activa y sin uso puede asignarse una vez a quien la recibe. Al añadirla, quedará en tu perfil.</small><button type="button" disabled={writing||!code.trim()} onClick={()=>void act(async()=>{await studioApi.claimGiftVoucher(voucherToken(),code);setCode('');},'Tarjeta regalo añadida a tu perfil.')}>Añadir mi tarjeta regalo</button></details>}
+  <h3 className="vb-wallet-heading">{admin?'Bonos registrados':'Mis bonos'}</h3>
+  {!busy&&data?.vouchers.length===0&&<p className="vb-note">{admin?'No hay bonos para esta selección.':'Aquí aparecerán tus tarjetas regalo y tus bonos de tratamientos.'}</p>}
+  <div className="vb-grid">{data?.vouchers.map(v=>{const expired=!!v.expires_on&&v.expires_on<voucherToday(),available=voucherAvailable(v);const label=v.status==='pending'?'Pendiente de comprobar Bizum':v.status==='cancelled'?'Solicitud cancelada':expired?'Caducado':available<=0?'Sin disponibilidad':v.kind==='gift'?'Tarjeta activa':'Bono activo';return <article key={v.id} className={'vb-card '+(v.kind==='gift'?'vb-gift':'')}>
+   <small className="vb-kicker">L’STUDIO ANA · {label}</small><h3>{v.title}</h3>{admin&&<small>{clients.find(c=>c.id===v.client_id)?.label||'Ficha registrada'}</small>}
+   {v.kind==='gift'?<><strong className="vb-amount">{voucherMoney(Math.max(0,v.price_cents-v.used_cents))}</strong><small>Saldo sin consumir{v.held_cents>0?` · ${voucherMoney(v.held_cents)} apartado para citas`:''}</small></>:<><div className="vb-dots" aria-label={`${v.used_sessions} usadas, ${v.held_sessions} reservadas, ${Math.max(0,available)} disponibles`}>{Array.from({length:v.sessions},(_,i)=><span key={i} aria-hidden="true" className={'vb-dot '+(i<v.used_sessions?'used':i<v.used_sessions+v.held_sessions?'held':'')}/>)}</div><p>{v.used_sessions} de {v.sessions} realizadas · {v.held_sessions} reservadas</p><small>{Math.max(0,available)} sesiones disponibles para reservar.</small></>}
+   {v.dedication&&<p style={{fontStyle:'italic',fontSize:12}}>{v.dedication}</p>}
+   {v.status==='pending'&&<><p>Importe: <strong>{voucherMoney(v.price_cents)}</strong></p><p>Bizum: <strong>{data.bizumNumber}</strong></p><p>Concepto: <strong>{v.payment_reference}</strong></p>{v.payment_reported_at&&<small>Pago comunicado · pendiente de comprobar el ingreso.</small>}
+     <div className="vb-actions">{!admin&&<button type="button" disabled={writing} onClick={()=>void act(()=>studioApi.reportVoucherPayment(voucherToken(),v.id),'Aviso enviado al estudio. El bono se activará cuando se compruebe el ingreso.')}>Ya he hecho el Bizum</button>}{admin&&<button type="button" disabled={writing} onClick={()=>{setConfirming(v.id);setAmount((v.price_cents/100).toFixed(2));setChecked(false);}}>Comprobar y activar</button>}<button type="button" disabled={writing} onClick={()=>setPendingCancel(p=>p===v.id?null:v.id)}>Cancelar solicitud</button></div>
+     {pendingCancel===v.id&&<div><p>Si ya has enviado el Bizum, contacta con el estudio antes de cancelar.</p><button type="button" disabled={writing} onClick={()=>void act(()=>studioApi.cancelVoucherOrder(voucherToken(),v.id),'Solicitud cancelada. No se ha realizado ningún reembolso automático.')}>Confirmar cancelación</button></div>}
+     {admin&&confirming===v.id&&<div><label>Importe recibido en euros<input type="number" min="0" step="0.01" value={amount} disabled={writing} onChange={e=>setAmount(e.target.value)}/></label><label className="vb-check"><input type="checkbox" checked={checked} disabled={writing} onChange={e=>setChecked(e.target.checked)}/>He comprobado el ingreso y su referencia.</label><button type="button" disabled={writing||!checked||Math.round(Number(amount)*100)!==v.price_cents} onClick={()=>void act(()=>studioApi.activateVoucher(voucherToken(),v.id,Math.round(Number(amount)*100)),'Pago confirmado. Bono activado con código y caducidad.')}>Confirmar pago y activar</button></div>}
+   </>}
+   {v.status==='active'&&<><div className="vb-code">{v.code}</div><div className="vb-actions"><button type="button" onClick={()=>void copy(v.code)}>Copiar código</button>{!admin&&voucherUsable(v)&&<button type="button" className="vb-primary" onClick={()=>v.kind==='gift'?onReserve?.(v):setReserveId(reserveId===v.id?null:v.id)}>Reservar con mi bono</button>}</div>
+    {!admin&&reserveId===v.id&&<div className="vb-actions">{services.filter(s=>data.products.find(p=>p.id===v.product_id)?.service_ids.includes(s.id)).map(s=><button type="button" key={s.id} onClick={()=>onReserve?.(v,s.id)}>{s.label}</button>)}</div>}
+    {v.kind==='gift'&&v.client_id===v.buyer_id&&v.used_cents===0&&v.held_cents===0&&<small>Para regalarla, comparte este código en privado. Quien la reciba podrá añadirla a su perfil una sola vez.</small>}
+   </>}
+   <div className="vb-meta"><span>Compra · {voucherMoney(v.price_cents)}</span><span>Caduca · {voucherDate(v.expires_on)}</span></div>
+   {v.history.length>0&&<details><summary>Últimos movimientos</summary>{v.history.map((u,i)=><p key={i}>{voucherDate(u.booked_for)} · {u.state==='held'?'Reservado':u.state==='consumed'?'Realizado':'Liberado'} · {v.kind==='gift'?voucherMoney(u.amount_cents):'1 sesión'}{u.service_text?' · '+u.service_text:''}</p>)}</details>}
+  </article>;})}</div>
+  {data&&data.total>12&&<div className="vb-pager"><button type="button" disabled={page===0||writing||busy} onClick={()=>setPage(p=>p-1)}>Anterior</button><span>{page+1} / {Math.ceil(data.total/12)}</span><button type="button" disabled={(page+1)*12>=data.total||writing||busy} onClick={()=>setPage(p=>p+1)}>Siguiente</button></div>}
+ </section>;
+}
+export function BookingVoucher({selectedId,onChange,services,dateKey,promotionId,clientId,appointmentId,onSaved}:{selectedId:string|null;onChange:(id:string|null)=>void;services:unknown;dateKey:string;promotionId?:string|null;clientId?:string;appointmentId?:string;onSaved?:()=>Promise<unknown>}){
+ const [data,setData]=useState<studioApi.VoucherPage|null>(null),[page,setPage]=useState(0),[quote,setQuote]=useState<studioApi.VoucherQuote|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[writing,setWriting]=useState(false);
+ const live=useRef(false),gen=useRef(0),lock=useRef(false);const signature=JSON.stringify([selectedId,services,dateKey,promotionId,clientId,appointmentId]);
+ useEffect(()=>{live.current=true;return()=>{live.current=false;gen.current++;};},[]);
+ useEffect(()=>{let valid=true;Promise.resolve().then(()=>studioApi.fetchVouchers(voucherToken(),clientId,page,true)).then(result=>{if(valid)setData(result);}).catch(e=>{if(valid)setError(e instanceof Error?e.message:'No se pudieron consultar los bonos.');});return()=>{valid=false;};},[clientId,page,appointmentId]);
+ useEffect(()=>{const request=++gen.current;setQuote(null);setError('');setBusy(false);if(!selectedId||appointmentId)return;setBusy(true);Promise.resolve().then(()=>studioApi.quoteVoucher(voucherToken(),{voucherId:selectedId,clientId,services,dateKey,promotionId})).then(({quote})=>{if(live.current&&request===gen.current)setQuote(quote);}).catch(e=>{if(live.current&&request===gen.current)setError(e instanceof Error?e.message:'No se pudo aplicar el bono.');}).finally(()=>{if(live.current&&request===gen.current)setBusy(false);});},[signature]);
+ const attach=async()=>{if(!appointmentId||lock.current)return;lock.current=true;setWriting(true);setError('');try{await studioApi.attachAppointmentVoucher(voucherToken(),appointmentId,selectedId);await onSaved?.();}catch(e){if(live.current)setError(e instanceof Error?e.message:'No se pudo aplicar el bono.');}finally{lock.current=false;if(live.current)setWriting(false);}};
+ return <section className="lst-bonos"><VoucherStyles/><details className="vb-panel" open={!!selectedId||!!appointmentId}><summary>Usar tarjeta regalo o bono</summary><label>Elige tu bono<select disabled={writing} value={selectedId||''} onChange={e=>onChange(e.target.value||null)}><option value="">Reservar sin bono</option>{selectedId&&!data?.vouchers.some(v=>v.id===selectedId)&&<option value={selectedId}>Bono seleccionado · se comprobará al guardar</option>}{data?.vouchers.map(v=><option key={v.id} value={v.id}>{v.title} · {v.kind==='gift'?voucherMoney(voucherAvailable(v)):voucherAvailable(v)+' sesiones disponibles'}</option>)}</select></label>
+ {data&&data.total>12&&<div className="vb-actions"><button type="button" disabled={page===0} onClick={()=>setPage(p=>p-1)}>Anteriores</button><button type="button" disabled={(page+1)*12>=data.total} onClick={()=>setPage(p=>p+1)}>Más bonos</button></div>}
+ {busy&&<p role="status">Comprobando cobertura…</p>}{error&&<p role="alert" className="vb-error">{error}</p>}{quote&&<div className="vb-current"><strong>{quote.title}</strong><p>{quote.kind==='gift'?'Saldo que se apartará: '+voucherMoney(quote.amountCents):'Incluye 1 sesión de '+quote.coveredServiceName}</p><p>{quote.dueCents===null?'Los complementos se confirman en el estudio.':'Resto por abonar: '+voucherMoney(quote.dueCents)}</p></div>}
+ <small>Se aparta al reservar y se consume al finalizar la cita. Una sesión por cita; los complementos se cobran aparte. La fecha de la cita debe estar dentro de la validez.</small>{appointmentId&&<button type="button" disabled={writing} onClick={()=>void attach()}>{writing?'Guardando…':selectedId?'Aplicar bono a esta cita':'Guardar cita sin bono'}</button>}</details></section>;
+}
+export function voucherServiceOptions(catalog:CatalogCategory[]):VoucherServiceOption[]{return catalog.flatMap(cat=>cat.subservices.filter(sub=>sub.active!==false).map(sub=>({id:sub.id,label:getBookingName(sub,catalog),price:!sub.priceType||sub.priceType==='fijo'?exactPrice(sub.price):null,variantPrices:(sub.variants||[]).map(v=>exactPrice(v.price)).filter((p):p is number=>p!==null)})));}
+function AppointmentVoucherTools({appointment,onSaved}:{appointment:Appointment;onSaved:()=>Promise<unknown>}){
+ const [selected,setSelected]=useState<string|null>(appointment.voucherId||null);
+ useEffect(()=>{setSelected(appointment.voucherId||null);},[appointment.serverId,appointment.voucherId]);
+ return <div>{appointment.voucher&&<p style={{fontSize:12,color:'#DEC49B'}}>Bono · {appointment.voucher.title} · {appointment.voucher.state==='consumed'?'Consumido':appointment.voucher.state==='released'?'Reserva liberada':'Apartado para esta cita'} · {appointment.voucher.kind==='gift'?voucherMoney(appointment.voucher.amountCents):'1 sesión'}</p>}{!appointment.completedAt&&isActiveAppointment(appointment)&&appointment.clientId&&appointment.serverId&&<BookingVoucher selectedId={selected} onChange={setSelected} services={appointment.services||[]} dateKey={appointment.dateKey} clientId={appointment.clientId} appointmentId={appointment.serverId} onSaved={onSaved}/>}</div>;
+}
+
 const LazyAdminPanelView = React.lazy(() => import('./AdminPanelView'));
 // Optimized copies of bundled photos only; custom uploads remain unchanged.
 const FAST_PHOTO_URLS: Readonly<Record<string,string>> = {
@@ -717,6 +794,8 @@ export interface ServiceVariant {
 }
 
 export interface Appointment {
+  voucherId?: string | null;
+  voucher?: studioApi.VoucherQuote;
   promotionOrigin?: { id: string; title: string };
   promotion?: PromotionDiscount;
   clientId?: string | null;
@@ -1290,6 +1369,7 @@ function StudioApp() {
   const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null);
   const [selectedPromotionOrigin, setSelectedPromotionOrigin] = useState<{ id: string; title: string } | null>(null);
   const [selectedPromotionId, setSelectedPromotionId] = useState<string | null>(null);
+  const [selectedVoucherId,setSelectedVoucherId]=useState<string|null>(null);
   const [visualBookingBusy, setVisualBookingBusy] = useState(false);
   const [visualBookingError, setVisualBookingError] = useState('');
   const visualBookingBusyRef = useRef(false);
@@ -1305,7 +1385,7 @@ function StudioApp() {
   const [adminLoginBusy, setAdminLoginBusy] = useState(false);
   const [adminLoginMessage, setAdminLoginMessage] = useState('');
   const [adminError, setAdminError] = useState<boolean>(false);
-  const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'demands' | 'holidays' | 'news'>('agenda');
+  const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'demands' | 'holidays' | 'news' | 'vouchers'>('agenda');
   const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule' | 'reservas' | 'anticipada' | 'avisos' | 'backup' | 'precios' | 'empleados'>('marca');
   const [adminCatalogStatus, setAdminCatalogStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [adminCatalogSearch, setAdminCatalogSearch] = useState('');
@@ -2251,7 +2331,7 @@ function StudioApp() {
       setAppointments(previous => [...previous.filter(item => item.id !== saved.id && item.serverId !== saved.serverId), saved]);
       setRegisteredAppointment(saved);
       setBookingSuccessMsg('Solicitud enviada al Studio · Pendiente de confirmación de Ana.');
-      setSelectedServicesToBook([]); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setIsModalOpen(false); setSaturdayRequestModal(null);
+      setSelectedServicesToBook([]); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setSelectedVoucherId(null); setIsModalOpen(false); setSaturdayRequestModal(null);
       setCurrentScreen('catalogBooking');
     } catch (error) {
       setPendingBookingError(error instanceof Error ? error.message : 'No se ha podido enviar la solicitud. Conservamos tus datos para reintentar.');
@@ -2281,8 +2361,10 @@ function StudioApp() {
       if (matches.length > 1) throw new Error('Hay varias fichas con este email. Revisa la clienta antes de guardar.');
       bookingClientId = matches.length === 1 ? String(matches[0].id) : null;
     }
-    const result = await studioApi.createAppointmentOnServer(token, {
-      id: draft.id, clientId: bookingClientId, promotionId: draft.promotion?.promotionId, promotionOriginId: draft.promotionOrigin?.id,
+    let result:Awaited<ReturnType<typeof studioApi.createAppointmentOnServer>>;
+    try{
+      result = await studioApi.createAppointmentOnServer(token, {
+      id: draft.id, clientId: bookingClientId, voucherId: draft.voucherId, voucherExpectedCents:draft.voucher?.amountCents, promotionId: draft.promotion?.promotionId, promotionOriginId: draft.promotionOrigin?.id,
       dateKey: draft.dateKey, time: draft.time, dayName: draft.dayName,
       durationMinutes: draft.durationMinutes, bookingChannel: draft.bookingChannel || (studioApi.storedRole() === 'admin' ? 'admin' : 'portal'),
       approval: draft.saturdayApproval ? { status: draft.saturdayApproval.status, reason: draft.saturdayApproval.reason, reference: draft.saturdayApproval.reference } : null,
@@ -2292,13 +2374,23 @@ function StudioApp() {
       selectedVariant: draft.selectedVariant, remindersStatus: draft.remindersStatus,
       professionalId: draft.professionalId, professionalName: draft.professionalName,
     });
+    }catch(error){
+      // A duplicate response or a lost connection may still correspond to a committed reservation.
+      try{
+        const check=await studioApi.syncAll<{appointments?:Record<string,any>[]}>(token,['appointments']);
+        const row=check.appointments?.find(item=>String(item.source_legacy_id||'')===draft.id);
+        if(row){const saved=mapServerAppointment(row);if(saved.dateKey===draft.dateKey&&saved.time===draft.time&&saved.email.trim().toLowerCase()===draft.email.trim().toLowerCase()&&(saved.voucherId||null)===(draft.voucherId||null))return saved;}
+      }catch{/* Retain the original reference when persistence remains uncertain. */}
+      throw error;
+    }
     if (!result.ok || !result.id) throw new Error('El servidor no ha confirmado el guardado. Reintenta sin cerrar esta ventana.');
     try {
       const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token, ['appointments']);
       const row = after.appointments?.find(item => item.id === result.id);
       if (row) return mapServerAppointment(row);
     } catch { /* The successful POST already confirms persistence. */ }
-    return { ...draft, serverId: result.id };
+    return { ...draft, serverId: result.id, voucher:result.voucherSummary||draft.voucher,
+      advancePayment:result.depositStatus===undefined?draft.advancePayment:['pending','confirmed','received','paid'].includes(result.depositStatus)?{amount:Number(result.depositAmount)||0,reference:result.depositReference||'',status:result.depositStatus==='pending'?'pending':'confirmed'}:undefined };
   };
   const savePendingAdvanceAppointment = async () => {
     if (!advancePaymentModal || pendingBookingBusyRef.current) return;
@@ -2308,7 +2400,7 @@ function StudioApp() {
       setAppointments(previous => [...previous.filter(item => item.id !== saved.id && item.serverId !== saved.serverId), saved]);
       setRegisteredAppointment(saved);
       setBookingSuccessMsg(saved.saturdayApproval?.status === 'pending' ? 'Solicitud enviada al Studio · Pendiente de confirmación de Ana.' : 'Solicitud enviada al Studio · Pendiente de comprobar el anticipo.');
-      setSelectedServicesToBook([]); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setIsModalOpen(false); setCurrentScreen('catalogBooking'); setAdvancePaymentModal(null);
+      setSelectedServicesToBook([]); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setSelectedVoucherId(null); setIsModalOpen(false); setCurrentScreen('catalogBooking'); setAdvancePaymentModal(null);
     } catch (error) {
       setPendingBookingError(error instanceof Error ? error.message : 'No se ha podido enviar la solicitud. Conservamos tus datos para reintentar.');
     } finally { pendingBookingBusyRef.current = false; setPendingBookingBusy(false); }
@@ -2908,6 +3000,8 @@ function StudioApp() {
     const appointment: Appointment = {
       id: row.source_legacy_id || row.id,
       serverId: row.id,
+      voucherId: row.voucher_id||null,
+      voucher: row.voucher_summary||undefined,
       clientId: row.client_id ?? null,
       dateKey: iso.slice(0, 10),
       dayName: snap.dayName || '',
@@ -3603,7 +3697,7 @@ function StudioApp() {
   const visualBookingSignature = () => JSON.stringify({
     client: currentClientRecord?.serverId || currentClientRecord?.email || '',
     date: formatDateKey(bookingDate), time: selectedVisualTime, professional: selectedProfessionalId,
-    promotionId: selectedPromotionId, promotionOriginId: selectedPromotionOrigin?.id,
+    voucherId:selectedVoucherId, promotionId: selectedPromotionId, promotionOriginId: selectedPromotionOrigin?.id,
     services: selectedServicesToBook.map(item => ({ id: item.sub.id, variant: item.variant?.id || null }))
   });
   const handleConfirmarCitaVisual = async () => {
@@ -3680,6 +3774,16 @@ function StudioApp() {
       services: selectedServicesToBook.map(item => ({ ...item, categoryId: catalog.find(category => category.subservices.some(sub => sub.id === item.sub.id))?.id || '', categoryName: catalog.find(category => category.subservices.some(sub => sub.id === item.sub.id))?.title || '' })),
       remindersStatus: { email48h: true, whatsapp48h: true, whatsapp24h: true, whatsapp2h: true }
     };
+    newApp.voucherId=selectedVoucherId;
+    let voucherQuote:studioApi.VoucherQuote|null=null;
+    if(retry&&visualBookingAttemptRef.current?.draft.voucher){voucherQuote=visualBookingAttemptRef.current.draft.voucher;}
+    else if(selectedVoucherId){
+      visualBookingBusyRef.current=true;setVisualBookingBusy(true);
+      try{voucherQuote=(await studioApi.quoteVoucher(voucherToken(),{voucherId:selectedVoucherId,services:newApp.services||[],dateKey:newApp.dateKey,promotionId:selectedPromotionId})).quote;}
+      catch(error){setVisualBookingError(error instanceof Error?error.message:'No se pudo comprobar el bono.');return;}
+      finally{visualBookingBusyRef.current=false;setVisualBookingBusy(false);}
+    }
+    if(voucherQuote)newApp.voucher={...voucherQuote,state:'held'};
     const approvalReason = getApprovalReason(selectedServicesToBook, newApp.dateKey);
     const profEmp = activeEmployees.find(e => e.id === selectedProfessionalId);
     newApp.professionalId = selectedProfessionalId;
@@ -3691,8 +3795,10 @@ function StudioApp() {
       setSaturdayRequestModal(newApp);
       return;
     }
-    if (serviceDepositAmount(newApp.services,newApp.durationMinutes)>0) {
+    const voucherDeposit=voucherQuote?.dueCents==null?serviceDepositAmount(newApp.services,newApp.durationMinutes):Math.min(serviceDepositAmount(newApp.services,newApp.durationMinutes),voucherQuote.dueCents/100);
+    if (voucherDeposit>0) {
       newApp.advancePayment = createAdvancePayment(newApp.services,newApp.durationMinutes);
+      newApp.advancePayment.amount=voucherDeposit;
       newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE BIZUM');
       newApp.remindersStatus = { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false };
       setAdvancePaymentModal(newApp);
@@ -3718,10 +3824,11 @@ function StudioApp() {
           : tf('bookingConfirmed', { date: new Date(saved.dateKey + 'T12:00:00').toLocaleDateString(portalLocale), time: saved.time });
       setBookingSuccessMsg(message);
       visualBookingAttemptRef.current = null;
-      setSelectedServicesToBook([]); setSelectedPromotionId(null); setSelectedPromotionOrigin(null);
+      setSelectedServicesToBook([]); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setSelectedVoucherId(null);
       setCurrentScreen('catalogBooking');
       setTimeout(() => setBookingSuccessMsg(null), 8000);
     } catch (error) {
+      if(error instanceof Error&&error.message.includes('La disponibilidad del bono ha cambiado'))visualBookingAttemptRef.current=null;
       setVisualBookingError((error instanceof Error ? error.message : 'No se pudo confirmar el guardado en el servidor.') + ' Conservamos tu selección. Pulsa «Comprobar y reintentar» para revisar si se guardó antes de volver a enviarla.');
     } finally {
       visualBookingBusyRef.current = false;
@@ -3734,6 +3841,7 @@ function StudioApp() {
       alert('Espera a que termine el guardado antes de cerrar sesión.');
       return;
     }
+    setSelectedVoucherId(null);
     studioApi.clearStoredToken();
     if (studioApi.currentToken() || studioApi.storedRole() || studioApi.storedClientId()) {
       alert('No se ha podido borrar la sesión guardada. Vuelve a intentarlo.');
@@ -4315,7 +4423,7 @@ function StudioApp() {
     return <span style={{ display: 'block', color: '#E4C687', fontSize: 13 }}>{item.variant?.price || item.sub.price} · {duration}</span>;
   };
 
-  const renderPromotionBadge = (appointment: Appointment) => {
+  const renderPromotionOnlyBadge = (appointment: Appointment) => {
     const title = appointment.promotionOrigin?.title || appointment.promotion?.title;
     const percent = Number(appointment.promotion?.percent);
     const badgeText = Number.isFinite(percent) && percent > 0 ? '−' + percent + ' % · Promo' : 'Promo';
@@ -4325,6 +4433,8 @@ function StudioApp() {
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 13 13 20a2 2 0 0 1-2.83 0L2 11.83V2h9.83L20 10.17a2 2 0 0 1 0 2.83Z"/><circle cx="7" cy="7" r="1"/></svg>{badgeText}
     </span>;
   };
+
+  const renderPromotionBadge=(appointment:Appointment)=><>{renderPromotionOnlyBadge(appointment)}{appointment.voucherId&&<span style={{display:'inline-block',padding:'3px 7px',fontSize:10,border:'1px solid #B99B67',borderRadius:6,color:'#5C4020',background:'#E8D9BE',marginTop:4}}>Bono · {appointment.voucher?.kind==='gift'?voucherMoney(appointment.voucher.amountCents):appointment.voucher?.title||'Seleccionado'}{appointment.voucher?.state==='released'?' · liberado':appointment.voucher?.state==='consumed'?' · consumido':' · reservado'}</span>}</>;
 
   const renderDurationAgenda = (days: { name: string; dateObj: Date; dateFormatted: string }[]) => {
     const minutes = (time: string) => { const [hour, minute] = time.split(':').map(Number); return hour * 60 + minute; };
@@ -4795,6 +4905,14 @@ function StudioApp() {
             </div>
             <button type="button" onClick={() => { setViewServiceDetail(null); setPortalSearch(''); setPortalSearchExpanded({}); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ width: '100%', minHeight: '52px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>{t('bookNext')} <ArrowRight size={17} strokeWidth={2} aria-hidden="true" /></button>
           </section>
+          <VoucherHub services={voucherServiceOptions(catalog)} onReserve={(voucher,serviceId)=>{
+            setSelectedVoucherId(voucher.id);setSelectedPromotionId(null);setSelectedPromotionOrigin(null);
+            const cat=serviceId?catalog.find(c=>c.subservices.some(s=>s.id===serviceId&&s.active!==false)):undefined;
+            const sub=cat?.subservices.find(s=>s.id===serviceId&&s.active!==false);
+            if(cat&&sub){setViewServiceDetail({cat,sub});setCurrentScreen('serviceDetail');}
+            else{setViewServiceDetail(null);setCurrentScreen('catalogBooking');}
+            window.scrollTo({top:0,behavior:'smooth'});
+          }}/>
           <StudioNews serviceOptions={catalog.flatMap(cat=>cat.subservices.filter(sub=>sub.active!==false).map(sub=>({id:sub.id,label:bookingName(sub)})))} onService={(id,action)=>{
             const cat=catalog.find(category=>category.subservices.some(sub=>sub.id===id&&sub.active!==false));
             const sub=cat?.subservices.find(service=>service.id===id&&service.active!==false);
@@ -5351,6 +5469,7 @@ function StudioApp() {
             {renderClientPushPanel()}
             {visualBookingError && <p role="alert" style={{ color: '#FFC4B5', fontSize: 13, lineHeight: 1.5 }}>{visualBookingError}</p>}
             {visualBookingBusy && <p role="status" style={{ color: '#E4C687', fontSize: 13 }}>Guardando tu reserva en el Studio…</p>}
+            <BookingVoucher selectedId={selectedVoucherId} onChange={setSelectedVoucherId} services={selectedServicesToBook} dateKey={formatDateKey(bookingDate)} promotionId={selectedPromotionId}/>
             <button type="button" onClick={handleConfirmarCitaVisual} disabled={visualBookingBusy || (!portalTimes.includes(selectedVisualTime) && visualBookingAttemptRef.current?.signature !== visualBookingSignature())} style={{ width: '100%', minHeight: '54px', padding: '14px', backgroundColor: portalTimes.includes(selectedVisualTime) ? '#C49A58' : '#322A25', color: portalTimes.includes(selectedVisualTime) ? '#29231F' : '#C9BCA9', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>{visualBookingBusy ? 'Guardando…' : visualBookingError && visualBookingAttemptRef.current?.signature === visualBookingSignature() ? 'Comprobar y reintentar' : !selectedVisualTime ? t('chooseHour') : getApprovalReason(selectedServicesToBook, formatDateKey(bookingDate)) ? t('requestAppointment') : t('continueBooking')}</button>
           </div>
         </fieldset>
@@ -5365,6 +5484,14 @@ function StudioApp() {
             <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '24px', fontWeight: 'normal', lineHeight: 1.25, margin: '0 0 12px' }}>{t('passportTitle')}</h2>
             <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6, margin: 0 }}>{currentClientRecord?.nombre && <span>{currentClientRecord.nombre} · </span>}{t('passportIntro')}</p>
           </header>
+          <VoucherHub services={voucherServiceOptions(catalog)} onReserve={(voucher,serviceId)=>{
+            setSelectedVoucherId(voucher.id);setSelectedPromotionId(null);setSelectedPromotionOrigin(null);
+            const cat=serviceId?catalog.find(c=>c.subservices.some(s=>s.id===serviceId&&s.active!==false)):undefined;
+            const sub=cat?.subservices.find(s=>s.id===serviceId&&s.active!==false);
+            if(cat&&sub){setViewServiceDetail({cat,sub});setCurrentScreen('serviceDetail');}
+            else{setViewServiceDetail(null);setCurrentScreen('catalogBooking');}
+            window.scrollTo({top:0,behavior:'smooth'});
+          }}/>
           <ClientPhotoGallery key={currentClientRecord?.serverId||'own-gallery'} clientId={currentClientRecord?.serverId}/>
           <section style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '10px', padding: '15px' }}>
             <span style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1px' }}>01 · CONOCEMOS TU CABELLO</span>
@@ -5835,6 +5962,13 @@ function StudioApp() {
 `}</style><div className="lst-appt-dialog" role="dialog" aria-modal="true" aria-label="Detalle de la cita"><header className="lst-appt-head"><div><p style={{ color: '#E4C687', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
 <h3 style={{ color: '#FFF8EE', fontSize: '26px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{viewApptModal.clientName}</h3>
             {renderCourtesyAction(viewApptModal)}
+            {currentScreen==='adminPanel'&&<AppointmentVoucherTools key={viewApptModal.serverId||viewApptModal.id} appointment={viewApptModal} onSaved={async()=>{
+              await syncFromServer();
+              const result=await studioApi.syncAll<{appointments?:Record<string,any>[]}>(voucherToken(),['appointments']);
+              const row=result.appointments?.find(item=>item.id===viewApptModal.serverId);
+              if(row)setViewApptModal(mapServerAppointment(row));
+            }}/>}
+
 <p style={{ color: '#E4C687', fontSize: 14, margin: '7px 0 0' }}>{viewApptModal.dateKey.split('-').reverse().join('/')} · {viewApptModal.time} · {viewApptModal.durationMinutes || 45} min</p>
 <span style={{ display: 'inline-block', fontSize: 11, color: '#E4C687', marginTop: 7 }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada' : viewApptModal.completedAt ? 'Finalizada' : viewApptModal.saturdayApproval?.status === 'rejected' ? 'Solicitud rechazada' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Anticipo pendiente' : 'Confirmada'}</span>
 {renderPromotionBadge(viewApptModal)}
@@ -6061,6 +6195,13 @@ function StudioApp() {
             {renderPromotionBadge(viewApptModal)}
             <h3 style={{ color: '#FFF8EE', fontSize: '26px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{viewApptModal.clientName}</h3>
             {renderCourtesyAction(viewApptModal)}
+            {currentScreen==='adminPanel'&&<AppointmentVoucherTools key={viewApptModal.serverId||viewApptModal.id} appointment={viewApptModal} onSaved={async()=>{
+              await syncFromServer();
+              const result=await studioApi.syncAll<{appointments?:Record<string,any>[]}>(voucherToken(),['appointments']);
+              const row=result.appointments?.find(item=>item.id===viewApptModal.serverId);
+              if(row)setViewApptModal(mapServerAppointment(row));
+            }}/>}
+
             <div style={{ backgroundColor: adminAppointmentColor(viewApptModal).background, border: `1px solid ${adminAppointmentColor(viewApptModal).border}`, borderRadius: '10px', padding: '18px', color: adminAppointmentText(viewApptModal) }}>
               <strong style={{ fontSize: '14px', color: adminAppointmentText(viewApptModal) }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada · Hueco liberado' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada · Registro conservado' : viewApptModal.completedAt ? 'Realizada · Registrada en el pasaporte' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Cita confirmada'}</strong>
               <p style={{ color: adminAppointmentText(viewApptModal), fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '21px', margin: '12px 0 8px' }}>{new Date(`${viewApptModal.dateKey}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {viewApptModal.time}</p>
