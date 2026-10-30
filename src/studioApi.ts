@@ -364,3 +364,5 @@ export const claimGiftVoucher=(token:string,code:string,clientId?:string)=>call<
 export const configureVoucher=(token:string,productId:string,serviceIds:string[],enabled=true)=>call<{ok:true}>('voucher-config',{token,body:{productId,serviceIds,enabled}});
 export const quoteVoucher=(token:string,body:{voucherId:string;services:unknown;dateKey:string;clientId?:string;promotionId?:string|null})=>call<{quote:VoucherQuote}>('voucher-quote',{token,body});
 export const attachAppointmentVoucher=(token:string,appointmentId:string,voucherId:string|null)=>call<{ok:true}>('voucher-attach',{token,body:{appointmentId,voucherId}});
+
+export const deleteCancelledVoucher=(token:string,id:string)=>call<{ok:true;deleted:boolean}>('voucher-delete',{token,body:{id}});
