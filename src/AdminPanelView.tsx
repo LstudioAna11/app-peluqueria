@@ -660,7 +660,7 @@ export default function AdminPanelView(props: Props) {
             </div>
           )}
           {adminTab === 'news' && <StudioNews admin serviceOptions={catalog.flatMap(cat=>cat.subservices.filter(sub=>sub.active!==false).map(sub=>({id:sub.id,label:cat.title+' · '+bookingName(sub)})))}/>}
-          {adminTab==='vouchers'&&<VoucherPanel admin services={voucherServiceOptions(catalog)} clients={listaClientes.filter(c=>!!c.serverId).map(c=>({id:c.serverId!,label:'#'+clientDisplayNumber(c)+' · '+c.nombre+' '+c.apellidos}))}/>}
+          {adminTab==='vouchers'&&<VoucherPanel admin services={voucherServiceOptions(catalog,true)} clients={listaClientes.filter(c=>!!c.serverId).map(c=>({id:c.serverId!,label:'#'+clientDisplayNumber(c)+' · '+c.nombre+' '+c.apellidos}))}/>}
 
           {/* TAB 1: AGENDA MAESTRA */}
           {adminTab === 'agenda' && (
