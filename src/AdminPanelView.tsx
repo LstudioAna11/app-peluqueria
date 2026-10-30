@@ -1383,6 +1383,12 @@ export default function AdminPanelView(props: Props) {
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, name: updatedName } : s) } : c));
                                     }} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', flex: 1 }} /></label>
                                     <label className="studio-base-field">Nombre corto en citas<input type="text" maxLength={100} value={sub.bookingName ?? bookingName(sub)} placeholder="Styling & Peinados" onChange={event => updateSubserviceField(cat.id, sub.id, { bookingName: event.target.value })} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '4px 8px', borderRadius: 4, fontSize: 12, minWidth: 160 }} /><small style={{display:'block',color:'#D6CBB8',fontSize:11,marginTop:5}}>Se usa en las citas, agenda, resumen de reserva y cita rápida. El título creativo se conserva en el catálogo del portal.</small></label>
+                                    <label className="studio-base-field">Tipo de precio<select aria-label={'Tipo de precio de '+bookingName(sub)} value={sub.priceType||'fijo'} onChange={event=>updateSubserviceField(cat.id,sub.id,{priceType:event.target.value as SubService['priceType']})} style={{backgroundColor:'#322A25',border:'1px solid #B98A3E',color:'#FFF8EE',padding:'8px',borderRadius:4,fontSize:13,minHeight:42,minWidth:130}}>
+                                      <option value="fijo">Fijo</option>
+                                      <option value="desde">Desde</option>
+                                      <option value="aprox">Aproximado</option>
+                                      <option value="consultar">Consultar</option>
+                                    </select><small style={{display:'block',color:'#D6CBB8',fontSize:11,marginTop:5}}>Para un importe cerrado, elige Fijo y guarda el catálogo.</small></label>
                                     <label className="studio-base-field">Precio base<input type="text" value={sub.price} onChange={(e) => {
                                       const updatedPrice = e.target.value;
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, price: updatedPrice } : s) } : c));
