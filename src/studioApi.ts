@@ -55,6 +55,11 @@ export const authenticate = async (pin: string): Promise<AuthResult> => {
   return data;
 };
 
+export class StudioApiError extends Error {
+  readonly status:number;
+  constructor(message:string,status:number){super(message);this.name='StudioApiError';this.status=status;}
+}
+
 const rawCall = async <T = Record<string, unknown>>(
   action: string,
   opts: { method?: string; token?: string; body?: unknown } = {}
@@ -68,7 +73,7 @@ const rawCall = async <T = Record<string, unknown>>(
     body: opts.method === "GET" || opts.method === "HEAD" || opts.body === undefined ? undefined : JSON.stringify(opts.body),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Error del servidor");
+  if (!res.ok) throw new StudioApiError(data.error || "Error del servidor",res.status);
   return data as T;
 };
 
