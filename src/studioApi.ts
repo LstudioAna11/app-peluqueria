@@ -356,7 +356,8 @@ export interface VoucherUse {voucher_id:string;appointment_id:string|null;amount
 export interface StudioVoucher {id:string;product_id:string;client_id:string;buyer_id:string;title:string;kind:'gift'|'sessions';price_cents:number;unit_cents:number;sessions:number;valid_months:number;code:string;payment_reference:string;status:'pending'|'active'|'cancelled';payment_reported_at:string|null;activated_at:string|null;expires_on:string|null;dedication:string;created_at:string;used_cents:number;held_cents:number;used_sessions:number;held_sessions:number;history:VoucherUse[];}
 export interface VoucherPage {products:VoucherProduct[];vouchers:StudioVoucher[];total:number;page:number;bizumNumber:string;}
 export const fetchVouchers=(token:string,clientId?:string,page=0,usableOnly=false)=>call<VoucherPage>('voucher-list',{token,body:{clientId,page,usableOnly}});
-export const orderVoucher=(token:string,body:{id:string;productId:string;clientId?:string;dedication:string})=>call<{ok:true;id:string}>('voucher-order',{token,body});
+export interface VoucherCheckout {id:string;title:string;kind:'gift'|'sessions';priceCents:number;paymentReference:string;status:'pending'|'active'|'cancelled';bizumNumber:string;dedication:string;paymentReported:boolean;existingRequest:boolean;}
+export const orderVoucher=(token:string,body:{id:string;productId:string;clientId?:string;dedication:string})=>call<{ok:true;id:string;checkout:VoucherCheckout}>('voucher-order',{token,body});
 export const activateVoucher=(token:string,id:string,amountCents:number)=>call<{ok:true}>('voucher-activate',{token,body:{id,amountCents}});
 export const reportVoucherPayment=(token:string,id:string)=>call<{ok:true}>('voucher-report',{token,body:{id}});
 export const cancelVoucherOrder=(token:string,id:string)=>call<{ok:true}>('voucher-cancel',{token,body:{id}});
