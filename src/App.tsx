@@ -1600,6 +1600,48 @@ class PortalErrorBoundary extends React.Component<
   }
 }
 
+function ClientAppointmentDetail({title,date,time,status,services,promotion,canModify,policy,onChange,onCancel,onClose}: {
+  title:string;date:string;time:string;status:string;services:React.ReactNode;promotion:React.ReactNode;
+  canModify:boolean;policy:React.ReactNode;onChange:()=>void;onCancel:()=>void;onClose:()=>void;
+}) {
+  const dialog=useRef<HTMLDivElement>(null);
+  useEffect(()=>{
+    const previous=document.activeElement as HTMLElement|null;
+    const overflow=document.body.style.overflow;document.body.style.overflow='hidden';
+    dialog.current?.querySelector<HTMLButtonElement>('button')?.focus();
+    return()=>{document.body.style.overflow=overflow;previous?.focus();};
+  },[]);
+  return <div ref={dialog} role="dialog" aria-modal="true" aria-labelledby="client-appointment-title"
+    onKeyDown={event=>{
+      if(event.key==='Escape'){event.stopPropagation();onClose();}
+      if(event.key==='Tab'){
+        const items=Array.from(dialog.current?.querySelectorAll<HTMLElement>('button:not(:disabled),a[href]')||[]);
+        const first=items[0],last=items[items.length-1];
+        if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}
+        else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
+      }
+    }}
+    style={{background:'#322A25',color:'#FFF8EE',border:'1px solid #C5A059',borderRadius:16,padding:22,maxWidth:480,width:'100%',boxSizing:'border-box',maxHeight:'85dvh',overflowY:'auto',display:'flex',flexDirection:'column',gap:16}}>
+    <header style={{display:'flex',gap:12,justifyContent:'space-between',alignItems:'start'}}>
+      <div><p style={{color:'#E4C687',fontSize:10,letterSpacing:2,margin:'0 0 8px'}}>L’STUDIO ANA</p>
+        <h3 id="client-appointment-title" style={{fontSize:23,fontWeight:400,fontFamily:'Georgia,serif',margin:0}}>{title}</h3></div>
+      <button type="button" aria-label="Cerrar detalle de mi cita" onClick={onClose} style={{background:'transparent',border:'1px solid #655039',borderRadius:8,color:'#FFF8EE',minWidth:44,minHeight:44,cursor:'pointer'}}>✕</button>
+    </header>
+    <div style={{background:'#29231F',borderRadius:10,padding:16}}>
+      <p style={{fontSize:18,margin:'0 0 8px',color:'#E4C687'}}>{date} · {time}</p>
+      <span style={{fontSize:12,color:'#E0E8D9'}}>{status}</span>
+    </div>
+    {promotion}
+    <section aria-label="Servicios de mi cita"><h4 style={{fontSize:13,color:'#E4C687',margin:'0 0 10px'}}>Servicios reservados</h4>{services}</section>
+    {canModify?<>
+      <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6,margin:0}}>Puedes cambiar el día o la hora y cancelar con un mínimo de 24 horas de antelación.</p>
+      <button type="button" onClick={onChange} style={{background:'#D2B17B',color:'#29231F',border:0,borderRadius:8,padding:12,minHeight:44,fontWeight:600,cursor:'pointer'}}>Cambiar día u hora</button>
+      <button type="button" onClick={onCancel} style={{background:'transparent',color:'#FFC4B5',border:'1px solid #A76C5F',borderRadius:8,padding:12,minHeight:44,cursor:'pointer'}}>Cancelar cita</button>
+    </>:policy}
+  </div>;
+}
+
+
 export default function App() {
   return <PortalErrorBoundary><StudioApp /></PortalErrorBoundary>;
 }
@@ -2956,6 +2998,7 @@ function StudioApp() {
   const [adminStatusError,setAdminStatusError]=useState('');
   const adminStatusBusyRef=useRef(false);
   const changeAppointmentStatus=(appointment:Appointment,status:'cancelled'|'no_show')=>{
+    if(currentScreen!=='adminPanel'||studioApi.storedRole()!=='admin')return;
     if(adminStatusBusyRef.current)return;
     setAdminStatusError('');setAdminStatusRequest({appointment,status});
   };
@@ -4151,6 +4194,7 @@ function StudioApp() {
 
   const handleDeleteAppointment = async (id: string, e?: React.MouseEvent) => {
     e?.stopPropagation();
+    if (!staffCanManageAppointments) return;
     if (deletingAppointmentRef.current) return;
     const target = appointments.find(item => item.id === id);
     if (!target) return;
@@ -4555,6 +4599,7 @@ function StudioApp() {
     });
   };
   const markAppointmentCompleted = async (appointment: Appointment) => {
+    if (!staffCanManageAppointments) return;
     if (appointment.completedAt || !isActiveAppointment(appointment)) return;
     if (appointment.saturdayApproval?.status === 'pending' || appointment.advancePayment?.status === 'pending') { alert('Resuelve primero la aprobación y el pago pendiente.'); return; }
     const client = listaClientes.find(item => !!normalizeEmail(appointment.email) && normalizeEmail(item.email) === normalizeEmail(appointment.email));
@@ -6187,9 +6232,9 @@ function StudioApp() {
         </div>
       </div>}
       {/* MODAL DETALLE CITA */}
-      {viewApptModal && !['clientPin','adminLogin','clientRegistration'].includes(currentScreen) && !recoveryOpen && (
+      {viewApptModal && Boolean(studioApi.currentToken()) && ['admin','client'].includes(studioApi.storedRole()||'') && !['clientPin','adminLogin','clientRegistration'].includes(currentScreen) && !recoveryOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
-          {Boolean(currentScreen === 'adminPanel') ? (<><style>{`
+          {staffCanManageAppointments ? (<><style>{`
 .lst-appt-dialog {width:min(780px,100%);max-width:100%;box-sizing:border-box;max-height:calc(100dvh - 40px);display:flex;flex-direction:column;background:#322A25;border:1px solid #C5A059;border-radius:16px;box-shadow:0 24px 80px #0008;overflow:hidden;color:#FFF8EE;}
 .lst-appt-head {display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid #655039;flex-shrink:0;}
 .lst-appt-head>div {min-width:0;flex:1;}
@@ -6446,228 +6491,19 @@ function StudioApp() {
 
               <details className="lst-appt-more"><summary>Más acciones</summary><div>{!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && (<button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'no_show')} style={{ padding: '10px', border: '1px solid #C5A059', color: '#D6CBB8', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>No presentada</button>)}<button disabled={deletingAppointmentId !== null} onClick={(e) => void handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#F2DCD8', border: '1px solid #C0392B', color: '#8A2F23', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>{deletingAppointmentId === viewApptModal.id ? 'Eliminando…' : 'Eliminar cita'}</button></div></details>
               <button onClick={() => setViewApptModal(null)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Cerrar</button>
-            </div></footer></div></>) : (<div style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', maxWidth: '560px', width: '100%', boxSizing: 'border-box', maxHeight: '85vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <p style={{ color: '#E4C687', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
-            {renderPromotionBadge(viewApptModal)}
-            <h3 style={{ color: '#FFF8EE', fontSize: '26px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{viewApptModal.clientName}</h3>
-            {renderCourtesyAction(viewApptModal)}
-            {currentScreen==='adminPanel'&&<AppointmentVoucherTools key={viewApptModal.serverId||viewApptModal.id} appointment={viewApptModal} onSaved={async()=>{
-              await syncFromServer();
-              const result=await studioApi.syncAll<{appointments?:Record<string,any>[]}>(voucherToken(),['appointments']);
-              const row=result.appointments?.find(item=>item.id===viewApptModal.serverId);
-              if(row)setViewApptModal(mapServerAppointment(row));
-            }}/>}
-
-            <div style={{ backgroundColor: adminAppointmentColor(viewApptModal).background, border: `1px solid ${adminAppointmentColor(viewApptModal).border}`, borderRadius: '10px', padding: '18px', color: adminAppointmentText(viewApptModal) }}>
-              <strong style={{ fontSize: '14px', color: adminAppointmentText(viewApptModal) }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada · Hueco liberado' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada · Registro conservado' : viewApptModal.completedAt ? 'Realizada · Registrada en el pasaporte' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Cita confirmada'}</strong>
-              <p style={{ color: adminAppointmentText(viewApptModal), fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '21px', margin: '12px 0 8px' }}>{new Date(`${viewApptModal.dateKey}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {viewApptModal.time}</p>
-              <span style={{ color: adminAppointmentText(viewApptModal), fontSize: '13px' }}>Duración total: {viewApptModal.durationMinutes || 45} min</span>
-              {viewApptModal.professionalName && <span style={{ color: adminAppointmentText(viewApptModal), fontSize: '13px', display: 'block', marginTop: '4px' }}>Profesional: {viewApptModal.professionalName}</span>}
-            </div>
-            {currentScreen === 'adminPanel' && <button type="button" onClick={() => {
-              const email = normalizeEmail(viewApptModal.email);
-              const matches = email ? listaClientes.filter(client => normalizeEmail(client.email) === email) : [];
-              if (matches.length !== 1) {
-                alert(matches.length > 1 ? 'Hay varias fichas con este email. Revisa sus datos en Clientas.' :
-                  'No hay una ficha vinculada al email de esta cita. Revisa o registra la clienta en Clientas.');
-                return;
-              }
-              const client = matches[0];
-              setReturnToAppointmentId(viewApptModal.id);
-              setBusquedaCliente(client.registroId || client.email);
-              setEditingClientId(null); setAgendaSidePanel(null); setViewApptModal(null);
-              setAdminTab('clients'); setAgendaExpanded(false);
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            }} style={{ padding: '12px', background: '#322A25', color: '#FFF8EE',
-              border: '1px solid #C5A059', borderRadius: '8px', cursor: 'pointer' }}>Abrir ficha de la clienta · Diagnóstico y fórmulas</button>}
-            {currentScreen === 'adminPanel' && <button type="button" onClick={() => {
-              if (!viewApptModal.services?.length) { alert('Esta cita antigua no tiene servicios estructurados. Crea una nueva cita y selecciona sus servicios.'); return; }
-              const services = viewApptModal.services.map(item => {
-                const category = catalog.find(category => category.subservices.some(service => service.id === item.sub.id));
-                const sub = category?.subservices.find(service => service.id === item.sub.id);
-                const variant = item.variant ? sub?.variants?.find(variant => variant.id === item.variant!.id) : null;
-                return sub && category && (!item.variant || variant) ? { categoryId: category.id, categoryName: category.title, sub, variant: variant || null } : null;
-              });
-              if (services.some(item => !item)) { alert('Algún servicio o variante ya no existe. Crea una nueva cita con el catálogo actual.'); return; }
-              const currentServices = services.filter((item): item is NonNullable<typeof item> => item !== null);
-              const error = getInactiveServiceError(currentServices) || getStylingError(currentServices) || getTonerError(currentServices);
-              if (error) { alert(error); return; }
-              setRepeatAppointmentMode(true);
-              setRescheduleModalAppt({ ...viewApptModal, services: currentServices, durationMinutes: getModalDuration(currentServices) });
-              const next = new Date(); next.setHours(12, 0, 0, 0); next.setDate(next.getDate() + 1);
-              setNewRescheduleDate(formatDateKey(next)); setNewRescheduleTime('');
-              setViewApptModal(null);
-            }} style={{ padding: '12px', background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059',
-              borderRadius: '8px', cursor: 'pointer' }}>Repetir cita · Elegir nueva fecha</button>}
-            {!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && <button type="button" onClick={() => {
-              setEditingAppointment(viewApptModal);
-              setTargetDateObj(new Date(viewApptModal.dateKey + 'T12:00:00'));
-              setTargetDayName(viewApptModal.dayName); setTargetTime(viewApptModal.time);
-              setModalClientName(viewApptModal.clientName); setModalPhone(viewApptModal.phone); setModalEmail(viewApptModal.email);
-              setModalServices(viewApptModal.services || []);
-              setModalCatIndex(0); setModalSubIndex(0); setModalSelectedVariant(catalog[0]?.subservices[0]?.variants?.[0] || null);
-              setViewApptModal(null); setIsModalOpen(true);
-            }} style={{ background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059',
-              borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>Editar servicios y duración</button>}
-            <section>
-              <h4 style={{ color: '#E4C687', fontSize: '14px', margin: '0 0 12px' }}>Servicios reservados</h4>
-              {viewApptModal.services?.length ? viewApptModal.services.map((item, index) => <div key={index} style={{ backgroundColor: '#322A25', padding: '14px', border: '1px solid #3A312A', borderRadius: '8px', marginBottom: '8px', fontSize: '14px', lineHeight: 1.6, color: '#FFF8EE' }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}><strong>{bookingName(item.sub)}</strong>{viewApptModal.promotion?.serviceId === item.sub.id && renderPromotionBadge(viewApptModal)}</div>{item.variant && <span style={{ display: 'block', color: '#D6CBB8' }}>{item.variant.name}</span>}{renderBookedServicePrice(viewApptModal, item)}</div>) : <p style={{ color: '#E4C687', fontSize: '14px', lineHeight: 1.6, overflowWrap: 'anywhere' }}>{appointmentServiceNames(viewApptModal)}</p>}
-            </section>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', color: '#D6CBB8', fontSize: '13px', overflowWrap: 'anywhere' }}>
-              <a href={`tel:${viewApptModal.phone}`} style={{ color: '#E4C687', padding: '8px 0' }}>{viewApptModal.phone}</a>
-              <span style={{ padding: '8px 0' }}>{viewApptModal.email}</span>
-            </div>
-            {viewApptModal.completedAt ? <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6 }}>Visita registrada en el pasaporte. Puedes editar o borrar esa visita desde Clientes → Editar pasaporte e historial.</p> : <button type="button" onClick={() => markAppointmentCompleted(viewApptModal)} style={{ backgroundColor: '#8FC98F', border: '1px solid #3E6B47', color: '#2C5538', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Marcar como realizada · Añadir al pasaporte</button>}
-            <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(viewApptModal); setNewRescheduleDate(viewApptModal.dateKey); setNewRescheduleTime(viewApptModal.time); setViewApptModal(null); }} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Cambiar fecha u hora</button>
-            {viewApptModal.saturdayApproval && ['pending', 'accepted', 'rejected'].includes(String(viewApptModal.saturdayApproval.status)) && isActiveAppointment(viewApptModal) && (
-              <div style={{ border: '1px solid #C5A059', padding: '12px', borderRadius: '8px', color: '#FFF8EE' }}>
-                <strong>{approvalTitle(viewApptModal.saturdayApproval.reason)}: {viewApptModal.saturdayApproval.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.saturdayApproval.status === 'accepted' ? 'Aceptado por Ana' : 'Rechazado'}</strong>
-                <p>{viewApptModal.saturdayApproval.reference}</p>
-                {approvalSaveError?.id === viewApptModal.id && <p role="alert" style={{ color: '#FFC4B5', fontSize: 13 }}>{approvalSaveError.message}</p>}
-                {approvalSavingId === viewApptModal.id && <p role="status" style={{ color: '#E4C687', fontSize: 13 }}>Guardando la decisión en el Studio…</p>}
-                {viewApptModal.saturdayApproval.status === 'pending' && (
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                    <button type="button" disabled={approvalSavingId !== null} onClick={() => void saveAppointmentApproval(viewApptModal, 'accepted')}
-                      style={{ padding: '10px', minHeight: 44, background: '#C99E52', color: '#29231F', border: '1px solid #C99E52', borderRadius: 6, cursor: approvalSavingId ? 'wait' : 'pointer', opacity: approvalSavingId ? 0.65 : 1 }}>
-                      {approvalSavingId === viewApptModal.id ? 'Guardando…' : 'Aceptar solicitud'}
-                    </button>
-                    <button type="button" disabled={approvalSavingId !== null} onClick={() => void saveAppointmentApproval(viewApptModal, 'rejected')}
-                      style={{ padding: '10px', minHeight: 44, background: '#322A25', color: '#FFF8EE', border: '1px solid #C99E52', borderRadius: 6, cursor: approvalSavingId ? 'wait' : 'pointer', opacity: approvalSavingId ? 0.65 : 1 }}>
-                      {approvalSavingId === viewApptModal.id ? 'Guardando…' : 'Rechazar solicitud'}
-                    </button>
-                  </div>
-                )}
-                {viewApptModal.saturdayApproval.status === 'accepted' && <a style={{ color: '#E4C687' }} target="_blank" rel="noreferrer" href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, '')}?text=${encodeURIComponent(viewApptModal.advancePayment?.status === 'pending' ? `Hola ${viewApptModal.clientName}. Ana ha aceptado tu solicitud para el ${viewApptModal.dateKey.split('-').reverse().join('/')} a las ${viewApptModal.time}. Para confirmar, realiza un Bizum de ${viewApptModal.advancePayment?.amount} € al ${bizConfig.bizumNumber}. Concepto: ${advancePaymentConcept(viewApptModal)}. Confirmaremos al comprobar el pago.` : generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time))}`}>Abrir WhatsApp para avisar a la clienta</a>}
-              </div>
-            )}
-            {viewApptModal.promotionOrigin && !viewApptModal.promotion && <p style={{ color: '#E4C687', fontSize: 13 }}>Promoción: {viewApptModal.promotionOrigin.title}</p>}
-{viewApptModal.promotion && <section style={{ border: '1px solid #C99E52', padding: 12, borderRadius: 8, color: '#E4C687', fontSize: 13 }}><strong>Promoción aplicada · {viewApptModal.promotion.title}</strong><p>{viewApptModal.promotion.serviceName} · {viewApptModal.promotion.variantName}</p><p>{viewApptModal.promotion.originalAmount.toFixed(2)} € → {viewApptModal.promotion.finalAmount.toFixed(2)} € (−{viewApptModal.promotion.percent} %)</p>{viewApptModal.promotion.totalAfter != null && <p>{viewApptModal.promotion.orientative ? 'Total orientativo' : 'Total acordado'}: {viewApptModal.promotion.totalAfter.toFixed(2)} €</p>}<small>Descuento solo en este servicio. Los demás mantienen su precio.</small></section>}
-{viewApptModal.advancePayment && ['pending', 'confirmed', 'received', 'paid'].includes(String(viewApptModal.advancePayment.status)) && Number(viewApptModal.advancePayment.amount) > 0 && isActiveAppointment(viewApptModal) && (
-              <div style={{ border: '1px solid #C5A059', borderRadius: '8px', padding: '12px', color: '#FFF8EE', fontSize: '14px' }}>
-                <strong>Reserva anticipada: {viewApptModal.advancePayment.amount} € · {['confirmed', 'received', 'paid'].includes(String(viewApptModal.advancePayment.status)) ? 'Pago confirmado' : 'Pendiente de pago'}</strong>
-                <p>Código: {viewApptModal.advancePayment.reference}</p>
-                {bizumSaveError?.id === viewApptModal.id && <p role="alert" style={{ color: '#FFC4B5', fontSize: 13, lineHeight: 1.5 }}>{bizumSaveError.message}</p>}
-                {bizumSavingId === viewApptModal.id && <p role="status" style={{ color: '#E4C687', fontSize: 13 }}>Comprobando y guardando el anticipo en el Studio…</p>}
-                {viewApptModal.advancePayment.status === 'pending' && (
-                  <button type="button" disabled={bizumSavingId !== null} onClick={() => void confirmBizumReceived(viewApptModal)}
-                    style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', padding: '10px', border: 'none', borderRadius: '6px', cursor: bizumSavingId ? 'wait' : 'pointer', opacity: bizumSavingId ? 0.65 : 1 }}>
-                    {bizumSavingId === viewApptModal.id ? 'Guardando confirmación…' : 'Confirmar Bizum recibido'}
-                  </button>
-                )}
-              </div>
-            )}
-            <section style={{ padding: '14px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px' }}>
-              <label htmlFor="appointment-internal-notes" style={{ color: '#E4C687', fontSize: '13px' }}>Notas internas · Solo 360studio</label>
-              <textarea id="appointment-internal-notes" disabled={notesSaving} value={appointmentNoteDraft} onChange={event => setAppointmentNoteDraft(event.target.value)}
-                rows={3} placeholder="Detalles para preparar o hacer seguimiento de esta cita"
-                style={{ width: '100%', boxSizing: 'border-box', margin: '10px 0', padding: '10px', background: '#322A25',
-                  color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', fontSize: '14px', resize: 'vertical' }} />
-              <button type="button" disabled={notesSaving} onClick={saveAppointmentNotes} style={{ padding: '10px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 0, borderRadius: '6px', cursor: 'pointer' }}>{notesSaving ? 'Guardando…' : 'Guardar notas'}</button>
-              {notesFeedback && <p role="status" style={{ color: '#E4C687', fontSize: 12, lineHeight: 1.5 }}>{notesFeedback}</p>}
-            </section>
-            {!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-              <button type="button" disabled={adminStatusBusy||viewApptModal.lifecycleStatus==='cancelled'} onClick={() => changeAppointmentStatus(viewApptModal, 'cancelled')} style={{ padding: '10px', border: '1px solid #3A312A', color: '#C0392B', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cita cancelada' : 'Marcar cancelada'}</button>
-              <button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'no_show')} style={{ padding: '10px', border: '1px solid #C5A059', color: '#D6CBB8', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>No presentada</button>
-            </div>}
-            {!isActiveAppointment(viewApptModal) && <p style={{ color: '#D6CBB8', fontSize: '12px' }}>El registro se conserva en «Citas del día» y en el buscador. No ocupa un hueco ni se añade como visita realizada al pasaporte.</p>}
-            {!viewApptModal.completedAt && currentScreen === 'adminPanel' && (
-              <section style={{ padding: '14px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <h4 style={{ color: '#E4C687', fontSize: '14px', margin: 0 }}>Emails automáticos de la cita</h4>
-                  <button type="button" onClick={loadAppointmentEmails} style={{ padding: '8px 12px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 0, borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>{appointmentEmailsLoading ? 'Cargando…' : 'Consultar estado'}</button>
-                </div>
-                {!validRecipientEmail(viewApptModal.email) && <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>Esta reserva no tiene una dirección de email válida: no se enviará ningún correo. Revisa el email de la clienta.</p>}
-                {appointmentEmailsError && <p style={{ color: '#C0392B', fontSize: '12px', margin: '10px 0 0' }}>{appointmentEmailsError}</p>}
-                {appointmentEmails.length > 0 && (
-                  <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {appointmentEmails.map(row => (
-                      <div key={row.id} style={{ fontSize: '12px', lineHeight: 1.6, color: '#FFF8EE', background: '#29231F', border: '1px solid #3A312A', borderRadius: '6px', padding: '10px' }}>
-                        <strong>{emailKindLabel(row.kind)}</strong> · <span style={{ color: emailStatusColor(row.status) }}>{emailStatusLabel(row.status)}</span>
-                        <span style={{ display: 'block', color: '#D6CBB8', marginTop: '4px' }}>{row.subject}</span>
-                        <span style={{ display: 'block', color: '#D6CBB8', marginTop: '4px' }}>Para: {row.to_email || '(sin email)'} · Programado: {new Date(row.scheduled_at).toLocaleString('es-ES')}{row.sent_at ? ` · Enviado: ${new Date(row.sent_at).toLocaleString('es-ES')} (${row.provider})` : ''}{row.attempts ? ` · Intentos: ${row.attempts}` : ''}</span>
-                        {row.last_error && <span style={{ display: 'block', color: '#C0392B', marginTop: '4px' }}>{row.last_error}</span>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {appointmentEmails.length === 0 && !appointmentEmailsLoading && !appointmentEmailsError && validRecipientEmail(viewApptModal.email) && <p style={{ color: '#D6CBB8', fontSize: '12px', margin: '10px 0 0' }}>Pulsa «Consultar estado» para ver los emails programados y enviados de esta cita.</p>}
-              </section>
-            )}
-            {!viewApptModal.completedAt && currentScreen === 'adminPanel' && (
-              <section style={{ padding: '14px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <h4 style={{ color: '#E4C687', fontSize: '14px', margin: 0 }}>WhatsApp automático de la cita</h4>
-                  <button type="button" onClick={loadAppointmentWhatsApp} style={{ padding: '8px 12px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 0, borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>{appointmentWhatsAppLoading ? 'Cargando…' : 'Consultar estado'}</button>
-                </div>
-                {!validRecipientPhone(viewApptModal.phone) && <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>Esta reserva no tiene un teléfono válido: no se enviará ningún WhatsApp. Revisa el teléfono de la clienta.</p>}
-                {appointmentWhatsAppError && <p style={{ color: '#C0392B', fontSize: '12px', margin: '10px 0 0' }}>{appointmentWhatsAppError}</p>}
-                {appointmentWhatsApp.length > 0 && (
-                  <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {appointmentWhatsApp.map(row => (
-                      <div key={row.id} style={{ fontSize: '12px', lineHeight: 1.6, color: '#FFF8EE', background: '#29231F', border: '1px solid #3A312A', borderRadius: '6px', padding: '10px' }}>
-                        <strong>{emailKindLabel(row.kind)}</strong> · <span style={{ color: whatsappStatusColor(row.status) }}>{whatsappStatusLabel(row.status)}</span>
-                        <span style={{ display: 'block', color: '#D6CBB8', marginTop: '4px', whiteSpace: 'pre-line' }}>{row.body_text}</span>
-                        <span style={{ display: 'block', color: '#D6CBB8', marginTop: '4px' }}>Para: {row.to_phone} · Programado: {new Date(row.scheduled_at).toLocaleString('es-ES')}{row.sent_at ? ` · Enviado: ${new Date(row.sent_at).toLocaleString('es-ES')}` : ''}{row.delivered_at ? ` · Entregado: ${new Date(row.delivered_at).toLocaleString('es-ES')}` : ''}{row.attempts ? ` · Intentos: ${row.attempts}` : ''}</span>
-                        {row.last_error && <span style={{ display: 'block', color: '#C0392B', marginTop: '4px' }}>{row.last_error}</span>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {appointmentWhatsApp.length === 0 && !appointmentWhatsAppLoading && !appointmentWhatsAppError && validRecipientPhone(viewApptModal.phone) && <p style={{ color: '#D6CBB8', fontSize: '12px', margin: '10px 0 0' }}>Pulsa «Consultar estado» para ver los WhatsApp programados y enviados de esta cita.</p>}
-                {appointmentWhatsApp.some(row => row.kind === 'confirmation' && (row.status === 'failed' || row.status === 'skipped') && (row.attempts ?? 0) < 5) && (
-                  <button type="button" onClick={async () => {
-                    const appointmentId = viewApptModal.serverId;
-                    if (!appointmentId) { alert('Guarda la reserva primero para poder reintentar su confirmación.'); return; }
-                    try {
-                      const result = await studioApi.retryWhatsAppConfirmation(studioApi.currentToken()!, appointmentId);
-                      alert(result.retried > 0 ? 'Confirmación reencolada y enviada de nuevo. Consulta el estado en unos segundos.' : 'No hay ninguna confirmación con error que se pueda reintentar.');
-                      loadAppointmentWhatsApp();
-                    } catch { alert('No se pudo reintentar la confirmación. Inténtalo de nuevo en unos segundos.'); }
-                  }} style={{ marginTop: '10px', padding: '8px 12px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 0, borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Reintentar confirmación</button>
-                )}
-              </section>
-            )}
-            {!viewApptModal.completedAt && currentScreen === 'adminPanel' && (
-              <section style={{ padding: '14px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <h4 style={{ color: '#E4C687', fontSize: '14px', margin: 0 }}>Notificaciones push de la cita</h4>
-                  <button type="button" onClick={loadAppointmentPushes} style={{ padding: '8px 12px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 0, borderRadius: '6px', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>{appointmentPushesLoading ? 'Cargando…' : 'Consultar estado'}</button>
-                </div>
-                {appointmentPushesError && <p style={{ color: '#C0392B', fontSize: '12px', margin: '10px 0 0' }}>{appointmentPushesError}</p>}
-                {appointmentPushes.length > 0 && (
-                  <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {appointmentPushes.map(row => (
-                      <div key={row.id} style={{ fontSize: '12px', lineHeight: 1.6, color: '#FFF8EE', background: '#29231F', border: '1px solid #3A312A', borderRadius: '6px', padding: '10px' }}>
-                        <strong>{pushKindLabel(row.kind)}</strong> · <span style={{ color: pushStatusColorAdmin(row.status) }}>{pushStatusLabelAdmin(row.status)}</span>
-                        <span style={{ display: 'block', color: '#D6CBB8', marginTop: '4px' }}>Dispositivo: {row.studio_push_subscriptions?.user_agent || '(sin datos)'} · Intentos: {row.attempts}</span>
-                        <span style={{ display: 'block', color: '#D6CBB8', marginTop: '4px' }}>Programado: {new Date(row.created_at).toLocaleString('es-ES')}{row.delivered_at ? ` · Entregado: ${new Date(row.delivered_at).toLocaleString('es-ES')}` : ''}</span>
-                        {row.last_error && <span style={{ display: 'block', color: '#C0392B', marginTop: '4px' }}>{row.last_error}</span>}
-                      </div>
-                    ))}
-                  </div>
-                )}
-                {appointmentPushes.length === 0 && !appointmentPushesLoading && !appointmentPushesError && <p style={{ color: '#D6CBB8', fontSize: '12px', margin: '10px 0 0' }}>Pulsa «Consultar estado» para ver los envíos push de esta cita.</p>}
-              </section>
-            )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '5px', borderTop: '1px solid rgba(212, 175, 55, 0.2)', paddingTop: '12px' }}>
-              <span style={{ color: '#E4C687', fontSize: '13px', fontWeight: 'bold' }}>Abrir mensaje de WhatsApp o copiar texto:</span>              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <a href={`https://wa.me/34${viewApptModal.phone.replace(/\s+/g, "")}?text=${encodeURIComponent(generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time))}`} target="_blank" rel="noreferrer" style={{ backgroundColor: '#8FC98F', color: '#2C5538', padding: '10px', borderRadius: '8px', fontSize: '13px', fontWeight: 'bold', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                  WhatsApp
-                </a>
-                <button type="button" onClick={() => {
-                  const textoEmail = generateWhatsAppMessage(viewApptModal.clientName, viewApptModal.dateKey.split('-').reverse().join('/'), viewApptModal.time);
-                  navigator.clipboard.writeText(textoEmail);
-                  alert('¡Texto del recordatorio copiado al portapapeletas!');
-                }} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', padding: '10px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', textAlign: 'center', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
-                  Copiar Mensaje
-                </button>
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'space-between', marginTop: '10px' }}>
-              <button disabled={deletingAppointmentId !== null} onClick={(e) => void handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#F2DCD8', border: '1px solid #C0392B', color: '#8A2F23', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>{deletingAppointmentId === viewApptModal.id ? 'Eliminando…' : 'Eliminar cita'}</button>
-              <button onClick={() => setViewApptModal(null)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Cerrar</button>
-            </div>
-          </div>)}
+            </div></footer></div></>) : (<ClientAppointmentDetail
+            title="Mi cita"
+            date={viewApptModal.dateKey.split('-').reverse().join('/')}
+            time={viewApptModal.time}
+            status={viewApptModal.lifecycleStatus==='cancelled'?'Cancelada':viewApptModal.lifecycleStatus==='no_show'?'No realizada':viewApptModal.completedAt?'Realizada':viewApptModal.saturdayApproval?.status==='rejected'?'Solicitud no aceptada':viewApptModal.saturdayApproval?.status==='pending'?'Pendiente de aprobación':viewApptModal.advancePayment?.status==='pending'?'Anticipo pendiente':'Confirmada'}
+            promotion={renderPromotionBadge(viewApptModal)}
+            services={viewApptModal.services?.length?viewApptModal.services.map((item,index)=><div key={index} style={{padding:'10px 0',borderBottom:'1px solid #655039',fontSize:14,lineHeight:1.6}}><strong>{bookingName(item.sub)}</strong>{item.variant&&<span style={{display:'block',color:'#D6CBB8',fontSize:12}}>{item.variant.name}</span>}{renderBookedServicePrice(viewApptModal,item)}</div>):<p style={{fontSize:14,lineHeight:1.6}}>{appointmentServiceNames(viewApptModal)}</p>}
+            canModify={!viewApptModal.completedAt&&isActiveAppointment(viewApptModal)&&viewApptModal.saturdayApproval?.status!=='rejected'&&canManageAppointment(viewApptModal)}
+            policy={!viewApptModal.completedAt&&isActiveAppointment(viewApptModal)&&viewApptModal.saturdayApproval?.status!=='rejected'?policyNotice():null}
+            onChange={()=>{setRepeatAppointmentMode(false);setRescheduleError('');setRescheduleModalAppt(viewApptModal);setNewRescheduleDate(viewApptModal.dateKey);setNewRescheduleTime(viewApptModal.time);setViewApptModal(null);}}
+            onCancel={()=>{setCancellationError('');setCancelApptModal(viewApptModal);setViewApptModal(null);}}
+            onClose={()=>setViewApptModal(null)}
+          />)}
         </div>
       )}
 
