@@ -1,4 +1,4 @@
-import { ClientPhotoGallery, StudioNews, VoucherPanel, voucherServiceOptions } from './App';
+mport { ClientPhotoGallery, StudioNews, VoucherPanel, voucherServiceOptions } from './App';
 import { AddonEditor } from './ServiceAddons';
 import React, { useState, useEffect, useRef } from 'react';
 import { Maximize2, Minimize2, Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ChevronDown, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
@@ -660,7 +660,7 @@ export default function AdminPanelView(props: Props) {
             </div>
           )}
           {adminTab === 'news' && <StudioNews admin serviceOptions={catalog.flatMap(cat=>cat.subservices.filter(sub=>sub.active!==false).map(sub=>({id:sub.id,label:cat.title+' · '+bookingName(sub)})))}/>}
-          {adminTab==='vouchers'&&<VoucherPanel admin services={voucherServiceOptions(catalog,true)} clients={listaClientes.filter(c=>!!c.serverId).map(c=>({id:c.serverId!,label:'#'+clientDisplayNumber(c)+' · '+c.nombre+' '+c.apellidos}))}/>}
+          {adminTab==='vouchers'&&<VoucherPanel admin logoSrc={bizConfig.brandLogoUrl||DEFAULT_BRAND_LOGO} services={voucherServiceOptions(catalog,true)} clients={listaClientes.filter(c=>!!c.serverId).map(c=>({id:c.serverId!,label:'#'+clientDisplayNumber(c)+' · '+c.nombre+' '+c.apellidos}))}/>}
 
           {/* TAB 1: AGENDA MAESTRA */}
           {adminTab === 'agenda' && (
