@@ -282,34 +282,66 @@ const voucherUsable=(v:studioApi.StudioVoucher)=>v.status==='active'&&!!v.expire
 const voucherToken=()=>{const token=studioApi.currentToken();if(!token)throw new Error('Vuelve a iniciar sesión para consultar tus bonos.');return token;};
 function VoucherStyles(){return <style>{`
  .lst-bonos{min-width:0;color:#F4EADB;font-size:13px;line-height:1.65;overflow-wrap:anywhere}.lst-bonos *{box-sizing:border-box}.lst-bonos h2,.lst-bonos h3,.lst-bonos p{margin:0}.lst-bonos h2,.lst-bonos h3{font-family:Georgia,serif;font-weight:400}.lst-bonos h2{color:#DDC49B;font-size:23px}.lst-bonos h3{color:#DDC49B;font-size:19px}.lst-bonos small{font-size:11px;color:#C3B29A}.lst-bonos button{min-height:44px;padding:9px 13px;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid #92764F;background:transparent;color:#E6CC9F;border-radius:7px;font-size:12px;cursor:pointer}.lst-bonos button:disabled{opacity:.5;cursor:default}.lst-bonos button:focus-visible,.lst-bonos input:focus-visible,.lst-bonos select:focus-visible{outline:2px solid #E4C687;outline-offset:3px}.lst-bonos .vb-primary{background:#C49A58;color:#29231F;border-color:#C49A58}.lst-bonos .vb-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.lst-bonos .vb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px}.lst-bonos .vb-card{position:relative;background:linear-gradient(135deg,#403329,#241E19);border:1px solid #917447;border-radius:12px;padding:21px;display:flex;flex-direction:column;gap:11px;box-shadow:0 8px 22px rgba(0,0,0,.10)}.lst-bonos .vb-gift{background:linear-gradient(130deg,#F0E4CF,#D9C19B);color:#3C3024;border-color:#C1A16D}.lst-bonos .vb-gift h3{color:#69502E}.lst-bonos .vb-gift small{color:#68543D}.lst-bonos .vb-gift button{border-color:#8B704D;color:#4B3820}.lst-bonos .vb-amount{font-family:Georgia,serif;font-size:32px;line-height:1.2;letter-spacing:.02em}.lst-bonos .vb-kicker{font-size:9px;letter-spacing:.16em;text-transform:uppercase}.lst-bonos .vb-meta{font-size:11px;border-top:1px solid rgba(160,133,90,.35);padding-top:10px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.lst-bonos .vb-code{font-family:monospace;font-size:11px;letter-spacing:.025em;overflow-wrap:anywhere;user-select:all}.lst-bonos .vb-dots{display:flex;gap:9px;margin:5px 0}.lst-bonos .vb-dot{width:15px;height:15px;border-radius:50%;border:1px solid #C3A16A}.lst-bonos .vb-dot.used{background:#C3A16A}.lst-bonos .vb-dot.held{background:linear-gradient(90deg,#C3A16A 50%,transparent 50%)}.lst-bonos .vb-panel{background:#30271F;border:1px solid #746044;border-radius:10px;padding:17px;display:grid;gap:12px;margin:14px 0}.lst-bonos input,.lst-bonos select,.lst-bonos textarea{min-height:44px;width:100%;padding:10px;background:#F5EFE5;color:#352B23;border:1px solid #A58B64;border-radius:7px;font:inherit;font-size:13px}.lst-bonos label{display:grid;gap:5px;font-size:12px}.lst-bonos input[type=checkbox]{width:18px;min-height:18px;margin:0;accent-color:#C49A58}.lst-bonos .vb-check{display:flex;align-items:center;gap:9px}.lst-bonos .vb-note{color:#D1C0A7;font-size:12px}.lst-bonos .vb-error{background:#F5DED6;color:#792C20;padding:12px;border-radius:7px;margin:12px 0}.lst-bonos .vb-message{background:#E5EAD9;color:#35452A;padding:12px;border-radius:7px;margin:12px 0}.lst-bonos summary{cursor:pointer;min-height:44px;padding:10px 0;font-size:12px}.lst-bonos details p{font-size:11px;margin:8px 0}.lst-bonos .vb-header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:15px}.lst-bonos .vb-pager{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:14px}.lst-bonos .vb-entry{padding:19px;width:100%;justify-content:space-between;text-align:left;border-radius:11px;background:linear-gradient(120deg,#362B23,#251F1A)}.lst-bonos .vb-entry strong{font-family:Georgia,serif;font-size:19px;font-weight:400;display:block}.lst-bonos .vb-entry small{display:block;margin-top:4px;font-size:11px}.lst-bonos .vb-wallet-heading{margin:22px 0 12px}.lst-bonos .vb-eligible{max-height:230px;overflow-y:auto;display:grid;gap:8px}.lst-bonos .vb-current{font-size:12px;background:#EAE0CF;color:#483821;padding:13px;border-radius:8px;margin:9px 0}.lst-bonos .vb-disabled{opacity:.7}
- .lst-bonos .vb-card.vb-gift{--gift-padding:24px;isolation:isolate;overflow:hidden;padding:var(--gift-padding);gap:13px;border:1px solid #BA9A60;border-radius:14px;background:radial-gradient(ellipse at 10% 20%,rgba(255,255,255,.42),transparent 65%),linear-gradient(135deg,#F2E7D3 0%,#E6D4B5 55%,#DCC5A0 100%);color:#3C2E21;box-shadow:0 12px 25px rgba(17,12,8,.12)}
- .lst-bonos .vb-card.vb-gift::after{content:'';position:absolute;inset:7px;border:1px solid rgba(170,133,73,.42);border-radius:9px;pointer-events:none;z-index:2}
- .lst-bonos .vb-gift-brand{margin:calc(-1 * var(--gift-padding)) calc(-1 * var(--gift-padding)) 4px;padding:17px 24px 15px;min-height:88px;background:linear-gradient(120deg,#33291F,#211B16);border-bottom:1px solid #BA9A60;display:flex;align-items:center;justify-content:center}
- .lst-bonos .vb-gift-brand img{display:block;object-fit:contain;width:min(100%,174px);height:56px}
- .lst-bonos .vb-gift-brand span{font-family:Georgia,serif;color:#E8CDA0;font-size:24px;letter-spacing:.05em;line-height:1.2}
- .lst-bonos .vb-card.vb-gift .vb-kicker{color:#79603A;font-size:9px;letter-spacing:.17em;line-height:1.6}
- .lst-bonos .vb-card.vb-gift h3{color:#705231;font-size:18px;line-height:1.4}
- .lst-bonos .vb-card.vb-gift .vb-amount{font-family:Georgia,serif;font-size:38px;font-weight:400;line-height:1.15;color:#35291F;letter-spacing:-.015em;font-variant-numeric:tabular-nums}
- .lst-bonos .vb-gift-shop{text-align:center;align-items:stretch}
- .lst-bonos .vb-gift-shop .vb-gift-brand{align-self:stretch}
- .lst-bonos .vb-gift-shop .vb-amount{margin:2px 0 1px}
- .lst-bonos .vb-card.vb-gift .vb-gift-note{font-family:Georgia,serif;font-size:14px;line-height:1.7;color:#654D33;padding:8px 0 11px;border-bottom:1px solid rgba(166,132,80,.33);margin-bottom:1px}
- .lst-bonos .vb-card.vb-gift .vb-gift-description{font-size:12px;line-height:1.65;color:#66503A}
- .lst-bonos .vb-card.vb-gift small{font-size:10px;line-height:1.65;color:#6D583F}
- .lst-bonos .vb-card.vb-gift .vb-kicker{font-size:9px;color:#79603A}
- .lst-bonos .vb-card.vb-gift .vb-gift-cta,.lst-bonos .vb-card.vb-gift .vb-primary{background:#30251C;border:1px solid #30251C;color:#F2DDB8;border-radius:7px;min-height:46px;font-size:12px;font-weight:500;letter-spacing:.025em}
- .lst-bonos .vb-card.vb-gift .vb-gift-cta{width:100%;margin-top:4px;justify-content:space-between;padding:11px 16px}
- .lst-bonos .vb-card.vb-gift .vb-gift-cta:hover:not(:disabled),.lst-bonos .vb-card.vb-gift .vb-primary:hover:not(:disabled){background:#483524;border-color:#705232}
- .lst-bonos .vb-card.vb-gift button:focus-visible{outline-color:#705232}
- .lst-bonos .vb-card.vb-gift .vb-code{padding:10px 11px;border:1px solid rgba(166,132,80,.5);border-radius:5px;background:rgba(255,249,236,.32);font-size:10px;line-height:1.8;color:#493621}
- .lst-bonos .vb-card.vb-gift .vb-meta{font-size:10px;padding-top:12px;border-color:rgba(166,132,80,.4)}
- @media(max-width:420px){.lst-bonos .vb-card.vb-gift{--gift-padding:20px}.lst-bonos .vb-gift-brand{min-height:82px;padding:15px 20px}.lst-bonos .vb-gift-brand img{height:52px;max-width:158px}.lst-bonos .vb-card.vb-gift .vb-amount{font-size:35px}}
+ .lst-bonos .vb-card.vl-card{--vl-pad:22px;position:relative;isolation:isolate;overflow:hidden;padding:var(--vl-pad);gap:11px;border:1px solid #786145;border-radius:12px;background:#30271F;color:#F4EADC;box-shadow:0 14px 30px rgba(0,0,0,.17);text-align:left;align-items:stretch}
+ .lst-bonos .vb-card.vl-card::after{content:'';position:absolute;inset:7px;border:1px solid rgba(213,179,124,.26);border-radius:7px;pointer-events:none;z-index:2}
+ .lst-bonos .vb-card.vl-card.vl-gift100{background:#29221F}.lst-bonos .vb-card.vl-card.vl-intensive5{background:#2A302B}.lst-bonos .vb-card.vl-card.vl-men5{background:#29292A}
+ .lst-bonos .vl-visual{position:relative;height:210px;margin:calc(-1 * var(--vl-pad)) calc(-1 * var(--vl-pad)) 5px;overflow:hidden;background:linear-gradient(135deg,#67503B,#231E19)}
+ .lst-bonos .vl-photo{display:block;width:100%;height:100%;object-fit:cover;filter:saturate(.68) brightness(.9);transition:transform .5s ease}
+ .lst-bonos .vl-card:hover .vl-photo{transform:scale(1.025)}
+ .lst-bonos .vl-photo-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(21,16,11,.15),rgba(21,16,11,.02) 35%,rgba(21,16,11,.8) 100%);pointer-events:none}
+ .lst-bonos .vl-logo{position:absolute;top:18px;left:20px;padding:5px 12px;background:rgba(33,26,20,.78);border:1px solid rgba(220,190,140,.37);border-radius:3px}
+ .lst-bonos .vl-logo .vb-gift-brand{margin:0;padding:0;min-height:0;background:none;border:0;display:flex;align-items:center;justify-content:center}
+ .lst-bonos .vl-logo img{display:block;width:116px;height:38px;object-fit:contain}.lst-bonos .vl-logo span{font-family:Georgia,serif;font-size:19px;color:#E8D0AA;line-height:1.3;letter-spacing:.03em}
+ .lst-bonos .vl-visual .vl-eyebrow{position:absolute;bottom:18px;left:22px;right:22px;color:#F2DFBE;font-size:9px;letter-spacing:.16em;text-transform:uppercase;line-height:1.6}
+ .lst-bonos .vb-card.vl-card h3{font-family:Georgia,serif;font-size:22px;line-height:1.25;color:#F0E1C9;font-weight:400;letter-spacing:.01em}
+ .lst-bonos .vb-card.vl-card .vb-amount{font-family:Georgia,serif;font-size:36px;line-height:1.1;font-weight:400;color:#E7C28E;font-variant-numeric:tabular-nums;letter-spacing:-.015em}
+ .lst-bonos .vb-card.vl-card .vb-kicker{font-size:9px;letter-spacing:.13em;color:#C7AF8D;line-height:1.6}
+ .lst-bonos .vb-card.vl-card small{color:#C7B69E;font-size:11px;line-height:1.65}
+ .lst-bonos .vb-card.vl-card .vl-description{font-size:12px;line-height:1.75;color:#E0D2BD;min-height:42px}
+ .lst-bonos .vl-benefits{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid rgba(206,172,118,.25);border-bottom:1px solid rgba(206,172,118,.25);font-size:11px;color:#DDC6A2;margin-top:2px}
+ .lst-bonos .vb-card.vl-card button{font-size:12px;border-color:#8A704E;color:#EBD2AA;background:transparent;min-height:44px}
+ .lst-bonos .vb-card.vl-card .vl-cta,.lst-bonos .vb-card.vl-card .vb-primary{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;width:100%;margin-top:auto;padding:12px 15px;background:#D4B17C;border:1px solid #D4B17C;color:#2C2219;border-radius:5px;font-size:12px;font-weight:600;letter-spacing:.025em}
+ .lst-bonos .vb-card.vl-card .vl-cta:hover:not(:disabled){background:#E3C696;border-color:#E3C696}
+ .lst-bonos .vb-card.vl-card .vb-code{background:rgba(235,216,181,.06);border:1px solid #786145;color:#F0DCC0;border-radius:4px;padding:9px 10px;font-size:10px;line-height:1.7}
+ .lst-bonos .vb-card.vl-card .vb-meta{color:#C7B69E;font-size:10px;border-color:#786145}
+ .lst-bonos .vl-pay-note{font-size:10px!important;color:#BDA98B!important;text-align:center;line-height:1.6}
+ .vl-backdrop{position:fixed;inset:0;z-index:12000;background:rgba(13,10,8,.78);backdrop-filter:blur(7px);padding:24px 14px;display:flex;align-items:center;justify-content:center;overflow:auto}
+ .lst-bonos .vl-dialog{width:min(100%,490px);max-height:calc(100dvh - 48px);overflow:auto;overscroll-behavior:contain;background:#29221C;border:1px solid #A6895C;border-radius:13px;box-shadow:0 30px 80px rgba(0,0,0,.45);padding:24px;position:relative;color:#F4EADB}
+ .lst-bonos .vl-dialog .vl-visual{--vl-pad:24px;height:170px;margin-bottom:19px}
+ .lst-bonos .vl-dialog h3{color:#F0E1C9;font-family:Georgia,serif;font-size:25px;line-height:1.3;margin:0 0 8px;font-weight:400}
+ .lst-bonos .vl-dialog .vl-close{position:absolute;top:10px;right:10px;z-index:3;width:36px;min-height:36px;padding:0;border:1px solid #BDA178;border-radius:50%;background:#2C231D;color:#EAD4B3;font-size:20px;line-height:1}
+ .lst-bonos .vl-dialog form,.lst-bonos .vl-checkout-body{display:grid;gap:13px}
+ .lst-bonos .vl-dialog label{display:grid;gap:6px;font-size:12px;color:#D9C9B1}
+ .lst-bonos .vl-dialog textarea,.lst-bonos .vl-dialog input,.lst-bonos .vl-dialog select{background:#F2EADC;color:#352A20;border-color:#A68A60;font-size:13px;width:100%;border-radius:5px}
+ .lst-bonos .vl-dialog .vl-total{display:flex;align-items:center;justify-content:space-between;border-top:1px solid #66523A;border-bottom:1px solid #66523A;padding:12px 0;gap:12px;color:#E5D2B4;font-size:12px}
+ .lst-bonos .vl-dialog .vl-total strong{font-family:Georgia,serif;color:#E7C28E;font-size:27px;font-weight:400}
+ .lst-bonos .vl-dialog .vl-action{width:100%;background:#D4B17C;color:#2C2219;border:1px solid #D4B17C;padding:12px;min-height:48px;border-radius:5px;font-weight:600;justify-content:center}
+ .lst-bonos .vl-dialog .vl-error{color:#F6C9B8;background:#4A2B24;padding:11px;border:1px solid #9F6554;border-radius:6px;font-size:12px}
+ .lst-bonos .vl-dialog .vl-info{color:#DDE5CE;background:#30372A;padding:11px;border:1px solid #687351;border-radius:6px;font-size:12px}
+ .lst-bonos .vl-bizum{border:1px solid #786145;background:#34291F;border-radius:7px;padding:14px;display:grid;gap:10px}
+ .lst-bonos .vl-bizum>div{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+ .lst-bonos .vl-bizum strong{color:#F0D2A3;font-size:17px;font-weight:500;user-select:all}.lst-bonos .vl-bizum .vl-reference{font-family:monospace;font-size:15px;letter-spacing:.04em}
+ .lst-bonos .vl-muted{font-size:11px;color:#C7B69E;line-height:1.8}
+ @media(max-width:480px){.lst-bonos .vb-card.vl-card{--vl-pad:20px}.lst-bonos .vl-visual{height:220px}.lst-bonos .vb-card.vl-card h3{font-size:21px}.vl-backdrop{padding:12px}.lst-bonos .vl-dialog{max-height:calc(100dvh - 24px);padding:20px}.lst-bonos .vl-dialog .vl-visual{--vl-pad:20px;height:155px}.lst-bonos .vl-dialog h3{font-size:23px}}
+ @media(prefers-reduced-motion:reduce){.lst-bonos .vl-photo{transition:none}.lst-bonos .vl-card:hover .vl-photo{transform:none}}
  `}</style>;}
 function GiftCardBrand({logoSrc}:{logoSrc?:string}){
  const resolved=logoSrc||DEFAULT_BRAND_LOGO;
  const [failedSrc,setFailedSrc]=useState<string|null>(null);
  return <div className="vb-gift-brand">{failedSrc!==resolved?<img src={resolved} alt="L’Studio Ana" loading="lazy" decoding="async" onError={()=>setFailedSrc(resolved)}/>:<span>L’Studio Ana</span>}</div>;
 }
+const VOUCHER_ART:Record<string,{image:string;alt:string;position:string;eyebrow:string;description:string}>= {
+ gift50:{image:'regalo-50.webp',alt:'Cuidado profesional de una melena larga',position:'50% 38%',eyebrow:'El arte de regalar',description:'Un detalle para disfrutar del cuidado y elegir su próxima experiencia.'},
+ gift100:{image:'regalo-100.webp',alt:'Retrato editorial de una mujer con cabello castaño',position:'50% 37%',eyebrow:'Un regalo para recordar',description:'Tiempo para cuidarse. Una experiencia con el sello de L’Studio Ana.'},
+ intensive5:{image:'intensivos.webp',alt:'Lavado y cuidado del cabello en un salón',position:'50% 45%',eyebrow:'El ritual de volver',description:'Cinco encuentros con el cuidado intensivo de tu cabello.'},
+ men5:{image:'caballero.webp',alt:'Profesional realizando un corte de caballero',position:'50% 42%',eyebrow:'Precisión y carácter',description:'Tu corte, tu estilo y cinco momentos para mantenerlo.'},
+};
+function VoucherVisual({productId,logoSrc}:{productId:string;logoSrc?:string}){
+ const art=VOUCHER_ART[productId]||VOUCHER_ART.gift50;
+ const [failed,setFailed]=useState(false);
+ return <div className="vl-visual">{!failed&&<img className="vl-photo" src={'/voucher-images/'+art.image} alt={art.alt} loading="lazy" decoding="async" style={{objectPosition:art.position}} onError={()=>setFailed(true)}/>}<div className="vl-photo-shade"/><div className="vl-logo"><GiftCardBrand logoSrc={logoSrc}/></div><span className="vl-eyebrow">{art.eyebrow}</span></div>;
+}
+
 export function VoucherHub(props:{logoSrc?:string;services:VoucherServiceOption[];onReserve?:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void}){
  const [opened,setOpened]=useState(false);
  return <section className="lst-bonos"><VoucherStyles/><button type="button" className="vb-entry" aria-expanded={opened} onClick={()=>setOpened(v=>!v)}><span><strong>Tarjetas regalo y bonos</strong><small>Regala cuidado. Reserva tu próximo ritual.</small></span><Sparkles size={21}/></button>{opened&&<VoucherPanel logoSrc={props.logoSrc} services={props.services} onReserve={props.onReserve}/>}</section>;
@@ -326,12 +358,57 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
  const load=async()=>{const request=++gen.current;setBusy(true);setError('');try{const result=await studioApi.fetchVouchers(voucherToken(),admin?client||undefined:undefined,page);if(mounted.current&&request===gen.current){setData(result);setConfig(Object.fromEntries(result.products.map(p=>[p.id,p.service_ids])));}}catch(e){if(mounted.current&&request===gen.current)setError(e instanceof Error?e.message:'No se pudieron cargar los bonos.');}finally{if(mounted.current&&request===gen.current)setBusy(false);}};
  useEffect(()=>{void load();},[page,client,admin]);
  const act=async(action:()=>Promise<unknown>,success:string)=>{if(lock.current)return;lock.current=true;setWriting(true);setError('');setMessage('');try{await action();if(mounted.current){setMessage(success);setConfirming(null);setChecked(false);setPendingCancel(null);await load();}}catch(e){if(mounted.current)setError(e instanceof Error?e.message:'No se pudo completar la operación.');}finally{lock.current=false;if(mounted.current)setWriting(false);}};
- const order=(product:studioApi.VoucherProduct)=>{
-  if(admin&&!client){setError('Selecciona primero la clienta a la que asignarás el bono.');return;}
-  const orderDedication=product.kind==='gift'?dedication:'';
-  const key=JSON.stringify([client,product.id,orderDedication]);if(attempt.current?.key!==key)attempt.current={key,id:crypto.randomUUID()};const id=attempt.current.id;
-  void act(async()=>{await studioApi.orderVoucher(voucherToken(),{id,productId:product.id,clientId:admin?client:undefined,dedication:orderDedication});attempt.current=null;},admin?'Solicitud creada. Confirma el ingreso cuando hayas comprobado el cobro.':'Solicitud guardada. Abajo encontrarás el Bizum y la referencia del pago.');
+ const [checkoutProduct,setCheckoutProduct]=useState<studioApi.VoucherProduct|null>(null),[checkoutOrder,setCheckoutOrder]=useState<studioApi.VoucherCheckout|null>(null);
+ const [purchaseError,setPurchaseError]=useState(''),[purchaseInfo,setPurchaseInfo]=useState(''),[recipient,setRecipient]=useState('');
+ const checkoutRef=useRef<HTMLDivElement|null>(null),checkoutHeading=useRef<HTMLHeadingElement|null>(null),checkoutTrigger=useRef<HTMLElement|null>(null);
+ useEffect(()=>{
+  if(!checkoutProduct)return;
+  const previousOverflow=document.body.style.overflow;document.body.style.overflow='hidden';checkoutHeading.current?.focus();
+  const key=(event:KeyboardEvent)=>{
+   if(event.key==='Escape'){if(!lock.current){event.preventDefault();setCheckoutProduct(null);}return;}
+   if(event.key!=='Tab')return;
+   const elements=Array.from(checkoutRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled),input:not(:disabled),select:not(:disabled),textarea:not(:disabled),a[href]')||[]).filter(el=>el.getClientRects().length>0);
+   const first=elements[0],last=elements[elements.length-1];
+   if(!first){event.preventDefault();return;}
+   if(event.shiftKey&&(document.activeElement===first||document.activeElement===checkoutHeading.current)){event.preventDefault();last.focus();}
+   else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();}
+  };
+  document.addEventListener('keydown',key);
+  return()=>{document.body.style.overflow=previousOverflow;document.removeEventListener('keydown',key);if(checkoutTrigger.current?.isConnected)checkoutTrigger.current.focus();};
+ },[checkoutProduct?.id]);
+ const openPurchase=(product:studioApi.VoucherProduct)=>{
+  if(lock.current)return;
+  checkoutTrigger.current=document.activeElement instanceof HTMLElement?document.activeElement:null;
+  setCheckoutProduct(product);setCheckoutOrder(null);setPurchaseError('');setPurchaseInfo('');setRecipient('');setDedication('');
  };
+ const closePurchase=()=>{if(lock.current)return;setCheckoutProduct(null);setCheckoutOrder(null);setPurchaseError('');setPurchaseInfo('');};
+ const submitPurchase=async(event:React.FormEvent)=>{
+  event.preventDefault();if(!checkoutProduct||lock.current)return;
+  if(admin&&!client){setPurchaseError('Selecciona la clienta a la que asignarás esta compra.');return;}
+  const savedDedication=checkoutProduct.kind==='gift'?[recipient.trim()?'Para '+recipient.trim():'',dedication.trim()].filter(Boolean).join('\n\n'):'';
+  if(savedDedication.length>300){setPurchaseError('La dedicatoria completa debe tener un máximo de 300 caracteres.');return;}
+  const key=JSON.stringify([client,checkoutProduct.id,savedDedication]);
+  if(attempt.current?.key!==key)attempt.current={key,id:crypto.randomUUID()};
+  const requestId=attempt.current.id;
+  lock.current=true;setWriting(true);setPurchaseError('');setPurchaseInfo('');
+  try{
+   const result=await studioApi.orderVoucher(voucherToken(),{id:requestId,productId:checkoutProduct.id,clientId:admin?client:undefined,dedication:savedDedication});
+   if(!result.checkout||!result.checkout.paymentReference||!result.checkout.bizumNumber)throw new Error('La solicitud puede haberse guardado. Actualiza studio-api con el archivo de este paquete y pulsa Continuar de nuevo para recuperarla.');
+   if(!mounted.current)return;
+   setCheckoutOrder(result.checkout);attempt.current=null;
+   setPurchaseInfo(result.checkout.status==='pending'?'Solicitud guardada. Completa el Bizum con estos datos.':result.checkout.status==='active'?'Esta compra ya está activada. Puedes consultarla en tus tarjetas y bonos.':'Esta solicitud está anulada. Puedes volver al listado para preparar una nueva.');
+   await load();
+  }catch(e){if(mounted.current)setPurchaseError(e instanceof Error?e.message:'No se pudo preparar la compra. Conservamos tus datos para reintentar.');}
+  finally{lock.current=false;if(mounted.current)setWriting(false);}
+ };
+ const reportPurchasePayment=async()=>{
+  if(!checkoutOrder||checkoutOrder.status!=='pending'||lock.current)return;
+  lock.current=true;setWriting(true);setPurchaseError('');
+  try{await studioApi.reportVoucherPayment(voucherToken(),checkoutOrder.id);if(mounted.current){setCheckoutOrder(order=>order?{...order,paymentReported:true}:order);setPurchaseInfo('Has comunicado el Bizum. El estudio activará la compra después de comprobar el ingreso.');await load();}}
+  catch(e){if(mounted.current)setPurchaseError(e instanceof Error?e.message:'No se pudo comunicar el pago. Puedes reintentarlo.');}
+  finally{lock.current=false;if(mounted.current)setWriting(false);}
+ };
+ const copyPurchase=async(text:string)=>{try{await navigator.clipboard.writeText(text);setPurchaseInfo('Dato copiado.');}catch{setPurchaseInfo('Selecciona el dato mostrado para copiarlo manualmente.');}};
  const copy=async(text:string)=>{try{await navigator.clipboard.writeText(text);setMessage('Código copiado.');}catch{setMessage('Selecciona el código mostrado para copiarlo manualmente.');}};
  return <section className="lst-bonos"><VoucherStyles/><header className="vb-header"><div><h2>{admin?'Tarjetas regalo y bonos':'Tus tarjetas y bonos'}</h2><small>{admin?'Compras, cobros y sesiones del estudio.':'Un detalle para regalar. Un cuidado para volver.'}</small></div><button type="button" disabled={busy||writing} onClick={()=>void load()}>Actualizar</button></header>
   {error&&<p role="alert" className="vb-error">{error}</p>}{message&&<p role="status" className="vb-message">{message}</p>}{busy&&<p role="status">Consultando tus bonos…</p>}
@@ -346,14 +423,25 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
       return <label className="vb-check" key={s.id} style={{alignItems:'flex-start',padding:'10px 3px',borderBottom:'1px solid rgba(195,161,106,.18)'}}><input type="checkbox" disabled={writing||(!eligible&&!checked)} checked={checked} onChange={e=>setConfig(current=>({...current,[p.id]:e.target.checked?[...(current[p.id]||[]),s.id]:(current[p.id]||[]).filter(id=>id!==s.id)}))}/><span style={{display:'grid',gap:3}}><small style={{color:'#DDC49B',fontSize:10,letterSpacing:'.05em'}}>{s.category}</small><strong style={{fontSize:12,fontWeight:500}}>{s.label}</strong>{normal(s.portalName)!==normal(s.label)&&<small>En el portal: {s.portalName}</small>}<small>{s.displayPrice||'Precio sin indicar'}</small>{!eligible&&<small style={{color:'#E4B99A'}}>{!s.active?'Inactivo: actívalo en Catálogo para ofrecerlo en el portal.':'Revisa en Catálogo: necesita precio fijo de '+voucherMoney(p.unit_cents)+' o una variante de ese importe.'}</small>}</span></label>;
     })}</div>{options.length===0&&<p className="vb-note">No hay coincidencias. Prueba con la categoría o el nombre que aparece en el catálogo.</p>}<button type="button" disabled={writing} onClick={()=>void act(()=>studioApi.configureVoucher(voucherToken(),p.id,config[p.id]||[]),'Servicios incluidos guardados.')}>Guardar servicios de este bono</button></div>;
   })}</details>}
-  {(['gift','sessions'] as const).map(kind=><details key={kind} className="vb-panel"><summary>{kind==='gift'?(admin?'Emitir tarjeta regalo':'Comprar tarjeta regalo'):(admin?'Emitir bono 5×4':'Comprar bono 5×4')}</summary><h3>{kind==='gift'?'Tarjetas regalo':'Bonos de sesiones · 5×4'}</h3><p className="vb-note">{kind==='gift'?'Elige 50 € o 100 €. Validez de 1 año desde la activación.':'Corte caballero o tratamientos intensivos. 5 sesiones por el precio de 4, con 6 meses de validez.'}</p>{kind==='gift'&&<label>Dedicatoria opcional<textarea maxLength={300} rows={2} value={dedication} disabled={writing} onChange={e=>setDedication(e.target.value)}/></label>}<div className="vb-grid">{data?.products.filter(p=>p.kind===kind).map(p=>{const ready=p.enabled&&(p.kind==='gift'||p.service_ids.length>0)&&!!data.bizumNumber;return <article key={p.id} className={'vb-card '+(p.kind==='gift'?'vb-gift vb-gift-shop':'')}>{p.kind==='gift'&&<GiftCardBrand logoSrc={logoSrc}/>}<small className="vb-kicker">{p.kind==='gift'?'':'L’STUDIO ANA · '} {p.kind==='gift'?'EL ARTE DE REGALAR':'TU RITUAL 5×4'}</small><h3>{p.kind==='gift'?'Tarjeta regalo':voucherDisplayTitle(p)}</h3><strong className="vb-amount">{voucherMoney(p.price_cents)}</strong><p className={p.kind==='gift'?'vb-gift-description':undefined}>{p.kind==='gift'?'Saldo para disfrutar en tus servicios.':`5 sesiones por el precio de 4 · ahorras ${voucherMoney(p.unit_cents)}.`}</p>{p.kind==='gift'&&<p className="vb-gift-note">Un momento para ti.<br/>Con el sello de L’Studio Ana.</p>}<small>Validez: {p.valid_months===12?'1 año':'6 meses'} desde la confirmación del pago.</small>{p.kind==='sessions'&&<small>Una sesión por cita. Complementos aparte. No acumulable a otra promoción.</small>}<button type="button" className={p.kind==='gift'?'vb-gift-cta':undefined} disabled={!ready||writing||busy||(admin&&!client)} onClick={()=>order(p)}>{ready?(p.kind==='gift'?(admin?'Preparar tarjeta regalo':'Regalar esta experiencia'):'Solicitar compra por Bizum'):'Disponible próximamente'}{p.kind==='gift'&&ready&&<ArrowRight size={15} aria-hidden="true"/>}</button>{p.kind==='gift'&&ready&&<small>Pago por Bizum · activación tras comprobar el ingreso.</small>}</article>;})}</div><small>El pago se comprueba manualmente en el estudio. Solicitar o avisar del Bizum no activa {kind==='gift'?'la tarjeta':'el bono'}.</small></details>)}
+  {(['gift','sessions'] as const).map(kind=><details key={kind} className="vb-panel"><summary>{kind==='gift'?(admin?'Preparar tarjeta regalo':'Descubrir tarjetas regalo'):(admin?'Preparar bono 5×4':'Descubrir bonos de sesiones')}</summary><h3>{kind==='gift'?'El arte de regalar L’Studio':'Tu ritual, con continuidad'}</h3><p className="vb-note">{kind==='gift'?'50 € o 100 € para elegir una experiencia.':'Corte caballero y tratamientos intensivos · 5 sesiones por el precio de 4.'}</p><div className="vb-grid">{data?.products.filter(p=>p.kind===kind).map(p=>{
+    const ready=p.enabled&&(p.kind==='gift'||p.service_ids.length>0)&&!!data.bizumNumber;
+    const art=VOUCHER_ART[p.id]||VOUCHER_ART.gift50;
+    return <article key={p.id} className={'vb-card vl-card vl-'+p.id+(p.kind==='gift'?' vb-gift':'')}>
+      <VoucherVisual productId={p.id} logoSrc={logoSrc}/><small className="vb-kicker">{p.kind==='gift'?'Tarjeta regalo':'Bono de sesiones · 5×4'}</small>
+      <h3>{p.kind==='gift'?'Regala L’Studio':p.id==='men5'?'Corte caballero':'Tratamientos intensivos'}</h3>
+      <strong className="vb-amount">{(p.price_cents/100).toLocaleString('es-ES')} €</strong><p className="vl-description">{art.description}</p>
+      <div className="vl-benefits"><span>{p.kind==='gift'?'Saldo para elegir':'5 sesiones · pagas 4'}</span><span>{p.valid_months===12?'1 año de validez':'6 meses de validez'}</span></div>
+      {p.kind==='sessions'&&<small>Una sesión por cita. Complementos aparte. No acumulable a otra promoción.</small>}
+      <button type="button" className="vl-cta" disabled={!ready||writing||busy} onClick={()=>openPurchase(p)}>{ready?(p.kind==='gift'?(admin?'Preparar tarjeta regalo':'Regalar esta experiencia'):(admin?'Preparar bono':'Elegir mi bono')):'Consultar disponibilidad'}<ArrowRight size={15} aria-hidden="true"/></button><small className="vl-pay-note">Pago por Bizum · activación al comprobar el ingreso.</small>
+    </article>;
+  })}</div></details>)}
   {!admin&&<details className="vb-panel"><summary>Me han regalado una tarjeta</summary><label>Código completo<input autoComplete="off" maxLength={35} placeholder="LS-…" value={code} disabled={writing} onChange={e=>setCode(e.target.value.toUpperCase())}/></label><small>Una tarjeta activa y sin uso puede asignarse una vez a quien la recibe. Al añadirla, quedará en tu perfil.</small><button type="button" disabled={writing||!code.trim()} onClick={()=>void act(async()=>{await studioApi.claimGiftVoucher(voucherToken(),code);setCode('');},'Tarjeta regalo añadida a tu perfil.')}>Añadir mi tarjeta regalo</button></details>}
   {!busy&&data?.vouchers.length===0&&<p className="vb-note">{admin?'No hay tarjetas ni bonos para esta selección.':'Aquí aparecerán tus tarjetas regalo y tus bonos de sesiones.'}</p>}
   {(['gift','sessions'] as const).map(kind=>{
     const group=data?.vouchers.filter(v=>v.kind===kind)||[];
     if(!group.length)return null;
     return <section key={kind}><h3 className="vb-wallet-heading">{kind==='gift'?(admin?'Tarjetas regalo registradas':'Mis tarjetas regalo'):(admin?'Bonos de sesiones registrados':'Mis bonos de sesiones')}</h3>
-<div className="vb-grid">{group.map(v=>{const expired=!!v.expires_on&&v.expires_on<voucherToday(),available=voucherAvailable(v);const label=v.status==='pending'?'Pendiente de comprobar Bizum':v.status==='cancelled'?'Solicitud cancelada':expired?'Caducado':available<=0?'Sin disponibilidad':v.kind==='gift'?'Tarjeta activa':'Bono activo';return <article key={v.id} className={'vb-card '+(v.kind==='gift'?'vb-gift':'')}>{v.kind==='gift'&&<GiftCardBrand logoSrc={logoSrc}/>}
+<div className="vb-grid">{group.map(v=>{const expired=!!v.expires_on&&v.expires_on<voucherToday(),available=voucherAvailable(v);const label=v.status==='pending'?'Pendiente de comprobar Bizum':v.status==='cancelled'?'Solicitud cancelada':expired?'Caducado':available<=0?'Sin disponibilidad':v.kind==='gift'?'Tarjeta activa':'Bono activo';return <article key={v.id} className={'vb-card vl-card vl-owned vl-'+v.product_id+(v.kind==='gift'?' vb-gift':'')}><VoucherVisual productId={v.product_id} logoSrc={logoSrc}/>
    <small className="vb-kicker">L’STUDIO ANA · {label}</small><h3>{voucherDisplayTitle(v)}</h3>{admin&&<small>{clients.find(c=>c.id===v.client_id)?.label||'Ficha registrada'}</small>}
    {v.status!=='active'?<p style={{fontSize:12}}>{v.status==='cancelled'?'Solicitud anulada · sin saldo ni sesiones activadas.':'El saldo o las sesiones se activarán al confirmar el pago.'}</p>:(v.kind==='gift'?<><strong className="vb-amount">{voucherMoney(Math.max(0,v.price_cents-v.used_cents))}</strong><small>Saldo sin consumir{v.held_cents>0?` · ${voucherMoney(v.held_cents)} apartado para citas`:''}</small></>:<><div className="vb-dots" aria-label={`${v.used_sessions} usadas, ${v.held_sessions} reservadas, ${Math.max(0,available)} disponibles`}>{Array.from({length:v.sessions},(_,i)=><span key={i} aria-hidden="true" className={'vb-dot '+(i<v.used_sessions?'used':i<v.used_sessions+v.held_sessions?'held':'')}/>)}</div><p>{v.used_sessions} de {v.sessions} realizadas · {v.held_sessions} reservadas</p><small>{Math.max(0,available)} sesiones disponibles para reservar.</small></>)}
    {v.dedication&&<p style={{fontStyle:'italic',fontSize:12}}>{v.dedication}</p>}
@@ -379,6 +467,30 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
   </article>;})}</div></section>;
   })}
   {data&&data.total>12&&<div className="vb-pager"><button type="button" disabled={page===0||writing||busy} onClick={()=>setPage(p=>p-1)}>Anterior</button><span>{page+1} / {Math.ceil(data.total/12)}</span><button type="button" disabled={(page+1)*12>=data.total||writing||busy} onClick={()=>setPage(p=>p+1)}>Siguiente</button></div>}
+  {checkoutProduct&&<div className="vl-backdrop" onClick={event=>{if(event.target===event.currentTarget)closePurchase();}}><div ref={checkoutRef} className="vl-dialog" role="dialog" aria-modal="true" aria-labelledby="voucher-checkout-title" aria-busy={writing}>
+   <button type="button" className="vl-close" disabled={writing} onClick={closePurchase} aria-label="Cerrar compra">×</button>
+   <VoucherVisual productId={checkoutProduct.id} logoSrc={logoSrc}/>
+   <h3 id="voucher-checkout-title" ref={checkoutHeading} tabIndex={-1}>{checkoutOrder?'Tu experiencia, un paso más cerca':checkoutProduct.kind==='gift'?'Regala un momento L’Studio':'Tu próximo ritual L’Studio'}</h3>
+   {purchaseError&&<p className="vl-error" role="alert">{purchaseError}</p>}{purchaseInfo&&<p className="vl-info" role="status">{purchaseInfo}</p>}
+   {!checkoutOrder?<form onSubmit={submitPurchase}>
+    <p className="vl-muted">{voucherDisplayTitle(checkoutProduct)} · {checkoutProduct.valid_months===12?'1 año':'6 meses'} de validez desde la activación.</p>
+    {admin&&<label>Clienta<select required value={client} disabled={writing} onChange={event=>{setClient(event.target.value);setPage(0);}}><option value="">Selecciona una ficha</option>{clients.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</select></label>}
+    {checkoutProduct.kind==='gift'&&<><label>Para quién es · opcional<input maxLength={80} value={recipient} disabled={writing} autoComplete="off" placeholder="Su nombre" onChange={event=>setRecipient(event.target.value)}/></label><label>Tu dedicatoria · opcional<textarea maxLength={210} rows={3} value={dedication} disabled={writing} placeholder="Un momento para ti. Con el sello de L’Studio Ana." onChange={event=>setDedication(event.target.value)}/></label><p className="vl-muted">Tras confirmar el ingreso, tendrás un código para compartir en privado con quien reciba el regalo. También puedes disfrutarlo tú.</p></>}
+    {checkoutProduct.kind==='sessions'&&<p className="vl-muted">Incluye 5 sesiones por el precio de 4. Una sesión por cita. Complementos aparte. No acumulable a otra promoción.</p>}
+    <div className="vl-total"><span>Importe de la compra</span><strong>{voucherMoney(checkoutProduct.price_cents)}</strong></div>
+    <button type="submit" className="vl-action" disabled={writing}>{writing?'Preparando tu compra…':'Continuar con Bizum'} <ArrowRight size={16}/></button>
+    <p className="vl-muted">A continuación verás el número y el concepto del pago. La activación se realiza al comprobar el ingreso en el estudio.</p>
+   </form>:<div className="vl-checkout-body">
+    <p className="vl-muted">{checkoutOrder.title}</p>
+    {checkoutOrder.existingRequest&&<p className="vl-muted">Ya tenías una solicitud de este modelo. Hemos recuperado su referencia para evitar una compra duplicada.</p>}
+    {checkoutOrder.status==='pending'&&<><div className="vl-bizum"><div><span>Importe exacto</span><strong>{voucherMoney(checkoutOrder.priceCents)}</strong></div><div><span>Bizum al</span><strong>{checkoutOrder.bizumNumber}</strong><button type="button" onClick={()=>void copyPurchase(checkoutOrder.bizumNumber)}>Copiar número</button></div><div><span>Concepto</span><strong className="vl-reference">{checkoutOrder.paymentReference}</strong><button type="button" onClick={()=>void copyPurchase(checkoutOrder.paymentReference)}>Copiar concepto</button></div></div>
+     <p className="vl-muted">Abre tu banco, envía el Bizum con ese concepto y vuelve para comunicar el pago. La compra seguirá pendiente hasta que el estudio compruebe el ingreso.</p>
+     {checkoutOrder.dedication&&<p className="vl-muted" style={{whiteSpace:'pre-wrap'}}>Dedicatoria guardada:<br/>{checkoutOrder.dedication}</p>}
+     <button type="button" className="vl-action" disabled={writing||checkoutOrder.paymentReported} onClick={()=>void reportPurchasePayment()}>{writing?'Comunicando…':checkoutOrder.paymentReported?'Bizum comunicado · pendiente de comprobación':'Ya he realizado el Bizum'}</button>
+    </>}
+    <button type="button" disabled={writing} onClick={()=>{closePurchase();if(page===0)void load();else setPage(0);}}>Ver mis tarjetas y bonos</button>
+   </div>}
+  </div></div>}
  </section>;
 }
 export function BookingVoucher({selectedId,onChange,services,dateKey,promotionId,clientId,appointmentId,onSaved}:{selectedId:string|null;onChange:(id:string|null)=>void;services:unknown;dateKey:string;promotionId?:string|null;clientId?:string;appointmentId?:string;onSaved?:()=>Promise<unknown>}){
