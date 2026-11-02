@@ -18,6 +18,16 @@ function clientDisplayNumber(client: {registroId?: string} | null | undefined): 
   const match = /^LSTUDIO-(\d+)$/.exec(client?.registroId || '');
   return match ? String(Number(match[1])) : 'Pendiente';
 }
+// JSONB may reorder object keys. Compare data values while retaining array order.
+function catalogValuesMatch(left:unknown,right:unknown):boolean {
+  if(left===right)return true;
+  if(left===null||right===null||typeof left!=='object'||typeof right!=='object')return false;
+  if(Array.isArray(left)||Array.isArray(right))return Array.isArray(left)&&Array.isArray(right)&&left.length===right.length&&left.every((value,index)=>catalogValuesMatch(value,right[index]));
+  const a=left as Record<string,unknown>,b=right as Record<string,unknown>;
+  const keys=Object.keys(a).filter(key=>a[key]!==undefined),other=Object.keys(b).filter(key=>b[key]!==undefined);
+  return keys.length===other.length&&keys.every(key=>Object.prototype.hasOwnProperty.call(b,key)&&catalogValuesMatch(a[key],b[key]));
+}
+
 const CANCELLATION_HOURS = 24;
 const CANCELLATION_NOTICE = 'Para cambiar o cancelar tu cita con menos de 24 horas de antelación, contacta directamente con L’Studio Ana.';
 // The existing database stores appointment wall-clock values as ISO UTC text.
@@ -2078,14 +2088,21 @@ function StudioApp() {
       await studioApi.pushCatalog(token, submitted);
       const verify = await studioApi.syncAll<{ catalog?: { category?: CatalogCategory }[] }>(token, ['catalog']);
       const categories = verify?.catalog?.map(row => row.category).filter(Boolean) as CatalogCategory[] | undefined;
-      if (!categories || submitted.some(category => {
-        const stored = categories.find(item => item.id === category.id);
+      const differences:string[]=[];
+      if(!categories)throw new Error('No se pudo comprobar el catálogo guardado. Tus cambios siguen pendientes.');
+      for(const category of submitted){
+        const stored=categories.find(item=>item.id===category.id);
+        if(!stored){differences.push(category.title+': categoría no encontrada');continue;}
+        if(stored.title!==category.title)differences.push(category.title+': nombre de categoría');
+        for(const field of ['portalTitle','slogan','imageUrl'] as const)if((stored[field]||'')!==(category[field]||''))differences.push(category.title+': '+field);
         const keys = ['name', 'bookingName', 'imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'conditionsText', 'cutAllowedIds', 'addonGroups', 'bufferMinutes', 'bizumPolicy', 'bizumAmount', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
-        return !stored || stored.title !== category.title || (stored.portalTitle || '') !== (category.portalTitle || '') || (stored.slogan || '') !== (category.slogan || '') || (stored.imageUrl || '') !== (category.imageUrl || '') || category.subservices.some(service => {
-          const saved = stored.subservices?.find(s => s.id === service.id);
-          return !saved || keys.some(key => JSON.stringify(saved[key] ?? null) !== JSON.stringify(service[key] ?? null));
-        });
-      })) throw new Error('El servidor no ha conservado todas las fotos o condiciones de reserva. Los cambios siguen pendientes; revisa la API antes de continuar.');
+        for(const service of category.subservices){
+          const saved=stored.subservices?.find(item=>item.id===service.id);
+          if(!saved){differences.push(bookingName(service)+': servicio no encontrado');continue;}
+          for(const key of keys)if(!catalogValuesMatch(saved[key]??null,service[key]??null))differences.push(bookingName(service)+': '+key);
+        }
+      }
+      if(differences.length)throw new Error('No se ha podido verificar todo el catálogo. Revisa '+differences.slice(0,4).join('; ')+(differences.length>4?' y '+(differences.length-4)+' campos más.':'.')+' Los cambios se conservan para reintentar.');
       clearCatalogPhotos();
       setSavedCatalogSnapshot(JSON.stringify(submitted));
       try { localStorage.setItem('lst_master_catalog', JSON.stringify(submitted)); } catch { /* optional cache */ }
