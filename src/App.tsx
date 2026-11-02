@@ -512,6 +512,62 @@ function AppointmentVoucherTools({appointment,onSaved}:{appointment:Appointment;
  return <div>{appointment.voucher&&<p style={{fontSize:12,color:'#DEC49B'}}>Bono · {appointment.voucher.title} · {appointment.voucher.state==='consumed'?'Consumido':appointment.voucher.state==='released'?'Reserva liberada':'Apartado para esta cita'} · {appointment.voucher.kind==='gift'?voucherMoney(appointment.voucher.amountCents):'1 sesión'}</p>}{!appointment.completedAt&&isActiveAppointment(appointment)&&appointment.clientId&&appointment.serverId&&<BookingVoucher selectedId={selected} onChange={setSelected} services={appointment.services||[]} dateKey={appointment.dateKey} clientId={appointment.clientId} appointmentId={appointment.serverId} onSaved={onSaved}/>}</div>;
 }
 
+type PortalProfileTab='hair'|'history'|'photos'|'vouchers';
+function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,onBack,onBook,onReserve}:{client?:ClientRecord|null;catalog:CatalogCategory[];logoSrc:string;t:(key:string)=>string;compactVisitText:(text:string)=>string;onBack:()=>void;onBook:()=>void;onReserve:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void}){
+ const [tab,setTab]=useState<PortalProfileTab>('hair'),[historyPage,setHistoryPage]=useState(0);
+ const [visited,setVisited]=useState<Record<PortalProfileTab,boolean>>({hair:true,history:false,photos:false,vouchers:false});
+ const tabs:{id:PortalProfileTab;label:string}[]=[{id:'hair',label:'Mi cabello'},{id:'history',label:'Historial'},{id:'photos',label:'Fotos'},{id:'vouchers',label:'Mis bonos'}];
+ useEffect(()=>{window.scrollTo({top:0,behavior:'auto'});},[]);
+ const select=(id:PortalProfileTab)=>{setTab(id);setVisited(previous=>({...previous,[id]:true}));window.scrollTo({top:0,behavior:'auto'});};
+ const tabKey=(event:React.KeyboardEvent<HTMLButtonElement>,index:number)=>{
+  let next=index;if(event.key==='ArrowRight')next=(index+1)%tabs.length;else if(event.key==='ArrowLeft')next=(index+tabs.length-1)%tabs.length;else if(event.key==='Home')next=0;else if(event.key==='End')next=tabs.length-1;else return;
+  event.preventDefault();select(tabs[next].id);document.getElementById('lp-tab-'+tabs[next].id)?.focus();
+ };
+ const stamp=(date:string)=>{const d=date.trim();const match=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(d);const iso=match?`${match[3]}-${match[2]}-${match[1]}`:d.slice(0,10);const value=Date.parse(iso+'T12:00:00Z');return Number.isFinite(value)?value:0;};
+ const visits=[...(client?.pastVisits||[])].sort((a,b)=>stamp(b.date)-stamp(a.date));
+ const pages=Math.max(1,Math.ceil(visits.length/4)),page=Math.min(historyPage,pages-1);
+ return <section className="lst-profile-compact" aria-label="Perfil de cliente">
+  <style>{`
+   .lst-profile-compact{max-width:520px;width:100%;min-width:0;box-sizing:border-box;color:#F4EBDD;padding:0 0 90px;font-size:13px;line-height:1.6}
+   .lst-profile-compact *{box-sizing:border-box}.lst-profile-compact h2,.lst-profile-compact h3,.lst-profile-compact p{margin:0}.lst-profile-compact button{font:inherit;cursor:pointer}.lst-profile-compact button:focus-visible,.lst-profile-compact summary:focus-visible{outline:2px solid #E4C687;outline-offset:3px}
+   .lp-header{display:grid;grid-template-columns:40px minmax(0,1fr);align-items:center;gap:11px;padding-right:52px;margin-bottom:15px}
+   .lp-header .lp-back{width:40px;min-height:44px;background:transparent;color:#DDC29A;border:1px solid #6C583D;border-radius:50%;display:grid;place-items:center;padding:0}
+   .lp-header h2{font-family:Georgia,serif;font-size:21px;font-weight:400;line-height:1.3;color:#EAD5B4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+   .lp-header p{font-size:12px;color:#C8B79E;line-height:1.5;margin-top:3px;overflow-wrap:anywhere}
+   .lp-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;position:sticky;top:8px;z-index:20;padding:4px;background:#2C251F;border:1px solid #665039;border-radius:9px;margin-bottom:15px;box-shadow:0 4px 12px rgba(0,0,0,.13)}
+   .lp-tabs button{min-width:0;min-height:44px;padding:8px 3px;border:0;border-radius:6px;background:transparent;color:#CDBCA4;font-size:11px;white-space:nowrap;letter-spacing:.015em}
+   .lp-tabs button[aria-selected=true]{background:#D0AA71;color:#2C2219;font-weight:600}
+   .lp-panel[hidden]{display:none!important}.lp-panel{min-width:0}.lp-hair{display:grid;gap:10px}
+   .lp-next{border:1px solid #846A45;background:linear-gradient(120deg,#3B3025,#2B241E);border-radius:10px;padding:14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px 12px;align-items:center}
+   .lp-next small{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#CEB791}.lp-next p{font-size:13px;color:#F1E4D0;line-height:1.55;overflow-wrap:anywhere}
+   .lp-next .lp-book{min-height:44px;border:1px solid #C6A16C;border-radius:6px;background:#D0AA71;color:#2C2219;padding:9px 13px;font-size:12px;grid-column:2;grid-row:1/3}
+   .lp-fold{border:1px solid #68533C;border-radius:9px;background:#302820;padding:0 14px}
+   .lp-fold summary{display:flex;align-items:center;justify-content:space-between;gap:10px;list-style:none;min-height:59px;padding:10px 0;color:#E7D4B6;font-size:13px;cursor:pointer}
+   .lp-fold summary::-webkit-details-marker{display:none}.lp-fold summary svg{color:#B69A73;flex-shrink:0}.lp-fold[open] summary svg{transform:rotate(180deg)}
+   .lp-fold .lp-fold-body{font-size:13px;line-height:1.8;color:#DED0BC;white-space:pre-wrap;overflow-wrap:anywhere;padding:1px 0 15px}
+   .lp-quiet{font-size:11px;color:#BFAE95;line-height:1.65;padding:3px 2px}.lp-recommend-extra{grid-column:1/-1;font-size:11px;color:#CBB99E}.lp-recommend-extra summary{cursor:pointer;min-height:35px;padding:5px 0}.lp-recommend-extra p{font-size:12px;color:#CBB99E}
+   .lp-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 12px}.lp-section-head h3{font-family:Georgia,serif;font-size:19px;font-weight:400;color:#E3C9A2}.lp-section-head small{color:#BFAE95;font-size:11px}
+   .lp-history-list{display:grid;gap:9px}.lp-visit{padding:0 13px}.lp-visit summary{min-height:66px}.lp-visit summary span{min-width:0}.lp-visit time{display:block;font-size:11px;color:#CAA879;margin-bottom:3px}.lp-visit strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:12px;font-weight:500;line-height:1.55;color:#EFE3D2}
+   .lp-visit .lp-fold-body{font-size:12px;white-space:normal}.lp-visit .lp-fold-body p{margin-top:7px}.lp-visit .lp-notes{white-space:pre-wrap;overflow-wrap:anywhere}
+   .lp-pages{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:13px;color:#BEAB8D;font-size:11px}.lp-pages button{min-height:44px;padding:8px 13px;border:1px solid #796140;border-radius:6px;background:transparent;color:#DFCAA8;font-size:12px}.lp-pages button:disabled{opacity:.4;cursor:default}
+   .lp-panel .vb-header{margin-bottom:10px}.lp-panel .vb-header h2{font-size:20px}.lp-panel .vb-header small{display:none}.lp-panel .vb-panel{padding:12px;margin:9px 0;gap:9px}.lp-panel .vb-panel>summary{padding:3px 0;min-height:36px}.lp-panel .vb-wallet-heading{margin-top:16px}
+   @media(max-width:360px){.lp-header{gap:8px;padding-right:44px}.lp-header h2{font-size:19px}.lp-tabs button{font-size:10px}.lp-next{padding:12px}.lp-next .lp-book{padding:8px 10px}}
+  `}</style>
+  <header className="lp-header"><button className="lp-back" type="button" aria-label={t('backToPortal')} onClick={onBack}><ArrowLeft size={18}/></button><div><h2 title={t('passportTitle')}>{t('passportTitle')}</h2><p>{client?.nombre||'L’Studio Ana'}</p></div></header>
+  <nav role="tablist" aria-label="Apartados de tu perfil" className="lp-tabs">{tabs.map((item,index)=><button key={item.id} id={'lp-tab-'+item.id} type="button" role="tab" aria-selected={tab===item.id} aria-controls={'lp-panel-'+item.id} tabIndex={tab===item.id?0:-1} onClick={()=>select(item.id)} onKeyDown={event=>tabKey(event,index)}>{item.label}</button>)}</nav>
+  <div className="lp-panel" id="lp-panel-hair" role="tabpanel" aria-labelledby="lp-tab-hair" hidden={tab!=='hair'}>
+   <div className="lp-hair"><section className="lp-next"><small>{t('recommendedVisit')}</small><p>{client?.proximaVisitaSugerida||t('pendingRecommendation')}</p><button className="lp-book" type="button" onClick={onBook}>Reservar</button><details className="lp-recommend-extra"><summary>Ver orientación de mantenimiento</summary><p>{t('maintenanceNote')}</p></details></section>
+   <details className="lp-fold"><summary>{t('hairDna')}<ChevronDown size={16}/></summary><div className="lp-fold-body">{client?.dniCapilar||t('emptyDna')}</div></details>
+   <details className="lp-fold"><summary>{t('homeRitual')}<ChevronDown size={16}/></summary><div className="lp-fold-body">{client?.prescripcionCasa||t('emptyCare')}</div></details>
+   {client?.ultimaVisita&&<p className="lp-quiet">Última visita registrada · {client.ultimaVisita}</p>}
+   </div>
+  </div>
+  <div className="lp-panel" id="lp-panel-history" role="tabpanel" aria-labelledby="lp-tab-history" hidden={tab!=='history'}>{visited.history&&<><header className="lp-section-head"><h3>{t('visitHistory')}</h3><small>{visits.length} {visits.length===1?'visita':'visitas'}</small></header><div className="lp-history-list">{visits.length?visits.slice(page*4,page*4+4).map((visit,index)=><details className="lp-fold lp-visit" key={page*4+index}><summary><span><time>{visit.date}</time><strong>{compactVisitText(visit.service)}</strong></span><ChevronDown size={16}/></summary><div className="lp-fold-body"><p>{compactVisitText(visit.service)}</p>{visit.stylist&&<p>Con {visit.stylist}</p>}{visit.notes&&<p className="lp-notes">{visit.notes}</p>}</div></details>):<p className="lp-quiet">{t('emptyVisits')}</p>}</div>{pages>1&&<div className="lp-pages"><button type="button" disabled={page===0} onClick={()=>setHistoryPage(page-1)}>Anterior</button><span>{page+1} / {pages}</span><button type="button" disabled={page+1>=pages} onClick={()=>setHistoryPage(page+1)}>Siguiente</button></div>}</>}</div>
+  <div className="lp-panel" id="lp-panel-photos" role="tabpanel" aria-labelledby="lp-tab-photos" hidden={tab!=='photos'}>{visited.photos&&<ClientPhotoGallery key={client?.serverId||'own-gallery'} clientId={client?.serverId}/>}</div>
+  <div className="lp-panel" id="lp-panel-vouchers" role="tabpanel" aria-labelledby="lp-tab-vouchers" hidden={tab!=='vouchers'}>{visited.vouchers&&<VoucherPanel logoSrc={logoSrc} services={voucherServiceOptions(catalog)} onReserve={onReserve}/>}</div>
+ </section>;
+}
+
 const LazyAdminPanelView = React.lazy(() => import('./AdminPanelView'));
 // Optimized copies of bundled photos only; custom uploads remain unchanged.
 const FAST_PHOTO_URLS: Readonly<Record<string,string>> = {
@@ -5640,58 +5696,14 @@ function StudioApp() {
       )}
 
       {/* 2.3. PASAPORTE DE EXPERIENCIAS DE AUTOR */}
-      {currentScreen === 'clientHistoryPage' && (
-        <div style={{ maxWidth: '520px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          <button type="button" onClick={() => setCurrentScreen('clientPortal')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#D8C29A', padding: '10px 0', minHeight: '44px', fontSize: '13px', cursor: 'pointer' }}>{t('backToPortal')}</button>
-          <header>
-            <p style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1.5px', margin: '0 0 12px' }}>L’Studio Ana · Cuidado personalizado</p>
-            <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '24px', fontWeight: 'normal', lineHeight: 1.25, margin: '0 0 12px' }}>{t('passportTitle')}</h2>
-            <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6, margin: 0 }}>{currentClientRecord?.nombre && <span>{currentClientRecord.nombre} · </span>}{t('passportIntro')}</p>
-          </header>
-          <VoucherHub logoSrc={brandLogoSrc} services={voucherServiceOptions(catalog)} onReserve={(voucher,serviceId)=>{
+      {currentScreen === 'clientHistoryPage' && <ClientProfileCompact key={currentClientRecord?.serverId||'client-profile'} client={currentClientRecord} catalog={catalog} logoSrc={brandLogoSrc} t={t} compactVisitText={compactVisitText} onBack={()=>setCurrentScreen('clientPortal')} onBook={()=>setCurrentScreen('catalogBooking')} onReserve={(voucher,serviceId)=>{
             setSelectedVoucherId(voucher.id);setSelectedPromotionId(null);setSelectedPromotionOrigin(null);
             const cat=serviceId?catalog.find(c=>c.subservices.some(s=>s.id===serviceId&&s.active!==false)):undefined;
             const sub=cat?.subservices.find(s=>s.id===serviceId&&s.active!==false);
             if(cat&&sub){setViewServiceDetail({cat,sub});setCurrentScreen('serviceDetail');}
             else{setViewServiceDetail(null);setCurrentScreen('catalogBooking');}
             window.scrollTo({top:0,behavior:'smooth'});
-          }}/>
-          <ClientPhotoGallery key={currentClientRecord?.serverId||'own-gallery'} clientId={currentClientRecord?.serverId}/>
-          <section style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '10px', padding: '15px' }}>
-            <span style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1px' }}>01 · CONOCEMOS TU CABELLO</span>
-            <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontWeight: 'normal', fontSize: '19px', margin: '8px 0' }}>{t('hairDna')}</h3>
-            <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: 0 }}>{currentClientRecord?.dniCapilar || t('emptyDna')}</p>
-          </section>
-          <section style={{ backgroundColor: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 26px rgba(0, 0, 0, 0.25)' }}>
-            <span style={{ color: '#E4C687', fontSize: '11px', letterSpacing: '1px' }}>02 · ENTRE VISITAS</span>
-            <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontWeight: 'normal', fontSize: '19px', margin: '8px 0' }}>{t('homeRitual')}</h3>
-            <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.65, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: 0 }}>{currentClientRecord?.prescripcionCasa || t('emptyCare')}</p>
-          </section>
-          <section style={{ padding: '4px 0' }}>
-            <span style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1px' }}>03 · TU RECORRIDO</span>
-            <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontWeight: 'normal', fontSize: '19px', margin: '8px 0 12px' }}>{t('visitHistory')}</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {(currentClientRecord?.pastVisits || []).length ? currentClientRecord!.pastVisits!.map((visit, index) => <article key={index} style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderLeft: '2px solid #B98A3E', borderRadius: '10px', padding: '12px' }}>
-                <p style={{ color: '#E4C687', fontSize: '12px', margin: '0 0 8px' }}>{visit.date}</p>
-                <h4 style={{ color: '#FFF8EE', fontSize: '13px', lineHeight: 1.5, margin: '0 0 8px' }}>{compactVisitText(visit.service)}</h4>
-                {visit.stylist && <p style={{ color: '#D6CBB8', fontSize: '12px', margin: 0 }}>Con {visit.stylist}</p>}
-                {visit.notes && <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.7, whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: '14px 0 0' }}>{visit.notes}</p>}
-              </article>) : <div style={{ backgroundColor: '#322A25', padding: '14px', borderRadius: '10px', color: '#D6CBB8', fontSize: '13px', lineHeight: 1.7 }}>{t('emptyVisits')}</div>}
-            </div>
-          </section>
-          <section style={{ backgroundColor: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 26px rgba(0, 0, 0, 0.25)' }}>
-            <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '19px', margin: '0 0 14px' }}>Seguimos cuidando de ti</h3>
-            <p style={{ color: '#D6CBB8', fontSize: '13px', margin: '0 0 8px' }}>{t('recommendedVisit')}</p>
-            <p style={{ color: '#E4C687', fontSize: '17px', margin: '0 0 14px' }}>{currentClientRecord?.proximaVisitaSugerida || t('pendingRecommendation')}</p>
-            <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6, margin: '0 0 18px' }}>{t('maintenanceNote')}</p>
-            <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ width: '100%', minHeight: '52px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '9px', padding: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer' }}>{t('bookNext')}</button>
-            {currentClientRecord?.ultimaVisita && <p style={{ color: '#D6CBB8', fontSize: '12px', marginBottom: 0 }}>Última visita registrada: {currentClientRecord.ultimaVisita}</p>}
-          </section>
-          <button onClick={() => setCurrentScreen('clientPortal')} style={{ width: '100%', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#D6CBB8', padding: '12px', borderRadius: '10px', fontSize: '13px', cursor: 'pointer' }}>
-            {t('backToPortal')}
-          </button>
-        </div>
-      )}
+          }}/>}
 
       {/* 3. INTRANET ADMIN LOGIN */}
       {currentScreen === 'adminLogin' && (
