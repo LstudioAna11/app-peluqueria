@@ -3041,7 +3041,12 @@ function StudioApp() {
   const contactPhone=String(bizConfig.studioWhatsapp||bizConfig.phone||'').replace(/\D/g,'');
   const contactNumber=contactPhone.length===9?'34'+contactPhone:contactPhone;
   const policyContact=/^\d{10,15}$/.test(contactNumber)?'https://wa.me/'+contactNumber:undefined;
-  const policyNotice=()=> <p role="status" style={{color:'#E4C687',fontSize:13,lineHeight:1.6}}>{CANCELLATION_NOTICE}{policyContact&&<> <a href={policyContact} target="_blank" rel="noopener noreferrer" style={{color:'#E4C687',textDecoration:'underline'}}>Contactar con el Studio</a></>}</p>;
+  const policyNotice=()=> <aside role="status" style={{background:'#29231F',border:'1px solid #C5A059',borderRadius:10,padding:16,color:'#FFF8EE',fontSize:13,lineHeight:1.65}}>
+    <strong style={{display:'block',color:'#E4C687',fontSize:15,marginBottom:8}}>Esta cita ya no admite cambios ni cancelaciones online</strong>
+    <p style={{margin:'0 0 8px'}}>Por nuestra política de reservas, los cambios y cancelaciones deben realizarse con un mínimo de <strong>24 horas de antelación</strong> respecto al inicio de la cita.</p>
+    <p style={{margin:0}}>El plazo de gestión online ha finalizado. Para solicitar un cambio o una cancelación, contacta directamente con L’Studio Ana. Tu cita sigue reservada.</p>
+    {policyContact&&<a href={policyContact} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',minHeight:44,color:'#E4C687',textDecoration:'underline',marginTop:8}}>Contactar con el Studio</a>}
+  </aside>;
   const handleConfirmCancelAppointment = async (appointment: Appointment) => {
     if(cancellationBusyRef.current)return;
     setCancellationError('');
@@ -6517,11 +6522,15 @@ function StudioApp() {
               {repeatAppointmentMode ? 'Cita de origen:' : 'Cita actual:'} {rescheduleModalAppt.dateKey.split('-').reverse().join('/')} · {rescheduleModalAppt.time}<br />
               Duración: {rescheduleModalAppt.durationMinutes || 45} min. {repeatAppointmentMode ? 'Se creará una nueva cita con estos servicios y variantes. La cita original se conserva.' : 'Los servicios se mantienen al cambiar la fecha.'}
             </div>
+            {!repeatAppointmentMode&&!canManageAppointment(rescheduleModalAppt)?<>
+              {policyNotice()}
+              <button type="button" onClick={()=>setRescheduleModalAppt(null)} style={{background:'transparent',border:'1px solid #655039',borderRadius:8,color:'#FFF8EE',minHeight:44,padding:12,cursor:'pointer'}}>Volver a mis citas</button>
+            </>:<>
+            {!staffCanManageAppointments&&<p style={{fontSize:12,color:'#E4C687',lineHeight:1.6,margin:0}}>Política de reservas: cambios y cancelaciones con un mínimo de <strong>24 horas de antelación</strong>.</p>}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <label style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold' }}>Nueva Fecha:</label>
               <input type="date" disabled={rescheduleSaving||(!repeatAppointmentMode&&!canManageAppointment(rescheduleModalAppt))} value={newRescheduleDate} onChange={(e) => { setNewRescheduleDate(e.target.value); setNewRescheduleTime(''); setRescheduleError(''); }} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '16px', minHeight: 44 }} />
             </div>
-            {!repeatAppointmentMode&&!canManageAppointment(rescheduleModalAppt)&&policyNotice()}
             <section aria-label="Elegir nueva hora">
               <p style={{ color: '#E4C687', fontSize: 14, margin: '0 0 8px' }}>Elige un hueco para la duración completa</p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, maxHeight: '32vh', overflowY: 'auto', padding: 3 }}>
@@ -6610,6 +6619,7 @@ function StudioApp() {
 
               }} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{rescheduleSaving ? 'Guardando…' : repeatAppointmentMode ? 'Crear nueva cita' : 'Guardar cambio'}</button>
             </div>
+            </>}
           </div>
         </div>
       )}
@@ -6628,10 +6638,13 @@ function StudioApp() {
                 Esta cita tiene un anticipo pendiente de {cancelApptModal.advancePayment.amount} € (ref. {cancelApptModal.advancePayment.reference}). Al cancelar, la reserva queda liberada; el tratamiento del anticipo se ajusta a la política de reservas del Studio y lo revisa Ana. No se aplica ningún reembolso automático.
               </p>
             )}
+            {canManageAppointment(cancelApptModal)&&<>
             <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>La cita pasará a “Cancelada” en tu historial y se liberará el hueco en la agenda del Studio. Los recordatorios programados quedan anulados.</p>
+            {!staffCanManageAppointments&&<p style={{fontSize:12,color:'#E4C687',lineHeight:1.6,margin:0}}>Política de reservas: cambios y cancelaciones con un mínimo de <strong>24 horas de antelación</strong>.</p>}
+            </>}
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: '4px' }}>
               <button type="button" disabled={cancellationBusy} onClick={() => {setCancelApptModal(null);setCancellationError('');}} style={{ background: 'none', border: '1px solid rgba(212, 175, 55, 0.4)', color: '#FFF8EE', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>Mantener mi cita</button>
-              <button type="button" disabled={cancellationBusy||!canManageAppointment(cancelApptModal)} onClick={() => void handleConfirmCancelAppointment(cancelApptModal)} style={{ background: '#9B3C2D', border: 'none', color: '#FFF8EE', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>{cancellationBusy?'Cancelando…':'Confirmar cancelación'}</button>
+              {canManageAppointment(cancelApptModal)&&<button type="button" disabled={cancellationBusy||!canManageAppointment(cancelApptModal)} onClick={() => void handleConfirmCancelAppointment(cancelApptModal)} style={{ background: '#9B3C2D', border: 'none', color: '#FFF8EE', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>{cancellationBusy?'Cancelando…':'Confirmar cancelación'}</button>}
             </div>
           </div>
         </div>
