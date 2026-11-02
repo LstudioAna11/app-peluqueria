@@ -368,3 +368,15 @@
 .lst-cat-card .lst-cat-info > small {
   color: #E4C687 !important;
 }
+.lst-bonos .vl-logo {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  mix-blend-mode: screen !important;
+}
+
+.lst-bonos .vl-logo .vb-gift-brand {
+  background: transparent !important;
+  border: none !important;
+}
