@@ -1,4 +1,4 @@
-mport { ClientPhotoGallery, StudioNews, VoucherPanel, voucherServiceOptions } from './App';
+import { ClientPhotoGallery, StudioNews, VoucherPanel, voucherServiceOptions } from './App';
 import { AddonEditor } from './ServiceAddons';
 import React, { useState, useEffect, useRef } from 'react';
 import { Maximize2, Minimize2, Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ChevronDown, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
