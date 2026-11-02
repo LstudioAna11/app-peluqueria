@@ -28,6 +28,12 @@ function catalogValuesMatch(left:unknown,right:unknown):boolean {
   return keys.length===other.length&&keys.every(key=>Object.prototype.hasOwnProperty.call(b,key)&&catalogValuesMatch(a[key],b[key]));
 }
 
+// Optional add-ons do not turn a service into a base-price pack.
+// Styling always needs its own length/finish variant when configured.
+function portalUsesBasePack(sub:SubService):boolean {
+  return !sub.isStylingService&&!!sub.addonGroups?.some(group=>group.mode==='required'||group.mode==='included');
+}
+
 const CANCELLATION_HOURS = 24;
 const CANCELLATION_NOTICE = 'Para cambiar o cancelar tu cita con menos de 24 horas de antelación, contacta directamente con L’Studio Ana.';
 // The existing database stores appointment wall-clock values as ISO UTC text.
@@ -3767,7 +3773,7 @@ function StudioApp() {
     if(currentScreen!=='serviceDetail'||!viewServiceDetail)return;
     const sub=catalog.flatMap(c=>c.subservices).find(s=>s.id===viewServiceDetail.sub.id);
     if(!sub?.addonGroups?.length)return;
-    setSelectedServicesToBook(previous=>previous.map(item=>item.sub.id===sub.id?{...item,sub:{...sub,hasVariants:false,variants:undefined},variant:null}:item));
+    setSelectedServicesToBook(previous=>previous.map(item=>item.sub.id!==sub.id?item:portalUsesBasePack(sub)?{...item,sub:{...sub,hasVariants:false,variants:undefined},variant:null}:{...item,sub,variant:sub.variants?.find(variant=>variant.id===item.variant?.id)||null}));
   },[currentScreen,viewServiceDetail?.sub.id,catalog]);
   const getStylingError = (items: { sub: SubService; variant: ServiceVariant | null }[]) => addonError(items, catalog) || getFinishError(items, 'styling');
   const previewService = catalog.flatMap(category => category.subservices).find(sub => sub.id === previewServiceId);
@@ -5690,8 +5696,8 @@ function StudioApp() {
       {/* FICHA DE SERVICIO */}
       {currentScreen === 'serviceDetail' && viewServiceDetail && (() => {
         const originalDetailSub = catalog.flatMap(category => category.subservices).find(service => service.id === viewServiceDetail.sub.id) || viewServiceDetail.sub;
-        // A configured portal pack uses its base price/time; variants remain available to staff.
-        const detailSub = originalDetailSub.addonGroups?.length ? {...originalDetailSub,hasVariants:false,variants:undefined} : originalDetailSub;
+        // Preserve service variants alongside optional add-ons and styling complements.
+        const detailSub = portalUsesBasePack(originalDetailSub) ? {...originalDetailSub,hasVariants:false,variants:undefined} : originalDetailSub;
         const detailImage = detailSub.imageUrl;
         const detailSelection = selectedServicesToBook.find(item => item.sub.id === detailSub.id);
         return (
@@ -5743,7 +5749,7 @@ function StudioApp() {
               <div className="studio-service-variants-grid">
                 {detailSub.variants.map(variant => (
                   <button key={variant.id} type="button" aria-pressed={detailSelection?.variant?.id === variant.id}
-                    onClick={() => setSelectedServicesToBook(previous => previous.some(item => item.sub.id === detailSub.id) ? previous.map(item => item.sub.id === detailSub.id ? { ...item, variant } : item) : [...previous, { sub: detailSub, variant }])}
+                    onClick={() => setSelectedServicesToBook(previous => previous.some(item => item.sub.id === detailSub.id) ? previous.map(item => item.sub.id === detailSub.id ? { ...item, sub:detailSub, variant } : item) : [...previous, { sub: detailSub, variant }])}
                     className={detailSelection?.variant?.id === variant.id ? 'studio-variant-chip studio-variant-chip-active' : 'studio-variant-chip'}>
                     <strong>{variantText(variant, detailSub)}</strong>
                     {variant.description && <span>{variant.description}</span>}
