@@ -365,3 +365,6 @@
     font-size: 19px;
   }
 }
+.lst-cat-card .lst-cat-info > small {
+  color: #E5D7BF !important;
+}
