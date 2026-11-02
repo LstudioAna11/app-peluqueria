@@ -568,6 +568,70 @@ function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,onBack,
  </section>;
 }
 
+function appointmentLinkTarget():string|null{
+ const value=new URLSearchParams(window.location.search).get('cita');
+ return value&&/^[A-Za-z0-9_-]{1,64}$/.test(value)?value:null;
+}
+function usePortalEntry(options:{screen:string;recoveryOpen:boolean;syncSession:()=>Promise<Record<string,any>|null>;onClient:()=>void;onAdmin:()=>void;onExpired:()=>void;onAppointment:(data:{role:string;rows:Record<string,any>[];appointment:Record<string,any>|null})=>void}){
+ const latest=useRef(options);latest.current=options;
+ const [target,setTarget]=useState<string|null>(appointmentLinkTarget);
+ const [restoring,setRestoring]=useState(()=>!!(studioApi.serverConfigured&&studioApi.currentToken()&&!new URLSearchParams(window.location.hash.slice(1)).has('recuperar')&&(studioApi.storedRole()==='client'||appointmentLinkTarget())));
+ const [linkBusy,setLinkBusy]=useState(false),[message,setMessage]=useState(''),[retryable,setRetryable]=useState(false),[retry,setRetry]=useState(0);
+ const mounted=useRef(false),restoreGeneration=useRef(0),restoreLock=useRef(false);
+ useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;restoreGeneration.current++;restoreLock.current=false;};},[]);
+ const validRun=(run:number,token:string)=>mounted.current&&run===restoreGeneration.current&&studioApi.currentToken()===token;
+ const invalidSession=(error:unknown)=>[401,403].includes(Number((error as {status?:number})?.status));
+ const restore=async()=>{
+  if(restoreLock.current)return;
+  const token=studioApi.currentToken();
+  if(!studioApi.serverConfigured||!token||latest.current.recoveryOpen){setRestoring(false);return;}
+  const shouldNavigate=studioApi.storedRole()==='client'||!!target;
+  const run=++restoreGeneration.current;restoreLock.current=true;setRestoring(shouldNavigate);setMessage('');setRetryable(false);
+  try{
+   const data=await statusWithTimeout(latest.current.syncSession());
+   if(!validRun(run,token))return;
+   if(data?.role==='client'&&data.me?.id&&shouldNavigate)latest.current.onClient();
+   else if(data?.role==='admin'&&target)latest.current.onAdmin();
+   else if(data?.role!=='admin'&&shouldNavigate)throw new Error('No se pudo comprobar la ficha de esta sesión.');
+  }catch(error){
+   if(!validRun(run,token))return;
+   if(invalidSession(error)){studioApi.clearStoredToken();latest.current.onExpired();setMessage('La sesión anterior ha caducado. Entra con tu PIN para continuar.');setRetryable(false);}
+   else{setMessage('No se pudo recuperar la sesión por un problema de conexión. Puedes reintentar o entrar con tu PIN.');setRetryable(true);}
+  }finally{if(run===restoreGeneration.current){restoreLock.current=false;if(mounted.current)setRestoring(false);}}
+ };
+ const token=studioApi.currentToken();
+ useEffect(()=>{
+  if(!target||!token||options.recoveryOpen||!['clientPortal','myAppointmentsPage','adminPanel'].includes(options.screen)){setLinkBusy(false);return;}
+  let cancelled=false;setLinkBusy(true);setMessage('');setRetryable(false);
+  const consume=()=>{
+   try{const url=new URL(window.location.href);if(url.searchParams.get('cita')===target){url.searchParams.delete('cita');window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);}}catch{/* The validated in-memory target is still cleared. */}
+   setTarget(null);
+  };
+  (async()=>{
+   try{
+    // Only fresh server-scoped rows may open an email/push link. Never use browser caches here.
+    const data=await statusWithTimeout(studioApi.syncAll<Record<string,any>>(token,['appointments']));
+    if(cancelled||!mounted.current||studioApi.currentToken()!==token)return;
+    if(!data||!Array.isArray(data.appointments)||!['client','admin'].includes(String(data.role)))throw new Error('Respuesta de citas no válida.');
+    const role=String(data.role),owner=String(data.clientId||'');
+    if(role==='client'&&!owner)throw new Error('No se pudo comprobar la ficha de la sesión.');
+    const rows=(data.appointments as Record<string,any>[]).filter(row=>role==='admin'||row.client_id===owner);
+    const appointment=rows.find(row=>row.id===target||String(row.source_legacy_id||'')===target)||null;
+    consume();latest.current.onAppointment({role,rows,appointment});
+    if(!appointment)setMessage('No encontramos esa cita en esta sesión. Consulta tus citas o accede con la ficha a la que pertenece.');
+   }catch(error){
+    if(cancelled||!mounted.current||studioApi.currentToken()!==token)return;
+    if(invalidSession(error)){studioApi.clearStoredToken();latest.current.onExpired();setMessage('La sesión ha caducado. Entra con tu PIN y abriremos la cita del enlace.');setRetryable(false);}
+    else{setMessage('No se pudo cargar la cita del enlace. Conservamos el enlace para reintentar.');setRetryable(true);}
+   }finally{if(!cancelled&&mounted.current)setLinkBusy(false);}
+  })();
+  return()=>{cancelled=true;};
+ },[options.screen,options.recoveryOpen,target,token,retry]);
+ const retryEntry=()=>{if(target&&studioApi.currentToken()&&['clientPortal','myAppointmentsPage','adminPanel'].includes(latest.current.screen))setRetry(value=>value+1);else void restore();};
+ const label=restoring?'Recuperando tu sesión…':linkBusy?'Abriendo tu cita…':message||(target&&options.screen==='clientPin'&&!options.recoveryOpen?'Entra con tu PIN para abrir la cita del email.':'');
+ return {restoring,linkBusy,label,retryable,restore,retryEntry};
+}
+
 const LazyAdminPanelView = React.lazy(() => import('./AdminPanelView'));
 // Optimized copies of bundled photos only; custom uploads remain unchanged.
 const FAST_PHOTO_URLS: Readonly<Record<string,string>> = {
@@ -2709,12 +2773,6 @@ function StudioApp() {
     };
   }, [viewApptModal?.id, currentScreen]);
 
-  useEffect(() => {
-    const target = new URLSearchParams(window.location.search).get('cita');
-    if (!target) return;
-    const appt = appointments.find(item => item.id === target || item.serverId === target);
-    if (appt) setViewApptModal(appt);
-  }, [appointments.length]);
   const [appointmentNoteDraft, setAppointmentNoteDraft] = useState('');
   const [notesSaving, setNotesSaving] = useState(false);
   const notesSavingRef = useRef(false);
@@ -3264,8 +3322,10 @@ function StudioApp() {
   });
 
   const syncFromServer = async (): Promise<Record<string, any> | null> => {
-    if (!studioApi.serverConfigured || !studioApi.currentToken()) return null;
-    const data = await studioApi.syncAll<Record<string, any>>(studioApi.currentToken()!);
+    const sessionToken=studioApi.currentToken();
+    if (!studioApi.serverConfigured || !sessionToken) return null;
+    const data = await studioApi.syncAll<Record<string, any>>(sessionToken);
+    if(studioApi.currentToken()!==sessionToken)throw new Error('La sesión ha cambiado durante la actualización.');
     if (!data || typeof data !== 'object') return data;
 
     if (Array.isArray(data.catalog) && data.catalog.length) {
@@ -3403,9 +3463,26 @@ function StudioApp() {
     return data;
   };
 
+  const portalEntry=usePortalEntry({screen:currentScreen,recoveryOpen,syncSession:syncFromServer,
+    onClient:()=>{setPin('');setPinError(false);setCurrentScreen('clientPortal');},
+    onAdmin:()=>{setAdminPin('');setAdminError(false);setCurrentScreen('adminPanel');},
+    onExpired:()=>{setCurrentClientRecord(null);setAppointments([]);setViewApptModal(null);setPinError(false);setCurrentScreen('clientPin');},
+    onAppointment:({role,rows,appointment})=>{
+      setAppointments(rows.map(mapServerAppointment));
+      setViewApptModal(appointment?mapServerAppointment(appointment):null);
+      if(role==='admin'){
+        setCurrentScreen('adminPanel');setAdminTab('agenda');
+        if(appointment)setFechaSeleccionada(new Date(String(appointment.starts_at).slice(0,10)+'T12:00:00'));
+      }else setCurrentScreen('myAppointmentsPage');
+    }
+  });
+  const renderEntryNotice=()=>portalEntry.label?<div role="status" aria-live="polite" style={{width:'100%',maxWidth:520,boxSizing:'border-box',padding:'12px 14px',margin:'10px 0',background:'#322A25',border:'1px solid #8B704A',borderRadius:9,color:'#E8D7BB',fontSize:13,lineHeight:1.7}}>
+    {portalEntry.label}{portalEntry.retryable&&<button type="button" onClick={portalEntry.retryEntry} disabled={portalEntry.restoring||portalEntry.linkBusy} style={{display:'block',minHeight:44,marginTop:7,padding:'8px 13px',border:'1px solid #B9955F',borderRadius:6,background:'transparent',color:'#E4C687',cursor:'pointer'}}>Reintentar</button>}
+  </div>:null;
+
   useEffect(() => {
     if (studioApi.serverConfigured && studioApi.currentToken() && studioApi.storedRole()) {
-      syncFromServer().catch(() => undefined);
+      void portalEntry.restore();
     } else if (studioApi.serverConfigured) {
       studioApi.fetchPublicCatalog<{ catalog: { category?: CatalogCategory }[]; employees?: { id: string; name: string; role: string; photo: string; status: string }[] }>().then(data => {
         if (Array.isArray(data?.employees) && data.employees.length) {
@@ -5003,7 +5080,9 @@ function StudioApp() {
       </div>}
 
       {/* 1. ACCESO PIN CLIENTE */}
-      {currentScreen === 'clientPin' && (
+      {currentScreen === 'clientPin' && portalEntry.restoring && <div style={{width:'100%',maxWidth:420,padding:'70px 0 20px'}}>{renderEntryNotice()}</div>}
+      {['clientPortal','myAppointmentsPage','adminPanel'].includes(currentScreen)&&renderEntryNotice()}
+      {currentScreen === 'clientPin' && !portalEntry.restoring && (
         <main style={{ width: '100%', maxWidth: '460px', boxSizing: 'border-box', padding: '60px 24px 30px', textAlign: 'center' }}>
           <style>{`
             .studio-editorial-pin { background: transparent; border: none; border-bottom: 1px solid #B98A3E; border-radius: 0; color: #FFF8EE; width: 100%; height: 64px; font-family: 'Royal Hefana', 'Cormorant Garamond', Georgia, serif; font-size: 30px; letter-spacing: 18px; text-align: center; box-sizing: border-box; padding: 8px 0 8px 18px; outline: none; }
@@ -5017,6 +5096,7 @@ function StudioApp() {
           </button>
           <h1 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', fontSize: '30px', margin: '0 0 12px' }}>L’Studio Ana</h1>
           <p style={{ color: '#D8C29A', fontSize: '10px', letterSpacing: '3px', textTransform: 'uppercase', margin: '0 0 40px', lineHeight: 1.6 }}>{t('subtitle')}</p>
+          {renderEntryNotice()}
           <form onSubmit={handleClientPinSubmit} style={{ maxWidth: '280px', margin: '0 auto' }}>
             <label htmlFor="client-access-pin" style={{ display: 'block', color: '#D6CBB8', fontSize: '13px', marginBottom: '10px' }}>{t('enterPin')}</label>
             <input id="client-access-pin" className="studio-editorial-pin" dir="ltr" type="password" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} autoComplete="off" value={pin} onChange={event => { setPin(event.target.value.replace(/[^0-9]/g, '').slice(0, 4)); setPinError(false); }} aria-invalid={pinError} aria-describedby={pinError ? 'client-pin-error' : undefined} required />
@@ -6107,7 +6187,7 @@ function StudioApp() {
         </div>
       </div>}
       {/* MODAL DETALLE CITA */}
-      {viewApptModal && (
+      {viewApptModal && !['clientPin','adminLogin','clientRegistration'].includes(currentScreen) && !recoveryOpen && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 1000 }}>
           {Boolean(currentScreen === 'adminPanel') ? (<><style>{`
 .lst-appt-dialog {width:min(780px,100%);max-width:100%;box-sizing:border-box;max-height:calc(100dvh - 40px);display:flex;flex-direction:column;background:#322A25;border:1px solid #C5A059;border-radius:16px;box-shadow:0 24px 80px #0008;overflow:hidden;color:#FFF8EE;}
