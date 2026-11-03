@@ -30,8 +30,13 @@ function catalogValuesMatch(left:unknown,right:unknown):boolean {
 
 // Optional add-ons do not turn a service into a base-price pack.
 // Styling always needs its own length/finish variant when configured.
-function portalUsesBasePack(sub:SubService):boolean {
-  return !sub.isStylingService&&!!sub.addonGroups?.some(group=>group.mode==='required'||group.mode==='included');
+function portalUsesBasePack(sub:SubService,catalog:CatalogCategory[]=[]):boolean {
+  const category=catalog.find(item=>item.subservices?.some(service=>service.id===sub.id));
+  const normalize=(text:string)=>text.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
+  const categoryName=normalize([category?.title,category?.portalTitle].filter(Boolean).join(' '));
+  const serviceNames=[sub.name,sub.bookingName].filter(Boolean).map(name=>normalize(name!));
+  const isStyling=sub.isStylingService||/\b(?:styling|peinados?)\b/.test(categoryName)||serviceNames.some(name=>/^(?:styling|peinados?)\b/.test(name));
+  return !isStyling&&!!sub.addonGroups?.some(group=>group.mode==='required'||group.mode==='included');
 }
 
 const CANCELLATION_HOURS = 24;
@@ -3773,7 +3778,7 @@ function StudioApp() {
     if(currentScreen!=='serviceDetail'||!viewServiceDetail)return;
     const sub=catalog.flatMap(c=>c.subservices).find(s=>s.id===viewServiceDetail.sub.id);
     if(!sub?.addonGroups?.length)return;
-    setSelectedServicesToBook(previous=>previous.map(item=>item.sub.id!==sub.id?item:portalUsesBasePack(sub)?{...item,sub:{...sub,hasVariants:false,variants:undefined},variant:null}:{...item,sub,variant:sub.variants?.find(variant=>variant.id===item.variant?.id)||null}));
+    setSelectedServicesToBook(previous=>previous.map(item=>item.sub.id!==sub.id?item:portalUsesBasePack(sub,catalog)?{...item,sub:{...sub,hasVariants:false,variants:undefined},variant:null}:{...item,sub,variant:sub.variants?.find(variant=>variant.id===item.variant?.id)||null}));
   },[currentScreen,viewServiceDetail?.sub.id,catalog]);
   const getStylingError = (items: { sub: SubService; variant: ServiceVariant | null }[]) => addonError(items, catalog) || getFinishError(items, 'styling');
   const previewService = catalog.flatMap(category => category.subservices).find(sub => sub.id === previewServiceId);
@@ -5697,7 +5702,7 @@ function StudioApp() {
       {currentScreen === 'serviceDetail' && viewServiceDetail && (() => {
         const originalDetailSub = catalog.flatMap(category => category.subservices).find(service => service.id === viewServiceDetail.sub.id) || viewServiceDetail.sub;
         // Preserve service variants alongside optional add-ons and styling complements.
-        const detailSub = portalUsesBasePack(originalDetailSub) ? {...originalDetailSub,hasVariants:false,variants:undefined} : originalDetailSub;
+        const detailSub = portalUsesBasePack(originalDetailSub,catalog) ? {...originalDetailSub,hasVariants:false,variants:undefined} : originalDetailSub;
         const detailImage = detailSub.imageUrl;
         const detailSelection = selectedServicesToBook.find(item => item.sub.id === detailSub.id);
         return (
