@@ -45,14 +45,14 @@ export function AddonEditor({sub,catalog,onChange}:{sub:SubService;catalog:Catal
 }
 export function AddonChoices({owner,catalog,items,setItems,showPrices}:{owner:SubService;catalog:CatalogCategory[];items:Item[];setItems:React.Dispatch<React.SetStateAction<Item[]>>;showPrices:boolean}){
   if(!owner.addonGroups?.length)return null;
-  return <section style={{padding:14,border:'1px solid #C5A059',borderRadius:12}}><h3 style={{margin:0,fontSize:14,color:'#E4C687'}}>Completa tu cita · {owner.bookingName||owner.name}</h3>
+  return <section style={{padding:14,border:'1px solid #C5A059',borderRadius:12}}>{owner.addonGroups.some(group=>group.mode!=='optional')&&<h3 style={{margin:0,fontSize:14,color:'#E4C687'}}>Completa tu cita</h3>}
     {owner.addonGroups.map(group=>{
       if(group.mode==='included')return <div key={group.id} style={{marginTop:10,fontSize:12,color:'#D6CBB8'}}><strong style={{color:'#E4C687'}}>{group.title}</strong> · Incluido en el pack</div>;
       const count=items.filter(item=>item.sub.id!==owner.id&&group.serviceIds.includes(item.sub.id)&&catalog.some(category=>category.subservices.some(sub=>sub.id===item.sub.id&&sub.active!==false))).length;
       return <details key={group.id} style={{marginTop:10,border:'1px solid #67543C',borderRadius:9,padding:'0 12px'}}>
         <summary style={{cursor:'pointer',minHeight:44,padding:'10px 0',boxSizing:'border-box',color:'#FFF8EE',fontSize:13,lineHeight:1.5}}>
-          <strong style={{color:'#E4C687'}}>{group.title}</strong>
-          <span style={{fontSize:11,marginLeft:8,color:group.mode==='required'&&!count?'#F0D89E':'#D6CBB8'}}>{group.mode==='required'?'Obligatorio':'Opcional'} · {count?count+(count===1?' añadido':' añadidos'):group.mode==='required'?'Pendiente de elegir':'Ver servicios'}</span>
+          <strong style={{color:'#E4C687'}}>{group.mode==='optional'?'Añade más servicios a tu cita':'Añade tu peinado a tu cita'}</strong>
+          <span style={{fontSize:11,marginLeft:8,color:group.mode==='required'&&!count?'#F0D89E':'#D6CBB8'}}>{group.mode==='required'?'Obligatorio · ':''}{count?count+(count===1?' añadido':' añadidos'):group.mode==='required'?'Pendiente de elegir':'Ver servicios'}</span>
         </summary>
         <div style={{paddingBottom:10}}>
           <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.5,margin:'0 0 8px'}}>{group.mode==='required'?'Elige al menos un servicio para completar tu cita. Puedes añadir varios.':'Añade los servicios que desees para completar tu cita.'}</p>
