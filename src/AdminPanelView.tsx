@@ -1,3 +1,4 @@
+import {privateStorage} from './PrivateSessionGate';
 import { ClientPhotoGallery, StudioNews, VoucherPanel, voucherServiceOptions } from './App';
 import { AddonEditor } from './ServiceAddons';
 import React, { useState, useEffect, useRef } from 'react';
@@ -363,7 +364,7 @@ async function collectStudioBackup(source:StudioBackupSource,withPhotos:boolean,
     }finally{clearTimeout(timer);signal.removeEventListener('abort',abort);}
   }
   const local:Record<string,string>={};
-  for(const key of ['lst_lost_demands_detailed','lst_booking_attempts','lst_traffic_events','lst_app_visits','lst_studio_clientes_ids','lst_studio_appointments','lst_feedback_list','lst_holidays_list','lst_time_blocks','lst_clientas_respaldo_20261028']){try{const value=localStorage.getItem(key);if(value!==null)local[key]=value;}catch{}}
+  for(const key of ['lst_lost_demands_detailed','lst_booking_attempts','lst_traffic_events','lst_app_visits','lst_studio_clientes_ids','lst_studio_appointments','lst_feedback_list','lst_holidays_list','lst_time_blocks','lst_clientas_respaldo_20261028']){try{const value=privateStorage.getItem(key);if(value!==null)local[key]=value;}catch{}}
   const document:StudioBackupFile={format:'lstudio-business-backup',version:2,createdAt:new Date().toISOString(),source:origin.origin,snapshot:source.snapshot,local,media:{included:withPhotos,expected:source.media.length,files}};
   await validateStudioBackup(document);return document;
 }

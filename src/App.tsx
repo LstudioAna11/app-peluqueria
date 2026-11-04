@@ -1,3 +1,4 @@
+import {privateStorage, PrivateSessionGate, ensureAdminPrivateSession, clearStudioSession, flushPrivateCache} from './PrivateSessionGate';
 import PinRecovery from './PinRecovery';
 import { calculateServiceDeposit, validateServiceDeposit, type ServiceDepositPolicy } from './serviceDeposits';
 import { rememberCatalogPhoto, restoreCatalogPhotos, clearCatalogPhotos, forgetCatalogPhoto, verifyCatalogPhotoUrl } from './catalogPhotoDrafts';
@@ -605,7 +606,7 @@ function usePortalEntry(options:{screen:string;recoveryOpen:boolean;syncSession:
    else if(data?.role!=='admin'&&shouldNavigate)throw new Error('No se pudo comprobar la ficha de esta sesión.');
   }catch(error){
    if(!validRun(run,token))return;
-   if(invalidSession(error)){studioApi.clearStoredToken();latest.current.onExpired();setMessage('La sesión anterior ha caducado. Entra con tu PIN para continuar.');setRetryable(false);}
+   if(invalidSession(error)){clearStudioSession();latest.current.onExpired();setMessage('La sesión anterior ha caducado. Entra con tu PIN para continuar.');setRetryable(false);}
    else{setMessage('No se pudo recuperar la sesión por un problema de conexión. Puedes reintentar o entrar con tu PIN.');setRetryable(true);}
   }finally{if(run===restoreGeneration.current){restoreLock.current=false;if(mounted.current)setRestoring(false);}}
  };
@@ -631,7 +632,7 @@ function usePortalEntry(options:{screen:string;recoveryOpen:boolean;syncSession:
     if(!appointment)setMessage('No encontramos esa cita en esta sesión. Consulta tus citas o accede con la ficha a la que pertenece.');
    }catch(error){
     if(cancelled||!mounted.current||studioApi.currentToken()!==token)return;
-    if(invalidSession(error)){studioApi.clearStoredToken();latest.current.onExpired();setMessage('La sesión ha caducado. Entra con tu PIN y abriremos la cita del enlace.');setRetryable(false);}
+    if(invalidSession(error)){clearStudioSession();latest.current.onExpired();setMessage('La sesión ha caducado. Entra con tu PIN y abriremos la cita del enlace.');setRetryable(false);}
     else{setMessage('No se pudo cargar la cita del enlace. Conservamos el enlace para reintentar.');setRetryable(true);}
    }finally{if(!cancelled&&mounted.current)setLinkBusy(false);}
   })();
@@ -1520,7 +1521,7 @@ function readStoredValue(key: string, raw: string): any {
   // Conservar el original antes de normalizar o recuperar datos antiguos.
   try {
     const backupKey = key + '_original_before_access_fix';
-    if (localStorage.getItem(backupKey) === null) localStorage.setItem(backupKey, raw);
+    if (privateStorage.getItem(backupKey) === null) privateStorage.setItem(backupKey, raw);
   } catch { /* La falta de espacio no debe impedir leer los datos. */ }
   let value: any;
   try { value = JSON.parse(raw); } catch {
@@ -1653,14 +1654,14 @@ function ClientAppointmentDetail({title,date,time,status,services,promotion,canM
 
 
 export default function App() {
-  return <PortalErrorBoundary><StudioApp /></PortalErrorBoundary>;
+  return <PrivateSessionGate><PortalErrorBoundary><StudioApp /></PortalErrorBoundary></PrivateSessionGate>;
 }
 
 function StudioApp() {
   const [currentScreen, setCurrentScreen] = useState<'clientPin' | 'clientRegistration' | 'clientPortal' | 'myAppointmentsPage' | 'catalogBooking' | 'categoryScreen' | 'serviceDetail' | 'visualAgenda' | 'clientHistoryPage' | 'adminLogin' | 'adminPanel'>('clientPin');
   
-  const [currentLang, setCurrentLang] = useState<string>(() => { const saved = localStorage.getItem('lst_portal_language'); return saved && TRANSLATIONS[saved] ? saved : 'es'; });
-  useEffect(() => { localStorage.setItem('lst_portal_language', currentLang); }, [currentLang]);
+  const [currentLang, setCurrentLang] = useState<string>(() => { const saved = privateStorage.getItem('lst_portal_language'); return saved && TRANSLATIONS[saved] ? saved : 'es'; });
+  useEffect(() => { privateStorage.setItem('lst_portal_language', currentLang); }, [currentLang]);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
   const portalLocale = ({ es: 'es-ES', en: 'en-GB', fr: 'fr-FR', it: 'it-IT', pt: 'pt-PT', de: 'de-DE', nl: 'nl-NL', pl: 'pl-PL', cs: 'cs-CZ', nb: 'nb-NO', sv: 'sv-SE', ar: 'ar-MA' } as Record<string, string>)[currentLang] || 'es-ES';
   const t = (key: string) => TRANSLATIONS[currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang]?.[key] || TRANSLATIONS['es'][key] || key;
@@ -1788,7 +1789,7 @@ function StudioApp() {
   const [googleCalendarSyncActive, setGoogleCalendarSyncActive] = useState<boolean>(true);
   const [googleCalendarConnected, setGoogleCalendarConnected] = useState<boolean>(true);
   const [bizConfig, setBizConfig] = useState<BusinessConfig>(() => {
-    const saved = localStorage.getItem('lst_business_config');
+    const saved = privateStorage.getItem('lst_business_config');
     return saved ? { ...INITIAL_BUSINESS_CONFIG, ...readStoredValue('lst_business_config', saved) } : INITIAL_BUSINESS_CONFIG;
   });
   const brandLogoSrc = bizConfig.brandLogoUrl || DEFAULT_BRAND_LOGO;
@@ -1925,7 +1926,7 @@ function StudioApp() {
 
   // CATÁLOGO UNIFICADO Y SINCRONIZADO EN TIEMPO REAL
   const [catalog, setCatalog] = useState<CatalogCategory[]>(() => {
-    const saved = localStorage.getItem('lst_master_catalog');
+    const saved = privateStorage.getItem('lst_master_catalog');
     const parsed = saved ? readStoredValue('lst_master_catalog', saved) : INITIAL_CATALOG;
     // Añadir fotos iniciales solo a servicios sin foto propia guardada.
     return parsed.map((category: CatalogCategory) => ({
@@ -2024,7 +2025,7 @@ function StudioApp() {
       forgetCatalogPhoto(catId);
       const updated = catalog.map(c => c.id !== catId ? c : { ...c, imageUrl: undefined, imageIsAiPlaceholder: false });
       setCatalog(updated);
-      localStorage.setItem('lst_master_catalog', JSON.stringify(updated));
+      privateStorage.setItem('lst_master_catalog', JSON.stringify(updated));
       setSavedCatalogSnapshot(JSON.stringify(updated));
       if (studioApi.serverConfigured && studioApi.storedRole() === 'admin') {
         studioApi.pushCatalog(studioApi.currentToken()!, updated).catch(() => {
@@ -2055,7 +2056,7 @@ function StudioApp() {
         subservices: c.subservices.map(s => s.id !== subId ? s : { ...s, imageUrl: undefined, imageIsAiPlaceholder: false })
       });
       setCatalog(updated);
-      localStorage.setItem('lst_master_catalog', JSON.stringify(updated));
+      privateStorage.setItem('lst_master_catalog', JSON.stringify(updated));
       setSavedCatalogSnapshot(JSON.stringify(updated));
       if (studioApi.serverConfigured && studioApi.storedRole() === 'admin') {
         studioApi.pushCatalog(studioApi.currentToken()!, updated).catch(() => {
@@ -2105,7 +2106,7 @@ function StudioApp() {
       if(differences.length)throw new Error('No se ha podido verificar todo el catálogo. Revisa '+differences.slice(0,4).join('; ')+(differences.length>4?' y '+(differences.length-4)+' campos más.':'.')+' Los cambios se conservan para reintentar.');
       clearCatalogPhotos();
       setSavedCatalogSnapshot(JSON.stringify(submitted));
-      try { localStorage.setItem('lst_master_catalog', JSON.stringify(submitted)); } catch { /* optional cache */ }
+      try { privateStorage.setItem('lst_master_catalog', JSON.stringify(submitted)); } catch { /* optional cache */ }
       setCatalogSavedMsg('Catálogo guardado. Fotos y condiciones de reserva comprobadas en el servidor.');
     } catch (error) {
       setCatalogSavedMsg(error instanceof Error ? error.message : 'No se pudo guardar. Los cambios se conservan para reintentar.');
@@ -2115,7 +2116,7 @@ function StudioApp() {
   };
 
   const [holidaysList, setHolidaysList] = useState<HolidayBlock[]>(() => {
-    const saved = localStorage.getItem('lst_holidays_list');
+    const saved = privateStorage.getItem('lst_holidays_list');
     return saved ? readStoredValue('lst_holidays_list', saved) : [
       { id: 'h1', startDate: '2026-12-24', endDate: '2026-12-26', reason: 'Navidad / Festivo local', type: 'festivo' },
       { id: 'h2', startDate: '2026-08-01', endDate: '2026-08-20', reason: 'Vacaciones de Verano', type: 'vacaciones' }
@@ -2123,7 +2124,7 @@ function StudioApp() {
   });
 
   useEffect(() => {
-    localStorage.setItem('lst_holidays_list', JSON.stringify(holidaysList));
+    privateStorage.setItem('lst_holidays_list', JSON.stringify(holidaysList));
   }, [holidaysList]);
 
   const [newHolidayStart, setNewHolidayStart] = useState("");
@@ -2153,22 +2154,22 @@ function StudioApp() {
   const [newCatTitle, setNewCatTitle] = useState("");
 
   const [appVisitsCount, setAppVisitsCount] = useState<number>(() => {
-    const saved = localStorage.getItem('lst_app_visits');
+    const saved = privateStorage.getItem('lst_app_visits');
     return saved ? parseInt(saved, 10) : 48;
   });
 
-  const [bookingAttempts, setBookingAttempts] = useState<{ id: string; email: string; name: string; services: string; date: string; time: string; step: string; updatedAt: string; registered?: boolean; contactedAt?: string; recoveredAt?: string; reachedDate?: boolean; reachedTime?: boolean }[]>(() => readStoredValue('lst_booking_attempts', localStorage.getItem('lst_booking_attempts') || '[]'));
+  const [bookingAttempts, setBookingAttempts] = useState<{ id: string; email: string; name: string; services: string; date: string; time: string; step: string; updatedAt: string; registered?: boolean; contactedAt?: string; recoveredAt?: string; reachedDate?: boolean; reachedTime?: boolean }[]>(() => readStoredValue('lst_booking_attempts', privateStorage.getItem('lst_booking_attempts') || '[]'));
   const [attemptClock, setAttemptClock] = useState(Date.now());
-  useEffect(() => { localStorage.setItem('lst_booking_attempts', JSON.stringify(bookingAttempts)); }, [bookingAttempts]);
+  useEffect(() => { privateStorage.setItem('lst_booking_attempts', JSON.stringify(bookingAttempts)); }, [bookingAttempts]);
   useEffect(() => { const timer = window.setInterval(() => setAttemptClock(Date.now()), 60000); return () => window.clearInterval(timer); }, []);
   const [opportunityStatus, setOpportunityStatus] = useState<'pending' | 'contacted' | 'recovered' | 'all'>('pending');
   const [opportunitySearch, setOpportunitySearch] = useState('');
   const [opportunityPage, setOpportunityPage] = useState(1);
   const [demandFilter, setDemandFilter] = useState<'all' | 'no_slots' | 'unfinished' | 'contacted' | 'recovered'>('all');
-  const [trafficEvents, setTrafficEvents] = useState<{ id: string; type: string; visitor: string; session: string; at: string; source: string }[]>(() => readStoredValue('lst_traffic_events', localStorage.getItem('lst_traffic_events') || '[]'));
+  const [trafficEvents, setTrafficEvents] = useState<{ id: string; type: string; visitor: string; session: string; at: string; source: string }[]>(() => readStoredValue('lst_traffic_events', privateStorage.getItem('lst_traffic_events') || '[]'));
   const trackTraffic = (type: string) => {
-    let visitor = localStorage.getItem('lst_visitor_id');
-    if (!visitor) { visitor = crypto.randomUUID(); localStorage.setItem('lst_visitor_id', visitor); }
+    let visitor = privateStorage.getItem('lst_visitor_id');
+    if (!visitor) { visitor = crypto.randomUUID(); privateStorage.setItem('lst_visitor_id', visitor); }
     let session = sessionStorage.getItem('lst_session_id');
     if (!session) { session = crypto.randomUUID(); sessionStorage.setItem('lst_session_id', session); }
     const utm = new URLSearchParams(window.location.search).get('utm_source');
@@ -2176,7 +2177,7 @@ function StudioApp() {
     const record = { id: crypto.randomUUID(), type, visitor, session, at: new Date().toISOString(), source };
     setTrafficEvents(previous => [record, ...previous]);
   };
-  useEffect(() => { localStorage.setItem('lst_traffic_events', JSON.stringify(trafficEvents)); }, [trafficEvents]);
+  useEffect(() => { privateStorage.setItem('lst_traffic_events', JSON.stringify(trafficEvents)); }, [trafficEvents]);
   useEffect(() => { if (!sessionStorage.getItem('lst_visit_recorded')) { trackTraffic('visit'); sessionStorage.setItem('lst_visit_recorded', '1'); } }, []);
   const [compareStart, setCompareStart] = useState(() => { const date = new Date(); date.setDate(date.getDate() - 6); return formatDateKey(date); });
   const [compareEnd, setCompareEnd] = useState(() => formatDateKey(new Date()));
@@ -2188,23 +2189,23 @@ function StudioApp() {
   const [crmPeriod, setCrmPeriod] = useState<'hoy' | '7d' | '30d' | 'personalizado'>('7d');
   useEffect(() => { setOpportunityPage(1); }, [opportunityStatus, opportunitySearch, demandFilter, crmPeriod, demandStart, demandEnd]);
   const [lostDemandsList, setLostDemandsList] = useState<LostDemandRecord[]>(() => {
-    const saved = localStorage.getItem('lst_lost_demands_detailed');
-    return saved ? readStoredValue('lst_lost_demands_detailed', saved) : [
+    const saved = privateStorage.getItem('lst_lost_demands_detailed');
+    return saved ? readStoredValue('lst_lost_demands_detailed', saved) : studioApi.serverConfigured ? [] : [
       { id: '1', date: '22/09/2026', clientName: 'Sonsoles P.', serviceName: 'Balayage & Melt & Lights', potentialValue: 95, reason: 'sin_disponibilidad', clientNote: 'Buscaba hueco en sábado por la mañana pero estaba completo.', phone: '611222333' }
     ];
   });
 
   useEffect(() => {
-    localStorage.setItem('lst_lost_demands_detailed', JSON.stringify(lostDemandsList));
+    privateStorage.setItem('lst_lost_demands_detailed', JSON.stringify(lostDemandsList));
   }, [lostDemandsList]);
 
   const [feedbackList, setFeedbackList] = useState<FeedbackRecord[]>(() => {
-    const saved = localStorage.getItem('lst_feedback_list');
+    const saved = privateStorage.getItem('lst_feedback_list');
     return saved ? readStoredValue('lst_feedback_list', saved) : [];
   });
 
   useEffect(() => {
-    localStorage.setItem('lst_feedback_list', JSON.stringify(feedbackList));
+    privateStorage.setItem('lst_feedback_list', JSON.stringify(feedbackList));
   }, [feedbackList]);
 
   const [detractorReplies, setDetractorReplies] = useState<{ [key: string]: string }>({});
@@ -2271,12 +2272,12 @@ function StudioApp() {
   };
 
   const [appointments, setAppointments] = useState<Appointment[]>(() => {
-    const saved = localStorage.getItem('lst_studio_appointments');
-    return saved ? readStoredValue('lst_studio_appointments', saved) : INITIAL_APPOINTMENTS;
+    const saved = privateStorage.getItem('lst_studio_appointments');
+    return saved ? readStoredValue('lst_studio_appointments', saved) : studioApi.serverConfigured ? [] : INITIAL_APPOINTMENTS;
   });
 
   useEffect(() => {
-    localStorage.setItem('lst_studio_appointments', JSON.stringify(appointments));
+    privateStorage.setItem('lst_studio_appointments', JSON.stringify(appointments));
   }, [appointments]);
 
   const appointmentSearchResults = appointmentSearchQuery ? appointments.filter(appointment => {
@@ -2298,7 +2299,7 @@ function StudioApp() {
   }, [appointments]);
 
   const [listaClientes, setListaClientes] = useState<ClientRecord[]>(() => {
-    const saved = localStorage.getItem('lst_studio_clientes_ids');
+    const saved = privateStorage.getItem('lst_studio_clientes_ids');
     return saved ? readStoredValue('lst_studio_clientes_ids', saved) : [];
   });
 
@@ -2413,7 +2414,7 @@ function StudioApp() {
   const [newRescheduleDate, setNewRescheduleDate] = useState<string>(formatDateKey(new Date()));
 
   useEffect(() => {
-    localStorage.setItem('lst_studio_clientes_ids', JSON.stringify(listaClientes));
+    privateStorage.setItem('lst_studio_clientes_ids', JSON.stringify(listaClientes));
   }, [listaClientes]);
 
   useEffect(() => {
@@ -2596,12 +2597,12 @@ function StudioApp() {
   };
 
   const [timeBlocks, setTimeBlocks] = useState<{ id: string; dateKey: string; time: string; durationMinutes: number; reason: string }[]>(() => {
-    try { const raw = localStorage.getItem('lst_time_blocks'); const value = raw ? JSON.parse(raw) : [];
+    try { const raw = privateStorage.getItem('lst_time_blocks'); const value = raw ? JSON.parse(raw) : [];
       return Array.isArray(value) ? value.filter(item => item && typeof item.id === 'string' && typeof item.dateKey === 'string' &&
         typeof item.time === 'string' && Number.isFinite(item.durationMinutes) && item.durationMinutes > 0) : [];
     } catch { return []; }
   });
-  useEffect(() => { localStorage.setItem('lst_time_blocks', JSON.stringify(timeBlocks)); }, [timeBlocks]);
+  useEffect(() => { privateStorage.setItem('lst_time_blocks', JSON.stringify(timeBlocks)); }, [timeBlocks]);
   const [slotAction, setSlotAction] = useState<{ date: Date; day: string; time: string } | null>(null);
   const [blockDuration, setBlockDuration] = useState(30);
   const [blockReason, setBlockReason] = useState('');
@@ -3091,10 +3092,10 @@ function StudioApp() {
 
   const [showInstallBanner, setShowInstallBanner] = useState<boolean>(false);
   const [whatsappConsent, setWhatsappConsent] = useState<boolean>(() => {
-    try { return localStorage.getItem('lst_whatsapp_consent') === '1'; } catch { return false; }
+    try { return privateStorage.getItem('lst_whatsapp_consent') === '1'; } catch { return false; }
   });
   useEffect(() => {
-    try { localStorage.setItem('lst_whatsapp_consent', whatsappConsent ? '1' : '0'); } catch { /* sin espacio se recoge de nuevo */ }
+    try { privateStorage.setItem('lst_whatsapp_consent', whatsappConsent ? '1' : '0'); } catch { /* sin espacio se recoge de nuevo */ }
     if (studioApi.serverConfigured && studioApi.currentToken() && studioApi.storedRole() === 'client') {
       studioApi.saveWhatsAppConsent(studioApi.currentToken()!, whatsappConsent).catch(() => undefined);
     }
@@ -3192,7 +3193,7 @@ function StudioApp() {
       setPushLoginPin('');
       if (result.role !== 'client' || (previousClientId && result.clientId !== previousClientId)) {
         if (catalogHasChanges && !window.confirm('Hay cambios del catálogo pendientes. ¿Quieres cerrar sesión sin guardarlos?')) return;
-    studioApi.clearStoredToken();
+    clearStudioSession();
         throw new Error('Usa el PIN de la clienta de esta reserva.');
       }
       setPushNeedsLogin(false);
@@ -3219,11 +3220,11 @@ function StudioApp() {
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('lst_business_config', JSON.stringify(bizConfig));
+    privateStorage.setItem('lst_business_config', JSON.stringify(bizConfig));
   }, [bizConfig]);
 
   useEffect(() => {
-    localStorage.setItem('lst_app_visits', appVisitsCount.toString());
+    privateStorage.setItem('lst_app_visits', appVisitsCount.toString());
   }, [appVisitsCount]);
 
   const handleClientPinSubmit = (event: React.FormEvent) => {
@@ -3277,7 +3278,7 @@ function StudioApp() {
                 try {
                   await studioApi.authenticate(enteredPin);
                 } catch {
-                  studioApi.clearStoredToken();
+                  clearStudioSession();
                   setPinError(true);
                   return;
                 }
@@ -3322,7 +3323,7 @@ function StudioApp() {
     setAdminLoginBusy(true);
     try {
       const result = await statusWithTimeout(studioApi.authenticate(enteredPin));
-      if (result.role !== 'admin') { studioApi.clearStoredToken(); throw new Error('Este PIN corresponde a un acceso de clienta, no a la intranet.'); }
+      if (result.role !== 'admin') { clearStudioSession(); throw new Error('Este PIN corresponde a un acceso de clienta, no a la intranet.'); }
     } catch (error) {
       setAdminError(true);
       const detail = error instanceof Error ? error.message : '';
@@ -3389,6 +3390,7 @@ function StudioApp() {
   const syncFromServer = async (): Promise<Record<string, any> | null> => {
     const sessionToken=studioApi.currentToken();
     if (!studioApi.serverConfigured || !sessionToken) return null;
+    await ensureAdminPrivateSession();
     const data = await studioApi.syncAll<Record<string, any>>(sessionToken);
     if(studioApi.currentToken()!==sessionToken)throw new Error('La sesión ha cambiado durante la actualización.');
     if (!data || typeof data !== 'object') return data;
@@ -3406,7 +3408,7 @@ function StudioApp() {
         }));
       if (serverCatalog.length) {
         setCatalog(studioApi.storedRole() === 'admin' ? restoreCatalogPhotos(serverCatalog) : serverCatalog);
-        localStorage.setItem('lst_master_catalog', JSON.stringify(serverCatalog));
+        privateStorage.setItem('lst_master_catalog', JSON.stringify(serverCatalog));
         setSavedCatalogSnapshot(JSON.stringify(serverCatalog));
       }
     }
@@ -3434,10 +3436,11 @@ function StudioApp() {
         return { id: String(b.id), dateKey: iso.slice(0, 10), time: iso.slice(11, 16) || '00:00', durationMinutes: 30, reason: b.reason || '' };
       }));
     }
-    if (Array.isArray(data.appointments) && data.appointments.length) {
+    if (Array.isArray(data.appointments)) {
       const serverAppointments = data.appointments.map(mapServerAppointment);
       serverAppointments.forEach(item => knownAppointmentIds.current.add(item.id));
-      setAppointments(previous => {
+      if (data.role === 'client') setAppointments(serverAppointments);
+      else setAppointments(previous => {
         const byId = new Map(previous.map(item => [item.id, item]));
         serverAppointments.forEach(item => byId.set(item.id, item));
         return Array.from(byId.values());
@@ -3468,9 +3471,9 @@ function StudioApp() {
       }));
       // A successful admin sync is authoritative, including an empty server list.
       // Keep a local recovery copy before retiring stale, unsynchronised entries.
-      const oldClientCache = localStorage.getItem('lst_studio_clientes_ids');
-      if (oldClientCache && !localStorage.getItem('lst_clientas_respaldo_20261028')) {
-        localStorage.setItem('lst_clientas_respaldo_20261028', oldClientCache);
+      const oldClientCache = privateStorage.getItem('lst_studio_clientes_ids');
+      if (oldClientCache && !privateStorage.getItem('lst_clientas_respaldo_20261028')) {
+        privateStorage.setItem('lst_clientas_respaldo_20261028', oldClientCache);
       }
       const uniqueClients = new Map(serverClients.map(client => [client.serverId, client]));
       setListaClientes(Array.from(uniqueClients.values()).sort((left,right)=>left.idNum-right.idNum));
@@ -3519,10 +3522,7 @@ function StudioApp() {
           date: v.visit_date || '', service: v.service || '', stylist: v.stylist || '', notes: v.shared_notes || '',
         })),
       };
-      setListaClientes(previous => {
-        const without = previous.filter(client => client.idNum !== record.idNum);
-        return [...without, record].sort((left, right) => left.idNum - right.idNum);
-      });
+      setListaClientes([record]);
       setCurrentClientRecord(record);
     }
     return data;
@@ -3570,7 +3570,7 @@ function StudioApp() {
           }));
         if (!serverCatalog.length) return;
         setCatalog(serverCatalog);
-        localStorage.setItem('lst_master_catalog', JSON.stringify(serverCatalog));
+        privateStorage.setItem('lst_master_catalog', JSON.stringify(serverCatalog));
         setSavedCatalogSnapshot(JSON.stringify(serverCatalog));
       }).catch(() => undefined);
     }
@@ -3638,7 +3638,7 @@ function StudioApp() {
       }
       configDraftRef.current = nextDraft;
       setTempConfigState(nextDraft);
-      try { localStorage.setItem('lst_business_config', JSON.stringify(confirmed)); } catch { /* Server persistence succeeded; browser cache is optional. */ }
+      try { privateStorage.setItem('lst_business_config', JSON.stringify(confirmed)); } catch { /* Server persistence succeeded; browser cache is optional. */ }
       setSaveState('saved');
       setSavedMsg(`¡${sectionName} guardados correctamente!`);
       setTimeout(() => setSavedMsg(null), 3000);
@@ -4198,13 +4198,15 @@ function StudioApp() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     if (adminStatusBusyRef.current || cancellationBusyRef.current || approvalSavingRef.current || visualBookingBusyRef.current || pendingBookingBusyRef.current || bizumSavingRef.current || deletingAppointmentRef.current || configSavingRef.current || catalogSavingRef.current || photoUploadBusyRef.current) {
       alert('Espera a que termine el guardado antes de cerrar sesión.');
       return;
     }
+    try { await flushPrivateCache(); }
+    catch { alert('No se han guardado todos los datos locales protegidos. Mantén la sesión abierta y reintenta el guardado local antes de salir.'); return; }
     setSelectedVoucherId(null);
-    studioApi.clearStoredToken();
+    clearStudioSession();
     if (studioApi.currentToken() || studioApi.storedRole() || studioApi.storedClientId()) {
       alert('No se ha podido borrar la sesión guardada. Vuelve a intentarlo.');
       return;
@@ -5131,7 +5133,7 @@ function StudioApp() {
 
       <PinRecovery open={recoveryOpen} initialToken={recoveryToken}
         onClose={()=>{setRecoveryOpen(false);setRecoveryToken('');setCurrentScreen('clientPin');}}
-        onSuccess={()=>{studioApi.clearStoredToken();setCurrentClientRecord(null);setListaClientes([]);setAppointments([]);setPin('');setPinError(false);setCurrentScreen('clientPin');}} />
+        onSuccess={()=>{clearStudioSession();setCurrentClientRecord(null);setListaClientes([]);setAppointments([]);setPin('');setPinError(false);setCurrentScreen('clientPin');}} />
 
       {adminStatusRequest&&<div role="dialog" aria-modal="true" aria-labelledby="admin-status-title" aria-busy={adminStatusBusy} style={{position:'fixed',inset:0,zIndex:6000,background:'rgba(20,16,13,.85)',display:'flex',alignItems:'center',justifyContent:'center',padding:20}}>
         <section style={{width:'100%',maxWidth:420,boxSizing:'border-box',padding:24,border:'1px solid #8C6A4B',borderRadius:12,background:'#322A25',color:'#FFF8EE'}}>
