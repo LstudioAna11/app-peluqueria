@@ -596,13 +596,13 @@ function usePortalEntry(options:{screen:string;recoveryOpen:boolean;syncSession:
   if(restoreLock.current)return;
   const token=studioApi.currentToken();
   if(!studioApi.serverConfigured||!token||latest.current.recoveryOpen){setRestoring(false);return;}
-  const shouldNavigate=studioApi.storedRole()==='client'||!!target;
+  const shouldNavigate=['client','admin'].includes(String(studioApi.storedRole()))||!!target;
   const run=++restoreGeneration.current;restoreLock.current=true;setRestoring(shouldNavigate);setMessage('');setRetryable(false);
   try{
    const data=await statusWithTimeout(latest.current.syncSession());
    if(!validRun(run,token))return;
    if(data?.role==='client'&&data.me?.id&&shouldNavigate)latest.current.onClient();
-   else if(data?.role==='admin'&&target)latest.current.onAdmin();
+   else if(data?.role==='admin'&&shouldNavigate)latest.current.onAdmin();
    else if(data?.role!=='admin'&&shouldNavigate)throw new Error('No se pudo comprobar la ficha de esta sesión.');
   }catch(error){
    if(!validRun(run,token))return;
