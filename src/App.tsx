@@ -69,6 +69,20 @@ export async function persistVerifiedAppointmentEdit(token: string, patch: studi
   return saved;
 }
 
+export type StudioTimeBlock = {id:string;serverId?:string;dateKey:string;time:string;durationMinutes:number;reason:string;pendingSync?:boolean;invalidInterval?:boolean};
+export function mapServerTimeBlock(row: Record<string, any>): StudioTimeBlock {
+  const iso = String(row.starts_at || '');
+  const instant = (value: unknown) => {const text=String(value||'');return Date.parse(/(Z|[+-]\d{2}(?::?\d{2})?)$/i.test(text)?text:text+'Z');};
+  const duration = (instant(row.ends_at) - instant(row.starts_at)) / 60000;
+  const valid = Number.isInteger(duration) && duration >= 5 && duration <= 720 && String(row.ends_at||'').slice(0,10)===iso.slice(0,10);
+  return {id:String(row.id),serverId:String(row.id),dateKey:iso.slice(0,10),time:iso.slice(11,16),durationMinutes:valid?duration:30,reason:String(row.reason||'Tiempo reservado'),invalidInterval:!valid};
+}
+export function mergeServerTimeBlocks(previous: StudioTimeBlock[], rows: Record<string,any>[], admin: boolean): StudioTimeBlock[] {
+  const saved = rows.map(mapServerTimeBlock).map(block=>{const old=previous.find(item=>item.id===block.id);return block.invalidInterval&&old&&old.durationMinutes>=5&&old.durationMinutes<=720?{...block,durationMinutes:old.durationMinutes}:block;});
+  // Never silently discard historical blocks which were only stored locally.
+  return admin ? [...previous.filter(item => !item.serverId && !saved.some(block => block.id === item.id)).map(item=>({...item,pendingSync:true})), ...saved] : saved.filter(item=>!item.invalidInterval);
+}
+
 const CANCELLATION_HOURS = 24;
 const CANCELLATION_NOTICE = 'Para cambiar o cancelar tu cita con menos de 24 horas de antelación, contacta directamente con L’Studio Ana.';
 // The existing database stores appointment wall-clock values as ISO UTC text.
@@ -2638,7 +2652,7 @@ function StudioApp() {
     } finally { setClientStatusBusy(null); }
   };
 
-  const [timeBlocks, setTimeBlocks] = useState<{ id: string; dateKey: string; time: string; durationMinutes: number; reason: string }[]>(() => {
+  const [timeBlocks, setTimeBlocks] = useState<StudioTimeBlock[]>(() => {
     try { const raw = privateStorage.getItem('lst_time_blocks'); const value = raw ? JSON.parse(raw) : [];
       return Array.isArray(value) ? value.filter(item => item && typeof item.id === 'string' && typeof item.dateKey === 'string' &&
         typeof item.time === 'string' && Number.isFinite(item.durationMinutes) && item.durationMinutes > 0) : [];
@@ -2649,15 +2663,61 @@ function StudioApp() {
   const [blockDuration, setBlockDuration] = useState(30);
   const [blockReason, setBlockReason] = useState('');
   const [blockMode, setBlockMode] = useState(false);
-  const timeBlockConflict = (dateKey: string, time: string, duration = 1) => {
+  const [timeBlockSaving,setTimeBlockSaving] = useState(false);
+  const timeBlockSavingRef = useRef(false), blockDraftId = useRef('');
+  const [timeBlockError,setTimeBlockError] = useState('');
+  const saveTimeBlock = async () => {
+    if (!slotAction || timeBlockSavingRef.current) return;
+    if (!Number.isInteger(blockDuration) || blockDuration<5 || blockDuration>720) {setTimeBlockError('Indica una duración entre 5 y 720 minutos.');return;}
+    if (!isAgendaTimeWorking(slotAction.date,slotAction.time,blockDuration)) {setTimeBlockError('El bloqueo debe caber dentro del horario laboral.');return;}
+    const id = blockDraftId.current || (blockDraftId.current=crypto.randomUUID());
+    const dateKey=formatDateKey(slotAction.date), reason=blockReason.trim()||'Tiempo reservado';
+    if (timeBlockConflict(dateKey,slotAction.time,blockDuration,id) || getRescheduleConflict({id:'',durationMinutes:blockDuration} as Appointment,dateKey,slotAction.time)) {setTimeBlockError('Este periodo coincide con una cita o con otro bloqueo.');return;}
+    timeBlockSavingRef.current=true;setTimeBlockSaving(true);setTimeBlockError('');
+    try {
+      const token=studioApi.currentToken();
+      if (!studioApi.serverConfigured||!token||studioApi.storedRole()!=='admin') throw new Error('Necesitas conexión y sesión de administración para guardar el bloqueo.');
+      let writeError:unknown=null;
+      try {await studioApi.createTimeBlock(token,{id,dateKey,time:slotAction.time,durationMinutes:blockDuration,reason});}catch(error){writeError=error;}
+      const data=await studioApi.syncAll<{timeBlocks?:Record<string,any>[]}>(token,['timeBlocks']);
+      if(studioApi.currentToken()!==token)throw new Error('La sesión ha cambiado.');
+      const row=data.timeBlocks?.find(item=>item.id===id);
+      const saved=row?mapServerTimeBlock(row):null;
+      if (!saved||saved.invalidInterval||saved.dateKey!==dateKey||saved.time!==slotAction.time||saved.durationMinutes!==blockDuration||saved.reason!==reason) throw writeError||new Error('El servidor no ha confirmado todos los datos del bloqueo.');
+      setTimeBlocks(previous=>[...previous.filter(item=>item.id!==id),saved]);
+      blockDraftId.current='';setSlotAction(null);
+    } catch(error) {setTimeBlockError((error instanceof Error?error.message:'No se pudo guardar el bloqueo.')+' Conservamos los datos para comprobar y reintentar.');}
+    finally {timeBlockSavingRef.current=false;setTimeBlockSaving(false);}
+  };
+  const deleteTimeBlock = async (block:StudioTimeBlock) => {
+    if(timeBlockSavingRef.current)return;
+    if(!window.confirm((block.serverId?'¿Desbloquear este periodo: ':'¿Retirar este bloqueo local pendiente: ')+block.reason+'?'))return false;
+    if(!block.serverId){setTimeBlocks(previous=>previous.filter(item=>item.id!==block.id));return true;}
+    timeBlockSavingRef.current=true;setTimeBlockSaving(true);
+    try {
+      const token=studioApi.currentToken();
+      if(!studioApi.serverConfigured||!token||studioApi.storedRole()!=='admin')throw new Error('Necesitas conexión y sesión de administración para desbloquear.');
+      let writeError:unknown=null;
+      try{await studioApi.deleteTimeBlock(token,block.serverId);}catch(error){writeError=error;}
+      const data=await studioApi.syncAll<{timeBlocks?:Record<string,any>[]}>(token,['timeBlocks']);
+      if(studioApi.currentToken()!==token)throw new Error('La sesión ha cambiado.');
+      if(!Array.isArray(data.timeBlocks)||data.timeBlocks.some(item=>item.id===block.serverId))throw writeError||new Error('No se ha confirmado la retirada del bloqueo.');
+      setTimeBlocks(previous=>previous.filter(item=>item.id!==block.id));return true;
+    }catch(error){alert(error instanceof Error?error.message:'No se pudo desbloquear. El periodo se conserva.');return false;}
+    finally{timeBlockSavingRef.current=false;setTimeBlockSaving(false);}
+  };
+
+  const timeBlockConflict = (dateKey: string, time: string, duration = 1, excludeId?:string) => {
     const toMinutes = (value: string) => { const [h, m] = value.split(':').map(Number); return h * 60 + m; };
     const start = toMinutes(time);
-    return timeBlocks.some(block => block.dateKey === dateKey &&
+    return timeBlocks.some(block => block.id !== excludeId && block.dateKey === dateKey &&
       start < toMinutes(block.time) + block.durationMinutes && start + duration > toMinutes(block.time));
   };
   const chooseSlotAction = (date: Date, day: string, time: string) => {
     const appt = appointments.find(item => isActiveAppointment(item) && item.dateKey === formatDateKey(date) && item.time === time);
     if (appt) { setViewApptModal(appt); return; }
+    if(timeBlockSavingRef.current)return;
+    blockDraftId.current='';setTimeBlockError('');
     setBlockMode(false); setBlockDuration(30); setBlockReason(''); setSlotAction({ date, day, time });
   };
 
@@ -3422,7 +3482,8 @@ function StudioApp() {
     return appointment;
   };
 
-  const liveAgenda = useLiveAgenda(currentScreen === 'adminPanel' && studioApi.storedRole() === 'admin', rows => {
+  const liveAgenda = useLiveAgenda(currentScreen === 'adminPanel' && studioApi.storedRole() === 'admin', (rows,blocks) => {
+    if(Array.isArray(blocks))setTimeBlocks(previous=>mergeServerTimeBlocks(previous,blocks,true));
     const fresh = rows.map(mapServerAppointment);
     fresh.forEach(item=>knownAppointmentIds.current.add(item.id));
     setAppointments(previous=>[...previous.filter(item=>!item.serverId&&!fresh.some(row=>row.id===item.id)),...fresh]);
@@ -3473,10 +3534,7 @@ function StudioApp() {
       })));
     }
     if (Array.isArray(data.timeBlocks)) {
-      setTimeBlocks(data.timeBlocks.map((b: Record<string, any>) => {
-        const iso = String(b.starts_at || '');
-        return { id: String(b.id), dateKey: iso.slice(0, 10), time: iso.slice(11, 16) || '00:00', durationMinutes: 30, reason: b.reason || '' };
-      }));
+      setTimeBlocks(previous=>mergeServerTimeBlocks(previous,data.timeBlocks,data.role==='admin'));
     }
     if (Array.isArray(data.appointments)) {
       const serverAppointments = data.appointments.map(mapServerAppointment);
@@ -4232,7 +4290,7 @@ function StudioApp() {
   };
 
   const handleLogout = async () => {
-    if (adminBookingSavingRef.current || rescheduleSavingRef.current || adminStatusBusyRef.current || cancellationBusyRef.current || approvalSavingRef.current || visualBookingBusyRef.current || pendingBookingBusyRef.current || bizumSavingRef.current || deletingAppointmentRef.current || configSavingRef.current || catalogSavingRef.current || photoUploadBusyRef.current) {
+    if (timeBlockSavingRef.current || adminBookingSavingRef.current || rescheduleSavingRef.current || adminStatusBusyRef.current || cancellationBusyRef.current || approvalSavingRef.current || visualBookingBusyRef.current || pendingBookingBusyRef.current || bizumSavingRef.current || deletingAppointmentRef.current || configSavingRef.current || catalogSavingRef.current || photoUploadBusyRef.current) {
       alert('Espera a que termine el guardado antes de cerrar sesión.');
       return;
     }
@@ -4878,11 +4936,15 @@ function StudioApp() {
       {days.flatMap((day, column) => timeBlocks.filter(block => block.dateKey === formatDateKey(day.dateObj)).map(block => {
         const row = hoursList.indexOf(block.time), start = minutes(block.time);
         const span = Math.max(1, hoursList.filter(time => minutes(time) >= start && minutes(time) < start + block.durationMinutes).length);
-        return <button type="button" key={block.id} onClick={() => { if (window.confirm('¿Desbloquear este periodo: ' + block.reason + '?')) setTimeBlocks(previous => previous.filter(item => item.id !== block.id)); }}
-          title="Pulsa para desbloquear" style={{ gridRow: (row + 2) + ' / span ' + span, gridColumn: column + 2,
+        return <button type="button" key={block.id} disabled={timeBlockSaving} onClick={() => {
+          if(block.pendingSync||block.invalidInterval){
+            blockDraftId.current=block.serverId||block.id;setBlockDuration(block.durationMinutes);setBlockReason(block.reason);setTimeBlockError('Este bloqueo antiguo necesita revisión. Confirma la duración y pulsa Guardar bloqueo para sincronizarlo.');setBlockMode(true);setSlotAction({date:new Date(block.dateKey+'T12:00:00'),day:'',time:block.time});
+          }else void deleteTimeBlock(block);
+        }}
+          title={block.pendingSync||block.invalidInterval?'Pulsa para revisar el bloqueo antiguo':'Pulsa para desbloquear'} style={{ gridRow: (row + 2) + ' / span ' + span, gridColumn: column + 2,
             zIndex: 3, background: '#3E342C', border: '1px dashed rgba(255, 248, 238, 0.35)', color: '#D6CBB8', padding: '6px', borderRadius: '5px',
             textAlign: 'left', cursor: 'pointer', fontSize: '11px', overflow: 'hidden' }}>
-          <strong>{block.time}–{minuteTime(start + block.durationMinutes)}</strong><div>Bloqueado · {block.reason}</div>
+          <strong>{block.time}–{minuteTime(start + block.durationMinutes)}</strong><div>{block.pendingSync||block.invalidInterval?'Revisar y sincronizar':'Bloqueado'} · {block.reason}</div>
         </button>;
       }))}
       {days.flatMap((day, column) => {
@@ -6120,23 +6182,16 @@ function StudioApp() {
           {!blockMode ? <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <button type="button" onClick={() => { handleCellClick(slotAction.date, slotAction.day, slotAction.time); setSlotAction(null); }} style={{ padding: '12px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', border: 0, cursor: 'pointer' }}>Nueva cita</button>
             <button type="button" onClick={() => setBlockMode(true)} style={{ padding: '12px', cursor: 'pointer' }}>Bloquear tiempo</button>
-          </div> : <form onSubmit={event => {
-            event.preventDefault();
-            if (!Number.isInteger(blockDuration) || blockDuration < 5 || blockDuration > 720) { alert('Indica una duración entre 5 y 720 minutos.'); return; }
-            if (!isAgendaTimeWorking(slotAction.date, slotAction.time, blockDuration)) { alert('El bloqueo debe caber dentro del horario laboral.'); return; }
-            if (timeBlockConflict(formatDateKey(slotAction.date), slotAction.time, blockDuration) ||
-              getRescheduleConflict({ id: '', durationMinutes: blockDuration } as Appointment, formatDateKey(slotAction.date), slotAction.time)) {
-              alert('Este periodo coincide con una cita o con otro bloqueo.'); return;
-            }
-            setTimeBlocks(previous => [...previous, { id: crypto.randomUUID(), dateKey: formatDateKey(slotAction.date),
-              time: slotAction.time, durationMinutes: blockDuration, reason: blockReason.trim() || 'Tiempo reservado' }]);
-            setSlotAction(null);
-          }}>
-            <label style={{ display: 'block', marginBottom: '14px' }}>Motivo<input autoFocus value={blockReason} onChange={event => setBlockReason(event.target.value)} placeholder="Comida, descanso, gestión…" style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', marginTop: '6px', background: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A' }} /></label>
-            <label>Duración (minutos)<input type="number" min="5" max="720" step="5" required value={blockDuration} onChange={event => setBlockDuration(Number(event.target.value))} style={{ display: 'block', padding: '10px', margin: '6px 0 16px', background: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A' }} /></label>
-            <button type="submit" style={{ padding: '12px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', border: 0, cursor: 'pointer' }}>Guardar bloqueo</button>
+          </div> : <form onSubmit={event=>{event.preventDefault();void saveTimeBlock();}}>
+            <fieldset disabled={timeBlockSaving} style={{border:0,padding:0,margin:0,minWidth:0}}>
+              <label style={{display:'block',marginBottom:14}}>Motivo<input autoFocus maxLength={240} value={blockReason} onChange={event=>setBlockReason(event.target.value)} placeholder="Comida, descanso, gestión…" style={{display:'block',width:'100%',boxSizing:'border-box',padding:10,marginTop:6,background:'#322A25',color:'#FFF8EE',border:'1px solid #3A312A'}}/></label>
+              <label>Duración (minutos)<input type="number" min="5" max="720" step="5" required value={blockDuration} onChange={event=>setBlockDuration(Number(event.target.value))} style={{display:'block',padding:10,margin:'6px 0 16px',background:'#322A25',color:'#FFF8EE',border:'1px solid #3A312A'}}/></label>
+              {timeBlockError&&<p role="alert" style={{color:'#FFB4A9',fontSize:13,lineHeight:1.6}}>{timeBlockError}</p>}
+              <button type="submit" style={{padding:12,background:'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)',border:0,cursor:'pointer'}}>{timeBlockSaving?'Guardando…':'Guardar bloqueo'}</button>
+              {timeBlocks.some(block=>block.id===blockDraftId.current&&(block.pendingSync||block.invalidInterval))&&<button type="button" onClick={async()=>{const block=timeBlocks.find(item=>item.id===blockDraftId.current);if(block&&await deleteTimeBlock(block)){blockDraftId.current='';setSlotAction(null);}}} style={{display:'block',marginTop:10,padding:10,background:'none',border:'1px solid #8B704A',color:'#E4C687'}}>Retirar bloqueo antiguo</button>}
+            </fieldset>
           </form>}
-          <button type="button" onClick={() => setSlotAction(null)} style={{ marginTop: '16px', background: 'none', border: 0, color: '#D6CBB8', cursor: 'pointer', padding: '10px' }}>Cancelar</button>
+          <button type="button" disabled={timeBlockSaving} onClick={() => setSlotAction(null)} style={{ marginTop: '16px', background: 'none', border: 0, color: '#D6CBB8', cursor: 'pointer', padding: '10px' }}>Cancelar</button>
         </div>
       </div>}
 
@@ -6719,7 +6774,7 @@ function StudioApp() {
 
 
 // No appointment details travel over Broadcast; rows are read through the authenticated API.
-function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[])=>void){
+function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:Record<string,any>[])=>void){
   const [status,setStatus]=useState('Conexión de la agenda…');
   const [notice,setNotice]=useState('');
   const applyRef=useRef(onRows);applyRef.current=onRows;
@@ -6735,13 +6790,13 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[])=>void)
       if(busy){again=true;return;}
       busy=true;
       try{
-        const data=await studioApi.syncAll<{appointments?:Record<string,any>[];role?:string}>(token,['appointments']);
+        const data=await studioApi.syncAll<{appointments?:Record<string,any>[];timeBlocks?:Record<string,any>[];role?:string}>(token,['appointments','timeBlocks']);
         if(stopped||studioApi.currentToken()!==token)return;
-        if(data.role!=='admin'||!Array.isArray(data.appointments))throw new Error('No se pudo actualizar la agenda.');
+        if(data.role!=='admin'||!Array.isArray(data.appointments)||!Array.isArray(data.timeBlocks))throw new Error('No se pudo actualizar la agenda.');
         const nextIds=new Set(data.appointments.map(row=>String(row.id)));
         const added=ready?data.appointments.filter(row=>!ids.has(String(row.id))):[];
         ids=nextIds;ready=true;
-        applyRef.current(data.appointments);
+        applyRef.current(data.appointments,data.timeBlocks!);
         if(added.length)setNotice(added.length===1?'Nueva cita recibida':'Nuevas citas recibidas: '+added.length);
       }catch(error){if(!stopped)setStatus('No se pudo actualizar la agenda. Pulsa Actualizar.');}
       finally{busy=false;if(again&&!stopped){again=false;void refresh();}}
