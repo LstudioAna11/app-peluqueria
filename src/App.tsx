@@ -29,6 +29,46 @@ function catalogValuesMatch(left:unknown,right:unknown):boolean {
   return keys.length===other.length&&keys.every(key=>Object.prototype.hasOwnProperty.call(b,key)&&catalogValuesMatch(a[key],b[key]));
 }
 
+// Confirm edits from an authoritative read. Retrying a lost response must not
+// repeat the same write or discard server-only snapshot fields.
+export async function persistVerifiedAppointmentEdit(token: string, patch: studioApi.ServerAppointmentPatch): Promise<Record<string, any>> {
+  const load = async () => {
+    const data = await studioApi.syncAll<{appointments?: Record<string, any>[]}>(token, ['appointments']);
+    if (studioApi.currentToken() !== token || studioApi.storedRole() !== 'admin') throw new Error('La sesión ha cambiado. Vuelve a entrar en la intranet.');
+    if (!Array.isArray(data.appointments)) throw new Error('No se pudo comprobar la cita en el servidor. Conservamos el formulario.');
+    const row = data.appointments.find(item => item.id === patch.id || String(item.source_legacy_id || '') === patch.id);
+    if (!row) throw new Error('La cita ya no aparece en el servidor. Actualiza la agenda antes de reintentar.');
+    return row;
+  };
+  const matches = (row: Record<string, any>) => {
+    if (patch.services !== undefined && !catalogValuesMatch(row.services, patch.services)) return false;
+    if (patch.durationMinutes !== undefined && Number(row.duration_minutes) !== patch.durationMinutes) return false;
+    if (patch.clientSnapshot && typeof patch.clientSnapshot === 'object') {
+      for (const [key, value] of Object.entries(patch.clientSnapshot)) {
+        if (!catalogValuesMatch(row.client_snapshot?.[key] ?? null, value ?? null)) return false;
+      }
+    }
+    if (patch.approval && (row.approval_status !== patch.approval.status || (row.approval_reason || null) !== (patch.approval.reason || null))) return false;
+    if (patch.advancePayment && (row.deposit_status !== patch.advancePayment.status || Number(row.deposit_amount || 0) !== Number(patch.advancePayment.amount || 0))) return false;
+    return true;
+  };
+  const current = await load();
+  if (matches(current)) return current;
+  const request = {...patch, id: current.id, clientSnapshot: {
+    ...(current.client_snapshot || {}), ...((patch.clientSnapshot || {}) as Record<string, unknown>),
+  }};
+  try {
+    const result = await studioApi.updateAppointmentOnServer(token, request);
+    if (!result?.ok) throw new Error('El servidor no ha confirmado el cambio.');
+  } catch (error) {
+    try { const recovered = await load(); if (matches(recovered)) return recovered; } catch { /* Keep the original failure and the form. */ }
+    throw error;
+  }
+  const saved = await load();
+  if (!matches(saved)) throw new Error('No se han conservado todos los cambios. Mantén el formulario abierto y comprueba la agenda antes de reintentar.');
+  return saved;
+}
+
 const CANCELLATION_HOURS = 24;
 const CANCELLATION_NOTICE = 'Para cambiar o cancelar tu cita con menos de 24 horas de antelación, contacta directamente con L’Studio Ana.';
 // The existing database stores appointment wall-clock values as ISO UTC text.
@@ -2409,6 +2449,8 @@ function StudioApp() {
   const [newRescheduleTime, setNewRescheduleTime] = useState<string>('10:00');
   const [rescheduleSaving, setRescheduleSaving] = useState(false);
   const rescheduleSavingRef = useRef(false);
+  const repeatDraftId = useRef('');
+  useEffect(() => { repeatDraftId.current = ''; }, [rescheduleModalAppt?.id, repeatAppointmentMode]);
   const [rescheduleError, setRescheduleError] = useState('');
   useEffect(() => { setRescheduleError(''); }, [rescheduleModalAppt?.id]);
   const [newRescheduleDate, setNewRescheduleDate] = useState<string>(formatDateKey(new Date()));
@@ -3969,8 +4011,8 @@ function StudioApp() {
       time: targetTime,
       durationMinutes: durationMin,
       clientName: modalClientName,
-      phone: modalPhone || '600000000',
-      email: modalEmail || 'sinemail@gmail.com',
+      phone: modalPhone.trim(),
+      email: modalEmail.trim(),
       serviceCategory: Array.from(new Set(services.map(item => item.categoryName))).join(' + '),
       serviceSubcategory: `RESERVADO ${services.map(item => bookingName(item.sub) + (item.variant ? ` (${item.variant.name} - ${item.variant.price})` : '')).join(' + ')}`,
       selectedVariant: services[0].variant,
@@ -3993,37 +4035,28 @@ function StudioApp() {
         saturdayApproval: approval, advancePayment: payment,
         selectedVariant: services[0].variant, serviceCategory: newApp.serviceCategory,
         serviceSubcategory: newApp.serviceSubcategory.replace(/^RESERVADO/, prefix) };
-      setAppointments(previous => previous.map(item => item.id === updated.id ? updated : item));
-      setIsModalOpen(false); setEditingAppointment(null); setViewApptModal(updated);
-      if (studioApi.serverConfigured && studioApi.storedRole() === 'admin') {
-        const serverId = updated.serverId || undefined;
-        studioApi.updateAppointmentOnServer(studioApi.currentToken()!, {
-          id: serverId || updated.id,
-          dateKey: updated.dateKey,
-          time: updated.time,
-          dayName: updated.dayName,
+      adminBookingSavingRef.current = true; setAdminBookingSaving(true);
+      try {
+        const token = studioApi.currentToken();
+        if (!studioApi.serverConfigured || !token || studioApi.storedRole() !== 'admin') throw new Error('Necesitas conexión y una sesión de administración válida para guardar.');
+        const row = await persistVerifiedAppointmentEdit(token, {
+          id: updated.serverId || updated.id,
           durationMinutes: updated.durationMinutes,
           services: updated.services,
+          ...(needsNewAssessment && approval ? {approval: {status: approval.status, reason: approval.reason, reference: approval.reference}} : {}),
+          ...(!editingAppointment.advancePayment && !editingAppointment.voucherId && payment ? {advancePayment: payment} : {}),
           clientSnapshot: {
             clientName: updated.clientName, phone: updated.phone, email: updated.email,
             serviceCategory: updated.serviceCategory, serviceSubcategory: updated.serviceSubcategory,
-            dayName: updated.dayName, selectedVariant: updated.selectedVariant ?? null,
-            remindersStatus: updated.remindersStatus,
+            selectedVariant: updated.selectedVariant ?? null,
           },
-        }).then(() => {
-          if (!serverId) {
-            return studioApi.syncAll<Record<string, any>>(studioApi.currentToken()!, ['appointments']).then(data => {
-              const row = Array.isArray(data?.appointments) ? data.appointments.find((r: Record<string, any>) => r.source_legacy_id === updated.id) : null;
-              if (row) {
-                const synced: Appointment = { ...updated, serverId: row.id };
-                setAppointments(previous => previous.map(item => item.id === synced.id ? synced : item));
-                setViewApptModal(current => current?.id === synced.id ? synced : current);
-              }
-            });
-          }
-          return undefined;
-        }).catch(() => undefined);
-      }
+        });
+        const saved = mapServerAppointment(row);
+        setAppointments(previous => previous.map(item => item.id === editingAppointment.id || item.serverId === saved.serverId ? saved : item));
+        setIsModalOpen(false); setEditingAppointment(null); setViewApptModal(saved);
+      } catch (error) {
+        alert((error instanceof Error ? error.message : 'No se pudo guardar la edición.') + ' Tus cambios siguen en el formulario.');
+      } finally { adminBookingSavingRef.current = false; setAdminBookingSaving(false); }
       return;
     }
     const approvalReason = getApprovalReason(services, newApp.dateKey);
@@ -4199,7 +4232,7 @@ function StudioApp() {
   };
 
   const handleLogout = async () => {
-    if (adminStatusBusyRef.current || cancellationBusyRef.current || approvalSavingRef.current || visualBookingBusyRef.current || pendingBookingBusyRef.current || bizumSavingRef.current || deletingAppointmentRef.current || configSavingRef.current || catalogSavingRef.current || photoUploadBusyRef.current) {
+    if (adminBookingSavingRef.current || rescheduleSavingRef.current || adminStatusBusyRef.current || cancellationBusyRef.current || approvalSavingRef.current || visualBookingBusyRef.current || pendingBookingBusyRef.current || bizumSavingRef.current || deletingAppointmentRef.current || configSavingRef.current || catalogSavingRef.current || photoUploadBusyRef.current) {
       alert('Espera a que termine el guardado antes de cerrar sesión.');
       return;
     }
@@ -6147,6 +6180,7 @@ function StudioApp() {
             <h3 style={{ color: '#E4C687', fontSize: '16px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>{editingAppointment ? 'Editar servicios · 360studio' : 'Nueva cita · 360studio'}</h3>
             <p style={{ color: '#E4C687', fontSize: '14px', margin: 0 }}>{targetDateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {targetTime}</p>
             <form onSubmit={handleSaveModalAppointment} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <fieldset disabled={adminBookingSaving} style={{border:0,padding:0,margin:0,minWidth:0,display:'flex',flexDirection:'column',gap:'12px'}}>
               <h4 style={{ color: '#FFF8EE', fontSize: '16px', margin: '8px 0' }}>1. Datos de la clienta</h4>
               {!editingAppointment && <section style={{ background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px', padding: '12px' }}>
                 <label htmlFor="new-appointment-client-search" style={{ color: '#E4C687', fontSize: '13px' }}>Buscar clienta registrada</label>
@@ -6237,8 +6271,9 @@ function StudioApp() {
               <small style={{ color: '#D6CBB8' }}>Selecciona cada servicio y pulsa «Añadir servicio». Si repites uno, se actualiza su variante. Se guardarán los servicios de la lista; sin lista, se guardará el servicio seleccionado.</small>
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
                 <button type="button" disabled={adminBookingSaving} onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
-                <button type="submit" style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{adminBookingSaving ? 'Guardando…' : editingAppointment ? 'Guardar cambios' : 'Guardar Cita'}</button>
+                <button type="submit" disabled={adminBookingSaving} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{adminBookingSaving ? 'Guardando…' : editingAppointment ? 'Guardar cambios' : 'Guardar Cita'}</button>
               </div>
+            </fieldset>
             </form>
           </div>
         </div>
@@ -6591,18 +6626,19 @@ function StudioApp() {
                   const error = getInactiveServiceError(services) || getStylingError(services) || getTonerError(services);
                   if (error) { alert(error); return; }
                   const repeated: Appointment = {
-                    id: crypto.randomUUID(), dateKey: newRescheduleDate, time: newRescheduleTime,
+                    id: repeatDraftId.current || (repeatDraftId.current = crypto.randomUUID()), bookingChannel: 'admin', dateKey: newRescheduleDate, time: newRescheduleTime,
                     dayName: date.toLocaleDateString('es-ES', { weekday: 'long' }),
                     clientName: rescheduleModalAppt.clientName, phone: rescheduleModalAppt.phone, email: rescheduleModalAppt.email,
                     durationMinutes: rescheduleModalAppt.durationMinutes, services,
+                    professionalId: rescheduleModalAppt.professionalId, professionalName: rescheduleModalAppt.professionalName,
                     selectedVariant: services[0]?.variant || null,
                     serviceCategory: Array.from(new Set(services.map(item => item.categoryName))).join(' + '),
                     serviceSubcategory: 'RESERVADO ' + services.map(item => bookingName(item.sub) + (item.variant ? ' (' + item.variant.name + ')' : '')).join(' + '),
                     remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false }
                   };
                   const reason = getApprovalReason(services, newRescheduleDate);
-                  setRescheduleModalAppt(null); setRepeatAppointmentMode(false);
                   if (reason) {
+                    setRescheduleModalAppt(null); setRepeatAppointmentMode(false);
                     repeated.saturdayApproval = { status: 'pending', reason, reference: 'REV-' + crypto.randomUUID().slice(0, 8).toUpperCase() };
                     repeated.serviceSubcategory = repeated.serviceSubcategory.replace(/^RESERVADO/, reason === 'saturday' ? 'PENDIENTE SÁBADO' : 'PENDIENTE VALORACIÓN');
                     setSaturdayRequestModal(repeated); return;
@@ -6610,8 +6646,17 @@ function StudioApp() {
                   if (serviceDepositAmount(repeated.services,repeated.durationMinutes)>0) {
                     repeated.advancePayment = createAdvancePayment(repeated.services,repeated.durationMinutes);
                     repeated.serviceSubcategory = repeated.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE BIZUM');
+                    setRescheduleModalAppt(null); setRepeatAppointmentMode(false); setAdvancePaymentModal(repeated); return;
                   }
-                  setAppointments(previous => [...previous, repeated]); setFechaSeleccionada(date); setViewApptModal(repeated);
+                  rescheduleSavingRef.current = true; setRescheduleSaving(true); setRescheduleError('');
+                  try {
+                    const saved = await persistPendingAppointment(repeated);
+                    setAppointments(previous => [...previous.filter(item => item.id !== saved.id && !(saved.serverId && item.serverId === saved.serverId)), saved]);
+                    setFechaSeleccionada(date); setRescheduleModalAppt(null); setRepeatAppointmentMode(false); setViewApptModal(saved);
+                    repeatDraftId.current = '';
+                  } catch (error) {
+                    setRescheduleError((error instanceof Error ? error.message : 'No se pudo guardar la nueva cita.') + ' Conservamos la fecha y la referencia para comprobar y reintentar.');
+                  } finally { rescheduleSavingRef.current = false; setRescheduleSaving(false); }
                   return;
                 }
                 rescheduleSavingRef.current = true; setRescheduleSaving(true); setRescheduleError('');
