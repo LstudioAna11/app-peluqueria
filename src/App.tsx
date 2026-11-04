@@ -407,6 +407,13 @@ const voucherDisplayTitle=(item:{product_id?:string;id?:string;title:string})=>{
 const voucherMoney=(cents:number)=>new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR'}).format(cents/100);
 const voucherDate=(date:string|null)=>date?date.slice(0,10).split('-').reverse().join('/'):'Al activar';
 const voucherToday=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+export async function deleteTestVoucher(token:string,id:string,expectedCode:string):Promise<void>{
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+  try{
+    const response=await fetch(String(import.meta.env.VITE_SUPABASE_URL)+'/functions/v1/studio-api/voucher-delete-test',{method:'POST',headers:{'Content-Type':'application/json',apikey:String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY||import.meta.env.VITE_SUPABASE_ANON_KEY||''),Authorization:'Bearer '+token},body:JSON.stringify({id,expectedCode,confirmTest:true}),signal:controller.signal,cache:'no-store'});
+    const data=await response.json();if(!response.ok||data?.ok!==true)throw new Error(data?.error||'No se pudo confirmar la eliminación del bono.');
+  }finally{clearTimeout(timer);}
+}
 const voucherAvailable=(v:studioApi.StudioVoucher)=>v.kind==='gift'?v.price_cents-v.used_cents-v.held_cents:v.sessions-v.used_sessions-v.held_sessions;
 const voucherUsable=(v:studioApi.StudioVoucher)=>v.status==='active'&&!!v.expires_on&&v.expires_on>=voucherToday()&&voucherAvailable(v)>0;
 const voucherToken=()=>{const token=studioApi.currentToken();if(!token)throw new Error('Vuelve a iniciar sesión para consultar tus bonos.');return token;};
@@ -480,6 +487,7 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
  const [data,setData]=useState<studioApi.VoucherPage|null>(null),[page,setPage]=useState(0),[client,setClient]=useState('');
  const [busy,setBusy]=useState(false),[writing,setWriting]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const [pendingDelete,setPendingDelete]=useState<string|null>(null);
+ const [testDeleteConfirmed,setTestDeleteConfirmed]=useState(false);
  const [dedication,setDedication]=useState(''),[code,setCode]=useState(''),[confirming,setConfirming]=useState<string|null>(null),[amount,setAmount]=useState(''),[checked,setChecked]=useState(false);
  const [serviceSearch,setServiceSearch]=useState<Record<string,string>>({});
  const [config,setConfig]=useState<Record<string,string[]>>({}),[reserveId,setReserveId]=useState<string|null>(null),[pendingCancel,setPendingCancel]=useState<string|null>(null);
@@ -587,6 +595,19 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
       await act(async()=>{await studioApi.deleteCancelledVoucher(voucherToken(),v.id);removed=true;setPendingDelete(null);},'Solicitud anulada eliminada.');
       if(removed&&page>0&&data.vouchers.length===1)setPage(p=>p-1);
     }}>Sí, eliminar solicitud</button><button type="button" disabled={writing} onClick={()=>setPendingDelete(null)}>Conservar</button></div></div>}
+   </div>}
+   {admin&&v.status==='active'&&<div style={{marginTop:10}}>
+    <button type="button" disabled={writing||busy} onClick={()=>{setPendingDelete(current=>current==='test:'+v.id?null:'test:'+v.id);setTestDeleteConfirmed(false);}}>Eliminar {v.kind==='gift'?'tarjeta':'bono'} de prueba</button>
+    {pendingDelete==='test:'+v.id&&<div role="group" aria-label="Eliminar bono ficticio" style={{marginTop:10,padding:12,border:'1px solid #B49161',borderRadius:10,background:'#F3E8D5',color:'#3D3024'}}>
+      <strong>{voucherDisplayTitle(v)}</strong><p style={{fontSize:11,overflowWrap:'anywhere'}}>{v.code}</p>
+      <p style={{fontSize:12,lineHeight:1.6}}>Se eliminará definitivamente este registro de prueba de la intranet y del portal. Esta acción no realiza ningún reembolso.</p>
+      <label style={{display:'flex',alignItems:'center',gap:8,fontSize:12,color:'#3D3024'}}><input type="checkbox" checked={testDeleteConfirmed} disabled={writing||busy} onChange={event=>setTestDeleteConfirmed(event.target.checked)} style={{width:18,height:18,minHeight:18,flexShrink:0}}/>Confirmo que es un bono ficticio de prueba.</label>
+      <div className="vb-actions" style={{marginTop:10}}><button type="button" disabled={writing||busy||!testDeleteConfirmed} onClick={async()=>{
+        let removed=false;
+        await act(async()=>{await deleteTestVoucher(voucherToken(),v.id,v.code);removed=true;setData(current=>current?{...current,vouchers:current.vouchers.filter(item=>item.id!==v.id),total:Math.max(0,(current.total||0)-(current.vouchers.some(item=>item.id===v.id)?1:0))}:current);setPendingDelete(null);setTestDeleteConfirmed(false);},'Bono de prueba eliminado.');
+        if(removed&&page>0&&data.vouchers.length===1)setPage(value=>value-1);
+      }} style={{background:'#7F3429',borderColor:'#7F3429',color:'#FFF8EE'}}>Sí, eliminar definitivamente</button><button type="button" disabled={writing} onClick={()=>{setPendingDelete(null);setTestDeleteConfirmed(false);}}>Conservar</button></div>
+    </div>}
    </div>}
    {v.status==='active'&&<><div className="vb-code">{v.code}</div><div className="vb-actions"><button type="button" onClick={()=>void copy(v.code)}>Copiar código</button>{!admin&&voucherUsable(v)&&<button type="button" className="vb-primary" onClick={()=>v.kind==='gift'?onReserve?.(v):setReserveId(reserveId===v.id?null:v.id)}>Reservar con mi bono</button>}</div>
     {!admin&&reserveId===v.id&&<div className="vb-actions">{services.filter(s=>data.products.find(p=>p.id===v.product_id)?.service_ids.includes(s.id)).map(s=><button type="button" key={s.id} onClick={()=>onReserve?.(v,s.id)}>{s.label}</button>)}</div>}
