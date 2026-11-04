@@ -83,6 +83,43 @@ export function mergeServerTimeBlocks(previous: StudioTimeBlock[], rows: Record<
   return admin ? [...previous.filter(item => !item.serverId && !saved.some(block => block.id === item.id)).map(item=>({...item,pendingSync:true})), ...saved] : saved.filter(item=>!item.invalidInterval);
 }
 
+export type PortalBusy = {start:string;end:string};
+export type PortalAvailability = {token:string;startDate:string;endDate:string;busy:PortalBusy[];loading:boolean;error:string;excludeAppointmentId?:string|null};
+export async function fetchPortalAvailability(token:string,startDate:string,endDate:string,signal:AbortSignal,excludeAppointmentId:string|null=null):Promise<{busy:PortalBusy[]}> {
+  const root=String(import.meta.env.VITE_SUPABASE_URL||'');
+  const key=String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY||import.meta.env.VITE_SUPABASE_ANON_KEY||'');
+  const response=await fetch(root+'/functions/v1/studio-api/availability',{method:'POST',headers:{'Content-Type':'application/json',apikey:key,Authorization:'Bearer '+token},body:JSON.stringify({startDate,endDate,...(excludeAppointmentId?{excludeAppointmentId}:{})}),signal,cache:'no-store'});
+  const data=await response.json();
+  if(!response.ok)throw new Error(data?.error||'No se pudo comprobar la disponibilidad.');
+  if(data.startDate!==startDate||data.endDate!==endDate||(data.excludeAppointmentId||null)!==excludeAppointmentId||!Array.isArray(data.busy)||data.busy.some((slot:any)=>!Number.isFinite(Date.parse(slot?.start))||!Number.isFinite(Date.parse(slot?.end))||Date.parse(slot.end)<=Date.parse(slot.start)))throw new Error('La respuesta de horarios no es válida. Reintenta.');
+  return {busy:data.busy.map((slot:any)=>({start:slot.start,end:slot.end}))};
+}
+export function portalIntervalReady(feed:PortalAvailability|null,token:string|null,dateKey:string,excludeAppointmentId:string|null=null):boolean {
+  return !!feed&&!feed.loading&&!feed.error&&!!token&&feed.token===token&&(feed.excludeAppointmentId||null)===excludeAppointmentId&&dateKey>=feed.startDate&&dateKey<=feed.endDate;
+}
+export function portalIntervalOccupied(busy:PortalBusy[],dateKey:string,time:string,duration:number):boolean {
+  const start=Date.parse(dateKey+'T'+time+':00Z'),end=start+duration*60000;
+  return busy.some(slot=>start<Date.parse(slot.end)&&end>Date.parse(slot.start));
+}
+
+export async function persistVerifiedAppointmentMove(token:string,reference:string,dateKey:string,time:string,dayName:string):Promise<Record<string,any>> {
+  const load=async()=>{
+    const data=await studioApi.syncAll<{appointments?:Record<string,any>[]}>(token,['appointments']);
+    if(studioApi.currentToken()!==token)throw new Error('La sesión ha cambiado. Vuelve a acceder.');
+    if(!Array.isArray(data.appointments))throw new Error('No se pudo comprobar la cita.');
+    const row=data.appointments.find(item=>item.id===reference||String(item.source_legacy_id||'')===reference);
+    if(!row)throw new Error('La cita no aparece en esta sesión. Actualiza antes de reintentar.');
+    return row;
+  };
+  const matches=(row:Record<string,any>)=>String(row.starts_at||'').slice(0,10)===dateKey&&String(row.starts_at||'').slice(11,16)===time;
+  const before=await load();if(matches(before))return before;
+  try{
+    const result=await studioApi.updateAppointmentOnServer(token,{id:before.id,dateKey,time,dayName,durationMinutes:before.duration_minutes||45});
+    if(!result?.ok)throw new Error('El servidor no ha confirmado el cambio.');
+  }catch(error){try{const saved=await load();if(matches(saved))return saved;}catch{/* Keep the original error and the form. */}throw error;}
+  const saved=await load();if(!matches(saved))throw new Error('No se ha confirmado la nueva fecha. Conservamos la selección para reintentar.');return saved;
+}
+
 const CANCELLATION_HOURS = 24;
 const CANCELLATION_NOTICE = 'Para cambiar o cancelar tu cita con menos de 24 horas de antelación, contacta directamente con L’Studio Ana.';
 // The existing database stores appointment wall-clock values as ISO UTC text.
@@ -4282,6 +4319,7 @@ function StudioApp() {
       setTimeout(() => setBookingSuccessMsg(null), 8000);
     } catch (error) {
       if(error instanceof Error&&error.message.includes('La disponibilidad del bono ha cambiado'))visualBookingAttemptRef.current=null;
+      setAvailabilityReload(value=>value+1);
       setVisualBookingError((error instanceof Error ? error.message : 'No se pudo confirmar el guardado en el servidor.') + ' Conservamos tu selección. Pulsa «Comprobar y reintentar» para revisar si se guardó antes de volver a enviarla.');
     } finally {
       visualBookingBusyRef.current = false;
@@ -4578,8 +4616,14 @@ function StudioApp() {
     const latest = new Date(); latest.setHours(23, 59, 59, 999); latest.setMonth(latest.getMonth() + bizConfig.maxBookingMonths);
     return date >= earliest && date <= latest && date.getDay() !== 0 && !isDateBlockedByHoliday(formatDateKey(date));
   };
+  const [portalAvailability,setPortalAvailability]=useState<PortalAvailability|null>(null);
+  const [availabilityReload,setAvailabilityReload]=useState(0);
+  const [rescheduleAvailability,setRescheduleAvailability]=useState<PortalAvailability|null>(null);
+  const [rescheduleAvailabilityReload,setRescheduleAvailabilityReload]=useState(0);
   const portalAvailableTimes = (date: Date) => {
     if (!portalDateAllowed(date) || !selectedServicesToBook.length) return [];
+    const dateKey=formatDateKey(date);
+    if(!portalIntervalReady(portalAvailability,studioApi.currentToken(),dateKey))return [];
     const duration = getModalDuration(selectedServicesToBook);
     const step = Math.max(5, bizConfig.slotIntervalMinutes || 15);
     const times: string[] = [];
@@ -4587,13 +4631,7 @@ function StudioApp() {
       for (let start = open; start + duration <= close; start += step) {
         const time = `${String(Math.floor(start / 60)).padStart(2, '0')}:${String(start % 60).padStart(2, '0')}`;
         if (new Date(`${formatDateKey(date)}T${time}:00`).getTime() <= Date.now()) continue;
-        const overlaps = appointments.some(appointment => {
-          if (!isActiveAppointment(appointment) || appointment.dateKey !== formatDateKey(date) || appointment.saturdayApproval?.status === 'rejected') return false;
-          const [hour, minute] = appointment.time.split(':').map(Number);
-          const bookedStart = hour * 60 + minute;
-          return start < bookedStart + (appointment.durationMinutes || 45) && start + duration > bookedStart;
-        });
-        if ((!overlaps || enableDoubleBooking) && !timeBlockConflict(formatDateKey(date), time, duration)) times.push(time);
+        if (!portalIntervalOccupied(portalAvailability!.busy,dateKey,time,duration)) times.push(time);
       }
     }
     return Array.from(new Set(times));
@@ -4628,6 +4666,53 @@ function StudioApp() {
   const portalWeekStart = new Date(bookingDate);
   portalWeekStart.setDate(bookingDate.getDate() - ((bookingDate.getDay() + 6) % 7));
   const portalWeekDays = Array.from({ length: 7 }, (_, index) => { const day = new Date(portalWeekStart); day.setDate(day.getDate() + index); return day; });
+  const availabilityStart=formatDateKey(portalWeekDays[0]),availabilityEnd=formatDateKey(portalWeekDays[6]);
+  const availabilityToken=studioApi.currentToken();
+  useEffect(()=>{
+    if(currentScreen!=='visualAgenda'||!studioApi.serverConfigured||!availabilityToken)return;
+    const controller=new AbortController();let active=true,timer:ReturnType<typeof setTimeout>|undefined;
+    const read=async()=>{
+      clearTimeout(timer);timer=setTimeout(()=>controller.abort(),20000);
+      setPortalAvailability({token:availabilityToken,startDate:availabilityStart,endDate:availabilityEnd,busy:[],loading:true,error:''});
+      try{
+        const data=await fetchPortalAvailability(availabilityToken,availabilityStart,availabilityEnd,controller.signal);
+        if(active&&studioApi.currentToken()===availabilityToken)setPortalAvailability({token:availabilityToken,startDate:availabilityStart,endDate:availabilityEnd,busy:data.busy,loading:false,error:''});
+      }catch(error){if(active&&studioApi.currentToken()===availabilityToken)setPortalAvailability({token:availabilityToken,startDate:availabilityStart,endDate:availabilityEnd,busy:[],loading:false,error:error instanceof Error?error.message:'No se pudieron comprobar los horarios.'});}
+      finally{clearTimeout(timer);}
+    };
+    void read();
+    return()=>{active=false;clearTimeout(timer);controller.abort();};
+  },[currentScreen,availabilityToken,availabilityStart,availabilityEnd,availabilityReload]);
+  useEffect(()=>{
+    if(currentScreen!=='visualAgenda')return;
+    let focusTimer:ReturnType<typeof setTimeout>|undefined;
+    const focus=()=>{if(!document.hidden){clearTimeout(focusTimer);focusTimer=setTimeout(()=>setAvailabilityReload(value=>value+1),200);}};
+    const visible=()=>{if(!document.hidden)focus();};
+    window.addEventListener('focus',focus);document.addEventListener('visibilitychange',visible);
+    return()=>{clearTimeout(focusTimer);window.removeEventListener('focus',focus);document.removeEventListener('visibilitychange',visible);};
+  },[currentScreen]);
+  const availabilityReady=portalIntervalReady(portalAvailability,availabilityToken,formatDateKey(bookingDate));
+  const clientRescheduleActive=!!rescheduleModalAppt&&!staffCanManageAppointments&&!repeatAppointmentMode&&canManageAppointment(rescheduleModalAppt);
+  const rescheduleExcludeId=clientRescheduleActive?(rescheduleModalAppt!.serverId||rescheduleModalAppt!.id):null;
+  const rescheduleAvailabilityReady=clientRescheduleActive&&portalIntervalReady(rescheduleAvailability,availabilityToken,newRescheduleDate,rescheduleExcludeId);
+  useEffect(()=>{
+    if(!clientRescheduleActive||!availabilityToken||!rescheduleExcludeId||!/^\d{4}-\d{2}-\d{2}$/.test(newRescheduleDate))return;
+    let active=true;const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+    const loading:PortalAvailability={token:availabilityToken,startDate:newRescheduleDate,endDate:newRescheduleDate,excludeAppointmentId:rescheduleExcludeId,busy:[],loading:true,error:''};
+    setRescheduleAvailability(loading);
+    void fetchPortalAvailability(availabilityToken,newRescheduleDate,newRescheduleDate,controller.signal,rescheduleExcludeId).then(data=>{
+      if(active&&studioApi.currentToken()===availabilityToken)setRescheduleAvailability({...loading,busy:data.busy,loading:false});
+    }).catch(error=>{if(active&&studioApi.currentToken()===availabilityToken)setRescheduleAvailability({...loading,loading:false,error:error instanceof Error?error.message:'No se pudieron comprobar los horarios.'});}).finally(()=>clearTimeout(timer));
+    return()=>{active=false;clearTimeout(timer);controller.abort();};
+  },[clientRescheduleActive,availabilityToken,rescheduleExcludeId,newRescheduleDate,rescheduleAvailabilityReload]);
+  useEffect(()=>{
+    if(!clientRescheduleActive)return;
+    let timer:ReturnType<typeof setTimeout>|undefined;
+    const refresh=()=>{if(!document.hidden){clearTimeout(timer);timer=setTimeout(()=>setRescheduleAvailabilityReload(value=>value+1),200);}};
+    window.addEventListener('focus',refresh);document.addEventListener('visibilitychange',refresh);
+    return()=>{clearTimeout(timer);window.removeEventListener('focus',refresh);document.removeEventListener('visibilitychange',refresh);};
+  },[clientRescheduleActive]);
+
   const portalTimes = portalAvailableTimes(bookingDate);
   useEffect(() => {
     if (!['catalogBooking', 'visualAgenda'].includes(currentScreen) || !currentClientRecord || !selectedServicesToBook.length) return;
@@ -4645,7 +4730,7 @@ function StudioApp() {
   }, [currentScreen, currentClientRecord, selectedServicesToBook, bookingDate, selectedVisualTime]);
 
   useEffect(() => {
-    if (currentScreen !== 'visualAgenda' || !currentClientRecord || !selectedServicesToBook.length || !portalDateAllowed(bookingDate) || portalTimes.length) return;
+    if (currentScreen !== 'visualAgenda' || !availabilityReady || !currentClientRecord || !selectedServicesToBook.length || !portalDateAllowed(bookingDate) || portalTimes.length) return;
     const desiredDate = formatDateKey(bookingDate);
     const serviceName = selectedServicesToBook.map(item => bookingName(item.sub) + (item.variant ? ` (${item.variant.name})` : '')).join(' + ');
     const clientEmail = currentClientRecord.email.trim().toLowerCase();
@@ -4654,7 +4739,7 @@ function StudioApp() {
       if (previous.some(item => item.clientEmail === clientEmail && item.desiredDate === desiredDate && item.serviceName === serviceName && item.observedAt?.slice(0,10) === observedAt.slice(0,10))) return previous;
       return [{ id: 'demand_' + Date.now(), date: new Date().toLocaleDateString('es-ES'), observedAt, desiredDate, clientEmail, clientName: `${currentClientRecord.nombre} ${currentClientRecord.apellidos}`.trim(), phone: currentClientRecord.telefono, serviceName, potentialValue: 0, reason: 'sin_disponibilidad', clientNote: 'Sin hueco para la duración completa de los servicios seleccionados.' }, ...previous];
     });
-  }, [currentScreen, bookingDate, currentClientRecord, selectedServicesToBook, portalTimes.length]);
+  }, [currentScreen, bookingDate, currentClientRecord, selectedServicesToBook, portalTimes.length,availabilityReady]);
 
 
   const isTimeSlotOccupied = (dateKey: string, timeStr: string) => {
@@ -4703,6 +4788,10 @@ function StudioApp() {
   };
 
   const getRescheduleConflict = (appointment: Appointment, dateKey: string, time: string) => {
+    if(clientRescheduleActive){
+      if(!portalIntervalReady(rescheduleAvailability,studioApi.currentToken(),dateKey,rescheduleExcludeId))return appointment;
+      return portalIntervalOccupied(rescheduleAvailability!.busy,dateKey,time,appointment.durationMinutes||45)?appointment:undefined;
+    }
     const [hour, minute] = time.split(':').map(Number);
     const start = hour * 60 + minute;
     const end = start + (appointment.durationMinutes || 45);
@@ -5911,12 +6000,13 @@ function StudioApp() {
             {portalWeekDays.map(day => {
               const selected = formatDateKey(day) === formatDateKey(bookingDate);
               const available = portalAvailableTimes(day).length > 0;
-              return <button type="button" key={formatDateKey(day)} aria-pressed={selected} disabled={!portalDateAllowed(day)} onClick={() => choosePortalDate(day)} style={{ minHeight: '70px', padding: '8px 1px', backgroundColor: selected ? '#C49A58' : '#322A25', color: selected ? '#29231F' : '#FFF8EE', opacity: portalDateAllowed(day) ? 1 : 0.35, border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '9px', cursor: 'pointer' }}><span style={{ fontSize: '10px', display: 'block' }}>{day.toLocaleDateString(portalLocale, { weekday: 'short' })}</span><strong style={{ fontSize: '18px', display: 'block', margin: '5px 0' }}>{day.getDate()}</strong><span aria-label={available ? t('slotsAvailable') : t('noSlots')} style={{ fontSize: '10px' }}>{available ? '●' : '—'}</span></button>;
+              return <button type="button" key={formatDateKey(day)} aria-pressed={selected} disabled={!portalDateAllowed(day)} onClick={() => choosePortalDate(day)} style={{ minHeight: '70px', padding: '8px 1px', backgroundColor: selected ? '#C49A58' : '#322A25', color: selected ? '#29231F' : '#FFF8EE', opacity: portalDateAllowed(day) ? 1 : 0.35, border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '9px', cursor: 'pointer' }}><span style={{ fontSize: '10px', display: 'block' }}>{day.toLocaleDateString(portalLocale, { weekday: 'short' })}</span><strong style={{ fontSize: '18px', display: 'block', margin: '5px 0' }}>{day.getDate()}</strong><span aria-label={portalIntervalReady(portalAvailability,availabilityToken,formatDateKey(day))?(available?t('slotsAvailable'):t('noSlots')):'Comprobando disponibilidad'} style={{ fontSize: '10px' }}>{portalIntervalReady(portalAvailability,availabilityToken,formatDateKey(day))?(available?'●':'—'):'…'}</span></button>;
             })}
           </div>
           <label style={{ color: '#C9BCA9', fontSize: '13px' }}>{t('otherDate')}<input ref={portalDateInputRef} aria-label={t('otherDate')} type="date" value={formatDateKey(bookingDate)} onChange={e => { if (e.target.value) choosePortalDate(new Date(`${e.target.value}T12:00:00`)); }} style={{ display: 'block', marginTop: '8px', padding: '12px', backgroundColor: '#3E342C', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', boxSizing: 'border-box', width: '100%' }} /></label>
           <section><h3 style={{ color: '#FFF8EE', fontSize: '16px', margin: '0 0 16px' }}>{bookingDate.toLocaleDateString(portalLocale, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
-            {!portalTimes.length ? <p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6 }}>{t('noSlotsDay')}</p> : ['morning', 'afternoon'].map(period => {
+            <button type="button" className="studio-btn-ghost" onClick={()=>setAvailabilityReload(value=>value+1)} disabled={portalAvailability?.loading} style={{marginBottom:12}}>Actualizar horarios</button>
+            {!availabilityReady ? <div role={portalAvailability?.error?'alert':'status'} style={{color:'#E4C687',fontSize:14,lineHeight:1.6}}>{portalAvailability?.error||'Comprobando horarios disponibles…'}{portalAvailability?.error&&<button type="button" onClick={()=>setAvailabilityReload(value=>value+1)} className="studio-btn-ghost">Reintentar horarios</button>}</div> : !portalTimes.length ? <p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6 }}>{t('noSlotsDay')}</p> : ['morning', 'afternoon'].map(period => {
               const times = portalTimes.filter(time => period === 'morning' ? Number(time.slice(0, 2)) < 14 : Number(time.slice(0, 2)) >= 14);
               return times.length ? <div key={period} style={{ marginBottom: '18px' }}><p style={{ color: '#C9BCA9', fontSize: '12px' }}>{t(period)}</p><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(76px, 1fr))', gap: '9px' }}>{times.map(time => <button type="button" key={time} aria-pressed={time === selectedVisualTime} onClick={() => setSelectedVisualTime(time)} style={{ minHeight: '48px', backgroundColor: time === selectedVisualTime ? '#C49A58' : '#322A25', color: time === selectedVisualTime ? '#29231F' : '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.12)', borderRadius: '8px', fontSize: '15px', cursor: 'pointer' }}>{time}</button>)}</div></div> : null;
             })}
@@ -6642,7 +6732,11 @@ function StudioApp() {
             </div>
             <section aria-label="Elegir nueva hora">
               <p style={{ color: '#E4C687', fontSize: 14, margin: '0 0 8px' }}>Elige un hueco para la duración completa</p>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, maxHeight: '32vh', overflowY: 'auto', padding: 3 }}>
+              {clientRescheduleActive&&<div style={{fontSize:13,color:'#E4C687',lineHeight:1.6,marginBottom:10}}>
+                {!rescheduleAvailabilityReady&&<p role={rescheduleAvailability?.error?'alert':'status'}>{rescheduleAvailability?.error||'Comprobando horarios para cambiar tu cita…'}</p>}
+                <button type="button" className="studio-btn-ghost" disabled={rescheduleSaving||rescheduleAvailability?.loading} onClick={()=>setRescheduleAvailabilityReload(value=>value+1)}>{rescheduleAvailability?.error?'Reintentar horarios':'Actualizar horarios'}</button>
+              </div>}
+              {(!clientRescheduleActive||rescheduleAvailabilityReady)&&<div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 8, maxHeight: '32vh', overflowY: 'auto', padding: 3 }}>
                 {Array.from({ length: Math.ceil(1440 / agendaStep) }, (_, index) => minuteTime(index * agendaStep))
                   .filter(time => /^\d{4}-\d{2}-\d{2}$/.test(newRescheduleDate) && (enableOutOfHours || isAgendaTimeWorking(new Date(newRescheduleDate + 'T12:00:00'), time, rescheduleModalAppt.durationMinutes || 45)))
                   .map(time => {
@@ -6654,14 +6748,14 @@ function StudioApp() {
                       <strong>{time}</strong><small style={{ display: 'block', fontSize: 10, marginTop: 3 }}>{unavailable ? 'No disponible' : selected ? 'Seleccionada' : 'Libre'}</small>
                     </button>;
                   })}
-              </div>
+              </div>}
               <p style={{ color: '#D6CBB8', fontSize: 12 }}>Las horas atenuadas no admiten la duración completa. Se conservan los servicios de la cita.</p>
               {newRescheduleTime && <p style={{ color: '#E4C687', fontSize: 14 }}>Nueva cita: {newRescheduleDate.split('-').reverse().join('/')} · {newRescheduleTime}</p>}
               {rescheduleError && <p role="alert" style={{ color: '#FFB4A9', fontSize: 13 }}>{rescheduleError}</p>}
             </section>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
               <button type="button" disabled={rescheduleSaving} onClick={() => setRescheduleModalAppt(null)} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
-              <button type="button" disabled={rescheduleSaving||(!repeatAppointmentMode&&!canManageAppointment(rescheduleModalAppt))} onClick={async () => {
+              <button type="button" disabled={rescheduleSaving||(clientRescheduleActive&&!rescheduleAvailabilityReady)||(!repeatAppointmentMode&&!canManageAppointment(rescheduleModalAppt))} onClick={async () => {
                 if (rescheduleSavingRef.current) return;
                 if(!repeatAppointmentMode&&!canManageAppointment(rescheduleModalAppt)){setRescheduleError(CANCELLATION_NOTICE);return;}
                 if(!staffCanManageAppointments&&!canChangePortalAppointment({dateKey:newRescheduleDate,time:newRescheduleTime})){setRescheduleError('La nueva cita debe tener al menos 24 horas de antelación.');return;}
@@ -6719,20 +6813,12 @@ function StudioApp() {
                   const token = studioApi.currentToken();
                   if (!studioApi.serverConfigured || !token) throw new Error('Necesitas conexión y una sesión válida para guardar el cambio.');
                   const source = rescheduleModalAppt;
-                  const before = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token, ['appointments']);
-                  const row = before.appointments?.find(item => item.id === source.serverId || item.id === source.id || String(item.source_legacy_id || '') === source.id);
-                  if (!row) throw new Error('No se ha encontrado la cita en el servidor. Actualiza la agenda antes de reintentar.');
-                  const dayName = date.toLocaleDateString('es-ES', { weekday: 'long' });
-                  await studioApi.updateAppointmentOnServer(token, { id: row.id, dateKey: newRescheduleDate, time: newRescheduleTime, dayName, durationMinutes: source.durationMinutes || 45 });
-                  let saved: Appointment = { ...source, serverId: row.id, dateKey: newRescheduleDate, time: newRescheduleTime, dayName };
-                  try {
-                    const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token, ['appointments']);
-                    const updatedRow = after.appointments?.find(item => item.id === row.id);
-                    if (updatedRow) saved = mapServerAppointment(updatedRow);
-                  } catch { /* The successful update already confirms persistence. */ }
-                  setAppointments(previous => previous.map(item => item.id === source.id || item.serverId === row.id ? saved : item));
+                  const row=await persistVerifiedAppointmentMove(token,source.serverId||source.id,newRescheduleDate,newRescheduleTime,date.toLocaleDateString('es-ES',{weekday:'long'}));
+                  const saved=mapServerAppointment(row);
+                  setAppointments(previous => previous.map(item => item.id === source.id || item.serverId === saved.serverId ? saved : item));
                   setFechaSeleccionada(date); setRescheduleModalAppt(null); setViewApptModal(saved);
                 } catch (error) {
+                  setRescheduleAvailabilityReload(value=>value+1);
                   setRescheduleError(error instanceof Error ? error.message : 'No se ha podido guardar el cambio. Reintenta sin cerrar esta ventana.');
                 } finally { rescheduleSavingRef.current = false; setRescheduleSaving(false); }
 
