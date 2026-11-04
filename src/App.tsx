@@ -120,6 +120,34 @@ export async function persistVerifiedAppointmentMove(token:string,reference:stri
   const saved=await load();if(!matches(saved))throw new Error('No se ha confirmado la nueva fecha. Conservamos la selección para reintentar.');return saved;
 }
 
+export type PassportState={revision:string;passport:Record<string,any>|null;visits:Record<string,any>[]};
+export async function fetchPassportState(token:string,clientId:string):Promise<PassportState>{
+  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),20000);
+  try{
+    const response=await fetch(String(import.meta.env.VITE_SUPABASE_URL)+'/functions/v1/studio-api/passport-state',{method:'POST',headers:{'Content-Type':'application/json',apikey:String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY||import.meta.env.VITE_SUPABASE_ANON_KEY||''),Authorization:'Bearer '+token},body:JSON.stringify({clientId}),signal:controller.signal,cache:'no-store'});
+    const data=await response.json();if(!response.ok)throw new Error(data.error||'No se pudo abrir el pasaporte.');
+    if(studioApi.currentToken()!==token||!data.state?.revision||!Array.isArray(data.state.visits))throw new Error('No se pudo verificar el pasaporte de esta sesión.');return data.state;
+  }finally{clearTimeout(timer);}
+}
+export function applyPassportState(client:ClientRecord,state:PassportState):ClientRecord{
+  return {...client,diagnostico:state.passport?.hair_diagnosis||'Diagnóstico inicial pendiente',dniCapilar:state.passport?.hair_diagnosis||'',prescripcionCasa:state.passport?.home_care||'',ultimaVisita:state.passport?.last_visit_text||'',proximaVisitaSugerida:state.passport?.next_visit_text||'',pastVisits:state.visits.map(v=>({id:v.id,date:v.visit_date||'',service:v.service||'',stylist:v.stylist||'',notes:v.shared_notes||'',sourceAppointmentId:v.source_appointment_id||undefined}))};
+}
+export async function persistVerifiedCompletion(token:string,reference:string):Promise<{appointment:Record<string,any>;client:Record<string,any>}>{
+  const load=async()=>{
+    const data=await studioApi.syncAll<{appointments?:Record<string,any>[];clients?:Record<string,any>[]}>(token,['appointments','clients']);
+    if(studioApi.currentToken()!==token||studioApi.storedRole()!=='admin')throw new Error('La sesión ha cambiado.');
+    const appointment=data.appointments?.find(row=>row.id===reference||String(row.source_legacy_id||'')===reference);
+    if(!appointment)throw new Error('No se encontró la cita en el servidor.');
+    const client=data.clients?.find(row=>row.id===appointment.client_id);
+    return {appointment,client};
+  };
+  const complete=(data:Awaited<ReturnType<typeof load>>)=>!!data.appointment.completed_at&&!!data.client?.visits?.some((v:any)=>v.source_appointment_id===data.appointment.id);
+  const before=await load();if(complete(before))return before as {appointment:Record<string,any>;client:Record<string,any>};
+  try{const result=await studioApi.updateAppointmentOnServer(token,{id:before.appointment.id,completedAt:new Date().toISOString()});if(!result?.ok)throw new Error('El servidor no confirmó la finalización.');}
+  catch(error){try{const saved=await load();if(complete(saved))return saved as {appointment:Record<string,any>;client:Record<string,any>};}catch{}throw error;}
+  const saved=await load();if(!complete(saved))throw new Error('No se ha podido comprobar la cita y su visita. Conservamos la ventana para reintentar.');return saved as {appointment:Record<string,any>;client:Record<string,any>};
+}
+
 const CANCELLATION_HOURS = 24;
 const CANCELLATION_NOTICE = 'Para cambiar o cancelar tu cita con menos de 24 horas de antelación, contacta directamente con L’Studio Ana.';
 // The existing database stores appointment wall-clock values as ISO UTC text.
@@ -1305,7 +1333,7 @@ export interface ClientRecord {
   formulasAplicadas: string;
   dniCapilar?: string;
   prescripcionCasa?: string;
-  pastVisits?: { date: string; service: string; stylist: string; notes: string; sourceAppointmentId?: string }[];
+  pastVisits?: { id?:string; date: string; service: string; stylist: string; notes: string; sourceAppointmentId?: string }[];
 }
 
 export interface LostDemandRecord {
@@ -2479,20 +2507,34 @@ function StudioApp() {
   const [editAdminPrescripcionCasa, setEditAdminPrescripcionCasa] = useState("");
   
   const [passportDraft, setPassportDraft] = useState<ClientRecord | null>(null);
-  const openPassportEditor = (client: ClientRecord) => setPassportDraft({ ...client, pastVisits: (client.pastVisits || []).map(visit => ({ ...visit })) });
-  const savePassport = () => {
-    if (!passportDraft) return;
-    if ((passportDraft.pastVisits || []).some(visit => !visit.date.trim() || !visit.service.trim())) { alert('Cada visita necesita fecha y servicio.'); return; }
-    setListaClientes(previous => previous.map(client => client.idNum === passportDraft.idNum ? {
-      ...client,
-      dniCapilar: passportDraft.dniCapilar,
-      prescripcionCasa: passportDraft.prescripcionCasa,
-      proximaVisitaSugerida: passportDraft.proximaVisitaSugerida,
-      ultimaVisita: passportDraft.ultimaVisita,
-      pastVisits: passportDraft.pastVisits
-    } : client));
-    setPassportDraft(null);
-    alert('Pasaporte guardado. Los cambios se reflejan en el portal de esta clienta en este navegador.');
+  const [passportSaving,setPassportSaving]=useState(false);
+  const passportBusyRef=useRef(false),passportRevision=useRef(''),passportAttempt=useRef<{id:string;signature:string}|null>(null);
+  const openPassportEditor = async (client:ClientRecord) => {
+    if(passportBusyRef.current)return;
+    const token=studioApi.currentToken();if(!studioApi.serverConfigured||!token||studioApi.storedRole()!=='admin'||!client.serverId){alert('Accede a la intranet y sincroniza esta ficha antes de editar.');return;}
+    passportBusyRef.current=true;setPassportSaving(true);
+    try{const state=await fetchPassportState(token,client.serverId);passportRevision.current=state.revision;passportAttempt.current=null;setPassportDraft(applyPassportState(client,state));}
+    catch(error){alert(error instanceof Error?error.message:'No se pudo abrir el pasaporte.');}
+    finally{passportBusyRef.current=false;setPassportSaving(false);}
+  };
+  const savePassport = async () => {
+    if(!passportDraft||passportBusyRef.current)return;
+    if((passportDraft.pastVisits||[]).some(v=>!v.date.trim()||!v.service.trim())){alert('Cada visita necesita fecha y servicio.');return;}
+    const token=studioApi.currentToken();if(!token||studioApi.storedRole()!=='admin'||!passportDraft.serverId){alert('Vuelve a acceder a la intranet.');return;}
+    const document={dniCapilar:passportDraft.dniCapilar,prescripcionCasa:passportDraft.prescripcionCasa,ultimaVisita:passportDraft.ultimaVisita,proximaVisitaSugerida:passportDraft.proximaVisitaSugerida,pastVisits:(passportDraft.pastVisits||[]).map(v=>({...v,id:v.id||crypto.randomUUID()}))};
+    const signature=JSON.stringify(document);
+    if(passportAttempt.current?.signature!==signature)passportAttempt.current={id:crypto.randomUUID(),signature};
+    const requestId=passportAttempt.current.id;
+    passportBusyRef.current=true;setPassportSaving(true);
+    try{
+      let failure:unknown=null;
+      try{await studioApi.pushPassport(token,{clientId:passportDraft.serverId,expectedRevision:passportRevision.current,requestId,...document});}catch(error){failure=error;}
+      const state=await fetchPassportState(token,passportDraft.serverId);
+      if(state.passport?.last_edit_id!==requestId)throw failure||new Error('El servidor no ha confirmado estos cambios. Puede haber otra actualización; conserva el formulario.');
+      setListaClientes(previous=>previous.map(client=>client.serverId===passportDraft.serverId?applyPassportState(client,state):client));
+      setPassportDraft(null);passportAttempt.current=null;alert('Pasaporte e historial guardados y comprobados en el servidor.');
+    }catch(error){alert((error instanceof Error?error.message:'No se pudo guardar el pasaporte.')+' Tus cambios siguen en el formulario.');}
+    finally{passportBusyRef.current=false;setPassportSaving(false);}
   };
   const [cancelApptModal, setCancelApptModal] = useState<Appointment | null>(null);
   const [rescheduleModalAppt, setRescheduleModalAppt] = useState<Appointment | null>(null);
@@ -3603,6 +3645,7 @@ function StudioApp() {
         dniCapilar: c.passport?.hair_diagnosis || '',
         prescripcionCasa: c.passport?.home_care || '',
         pastVisits: (c.visits || []).map((v: Record<string, any>) => ({
+          id:v.id,sourceAppointmentId:v.source_appointment_id||undefined,
           date: v.visit_date || '', service: v.service || '', stylist: v.stylist || '', notes: v.shared_notes || '',
         })),
       }));
@@ -3656,6 +3699,7 @@ function StudioApp() {
         dniCapilar: data.passport?.hair_diagnosis || '',
         prescripcionCasa: data.passport?.home_care || '',
         pastVisits: (data.visits || []).map((v: Record<string, any>) => ({
+          id:v.id,sourceAppointmentId:v.source_appointment_id||undefined,
           date: v.visit_date || '', service: v.service || '', stylist: v.stylist || '', notes: v.shared_notes || '',
         })),
       };
@@ -4328,7 +4372,7 @@ function StudioApp() {
   };
 
   const handleLogout = async () => {
-    if (timeBlockSavingRef.current || adminBookingSavingRef.current || rescheduleSavingRef.current || adminStatusBusyRef.current || cancellationBusyRef.current || approvalSavingRef.current || visualBookingBusyRef.current || pendingBookingBusyRef.current || bizumSavingRef.current || deletingAppointmentRef.current || configSavingRef.current || catalogSavingRef.current || photoUploadBusyRef.current) {
+    if (passportBusyRef.current || completionBusyRef.current || timeBlockSavingRef.current || adminBookingSavingRef.current || rescheduleSavingRef.current || adminStatusBusyRef.current || cancellationBusyRef.current || approvalSavingRef.current || visualBookingBusyRef.current || pendingBookingBusyRef.current || bizumSavingRef.current || deletingAppointmentRef.current || configSavingRef.current || catalogSavingRef.current || photoUploadBusyRef.current) {
       alert('Espera a que termine el guardado antes de cerrar sesión.');
       return;
     }
@@ -4802,32 +4846,21 @@ function StudioApp() {
       return start < otherStart + (other.durationMinutes || 45) && end > otherStart;
     });
   };
-  const markAppointmentCompleted = async (appointment: Appointment) => {
-    if (!staffCanManageAppointments) return;
-    if (appointment.completedAt || !isActiveAppointment(appointment)) return;
-    if (appointment.saturdayApproval?.status === 'pending' || appointment.advancePayment?.status === 'pending') { alert('Resuelve primero la aprobación y el pago pendiente.'); return; }
-    const client = listaClientes.find(item => !!normalizeEmail(appointment.email) && normalizeEmail(item.email) === normalizeEmail(appointment.email));
-    if (!client) { alert('No hay una clienta registrada con el email de esta cita. Revisa su ficha antes de registrar la visita.'); return; }
-    if (new Date(`${appointment.dateKey}T${appointment.time}:00`).getTime() > Date.now()) { alert('Esta cita todavía no ha comenzado.'); return; }
-    if (!window.confirm(`¿Registrar esta cita como realizada en el pasaporte de ${client.nombre}?`)) return;
-    const service = appointment.services?.length ? appointment.services.map(item => bookingName(item.sub) + (item.variant ? ` (${item.variant.name})` : '')).join(' + ') : appointmentServiceNames(appointment);
-    const updated = { ...appointment, completedAt: new Date().toISOString() };
-    if (studioApi.serverConfigured) {
-      const token = studioApi.currentToken();
-      if (!token || studioApi.storedRole() !== 'admin') { alert('Inicia sesión de nuevo en la intranet.'); return; }
-      try {
-        await studioApi.updateAppointmentOnServer(token, { id: appointment.serverId || appointment.id, completedAt: updated.completedAt });
-      } catch {
-        alert('No se pudo registrar la finalización en el servidor. No se ha marcado como realizada. Inténtalo de nuevo.'); return;
-      }
-    }
-    setListaClientes(previous => previous.map(item => item.idNum === client.idNum ? {
-      ...item,
-      ultimaVisita: appointment.dateKey.split('-').reverse().join('/'),
-      pastVisits: (item.pastVisits || []).some(visit => visit.sourceAppointmentId === appointment.id) ? item.pastVisits : [...(item.pastVisits || []), { date: appointment.dateKey.split('-').reverse().join('/'), service, stylist: 'Ana', notes: '', sourceAppointmentId: appointment.id }]
-    } : item));
-    setAppointments(previous => previous.map(item => item.id === appointment.id ? updated : item));
-    setViewApptModal(updated);
+  const [completingAppointmentId,setCompletingAppointmentId]=useState<string|null>(null);
+  const completionBusyRef=useRef(false);
+  const markAppointmentCompleted = async (appointment:Appointment) => {
+    if(!staffCanManageAppointments||completionBusyRef.current||appointment.completedAt||!isActiveAppointment(appointment))return;
+    if(appointment.saturdayApproval?.status==='pending'||appointment.advancePayment?.status==='pending'){alert('Resuelve primero la aprobación y el anticipo pendiente.');return;}
+    if(!window.confirm('¿Finalizar el servicio y registrar su visita en el pasaporte?'))return;
+    completionBusyRef.current=true;setCompletingAppointmentId(appointment.id);
+    try{
+      const token=studioApi.currentToken();if(!studioApi.serverConfigured||!token||studioApi.storedRole()!=='admin')throw new Error('Necesitas conexión y sesión de administración.');
+      const result=await persistVerifiedCompletion(token,appointment.serverId||appointment.id),saved=mapServerAppointment(result.appointment);
+      const state:PassportState={revision:'',passport:result.client.passport,visits:result.client.visits||[]};
+      setListaClientes(previous=>previous.map(client=>client.serverId===result.client.id?applyPassportState(client,state):client));
+      setAppointments(previous=>previous.map(item=>item.id===appointment.id||item.serverId===saved.serverId?saved:item));setViewApptModal(saved);
+    }catch(error){alert((error instanceof Error?error.message:'No se pudo finalizar.')+' No damos la visita por confirmada en pantalla hasta verificarla. Puedes reintentar.');}
+    finally{completionBusyRef.current=false;setCompletingAppointmentId(null);}
   };
   const adminAppointmentText = (appointment: Appointment) => appointment.completedAt || appointment.saturdayApproval?.status === 'pending' ? '#FFF8EE' : '#243529';
   const adminAppointmentColor = (appointment: Appointment) => appointment.saturdayApproval?.status === 'rejected' ? { background: '#F2DCD8', border: '#9B3C2D' } : appointment.completedAt ? { background: '#322A25', border: '#B8972E' } : appointment.saturdayApproval?.status === 'pending'
@@ -6194,6 +6227,7 @@ function StudioApp() {
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px', zIndex: 2400 }}>
           <div role="dialog" aria-modal="true" aria-labelledby="passport-editor-title" style={{ width: '100%', maxWidth: '660px', maxHeight: '90vh', overflowY: 'auto', backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '14px', padding: '22px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', boxSizing: 'border-box', color: '#FFF8EE' }}>
             <h3 id="passport-editor-title" style={{ color: '#E4C687', marginTop: 0 }}>Pasaporte · {passportDraft.nombre} {passportDraft.apellidos}</h3>
+            <fieldset disabled={passportSaving} style={{border:0,padding:0,margin:0,minWidth:0}}>
             <p style={{ fontSize: '13px', color: '#D6CBB8', lineHeight: 1.6 }}>Estos datos serán visibles en el portal de la clienta. Incluye solo las notas que quieras compartir con ella.</p>
             {([['dniCapilar', 'DNI capilar / diagnóstico'], ['prescripcionCasa', 'Cuidado en casa'], ['ultimaVisita', 'Última visita registrada'], ['proximaVisitaSugerida', 'Próxima visita recomendada']] as const).map(([field, label]) => <label key={field} style={{ display: 'block', marginBottom: '16px', fontSize: '13px' }}>{label}<textarea value={passportDraft[field] || ''} onChange={e => setPassportDraft({ ...passportDraft, [field]: e.target.value })} rows={field === 'dniCapilar' || field === 'prescripcionCasa' ? 3 : 1} style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', padding: '10px', marginTop: '7px', fontSize: '14px' }} /></label>)}
             <h4 style={{ color: '#E4C687' }}>Historial de visitas</h4>
@@ -6201,12 +6235,13 @@ function StudioApp() {
               {(['date', 'service', 'stylist', 'notes'] as const).map(field => <label key={field} style={{ display: 'block', marginBottom: '10px', fontSize: '12px' }}>{({ date: 'Fecha', service: 'Servicio realizado', stylist: 'Profesional', notes: 'Notas para la clienta' })[field]}<input type="text" value={visit[field]} onChange={e => setPassportDraft({ ...passportDraft, pastVisits: (passportDraft.pastVisits || []).map((item, i) => i === index ? { ...item, [field]: e.target.value } : item) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', marginTop: '5px', backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '6px', color: '#FFF8EE' }} /></label>)}
               <button type="button" onClick={() => { if (window.confirm('¿Quitar esta visita del historial? Se aplicará al guardar.')) setPassportDraft({ ...passportDraft, pastVisits: (passportDraft.pastVisits || []).filter((_, i) => i !== index) }); }} style={{ color: '#C0392B', background: 'none', border: '1px solid #74433e', padding: '8px', borderRadius: '5px', cursor: 'pointer' }}>Borrar visita</button>
             </div>)}
-            <button type="button" onClick={() => setPassportDraft({ ...passportDraft, pastVisits: [...(passportDraft.pastVisits || []), { date: formatDateKey(new Date()), service: '', stylist: 'Ana', notes: '' }] })} style={{ padding: '10px', cursor: 'pointer' }}>+ Añadir visita realizada</button>
+            <button type="button" onClick={() => setPassportDraft({ ...passportDraft, pastVisits: [...(passportDraft.pastVisits || []), { id:crypto.randomUUID(),date: formatDateKey(new Date()), service: '', stylist: 'Ana', notes: '' }] })} style={{ padding: '10px', cursor: 'pointer' }}>+ Añadir visita realizada</button>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '20px' }}>
               <button type="button" onClick={savePassport} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '12px 16px', borderRadius: '6px', cursor: 'pointer' }}>Guardar pasaporte</button>
               <button type="button" onClick={() => setPassportDraft(null)} style={{ padding: '12px', cursor: 'pointer' }}>Cancelar</button>
               <button type="button" onClick={() => { if (window.confirm('¿Vaciar diagnóstico, cuidados, fechas recomendadas e historial? La clienta y sus citas se conservan. Debes guardar para aplicar.')) setPassportDraft({ ...passportDraft, dniCapilar: '', prescripcionCasa: '', ultimaVisita: '', proximaVisitaSugerida: '', pastVisits: [] }); }} style={{ background: 'none', border: '1px solid #74433e', color: '#C0392B', padding: '12px', borderRadius: '6px', cursor: 'pointer' }}>Vaciar pasaporte</button>
             </div>
+            </fieldset>
           </div>
         </div>
       )}
@@ -6685,7 +6720,7 @@ function StudioApp() {
                   Copiar Mensaje
                 </button>
               </div>
-            </div></details></aside></div><footer className="lst-appt-footer">{viewApptModal.completedAt ? <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6 }}>Visita registrada en el pasaporte. Puedes editar o borrar esa visita desde Clientes → Editar pasaporte e historial.</p> : <button type="button" onClick={() => markAppointmentCompleted(viewApptModal)} style={{ backgroundColor: '#8FC98F', border: '1px solid #3E6B47', color: '#2C5538', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Finalizar servicio</button>}
+            </div></details></aside></div><footer className="lst-appt-footer">{viewApptModal.completedAt ? <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6 }}>Servicio finalizado. Puedes gestionar el historial desde Clientes → Editar pasaporte e historial.</p> : <button type="button" disabled={completingAppointmentId!==null} onClick={() => markAppointmentCompleted(viewApptModal)} style={{ backgroundColor: '#8FC98F', border: '1px solid #3E6B47', color: '#2C5538', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>{completingAppointmentId?'Guardando visita…':'Finalizar servicio'}</button>}
 <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(viewApptModal); setNewRescheduleDate(viewApptModal.dateKey); setNewRescheduleTime(viewApptModal.time); setViewApptModal(null); }} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Cambiar cita</button>
 {!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
               <button type="button" disabled={adminStatusBusy||viewApptModal.lifecycleStatus==='cancelled'} onClick={() => changeAppointmentStatus(viewApptModal, 'cancelled')} style={{ padding: '10px', border: '1px solid #3A312A', color: '#C0392B', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cita cancelada' : 'Cancelar cita'}</button>
