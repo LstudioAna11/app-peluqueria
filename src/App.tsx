@@ -1793,6 +1793,84 @@ function ClientAppointmentDetail({title,date,time,status,services,promotion,canM
 }
 
 
+// One random browser identifier; no client identifiers or device fingerprinting.
+function useAppUsageRegistration(screen:string) {
+  const inFlight=useRef(false);
+  useEffect(()=>{
+    const register=async()=>{
+      if(inFlight.current||!studioApi.serverConfigured||studioApi.storedRole()!=='client'||['clientPin','clientRegistration','adminLogin','adminPanel'].includes(screen))return;
+      const standalone=window.matchMedia('(display-mode: standalone)').matches||(window.navigator as any).standalone===true;
+      const token=studioApi.currentToken();
+      if(!token)return;
+      const accessMode=standalone?'installed':'browser';
+      const root=String(import.meta.env.VITE_SUPABASE_URL||'');
+      const prefix='lst_app_usage:'+root;
+      let deviceId:string;
+      try{
+        const previous=Number(window.localStorage.getItem(prefix+':ack:'+accessMode)||0);
+        if(previous>0&&Date.now()-previous>=0&&Date.now()-previous<86400000)return;
+        deviceId=window.localStorage.getItem(prefix+':id')||'';
+        if(!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(deviceId)){
+          deviceId=crypto.randomUUID();window.localStorage.setItem(prefix+':id',deviceId);
+          if(window.localStorage.getItem(prefix+':id')!==deviceId)return;
+        }
+      }catch{return;}
+      inFlight.current=true;
+      try{
+        const response=await fetch(root+'/functions/v1/studio-api/app-usage',{
+          method:'POST',headers:{'Content-Type':'application/json',apikey:String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY||import.meta.env.VITE_SUPABASE_ANON_KEY||''),Authorization:'Bearer '+token},
+          body:JSON.stringify({deviceId,accessMode}),signal:AbortSignal.timeout(12000),cache:'no-store',
+        });
+        const data=await response.json();
+        if(response.ok&&data?.ok===true)try{window.localStorage.setItem(prefix+':ack:'+accessMode,String(Date.now()));}catch{}
+      }catch{/* Optional metric never interrupts booking or login. */}
+      finally{inFlight.current=false;}
+    };
+    void register();
+    const mode=window.matchMedia('(display-mode: standalone)');
+    mode.addEventListener?.('change',register);
+    window.addEventListener('pageshow',register);
+    return()=>{mode.removeEventListener?.('change',register);window.removeEventListener('pageshow',register);};
+  },[screen]);
+}
+
+export function AppUsageStats(){
+  const [counts,setCounts]=useState<{installed:number;browser:number}|null>(null),[tab,setTab]=useState<'installed'|'browser'>('installed'),[busy,setBusy]=useState(false),[error,setError]=useState('');
+  const running=useRef(false),mounted=useRef(false),controller=useRef<AbortController|null>(null);
+  const load=async()=>{
+    if(running.current)return;
+    const token=studioApi.currentToken();
+    if(!token||studioApi.storedRole()!=='admin'){setError('Entra en la intranet para consultar el contador.');return;}
+    running.current=true;setBusy(true);setError('');
+    const control=new AbortController();controller.current=control;const timer=setTimeout(()=>control.abort(),12000);
+    try{
+      const response=await fetch(String(import.meta.env.VITE_SUPABASE_URL||'')+'/functions/v1/studio-api/app-usage-stats',{
+        method:'POST',headers:{'Content-Type':'application/json',apikey:String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY||import.meta.env.VITE_SUPABASE_ANON_KEY||''),Authorization:'Bearer '+token},
+        body:'{}',signal:control.signal,cache:'no-store',
+      });
+      const data=await response.json();
+      if(!response.ok||!Number.isSafeInteger(data.installed)||data.installed<0||!Number.isSafeInteger(data.browser)||data.browser<0)throw new Error(data.error||'No se pudo consultar el contador.');
+      if(mounted.current&&studioApi.currentToken()===token&&studioApi.storedRole()==='admin')setCounts({installed:data.installed,browser:data.browser});
+    }catch{if(mounted.current&&!control.signal.aborted)setError('No se pudo consultar el contador. Comprueba el SQL y la API e inténtalo de nuevo.');else if(mounted.current)setError('La consulta ha tardado demasiado. Pulsa Actualizar.');}
+    finally{clearTimeout(timer);running.current=false;if(controller.current===control)controller.current=null;if(mounted.current)setBusy(false);}
+  };
+  useEffect(()=>{mounted.current=true;void load();return()=>{mounted.current=false;};},[]);
+  return <section aria-label="Accesos al portal por dispositivo" style={{marginBottom:16,padding:18,border:'1px solid #8C6A4B',borderRadius:12,background:'#322A25',color:'#FFF8EE'}}>
+    <div role="tablist" aria-label="Forma de acceso" style={{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap'}}>
+      {(['installed','browser'] as const).map(mode=><button key={mode} type="button" role="tab" id={'usage-tab-'+mode} aria-selected={tab===mode} aria-controls={'usage-panel-'+mode} onClick={()=>setTab(mode)} style={{minHeight:44,padding:'9px 14px',border:'1px solid #B9955F',borderRadius:7,background:tab===mode?'#C99E52':'transparent',color:tab===mode?'#29231F':'#E4C687',cursor:'pointer'}}>{mode==='installed'?'App instalada':'Navegador'}</button>)}
+    </div>
+    <div role="tabpanel" id={'usage-panel-'+tab} aria-labelledby={'usage-tab-'+tab}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}>
+        <div><p style={{margin:'0 0 6px',fontSize:13,color:'#E4C687'}}>Dispositivos registrados · {tab==='installed'?'App instalada':'Navegador'}</p><strong style={{fontSize:28}} aria-live="polite">{counts===null?'—':counts[tab].toLocaleString('es-ES')}</strong></div>
+        <button type="button" onClick={()=>void load()} disabled={busy} style={{minHeight:44,padding:'9px 14px',border:'1px solid #B9955F',borderRadius:7,background:'transparent',color:'#E4C687',cursor:busy?'wait':'pointer'}}>{busy?'Consultando…':'Actualizar'}</button>
+      </div>
+      <p style={{margin:'8px 0 0',fontSize:12,lineHeight:1.6,color:'#D6CBB8'}}>{tab==='installed'?'Se registra al abrir desde el icono y acceder al portal de clienta.':'Se registra al acceder al portal de clienta desde el navegador.'} Cada dispositivo se cuenta una vez en esta pestaña.</p>
+    </div>
+    <details style={{marginTop:8,fontSize:12,color:'#D6CBB8'}}><summary style={{cursor:'pointer'}}>Cómo se calcula</summary><p style={{lineHeight:1.6}}>Acumulado desde la activación del contador, sin incluir accesos de administración. Un mismo dispositivo puede aparecer en ambas pestañas; no deben sumarse como personas únicas. Las apps ya instaladas se registran cuando vuelvan a abrirse y se acceda al portal. Usar otro navegador o borrar sus datos puede generar otro registro. No se detectan desinstalaciones.</p></details>
+    {error&&<p role="alert" style={{fontSize:12,color:'#FFB4A9'}}>{error}</p>}
+  </section>;
+}
+
 export default function App() {
   return <PrivateSessionGate><PortalErrorBoundary><StudioApp /></PortalErrorBoundary></PrivateSessionGate>;
 }
@@ -1800,6 +1878,7 @@ export default function App() {
 function StudioApp() {
   const [currentScreen, setCurrentScreen] = useState<'clientPin' | 'clientRegistration' | 'clientPortal' | 'myAppointmentsPage' | 'catalogBooking' | 'categoryScreen' | 'serviceDetail' | 'visualAgenda' | 'clientHistoryPage' | 'adminLogin' | 'adminPanel'>('clientPin');
   
+  useAppUsageRegistration(currentScreen);
   const [currentLang, setCurrentLang] = useState<string>(() => { const saved = privateStorage.getItem('lst_portal_language'); return saved && TRANSLATIONS[saved] ? saved : 'es'; });
   useEffect(() => { privateStorage.setItem('lst_portal_language', currentLang); }, [currentLang]);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
