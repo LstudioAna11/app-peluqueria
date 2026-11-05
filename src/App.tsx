@@ -663,8 +663,74 @@ function AppointmentVoucherTools({appointment,onSaved}:{appointment:Appointment;
  return <div>{appointment.voucher&&<p style={{fontSize:12,color:'#DEC49B'}}>Bono · {appointment.voucher.title} · {appointment.voucher.state==='consumed'?'Consumido':appointment.voucher.state==='released'?'Reserva liberada':'Apartado para esta cita'} · {appointment.voucher.kind==='gift'?voucherMoney(appointment.voucher.amountCents):'1 sesión'}</p>}{!appointment.completedAt&&isActiveAppointment(appointment)&&appointment.clientId&&appointment.serverId&&<BookingVoucher compact selectedId={selected} onChange={setSelected} services={appointment.services||[]} dateKey={appointment.dateKey} clientId={appointment.clientId} appointmentId={appointment.serverId} onSaved={onSaved}/>}</div>;
 }
 
+type RepeatPortalDraft={token:string;clientId:string;appointmentId:string;startsAt:string;catalog:CatalogCategory[];settings:Partial<BusinessConfig>;items:{sub:SubService;variant:ServiceVariant|null}[];warnings:string[]};
+function resolveRepeatedServices(services:unknown,catalog:CatalogCategory[]):{items:RepeatPortalDraft['items'];warnings:string[]}{
+  if(!Array.isArray(services)||!services.length)throw new Error('Esta cita antigua no tiene el detalle necesario para repetir sus servicios. Puedes elegirlos en el catálogo.');
+  if(!Array.isArray(catalog)||catalog.some(c=>!c||!Array.isArray(c.subservices)))throw new Error('No se pudo comprobar el catálogo actual.');
+  const current=catalog.flatMap(c=>c.subservices),seen=new Set<string>(),warnings:string[]=[];
+  const items=services.map((entry:any)=>{
+    const id=typeof entry?.sub?.id==='string'?entry.sub.id:'';
+    const matches=current.filter(sub=>sub.id===id);
+    if(!id||matches.length!==1||matches[0].active===false)throw new Error('Uno de los servicios de tu última cita ya no está disponible en el portal. Revisa el catálogo o contacta con el Studio.');
+    if(seen.has(id))throw new Error('Tu cita anterior repite un servicio que necesita revisión. Contacta con el Studio para reservarlo de nuevo.');
+    seen.add(id);const sub=matches[0];let variant:ServiceVariant|null=null;
+    if(sub.hasVariants&&sub.variants?.length){
+      if(entry?.variant?.id)variant=sub.variants.find(v=>v.id===entry.variant.id)||null;
+      else if(typeof entry?.variant?.name==='string'&&entry.variant.name.trim()){
+        const variants=sub.variants.filter(v=>v.name.trim().toLocaleLowerCase()===entry.variant.name.trim().toLocaleLowerCase());
+        if(variants.length===1)variant=variants[0];
+      }
+      if(!variant)warnings.push('Elige la opción actual de «'+(sub.bookingName?.trim()||sub.name)+'».');
+    }else if(sub.hasVariants){throw new Error('El Studio debe revisar las opciones de uno de estos servicios antes de poder reservarlo.');}
+    else if(entry?.variant)warnings.push('Las opciones de «'+(sub.bookingName?.trim()||sub.name)+'» han cambiado. Revisa su configuración actual.');
+    return{sub,variant};
+  });
+  return{items,warnings};
+}
+function RepeatLastAppointment({clientId,showPrices,onProceed,onCatalog}:{clientId?:string;showPrices:boolean;onProceed:(draft:RepeatPortalDraft)=>void;onCatalog:()=>void}){
+  const [draft,setDraft]=useState<RepeatPortalDraft|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
+  const lock=useRef(false),mounted=useRef(false);
+  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
+  const load=async()=>{
+    if(lock.current)return;lock.current=true;setBusy(true);setError('');setDraft(null);
+    const token=studioApi.currentToken();
+    try{
+      if(!studioApi.serverConfigured||!token||studioApi.storedRole()!=='client'||!clientId)throw new Error('Accede al portal con tu ficha de clienta para recuperar tu última cita.');
+      const response=await fetch(String(import.meta.env.VITE_SUPABASE_URL||'')+'/functions/v1/studio-api/repeat-last-appointment',{
+        method:'POST',headers:{'Content-Type':'application/json',apikey:String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY||import.meta.env.VITE_SUPABASE_ANON_KEY||''),Authorization:'Bearer '+token},
+        body:'{}',signal:AbortSignal.timeout(15000),cache:'no-store',
+      });
+      const data=await response.json();
+      if(!response.ok||data.ok!==true)throw new Error(data.error||'No se pudo recuperar tu última cita.');
+      if(studioApi.currentToken()!==token||studioApi.storedRole()!=='client'||data.clientId!==clientId)throw new Error('La sesión ha cambiado. Vuelve a abrir tu perfil.');
+      if(!data.appointment)throw new Error('Todavía no tienes una cita anterior confirmada para repetir. Puedes reservar desde el catálogo.');
+      if(!Array.isArray(data.catalog)||!data.settings||typeof data.settings!=='object')throw new Error('No se pudieron comprobar las condiciones actuales.');
+      const resolved=resolveRepeatedServices(data.appointment.services,data.catalog);
+      if(mounted.current)setDraft({token,clientId,appointmentId:data.appointment.id,startsAt:data.appointment.startsAt,catalog:data.catalog,settings:data.settings,...resolved});
+    }catch(value){if(mounted.current)setError((value as Error)?.message||'No se pudo recuperar tu última cita.');}
+    finally{lock.current=false;if(mounted.current)setBusy(false);}
+  };
+  const proceed=()=>{
+    if(!draft||busy)return;
+    if(studioApi.currentToken()!==draft.token||studioApi.storedRole()!=='client'){setDraft(null);setError('La sesión ha cambiado. Accede de nuevo a tu perfil.');return;}
+    onProceed(draft);
+  };
+  return <section className="lp-repeat" aria-label="Repetir mi última cita" style={{border:'1px solid #846A45',borderRadius:9,padding:12,marginBottom:12,background:'#302820'}}>
+    <button type="button" disabled={busy} onClick={()=>void load()} style={{width:'100%',minHeight:44,padding:'10px 12px',border:0,borderRadius:6,background:'#D0AA71',color:'#2C2219',fontSize:13,fontWeight:600}}>{busy?'Recuperando tus servicios…':'Repetir mi última cita'}</button>
+    <p style={{fontSize:11,color:'#C8B79E',marginTop:6,lineHeight:1.5}}>Recupera tus servicios y elige una nueva fecha.</p>
+    {draft&&<div style={{marginTop:10,fontSize:12,lineHeight:1.6}}>
+      <p style={{color:'#DCC7A4'}}>Servicios de tu cita del {draft.startsAt.slice(0,10).split('-').reverse().join('/')}</p>
+      <ul style={{paddingLeft:18,margin:'8px 0'}}>{draft.items.map(item=><li key={item.sub.id}><strong>{item.sub.bookingName?.trim()||item.sub.name}</strong>{item.variant&&' · '+item.variant.name}{showPrices&&draft.settings.showPrices!==false&&<span style={{display:'block',color:'#C8B79E'}}>{item.variant?.price||item.sub.price} · {item.variant?.duration||item.sub.duration}</span>}</li>)}</ul>
+      <p style={{fontSize:11,color:'#C8B79E'}}>Se aplican los precios y las condiciones actuales. Revisaremos el anticipo al reservar.</p>
+      {draft.warnings.map((warning,i)=><p key={i} style={{color:'#E4C687',fontSize:11,marginTop:6}}>{warning}</p>)}
+      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:10}}><button type="button" onClick={proceed} style={{minHeight:44,padding:'9px 12px',background:'#D0AA71',color:'#2C2219',border:0,borderRadius:6,fontSize:12}}>{draft.items.some(item=>item.sub.hasVariants&&!item.variant)?'Elegir opciones del servicio':'Elegir nueva fecha y hora'}</button><button type="button" onClick={()=>setDraft(null)} style={{minHeight:44,padding:9,background:'transparent',color:'#DDC29A',border:'1px solid #6C583D',borderRadius:6,fontSize:12}}>Cerrar</button></div>
+    </div>}
+    {error&&<div role="alert" style={{marginTop:8,fontSize:12,color:'#FFC3B0'}}><p>{error}</p><button type="button" onClick={onCatalog} style={{minHeight:44,marginTop:7,padding:8,background:'transparent',color:'#E4C687',border:'1px solid #846A45',borderRadius:6}}>Ir al catálogo</button></div>}
+  </section>;
+}
+
 type PortalProfileTab='hair'|'history'|'photos'|'vouchers';
-function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,onBack,onBook,onReserve}:{client?:ClientRecord|null;catalog:CatalogCategory[];logoSrc:string;t:(key:string)=>string;compactVisitText:(text:string)=>string;onBack:()=>void;onBook:()=>void;onReserve:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void}){
+function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,onBack,onBook,onReserve,onRepeat,showPrices}:{client?:ClientRecord|null;catalog:CatalogCategory[];logoSrc:string;t:(key:string)=>string;compactVisitText:(text:string)=>string;onBack:()=>void;onBook:()=>void;onReserve:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void;onRepeat:(draft:RepeatPortalDraft)=>void;showPrices:boolean}){
  const [tab,setTab]=useState<PortalProfileTab>('hair'),[historyPage,setHistoryPage]=useState(0);
  const [visited,setVisited]=useState<Record<PortalProfileTab,boolean>>({hair:true,history:false,photos:false,vouchers:false});
  const tabs:{id:PortalProfileTab;label:string}[]=[{id:'hair',label:'Mi cabello'},{id:'history',label:'Historial'},{id:'photos',label:'Fotos'},{id:'vouchers',label:'Mis bonos'}];
@@ -705,6 +771,7 @@ function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,onBack,
    @media(max-width:360px){.lp-header{gap:8px;padding-right:44px}.lp-header h2{font-size:19px}.lp-tabs button{font-size:10px}.lp-next{padding:12px}.lp-next .lp-book{padding:8px 10px}}
   `}</style>
   <header className="lp-header"><button className="lp-back" type="button" aria-label={t('backToPortal')} onClick={onBack}><ArrowLeft size={18}/></button><div><h2 title={t('passportTitle')}>{t('passportTitle')}</h2><p>{client?.nombre||'L’Studio Ana'}</p></div></header>
+  <RepeatLastAppointment clientId={client?.serverId} showPrices={showPrices} onProceed={onRepeat} onCatalog={onBook}/>
   <nav role="tablist" aria-label="Apartados de tu perfil" className="lp-tabs">{tabs.map((item,index)=><button key={item.id} id={'lp-tab-'+item.id} type="button" role="tab" aria-selected={tab===item.id} aria-controls={'lp-panel-'+item.id} tabIndex={tab===item.id?0:-1} onClick={()=>select(item.id)} onKeyDown={event=>tabKey(event,index)}>{item.label}</button>)}</nav>
   <div className="lp-panel" id="lp-panel-hair" role="tabpanel" aria-labelledby="lp-tab-hair" hidden={tab!=='hair'}>
    <div className="lp-hair"><section className="lp-next"><small>{t('recommendedVisit')}</small><p>{client?.proximaVisitaSugerida||t('pendingRecommendation')}</p><button className="lp-book" type="button" onClick={onBook}>Reservar</button><details className="lp-recommend-extra"><summary>Ver orientación de mantenimiento</summary><p>{t('maintenanceNote')}</p></details></section>
@@ -1955,6 +2022,8 @@ function StudioApp() {
   const [previewServiceId, setPreviewServiceId] = useState<string | null>(null);
   const [previewVariantId, setPreviewVariantId] = useState<string>('');
   const [selectedServicesToBook, setSelectedServicesToBook] = useState<{ sub: SubService; variant: ServiceVariant | null }[]>([]);
+  const [repeatPortalDraft,setRepeatPortalDraft]=useState<RepeatPortalDraft|null>(null);
+  const [repeatPortalNotice,setRepeatPortalNotice]=useState('');
   const [selectedProfessionalId, setSelectedProfessionalId] = useState<string | null>(null);
   const [detailAddonTab, setDetailAddonTab] = useState<'styling' | 'cut' | 'toner'>('styling');
   const [viewServiceDetail, setViewServiceDetail] = useState<{ cat: CatalogCategory; sub: SubService } | null>(null);
@@ -4118,6 +4187,22 @@ function StudioApp() {
   const approvalTitle = (reason?: 'saturday' | 'assessment' | 'both') => reason === 'assessment' ? 'Valoración previa' : reason === 'both' ? 'Valoración previa y sábado' : 'Sábado';
 
   const getTonerError = (items: { sub: SubService; variant: ServiceVariant | null }[]) => getFinishError(items, 'toner');
+  useEffect(()=>{
+    if(!repeatPortalDraft)return;
+    const draft=repeatPortalDraft;setRepeatPortalDraft(null);
+    if(currentScreen!=='clientHistoryPage'||studioApi.currentToken()!==draft.token||studioApi.storedRole()!=='client'||currentClientRecord?.serverId!==draft.clientId)return;
+    const missing=draft.items.find(item=>item.sub.hasVariants&&item.sub.variants?.length&&!item.variant);
+    const issue=missing?'Elige la opción de «'+bookingName(missing.sub)+'» antes de reservar.':getInactiveServiceError(draft.items)||getStylingError(draft.items)||getTonerError(draft.items);
+    setSelectedServicesToBook(draft.items);setSelectedProfessionalId(null);
+    setSelectedPromotionId(null);setSelectedPromotionOrigin(null);setSelectedVoucherId(null);
+    setSelectedVisualTime('');setReservationPolicyChecked(false);setAcceptedSaturdayPolicy('');
+    setVisualBookingError('');visualBookingAttemptRef.current=null;setIsModalOpen(false);
+    const date=new Date();date.setHours(12,0,0,0);date.setDate(date.getDate()+Math.max(0,Number(bizConfig.minAdvanceDays)||0));setBookingDate(date);
+    setRepeatPortalNotice(issue||'');setViewServiceDetail(null);
+    if(missing){const cat=catalog.find(c=>c.subservices.some(sub=>sub.id===missing.sub.id));if(cat){setViewServiceDetail({cat,sub:missing.sub});setPreviewVariantId('');setCurrentScreen('serviceDetail');}else setCurrentScreen('catalogBooking');}
+    else setCurrentScreen(issue?'catalogBooking':'visualAgenda');
+    window.scrollTo({top:0,behavior:'smooth'});
+  },[repeatPortalDraft,catalog]);
   const finishLabel = (sub: SubService, kind: FinishKind) => {
     const label = kind === 'styling' ? 'Peinado' : 'Matiz';
     if (isFinish(sub, kind)) return sub.isCutGoService ? 'Cut & Go · Sin secado' : 'Complemento de ' + label.toLowerCase();
@@ -5460,6 +5545,7 @@ function StudioApp() {
         </nav>
       )}
 
+      {repeatPortalNotice&&['catalogBooking','categoryScreen','serviceDetail'].includes(currentScreen)&&<div role="alert" style={{width:'100%',maxWidth:640,padding:12,margin:'10px auto',border:'1px solid #B9955F',borderRadius:8,color:'#E4C687',fontSize:13,lineHeight:1.6}}>{repeatPortalNotice}<button type="button" onClick={()=>setRepeatPortalNotice('')} style={{display:'block',minHeight:44,marginTop:6,padding:8,background:'transparent',color:'#E4C687',border:'1px solid #846A45',borderRadius:6}}>Entendido</button></div>}
       {selectedServicesToBook.length > 0 && ['catalogBooking', 'categoryScreen', 'serviceDetail'].includes(currentScreen) && (() => {
         const total = getSelectionTotal(selectedServicesToBook);
         const continueBooking = () => {
@@ -6214,7 +6300,11 @@ function StudioApp() {
       )}
 
       {/* 2.3. PASAPORTE DE EXPERIENCIAS DE AUTOR */}
-      {currentScreen === 'clientHistoryPage' && <ClientProfileCompact key={currentClientRecord?.serverId||'client-profile'} client={currentClientRecord} catalog={catalog} logoSrc={brandLogoSrc} t={t} compactVisitText={compactVisitText} onBack={()=>setCurrentScreen('clientPortal')} onBook={()=>setCurrentScreen('catalogBooking')} onReserve={(voucher,serviceId)=>{
+      {currentScreen === 'clientHistoryPage' && <ClientProfileCompact key={currentClientRecord?.serverId||'client-profile'} client={currentClientRecord} catalog={catalog} logoSrc={brandLogoSrc} t={t} compactVisitText={compactVisitText} onBack={()=>setCurrentScreen('clientPortal')} showPrices={portalShowsPrices} onRepeat={draft=>{
+            if(visualBookingBusy)return;
+            const config={...bizConfigRef.current,...draft.settings} as BusinessConfig;
+            setBizConfig(config);bizConfigRef.current=config;setCatalog(draft.catalog);setRepeatPortalDraft(draft);
+          }} onBook={()=>setCurrentScreen('catalogBooking')} onReserve={(voucher,serviceId)=>{
             setSelectedVoucherId(voucher.id);setSelectedPromotionId(null);setSelectedPromotionOrigin(null);
             const cat=serviceId?catalog.find(c=>c.subservices.some(s=>s.id===serviceId&&s.active!==false)):undefined;
             const sub=cat?.subservices.find(s=>s.id===serviceId&&s.active!==false);
