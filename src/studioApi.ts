@@ -1,3 +1,4 @@
+import {offlineConsultation} from './offlineSession';
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY) as string;
 
@@ -64,6 +65,7 @@ const rawCall = async <T = Record<string, unknown>>(
   action: string,
   opts: { method?: string; token?: string; body?: unknown } = {}
 ): Promise<T> => {
+  if (offlineConsultation()) throw new Error("Modo de consulta local. Reconecta para realizar operaciones.");
   if (!serverConfigured) throw new Error("Servidor no configurado");
   const headers: Record<string, string> = { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY };
   if (opts.token) headers["Authorization"] = `Bearer ${opts.token}`;
