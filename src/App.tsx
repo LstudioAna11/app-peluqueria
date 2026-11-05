@@ -3447,6 +3447,7 @@ function StudioApp() {
     accepted: '#8FC98F', delivered: '#8FC98F', failed: '#C0392B', expired: '#8A7E6E', sending: '#E4C687',
   } as Record<string, string>)[status] || '#D6CBB8';
   const emailKindLabel = (kind: string) => ({
+    review_request: 'Solicitud de opinión NPS',
     confirmation: 'Confirmación de reserva',
     request_received: 'Solicitud recibida',
     update: 'Actualización de cita',
