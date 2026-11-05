@@ -1,3 +1,5 @@
+import {OfflineIntranet, forgetOfflineSnapshot} from './OfflineIntranet';
+import {clearOfflineConsultation} from './offlineSession';
 import React, {useEffect, useState} from 'react';
 import * as studioApi from './studioApi';
 import {ProtectedCache} from './privateCache';
@@ -46,6 +48,7 @@ export async function ensureAdminPrivateSession(): Promise<void> {
 }
 export function clearStudioSession(): void {
   privateStorage.lock(); unlockedToken = null;
+  forgetOfflineSnapshot(); clearOfflineConsultation();
   studioApi.clearStoredToken();
   window.dispatchEvent(new Event(LOCK_EVENT));
 }
@@ -60,7 +63,7 @@ export function PrivateSessionGate({children}: {children: React.ReactElement}) {
     if (!studioApi.serverConfigured || !studioApi.currentToken() || studioApi.storedRole() !== 'admin') { setState('ready'); return; }
     setState('loading'); setError('');
     void openAdminCache().then(() => {if (active) setState('ready');}).catch(value => {
-      if (active) {setError(value instanceof Error ? value.message : 'No se pudieron abrir los datos locales.'); setState('error');}
+      if (active) {setError(!navigator.onLine ? 'Estás sin conexión. Para proteger tus datos, necesitas conexión para abrir una nueva sesión. La consulta offline funciona si mantienes la intranet abierta.' : value instanceof Error ? value.message : 'No se pudieron abrir los datos locales.'); setState('error');}
     });
     return () => {active = false;};
   }, [attempt]);
@@ -68,7 +71,7 @@ export function PrivateSessionGate({children}: {children: React.ReactElement}) {
     const ended = () => {setGeneration(value => value + 1); setCacheError(''); setState('ready');};
     const changed = (event: StorageEvent) => {
       if (event.key === null || ['lst_api_token', 'lst_api_role', 'lst_client_id'].includes(event.key)) {
-        privateStorage.lock(); unlockedToken = null; window.location.reload();
+        privateStorage.lock(); unlockedToken = null; forgetOfflineSnapshot(); clearOfflineConsultation(); window.location.reload();
       }
     };
     const failed = (event: Event) => setCacheError(String((event as CustomEvent).detail || 'No se han guardado todos los datos locales.'));
@@ -80,5 +83,5 @@ export function PrivateSessionGate({children}: {children: React.ReactElement}) {
   const style: React.CSSProperties = {maxWidth: 480, margin: '60px auto', padding: 24, color: '#F3E7D5', background: '#29231F', border: '1px solid #B9955F', borderRadius: 12, lineHeight: 1.6};
   if (state === 'loading') return <div role="status" style={style}>Preparando tu sesión…</div>;
   if (state === 'error') return <div role="alert" style={style}><p>{error}</p><p>Tus datos locales se conservan. No borres los datos del navegador.</p><button type="button" onClick={() => setAttempt(value => value + 1)}>Reintentar</button>{' '}<button type="button" onClick={clearStudioSession}>Volver al acceso</button></div>;
-  return <>{cacheError && <div role="alert" style={style}>{cacheError} <button type="button" onClick={() => void flushPrivateCache().then(() => setCacheError('')).catch(() => {})}>Reintentar guardado local</button></div>}{React.cloneElement(children, {key: generation})}</>;
+  return <>{cacheError && <div role="alert" style={style}>{cacheError} <button type="button" onClick={() => void flushPrivateCache().then(() => setCacheError('')).catch(() => {})}>Reintentar guardado local</button></div>}<OfflineIntranet unlocked={privateStorage.ready && unlockedToken === studioApi.currentToken()} onLogout={clearStudioSession}>{React.cloneElement(children, {key: generation})}</OfflineIntranet></>;
 }
