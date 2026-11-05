@@ -1,5 +1,6 @@
 import {privateStorage} from './PrivateSessionGate';
-import { ClientPhotoGallery, StudioNews, VoucherPanel, voucherServiceOptions, AppUsageStats } from './App';
+import { ClientPhotoGallery, StudioNews, VoucherPanel, voucherServiceOptions } from './App';
+import * as StudioAppFeatures from './App';
 import { AddonEditor } from './ServiceAddons';
 import React, { useState, useEffect, useRef } from 'react';
 import { Maximize2, Minimize2, Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ChevronDown, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
@@ -368,13 +369,21 @@ async function collectStudioBackup(source:StudioBackupSource,withPhotos:boolean,
   const document:StudioBackupFile={format:'lstudio-business-backup',version:2,createdAt:new Date().toISOString(),source:origin.origin,snapshot:source.snapshot,local,media:{included:withPhotos,expected:source.media.length,files}};
   await validateStudioBackup(document);return document;
 }
+type PreparedStudioBackup={file:File;url:string;name:string;ownerToken:string};
+function canSharePrepared(file:File):boolean{
+  try{return typeof navigator.share==='function'&&typeof navigator.canShare==='function'&&navigator.canShare({files:[file]});}catch{return false;}
+}
+const OptionalAppUsageStats=(StudioAppFeatures as unknown as {AppUsageStats?:React.ComponentType}).AppUsageStats;
+
 function StudioBackupPanel({hasUnsavedChanges}:{hasUnsavedChanges:boolean}){
   const [password,setPassword]=useState(''),[repeat,setRepeat]=useState(''),[withPhotos,setWithPhotos]=useState(false);
   const [file,setFile]=useState<File|null>(null),[openPassword,setOpenPassword]=useState('');
   const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
   const [summary,setSummary]=useState<{date:string;clients:number;appointments:number;passports:number;visits:number;photos:number;included:boolean;source:string}|null>(null);
+  const [prepared,setPrepared]=useState<PreparedStudioBackup|null>(null);
+  const preparedRef=useRef<PreparedStudioBackup|null>(null);
   const lock=useRef(false),controller=useRef<AbortController|null>(null);
-  useEffect(()=>()=>controller.current?.abort(),[]);
+  useEffect(()=>()=>{controller.current?.abort();if(preparedRef.current)URL.revokeObjectURL(preparedRef.current.url);},[]);
   const showSummary=(data:StudioBackupFile)=>setSummary({date:data.createdAt,clients:data.snapshot.tables.studio_clients.length,appointments:data.snapshot.tables.studio_appointments.length,passports:data.snapshot.tables.studio_passports.length,visits:data.snapshot.tables.studio_visits.length,photos:data.media.files.length,included:data.media.included,source:data.source});
   const download=async()=>{
     if(lock.current)return;setError('');setSummary(null);
@@ -389,10 +398,47 @@ function StudioBackupPanel({hasUnsavedChanges}:{hasUnsavedChanges:boolean}){
       const data=await collectStudioBackup(source,withPhotos,control.signal,setMessage);
       setMessage('Protegiendo la copia con tu contraseña…');const blob=await encryptStudioBackup(data,password);
       if(control.signal.aborted)throw new DOMException('Copia cancelada','AbortError');
-      const url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=`LStudio_${withPhotos?'datos-y-fotos':'datos'}_${new Date().toISOString().replace(/[:.]/g,'-')}.lstbackup`;document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),10000);
-      showSummary(data);setPassword('');setRepeat('');setMessage('Descarga preparada. Comprueba que el archivo se haya guardado y utiliza «Verificar una copia» para abrirlo.');
+      if(studioApi.currentToken()!==token||studioApi.storedRole()!=='admin')throw new Error('La sesión ha cambiado. Entra en la intranet y prepara otra copia.');
+      const name=`LStudio_${withPhotos?'datos-y-fotos':'datos'}_${new Date().toISOString().replace(/[:.]/g,'-')}.lstbackup`;
+      const file=new File([blob],name,{type:'application/octet-stream'});
+      const next:PreparedStudioBackup={file,url:URL.createObjectURL(file),name,ownerToken:token};
+      if(preparedRef.current)URL.revokeObjectURL(preparedRef.current.url);
+      preparedRef.current=next;setPrepared(next);
+      showSummary(data);setPassword('');setRepeat('');setMessage('Copia preparada y cifrada. Todavía no está guardada: pulsa «Guardar copia» y elige dónde conservarla.');
     }catch(value){setMessage('');setError(value instanceof Error?value.message:'No se pudo crear la copia.');}
     finally{lock.current=false;setBusy(false);controller.current=null;}
+  };
+  const savePrepared=async()=>{
+    if(lock.current||!prepared)return;
+    if(studioApi.currentToken()!==prepared.ownerToken||studioApi.storedRole()!=='admin'){
+      setError('Entra de nuevo en la intranet y prepara otra copia.');return;
+    }
+    lock.current=true;setBusy(true);setError('');
+    try{
+      const picker=(window as any).showSaveFilePicker;
+      if(typeof picker==='function'){
+        // Called directly in this click, before any network request or encryption.
+        const handle=await picker.call(window,{suggestedName:prepared.name});
+        const writable=await handle.createWritable();
+        try{await writable.write(prepared.file);await writable.close();}
+        catch(error){try{await writable.abort();}catch{}throw error;}
+        setMessage('Archivo guardado. Utiliza «Verificar una copia» y selecciona el archivo que acabas de guardar.');
+      }else if(canSharePrepared(prepared.file)){
+        await navigator.share({files:[prepared.file],title:'Copia de seguridad L’Studio Ana'});
+        setMessage('El sistema ha cerrado el menú de guardado. Comprueba el archivo en Archivos o Descargas y utiliza «Verificar una copia».');
+      }else{
+        setMessage('Pulsa «Descargar archivo cifrado» debajo. Si el navegador muestra una vista previa, utiliza su opción de guardar en Archivos o Descargas.');
+      }
+    }catch(value){
+      if((value as {name?:string})?.name==='AbortError')setMessage('Guardado cancelado. La copia sigue preparada: puedes volver a guardarla sin descargar otra vez las fotos.');
+      else setError('No se pudo completar el guardado. La copia sigue preparada. Prueba «Descargar archivo cifrado» o abre la intranet en el navegador habitual.');
+    }finally{lock.current=false;setBusy(false);}
+  };
+  const downloadPrepared=(event:React.MouseEvent<HTMLAnchorElement>)=>{
+    if(lock.current||!prepared||studioApi.currentToken()!==prepared.ownerToken||studioApi.storedRole()!=='admin'){
+      event.preventDefault();if(!lock.current)setError('Entra en la intranet y prepara otra copia.');return;
+    }
+    setError('');setMessage('Descarga solicitada al navegador. Comprueba que el archivo aparezca en Archivos o Descargas antes de dar la copia por guardada.');
   };
   const verify=async()=>{
     if(lock.current||!file)return;lock.current=true;setBusy(true);setError('');setSummary(null);setMessage('Abriendo y verificando la copia…');
@@ -403,7 +449,7 @@ function StudioBackupPanel({hasUnsavedChanges}:{hasUnsavedChanges:boolean}){
   const input:React.CSSProperties={display:'block',width:'100%',boxSizing:'border-box',padding:10,marginTop:6,background:'#29231F',color:'#FFF8EE',border:'1px solid #8C6A4B',borderRadius:6};
   const button:React.CSSProperties={padding:12,minHeight:44,background:'#C99E52',color:'#29231F',border:0,borderRadius:6,fontWeight:600,cursor:busy?'wait':'pointer'};
   return <section style={{display:'flex',flexDirection:'column',gap:12}} aria-busy={busy}>
-    <p style={{fontSize:13,lineHeight:1.6,margin:0}}>Descarga las clientas, citas, pasaportes, historial guardado, catálogo, promociones, ajustes y bloqueos desde el servidor. La copia se protege con una contraseña que eliges tú.</p>
+    <p style={{fontSize:13,lineHeight:1.6,margin:0}}>Prepara una copia de las clientas, citas, pasaportes, historial guardado, catálogo, promociones, ajustes y bloqueos desde el servidor. La copia se protege con una contraseña que eliges tú.</p>
     <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6,margin:0}}>También conserva una sección de datos locales de este dispositivo, incluidas las fórmulas que todavía no se sincronizan.</p>
     <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6,margin:0}}>Guarda esa contraseña por separado: si la pierdes, no podremos abrir la copia. No uses tu PIN de acceso.</p>
     {hasUnsavedChanges&&<p style={{fontSize:13,color:'#E4C687'}}>Tienes cambios sin guardar. Guarda el catálogo y la configuración antes de exportar.</p>}
@@ -411,7 +457,14 @@ function StudioBackupPanel({hasUnsavedChanges}:{hasUnsavedChanges:boolean}){
     <label style={{fontSize:13}}>Repite la contraseña<input type="password" autoComplete="new-password" disabled={busy} value={repeat} onChange={event=>setRepeat(event.target.value)} style={input}/></label>
     <label style={{fontSize:13,lineHeight:1.6}}><input type="checkbox" disabled={busy} checked={withPhotos} onChange={event=>setWithPhotos(event.target.checked)}/> Incluir fotos, logos y galerías privadas</label>
     <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6,margin:0}}>Las fotos aumentan el tamaño y consumen transferencia al descargarlas. Las imágenes externas o incluidas en el código de la app se conservan como enlaces.</p>
-    <button type="button" disabled={busy||hasUnsavedChanges} onClick={()=>void download()} style={button}>{busy?'Un momento…':withPhotos?'Descargar datos y fotos':'Descargar copia de datos'}</button>
+    <button type="button" disabled={busy||hasUnsavedChanges} onClick={()=>void download()} style={button}>{busy?'Un momento…':withPhotos?'1. Preparar copia con fotos':'1. Preparar copia de datos'}</button>
+    {prepared&&<div style={{padding:14,border:'1px solid #B9955F',borderRadius:8,display:'grid',gap:10}}>
+      <strong style={{fontSize:13,color:'#E4C687'}}>Tu copia está lista para guardar</strong>
+      <span style={{fontSize:11,overflowWrap:'anywhere'}}>{prepared.name}</span>
+      <button type="button" disabled={busy} onClick={()=>void savePrepared()} style={button}>2. Guardar copia</button>
+      <a href={prepared.url} download={prepared.name} target="_blank" rel="noopener noreferrer" onClick={downloadPrepared} aria-disabled={busy} style={{display:'inline-flex',alignItems:'center',justifyContent:'center',minHeight:44,color:'#E4C687',fontSize:13,textDecoration:'underline'}}>Descargar archivo cifrado</a>
+      <p style={{fontSize:12,lineHeight:1.6,margin:0}}>En el móvil, elige «Guardar en Archivos» si aparece el menú del sistema. La copia permanece preparada mientras sigas en esta pantalla; volver a guardarla no descarga otra vez las fotos.</p>
+    </div>}
     <details style={{borderTop:'1px solid #655039',paddingTop:12}}>
       <summary style={{cursor:'pointer',fontSize:14,color:'#E4C687'}}>Verificar una copia</summary>
       <p style={{fontSize:12,lineHeight:1.6}}>Abre el archivo descargado y comprueba sus registros y las fotos incluidas. Esta opción no restaura ni sobrescribe datos.</p>
@@ -1898,7 +1951,7 @@ export default function AdminPanelView(props: Props) {
             </div>
           )}
 
-          {adminTab === 'crm' && <AppUsageStats />}
+          {adminTab === 'crm' && OptionalAppUsageStats && <OptionalAppUsageStats />}
           {adminTab === 'crm' && <React.Suspense fallback={<p role="status" style={{padding:24,color:'#E4C687'}}>Cargando el CRM…</p>}><LazyCrmView appointments={appointments} bizConfig={bizConfig} crmView={crmView} dashboardEnd={dashboardEnd} dashboardStart={dashboardStart} formatDateKey={formatDateKey} isActiveAppointment={isActiveAppointment} isDateBlockedByHoliday={isDateBlockedByHoliday} listaClientes={listaClientes} lostDemandsList={lostDemandsList} setAdminTab={setAdminTab} setAgendaSidePanel={setAgendaSidePanel} setClientStatusFilter={setClientStatusFilter} setCrmView={setCrmView} setDashboardEnd={setDashboardEnd} setDashboardStart={setDashboardStart} setPendingPanelFilter={setPendingPanelFilter} timeBlocks={timeBlocks} trafficEvents={trafficEvents} workingRanges={workingRanges} /></React.Suspense>}
 
           {adminTab === 'demands' && <React.Suspense fallback={<p role="status" style={{padding:24,color:'#E4C687'}}>Cargando las oportunidades…</p>}><LazyOpportunitiesView attemptClock={attemptClock} bizConfig={bizConfig} bookingAttempts={bookingAttempts} crmPeriod={crmPeriod} demandEnd={demandEnd} demandFilter={demandFilter} demandStart={demandStart} formatDateKey={formatDateKey} listaClientes={listaClientes} lostDemandsList={lostDemandsList} normalizeEmail={normalizeEmail} opportunityPage={opportunityPage} opportunitySearch={opportunitySearch} opportunityStatus={opportunityStatus} setAdminTab={setAdminTab} setBookingAttempts={setBookingAttempts} setBusquedaCliente={setBusquedaCliente} setClientStatusFilter={setClientStatusFilter} setCrmPeriod={setCrmPeriod} setDemandEnd={setDemandEnd} setDemandFilter={setDemandFilter} setDemandStart={setDemandStart} setLostDemandsList={setLostDemandsList} setOpportunityPage={setOpportunityPage} setOpportunitySearch={setOpportunitySearch} setOpportunityStatus={setOpportunityStatus} /></React.Suspense>}
