@@ -1,3 +1,4 @@
+import {markOfflineData, offlineConsultation, OFFLINE_EVENT} from './offlineSession';
 import {privateStorage, PrivateSessionGate, ensureAdminPrivateSession, clearStudioSession, flushPrivateCache} from './PrivateSessionGate';
 import PinRecovery from './PinRecovery';
 import { calculateServiceDeposit, validateServiceDeposit, type ServiceDepositPolicy } from './serviceDeposits';
@@ -2087,6 +2088,8 @@ export default function App() {
 }
 
 function StudioApp() {
+  const [consultationMode,setConsultationMode]=useState(offlineConsultation);
+  useEffect(()=>{const changed=()=>setConsultationMode(offlineConsultation());window.addEventListener(OFFLINE_EVENT,changed);return()=>window.removeEventListener(OFFLINE_EVENT,changed);},[]);
   const [currentScreen, setCurrentScreen] = useState<'clientPin' | 'clientRegistration' | 'clientPortal' | 'myAppointmentsPage' | 'catalogBooking' | 'categoryScreen' | 'serviceDetail' | 'visualAgenda' | 'clientHistoryPage' | 'adminLogin' | 'adminPanel'>('clientPin');
   
   useAppUsageRegistration(currentScreen);
@@ -3886,7 +3889,8 @@ function StudioApp() {
     return appointment;
   };
 
-  const liveAgenda = useLiveAgenda(currentScreen === 'adminPanel' && studioApi.storedRole() === 'admin', (rows,blocks) => {
+  const liveAgenda = useLiveAgenda(!consultationMode && currentScreen === 'adminPanel' && studioApi.storedRole() === 'admin', (rows,blocks) => {
+    markOfflineData('agenda');
     if(Array.isArray(blocks))setTimeBlocks(previous=>mergeServerTimeBlocks(previous,blocks,true));
     const fresh = rows.map(mapServerAppointment);
     fresh.forEach(item=>knownAppointmentIds.current.add(item.id));
@@ -3941,6 +3945,7 @@ function StudioApp() {
       setTimeBlocks(previous=>mergeServerTimeBlocks(previous,data.timeBlocks,data.role==='admin'));
     }
     if (Array.isArray(data.appointments)) {
+      if(data.role === 'admin') markOfflineData('agenda');
       const serverAppointments = data.appointments.map(mapServerAppointment);
       serverAppointments.forEach(item => knownAppointmentIds.current.add(item.id));
       if (data.role === 'client') setAppointments(serverAppointments);
@@ -3951,6 +3956,7 @@ function StudioApp() {
       });
     }
     if (data.role === 'admin' && Array.isArray(data.clients)) {
+      markOfflineData('clients');
       const serverClients = data.clients.map((c: Record<string, any>): ClientRecord => ({
         archivedAt: c.archived_at ?? null,
         createdAt: c.created_at,
