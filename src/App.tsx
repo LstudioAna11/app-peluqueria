@@ -1440,7 +1440,101 @@ export interface LostDemandRecord {
   phone: string;
 }
 
+export type FeedbackGroup='all'|'detractor'|'passive'|'promoter'|'legacy';
+export type NpsPeriod='30d'|'90d'|'all';
+export function feedbackGroup(value:{rating:number;ratingScale?:number}):Exclude<FeedbackGroup,'all'>{
+  if(value.ratingScale!==10||!Number.isInteger(value.rating)||value.rating<0||value.rating>10)return 'legacy';
+  return value.rating<=6?'detractor':value.rating<=8?'passive':'promoter';
+}
+export function feedbackGroupLabel(value:{rating:number;ratingScale?:number}):string{
+  return ({detractor:'Detractor',passive:'Pasivo',promoter:'Promotor',legacy:'Histórico · fuera del NPS'})[feedbackGroup(value)];
+}
+export function feedbackPeriodBounds(period:NpsPeriod,now=Date.now()):{from:string|null;to:string|null}{
+  if(period==='all')return {from:null,to:null};
+  const to=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(now));
+  const from=new Date(to+'T12:00:00Z');from.setUTCDate(from.getUTCDate()-(period==='30d'?29:89));
+  return {from:from.toISOString().slice(0,10),to};
+}
+export function feedbackInPeriod(value:{createdAt?:string;date:string},period:NpsPeriod):boolean{
+  if(period==='all')return true;
+  const bounds=feedbackPeriodBounds(period);let day='';
+  if(value.createdAt&&Number.isFinite(Date.parse(value.createdAt)))day=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(value.createdAt));
+  else {const text=String(value.date||'');const match=text.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);if(match)day=match[3]+'-'+match[2].padStart(2,'0')+'-'+match[1].padStart(2,'0');else if(/^\d{4}-\d{2}-\d{2}/.test(text))day=text.slice(0,10);}
+  return !!day&&day>=bounds.from!&&day<=bounds.to!;
+}
+function feedbackRecordType(value:{rating:number;ratingScale?:number}):FeedbackRecord['type']{
+  const group=feedbackGroup(value);
+  return group==='legacy'?(value.rating<=2?'detractor':value.rating===3?'neutral':'promoter'):group==='passive'?'neutral':group;
+}
+async function submitNpsFeedback(token:string,details:{id:string;rating:number;comment:string}):Promise<{feedback:{id:string;rating:number;rating_scale:number;comment:string;created_at:string};replayed?:boolean}>{
+  const response=await fetch(String(import.meta.env.VITE_SUPABASE_URL||'')+'/functions/v1/studio-api/feedback',{
+    method:'POST',headers:{'Content-Type':'application/json',apikey:String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY||import.meta.env.VITE_SUPABASE_ANON_KEY||''),Authorization:'Bearer '+token},
+    body:JSON.stringify({...details,ratingScale:10}),signal:AbortSignal.timeout(15000),cache:'no-store',
+  });
+  const data=await response.json();
+  if(!response.ok)throw new Error(data.error||'No se pudo guardar tu valoración.');
+  if(data?.feedback?.id!==details.id||data.feedback.rating_scale!==10||!Number.isInteger(data.feedback.rating)||data.feedback.rating<0||data.feedback.rating>10||typeof data.feedback.comment!=='string'||!Number.isFinite(Date.parse(data.feedback.created_at)))throw new Error('No se pudo confirmar el guardado. Conservamos tu respuesta para reintentar.');
+  return data;
+}
+export function NpsSummary({period,onPeriodChange}:{period:NpsPeriod;onPeriodChange:(value:NpsPeriod)=>void}){
+  type Summary={period:NpsPeriod;total:number;detractors:number;passives:number;promoters:number;score:number|null};
+  const [data,setData]=useState<Summary|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
+  const lock=useRef(false),mounted=useRef(false);
+  const load=async()=>{
+    if(lock.current)return;lock.current=true;setBusy(true);setError('');const token=studioApi.currentToken();
+    try{
+      if(!token||studioApi.storedRole()!=='admin')throw new Error('Accede a la intranet.');
+      const response=await fetch(String(import.meta.env.VITE_SUPABASE_URL||'')+'/functions/v1/studio-api/nps-summary',{
+        method:'POST',headers:{'Content-Type':'application/json',apikey:String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY||import.meta.env.VITE_SUPABASE_ANON_KEY||''),Authorization:'Bearer '+token},
+        body:JSON.stringify({period}),signal:AbortSignal.timeout(15000),cache:'no-store',
+      });const result=await response.json();
+      if(!response.ok||result.period!==period||!['total','detractors','passives','promoters'].every(k=>Number.isSafeInteger(result[k])&&result[k]>=0)||result.total!==result.detractors+result.passives+result.promoters||!(result.score===null&&result.total===0||typeof result.score==='number'&&result.score>=-100&&result.score<=100&&result.total>0))throw new Error('No se pudo comprobar el NPS.');
+      if(mounted.current&&studioApi.currentToken()===token&&studioApi.storedRole()==='admin')setData(result);
+    }catch{if(mounted.current)setError('No se pudo actualizar el NPS. Comprueba el SQL y la API y pulsa Actualizar.');}
+    finally{lock.current=false;if(mounted.current)setBusy(false);}
+  };
+  useEffect(()=>{mounted.current=true;void load();return()=>{mounted.current=false;};},[period]);
+  const active=data?.period===period?data:null;
+  return <section aria-label="Medición NPS" style={{border:'1px solid #8C6A4B',borderRadius:12,padding:16,color:'#FFF8EE',background:'#302820'}}>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}><div><small style={{color:'#E4C687'}}>NPS · Recomendación del Studio</small><strong style={{display:'block',fontSize:30,color:'#E4C687'}}>{active?.score===null?'Sin respuestas':active?((active.score!>0?'+':'')+active.score):'—'}</strong><span style={{fontSize:12,color:'#D6CBB8'}}>{active?active.total+' respuestas NPS':'Consultando…'}</span></div>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}><label style={{fontSize:12,color:'#D6CBB8'}}>Periodo<select aria-label="Periodo NPS" value={period} disabled={busy} onChange={e=>onPeriodChange(e.target.value as NpsPeriod)} style={{display:'block',minHeight:44,padding:8,background:'#29231F',color:'#E4C687',border:'1px solid #846A45',borderRadius:6}}><option value="30d">Últimos 30 días</option><option value="90d">Últimos 90 días</option><option value="all">Todo el histórico</option></select></label><button type="button" disabled={busy} onClick={()=>void load()} style={{minHeight:44,padding:9,alignSelf:'end',background:'transparent',color:'#E4C687',border:'1px solid #846A45',borderRadius:6}}>{busy?'Consultando…':'Actualizar NPS'}</button></div>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8,marginTop:12,fontSize:12}}>{([{key:'detractors',label:'Detractores · 0–6'},{key:'passives',label:'Pasivos · 7–8'},{key:'promoters',label:'Promotores · 9–10'}] as const).map(group=><div key={group.key} style={{padding:10,background:'#29231F',borderRadius:7,color:'#D6CBB8'}}>{group.label}<strong style={{display:'block',fontSize:21,color:'#E4C687'}}>{active?active[group.key]:'—'}</strong></div>)}</div>
+    <p style={{fontSize:11,lineHeight:1.6,color:'#D6CBB8',margin:'10px 0 0'}}>% promotores − % detractores. Escala de −100 a +100. Incluye todas las respuestas NPS del periodo, también las atendidas. Las valoraciones antiguas de 1 a 5 no entran en el cálculo.</p>
+    {error&&<p role="alert" style={{fontSize:12,color:'#FFC3B0'}}>{error}</p>}
+  </section>;
+}
+
+function NpsFeedbackForm({score,comment,saving,error,submitted,googleUrl,contactUrl,onScore,onComment,onSubmit,onRestart}:{score:number|null;comment:string;saving:boolean;error:string;submitted:boolean;googleUrl:string;contactUrl:string|null;onScore:(score:number)=>void;onComment:(comment:string)=>void;onSubmit:(event:React.FormEvent)=>void;onRestart?:()=>void}){
+  const linkStyle:React.CSSProperties={display:'inline-flex',alignItems:'center',justifyContent:'center',minHeight:44,padding:'11px 15px',border:'1px solid #B9955F',borderRadius:7,color:'#E4C687',textDecoration:'none',fontSize:13};
+  return <details id="studio-nps-survey" style={{background:'linear-gradient(160deg,#221D19,#322A25)',border:'1px solid #846A45',borderRadius:12,padding:16}}>
+    <summary style={{color:'#E4C687',fontSize:15,cursor:'pointer',fontFamily:'Georgia,serif'}}>Tu experiencia en L’Studio Ana</summary>
+    <div style={{paddingTop:14,display:'grid',gap:12}}>
+      <p style={{fontSize:11,color:'#C9B79D',margin:0}}>{submitted?'Paso 2 de 2 · Comparte tu experiencia':'Paso 1 de 2 · Tu opinión para el Studio'}</p>
+      {submitted?<section aria-label="Gracias por tu valoración" style={{display:'grid',gap:12}}>
+        <h3 style={{color:'#E4C687',fontFamily:'Georgia,serif',fontWeight:400,fontSize:20,margin:0}}>Gracias por compartir tu opinión</h3>
+        <p style={{color:'#FFF8EE',fontSize:13,lineHeight:1.7,margin:0}}>Tu valoración de {score}/10 está registrada. Ana podrá leerla para seguir cuidando tu experiencia.</p>
+        <p style={{color:'#D6CBB8',fontSize:12,lineHeight:1.7,margin:0}}>Si lo deseas, también puedes compartir tu experiencia en Google o hablar directamente con el Studio.</p>
+        <div style={{display:'flex',gap:9,flexWrap:'wrap'}}>{googleUrl&&<a href={googleUrl} target="_blank" rel="noopener noreferrer" style={linkStyle}>Opinar en Google ↗</a>}{contactUrl&&<a href={contactUrl} target="_blank" rel="noopener noreferrer" style={linkStyle}>Contactar con el Studio ↗</a>}</div>
+      {onRestart&&<button type="button" disabled={saving} onClick={onRestart} style={{minHeight:44,padding:9,background:'transparent',color:'#D6CBB8',border:'1px solid #846A45',borderRadius:6,fontSize:12}}>Valorar otra visita</button>}
+      </section>:<>
+        <form onSubmit={onSubmit} style={{display:'grid',gap:13}}>
+          <p id="nps-question" style={{fontSize:15,lineHeight:1.6,color:'#FFF8EE',margin:0}}>Del 0 al 10, ¿qué probabilidad hay de que recomiendes L’Studio Ana a una amiga, un amigo o un familiar?</p>
+          <div role="group" aria-labelledby="nps-question" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(44px,1fr))',gap:6}}>{Array.from({length:11},(_,value)=><button key={value} type="button" disabled={saving} aria-pressed={score===value} aria-label={value+' de 10'} onClick={()=>onScore(value)} style={{minHeight:44,padding:'8px 4px',border:'1px solid #9A7C50',borderRadius:6,background:score===value?'#D0AA71':'#302820',color:score===value?'#29231F':'#F4EADB',fontSize:14,fontWeight:score===value?600:400}}>{value}</button>)}</div>
+          <div style={{display:'flex',justifyContent:'space-between',gap:12,fontSize:11,color:'#C9B79D'}}><span>0 · Nada probable</span><span>10 · Muy probable</span></div>
+          <label style={{display:'grid',gap:7,color:'#E4C687',fontSize:13}}>¿Cuál es el motivo principal de tu puntuación? <span style={{fontSize:11,color:'#C9B79D'}}>Comentario opcional · Lo recibe el Studio de forma privada.</span><textarea maxLength={3000} disabled={saving} value={comment} onChange={event=>onComment(event.target.value)} rows={3} placeholder="Tu opinión nos ayuda a cuidar cada detalle…" style={{width:'100%',boxSizing:'border-box',resize:'vertical',padding:11,background:'#302820',color:'#FFF8EE',border:'1px solid #846A45',borderRadius:8,fontSize:13,lineHeight:1.6}}/></label>
+          {error&&<p role="alert" style={{fontSize:12,color:'#FFC3B0',margin:0}}>{error}</p>}
+          <button type="submit" disabled={saving} style={{minHeight:46,padding:12,border:0,borderRadius:7,background:'#C99E52',color:'#29231F',fontSize:13,fontWeight:600}}>{saving?'Guardando tu opinión…':'Enviar valoración y continuar'}</button>
+        </form>
+        {googleUrl&&<a href={googleUrl} target="_blank" rel="noopener noreferrer" style={{color:'#D6CBB8',fontSize:12,minHeight:44,display:'flex',alignItems:'center'}}>También puedes opinar directamente en Google ↗</a>}
+      </>}
+    </div>
+  </details>;
+}
+
 export interface FeedbackRecord {
+  ratingScale?:number;
+  createdAt?:string;
   id: string;
   date: string;
   clientName: string;
@@ -2574,11 +2668,18 @@ function StudioApp() {
     void syncFromServer().catch(() => setMailboxError('No se pudieron actualizar las opiniones. Vuelve a abrir el buzón.'));
   }, [currentScreen, adminTab]);
 
-  const [feedbackRatingFilter, setFeedbackRatingFilter] = useState<'low' | 'high' | 'all'>('low');
+  const [feedbackRatingFilter, setFeedbackRatingFilter] = useState<FeedbackGroup>('all');
   const [mailboxFilter, setMailboxFilter] = useState<'pending' | 'all' | 'resolved'>('pending');
-  const [selectedRating, setSelectedRating] = useState<number>(5);
+  const [selectedRating, setSelectedRating] = useState<number|null>(null);
   const [feedbackComment, setFeedbackComment] = useState<string>('');
   const [feedbackSubmitted, setFeedbackSubmitted] = useState<boolean>(false);
+  const [feedbackLinkPending,setFeedbackLinkPending]=useState(()=>new URLSearchParams(window.location.search).get('opinion')==='1');
+  useEffect(()=>{
+    if(!feedbackLinkPending||currentScreen!=='clientPortal'||studioApi.storedRole()!=='client')return;
+    const survey=document.getElementById('studio-nps-survey') as HTMLDetailsElement|null;
+    if(!survey)return;survey.open=true;survey.scrollIntoView({behavior:'smooth',block:'center'});
+    const url=new URL(window.location.href);url.searchParams.delete('opinion');window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);setFeedbackLinkPending(false);
+  },[feedbackLinkPending,currentScreen]);
 
   const handleRatingSelect = (rating: number) => {
     setSelectedRating(rating);
@@ -2590,18 +2691,21 @@ function StudioApp() {
     if (feedbackSending.current) return;
     setFeedbackError('');
     const comment = feedbackComment.trim();
-    if (!Number.isInteger(selectedRating) || selectedRating < 1 || selectedRating > 5 || comment.length > 3000) { setFeedbackError('Revisa la valoración y escribe como máximo 3000 caracteres.'); return; }
+    if (typeof selectedRating!=='number' || !Number.isInteger(selectedRating) || selectedRating < 0 || selectedRating > 10 || comment.length > 3000) { setFeedbackError('Elige una puntuación del 0 al 10 y escribe como máximo 3000 caracteres.'); return; }
     const token = studioApi.currentToken();
     if (!studioApi.serverConfigured || !token) { setFeedbackError('Vuelve a acceder al portal para enviar tu opinión al Studio.'); return; }
     feedbackSending.current = true; setFeedbackSaving(true);
     if (!feedbackRequestId.current) feedbackRequestId.current = crypto.randomUUID();
     try {
-      const result = await studioApi.submitFeedback(token, { id: feedbackRequestId.current, rating: selectedRating, comment });
+      const result = await submitNpsFeedback(token, { id: feedbackRequestId.current, rating: selectedRating, comment });
+      if(studioApi.currentToken()!==token||studioApi.storedRole()!=='client')throw new Error('La sesión ha cambiado. Vuelve a acceder a tu perfil.');
+      setSelectedRating(result.feedback.rating);setFeedbackComment(result.feedback.comment);
       const newRecord: FeedbackRecord = {
-        id: result.feedback.id, date: new Date(result.feedback.created_at).toLocaleDateString('es-ES'),
+        id: result.feedback.id, date: new Date(result.feedback.created_at).toLocaleDateString('es-ES',{timeZone:'Europe/Madrid'}),
         clientName: currentClientRecord ? `${currentClientRecord.nombre} ${currentClientRecord.apellidos}`.trim() : 'Clienta',
+        ratingScale:result.feedback.rating_scale,createdAt:result.feedback.created_at,
         rating: result.feedback.rating, comment: result.feedback.comment || '', serverStored: true,
-        type: result.feedback.rating <= 2 ? 'detractor' : result.feedback.rating === 3 ? 'neutral' : 'promoter',
+        type: feedbackRecordType({rating:result.feedback.rating,ratingScale:result.feedback.rating_scale}),
       };
       setFeedbackList(previous => [newRecord, ...previous.filter(item => item.id !== newRecord.id)]);
       setFeedbackSubmitted(true); feedbackRequestId.current = null;
@@ -3881,11 +3985,12 @@ function StudioApp() {
         const nameByClientId = new Map(data.clients.map((c: Record<string, any>) => [c.id, `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Clienta']));
         const serverFeedback: FeedbackRecord[] = data.feedback.map((f: Record<string, any>) => ({
           id: String(f.id),
-          date: String(f.created_at || '').slice(0, 10).split('-').reverse().join('/'),
+          date: new Date(f.created_at).toLocaleDateString('es-ES',{timeZone:'Europe/Madrid'}),
           clientName: f.client_id ? (nameByClientId.get(f.client_id) || 'Clienta') : 'Clienta Verificada',
-          rating: f.rating ?? 5,
+          ratingScale:f.rating_scale===10?10:f.rating_scale===5?5:undefined,createdAt:f.created_at,
+        rating: f.rating ?? 5,
           comment: f.comment || '',
-          type: (f.rating ?? 5) <= 2 ? 'detractor' : (f.rating ?? 5) === 3 ? 'neutral' : 'promoter',
+          type: feedbackRecordType({rating:f.rating,ratingScale:f.rating_scale}),
           resolvedAt: f.resolved_at || undefined,
           serverStored: true,
         }));
@@ -5774,48 +5879,9 @@ function StudioApp() {
             <p style={{ color: '#D8C29A', fontSize: '13px', margin: 0, lineHeight: 1.6 }}>Un espacio para ti y para el cuidado de tu cabello.</p>
             <p style={{ color: '#FFF8EE', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{bizConfig.location}</p>
           </section>
-          <details style={{ background: 'linear-gradient(160deg, #221D19 0%, #322A25 100%)', border: '1px solid rgba(212, 175, 55, 0.45)', borderRadius: '14px', padding: '20px 18px', boxShadow: '0 14px 34px rgba(0, 0, 0, 0.35)' }}>
-            <summary style={{ color: '#E4C687', fontSize: '15px', cursor: 'pointer', lineHeight: 1.5, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em' }}>¿Cómo fue tu experiencia? Comparte tu opinión</summary>
-          <div style={{ borderRadius: '12px', padding: '16px 0 0', display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ color: '#D8C29A', fontSize: '13px', minHeight: '44px', display: 'flex', alignItems: 'center' }}>Compartir mi experiencia en Google ↗</a>
-            {feedbackSubmitted ? (
-              <div style={{ textAlign: 'center', padding: '14px 12px', borderRadius: '8px', backgroundColor: selectedRating >= 4 ? '#8FC98F' : '#3E342C', border: `1px solid ${selectedRating >= 4 ? '#2E7D32' : 'rgba(212, 175, 55, 0.45)'}` }}>
-                <p style={{ color: selectedRating >= 4 ? '#2E7D32' : '#8F6D24', fontSize: '12px', fontWeight: 'bold', margin: '0 0 4px 0' }}>
-                  {selectedRating >= 4 ? '¡Gracias por compartir tu opinión!' : 'Gracias por tu sinceridad'}
-                </p>
-                <p style={{ color: '#FFF8EE', fontSize: '12px', margin: '0 0 12px', lineHeight: 1.6 }}>Tu opinión se ha guardado y Ana podrá revisarla en la intranet. Si quieres, también puedes compartir tu experiencia en Google.</p>
-                <a href={bizConfig.googleReviewUrl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', background: '#C49A58', color: '#29231F', padding: '10px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, textDecoration: 'none', minHeight: 44, boxSizing: 'border-box' }}>Compartir mi experiencia en Google ↗</a>
-
-              </div>
-            ) : (
-              <form onSubmit={handleSendFeedback} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-around', alignItems: 'center', padding: '4px 0' }}>
-                  {[
-                    { val: 1, label: 'Mala' },
-                    { val: 2, label: 'Regular' },
-                    { val: 3, label: 'Neutral' },
-                    { val: 4, label: 'Buena' },
-                    { val: 5, label: 'Excelente' }
-                  ].map((item) => (
-                    <div key={item.val} role="radio" aria-checked={selectedRating === item.val} aria-label={item.label} onClick={() => handleRatingSelect(item.val)} style={{ textAlign: 'center', cursor: 'pointer', opacity: selectedRating === item.val ? 1 : 0.45, transform: selectedRating === item.val ? 'scale(1.12)' : 'scale(1)', transition: 'all 0.3s ease', padding: '8px 6px', minWidth: '44px' }}>
-                      <div style={{ fontSize: '30px', color: selectedRating === item.val ? '#E4C687' : '#D8C29A', textShadow: selectedRating === item.val ? '0 0 14px rgba(212, 175, 55, 0.45)' : 'none', transition: 'all 0.3s ease' }}>★</div>
-                      <div style={{ fontSize: '10px', color: selectedRating === item.val ? '#E4C687' : '#D6CBB8', marginTop: '4px', letterSpacing: '0.03em' }}>{item.label}</div>
-                    </div>
-                  ))}
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label htmlFor="portal-feedback-comment" style={{ color: '#E4C687', fontSize: '15px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em' }}>Cuéntanos tu experiencia</label>
-                  <p style={{ color: '#FFF8EE', fontSize: '13px', margin: 0, lineHeight: 1.6 }}>¿Qué servicio te has realizado y cómo ha sido tu experiencia en L’Studio Ana? Nos encantará saber cómo te has sentido y qué destacarías de tu visita.</p>
-                  <textarea maxLength={3000} disabled={feedbackSaving} id="portal-feedback-comment" value={feedbackComment} onChange={(e) => setFeedbackComment(e.target.value)} placeholder="Escribe aquí tu experiencia…" rows={4} style={{ backgroundColor: 'rgba(234, 220, 199, 0.07)', border: '1px solid rgba(212, 175, 55, 0.35)', color: '#FFF8EE', borderRadius: '10px', padding: '12px', fontSize: '14px', lineHeight: 1.55, width: '100%', boxSizing: 'border-box', resize: 'vertical', minHeight: '44px' }} />
-                </div>
-                {feedbackError && <p role="alert" style={{ color: '#F5C7B8', fontSize: 13 }}>{feedbackError}</p>}
-                <button disabled={feedbackSaving} type="submit" style={{ backgroundColor: '#C49A58', color: '#29231F', border: 'none', padding: '14px', borderRadius: '10px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', minHeight: '48px', letterSpacing: '0.03em', boxShadow: '0 8px 20px rgba(196, 154, 88, 0.3)' }}>
-                  {feedbackSaving ? 'Enviando…' : t('sendReview')}
-                </button>
-              </form>
-            )}
-          </div>
-          </details>
+          <NpsFeedbackForm score={selectedRating} comment={feedbackComment} saving={feedbackSaving} error={feedbackError} submitted={feedbackSubmitted}
+            googleUrl={bizConfig.googleReviewUrl||''} contactUrl={(()=>{const digits=String(bizConfig.studioWhatsapp||bizConfig.phone||'').replace(/\D/g,'');return /^\d{9,15}$/.test(digits)?'https://wa.me/'+(digits.length===9?'34':'')+digits+'?text='+encodeURIComponent('Hola Ana, me gustaría comentar mi experiencia en L’Studio Ana.'):null;})()}
+            onScore={handleRatingSelect} onComment={setFeedbackComment} onSubmit={handleSendFeedback} onRestart={()=>{setSelectedRating(null);setFeedbackComment('');setFeedbackError('');setFeedbackSubmitted(false);feedbackRequestId.current=null;}}/>
           <footer aria-label="Contacto y redes sociales" style={{ borderTop: '1px solid #302f29', paddingTop: '22px', paddingBottom: '96px' }}>
             <p style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1.5px', textAlign: 'center', margin: '0 0 14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif" }}>CONTACTO Y REDES</p>
             <nav style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px' }}>
