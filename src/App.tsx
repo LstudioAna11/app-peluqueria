@@ -1871,6 +1871,48 @@ export function AppUsageStats(){
   </section>;
 }
 
+function AppointmentArrivalTools({id,onCancel}:{id:string;onCancel:()=>void}){
+  type State={id:string;now:string;startsAt:string;endsAt:string;arrivedAt:string|null;adaptedAt:string|null;enabled:boolean;confirmed:boolean;statuses:Record<string,number>};
+  const [data,setData]=useState<State|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[,setTick]=useState(0),[confirmAdapt,setConfirmAdapt]=useState(false);
+  const mounted=useRef(false),lock=useRef(false),offset=useRef(0);
+  const request=async(operation:'state'|'arrived'|'adapted'|'enabled'='state',enabled?:boolean)=>{
+    if(lock.current)return;lock.current=true;setBusy(true);setError('');
+    const token=studioApi.currentToken();
+    try{
+      if(!token||studioApi.storedRole()!=='admin')throw new Error('Entra en la intranet para gestionar la llegada.');
+      const response=await fetch(String(import.meta.env.VITE_SUPABASE_URL||'')+'/functions/v1/studio-api/appointment-arrival',{
+        method:'POST',headers:{'Content-Type':'application/json',apikey:String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY||import.meta.env.VITE_SUPABASE_ANON_KEY||''),Authorization:'Bearer '+token},
+        body:JSON.stringify({id,operation,...(operation==='enabled'?{enabled}:{})}),signal:AbortSignal.timeout(15000),cache:'no-store',
+      });
+      const result=await response.json();
+      if(!response.ok||result.ok!==true||result.id!==id||!Number.isFinite(Date.parse(result.now))||!Number.isFinite(Date.parse(result.startsAt))||!Number.isFinite(Date.parse(result.endsAt)))throw new Error(result.error||'No se pudo confirmar el estado de la llegada.');
+      if(mounted.current&&studioApi.currentToken()===token&&studioApi.storedRole()==='admin'){
+        offset.current=Date.parse(result.now)-Date.now();setData(result);setConfirmAdapt(false);
+      }
+    }catch(value){if(mounted.current)setError((value as Error)?.message||'No se pudo guardar. Pulsa Actualizar estado antes de reintentar.');}
+    finally{lock.current=false;if(mounted.current)setBusy(false);}
+  };
+  useEffect(()=>{mounted.current=true;void request();const timer=setInterval(()=>setTick(n=>n+1),30000);return()=>{mounted.current=false;clearInterval(timer);};},[id]);
+  const now=Date.now()+offset.current,late=!!data&&now>=Date.parse(data.startsAt)+15*60000,
+    open=!!data&&data.confirmed&&now<Date.parse(data.endsAt),canArrive=open&&now>=Date.parse(data!.startsAt)-2*3600000;
+  return <section aria-label="Llegada y cortesía" style={{padding:14,border:'1px solid #8C6A4B',borderRadius:8,marginBottom:14,color:'#FFF8EE'}}>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}><strong style={{color:'#E4C687',fontSize:14}}>Llegada de la clienta · 15 min de cortesía</strong><button type="button" disabled={busy} onClick={()=>void request()} style={{minHeight:44,padding:9,background:'transparent',color:'#E4C687',border:'1px solid #8C6A4B',borderRadius:6}}>{busy?'Guardando / consultando…':'Actualizar estado'}</button></div>
+    {data&&<>
+      <p style={{fontSize:13}}>{data.arrivedAt?'Clienta presente · '+new Date(data.arrivedAt).toLocaleTimeString('es-ES',{timeZone:'Europe/Madrid',hour:'2-digit',minute:'2-digit'}):'Llegada sin registrar'}</p>
+      {!data.arrivedAt&&data.confirmed&&<label style={{display:'flex',gap:8,alignItems:'center',fontSize:12}}><input type="checkbox" disabled={busy} checked={data.enabled} onChange={event=>void request('enabled',event.target.checked)}/>Aviso push si no llega: a partir de los 10 minutos</label>}
+      <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6}}>{(data.statuses.sent||0)>0?'Aviso enviado a '+data.statuses.sent+' dispositivo(s).':(data.statuses.sending||0)>0?'Aviso en proceso de envío.':(data.statuses.failed||0)>0?'Hay un envío pendiente de revisión.':(data.statuses.scheduled||0)>0?'Aviso programado para '+data.statuses.scheduled+' dispositivo(s).':data.arrivedAt?'Aviso de retraso anulado al registrar la llegada.':!data.enabled?'Aviso desactivado para esta cita.':!data.confirmed?'El aviso solo se programa para citas confirmadas.':(data.statuses.skipped||0)>0?'Aviso anulado o fuera de plazo.':'Sin dispositivos programados. La clienta necesita tener las notificaciones activadas.'}</p>
+      {!data.arrivedAt&&canArrive&&<button type="button" disabled={busy} onClick={()=>void request('arrived')} style={{minHeight:44,padding:'10px 15px',background:'#C99E52',color:'#29231F',border:0,borderRadius:6,fontWeight:600}}>Clienta presente</button>}
+      {open&&late&&!data.adaptedAt&&(!data.arrivedAt||Date.parse(data.arrivedAt)>=Date.parse(data.startsAt)+15*60000)&&<div style={{marginTop:12,padding:12,border:'1px solid #C99E52',borderRadius:7}}>
+        <p style={{fontSize:13,lineHeight:1.6,marginTop:0}}>Han pasado los 15 minutos de cortesía. Decide si puedes atenderla manteniendo la finalización prevista a las {new Date(data.endsAt).toLocaleTimeString('es-ES',{timeZone:'Europe/Madrid',hour:'2-digit',minute:'2-digit'})} o si debes cancelar.</p>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}><button type="button" disabled={busy} onClick={()=>setConfirmAdapt(true)} style={{minHeight:44,padding:10,borderRadius:6}}>Atender con el tiempo restante</button><button type="button" disabled={busy} onClick={onCancel} style={{minHeight:44,padding:10,borderRadius:6}}>Cancelar por retraso</button></div>
+        {confirmAdapt&&<div role="alert" style={{marginTop:12,fontSize:12}}><p>Confirma que el servicio puede adaptarse al tiempo restante. La hora final y el precio reservado se mantienen; revisa manualmente el precio si corresponde.</p><button type="button" disabled={busy} onClick={()=>void request('adapted')} style={{minHeight:44}}>Confirmar atención adaptada</button><button type="button" disabled={busy} onClick={()=>setConfirmAdapt(false)} style={{minHeight:44,marginLeft:8}}>Volver</button></div>}
+      </div>}
+      {data.adaptedAt&&<p style={{fontSize:12,color:'#E4C687'}}>Atención adaptada registrada. Se mantiene la hora de finalización prevista.</p>}
+    </>}
+    {error&&<p role="alert" style={{color:'#FFB4A9',fontSize:12}}>{error}</p>}
+  </section>;
+}
+
 export default function App() {
   return <PrivateSessionGate><PortalErrorBoundary><StudioApp /></PortalErrorBoundary></PrivateSessionGate>;
 }
@@ -3208,6 +3250,7 @@ function StudioApp() {
     }
   };
   const pushKindLabel = (kind: string) => ({
+    late_arrival_10m: 'Aviso de llegada · 10 minutos',
     confirmation: 'Confirmación',
     pending: 'Solicitud pendiente',
     update: 'Modificación',
@@ -6728,7 +6771,8 @@ function StudioApp() {
                 )}
               </div>
             )}
-{!isActiveAppointment(viewApptModal) && <p style={{ color: '#D6CBB8', fontSize: '12px' }}>El registro se conserva en «Citas del día» y en el buscador. No ocupa un hueco ni se añade como visita realizada al pasaporte.</p>}<details className="lst-appt-notices"><summary>Notificaciones · Email, WhatsApp y push</summary>{!viewApptModal.completedAt && currentScreen === 'adminPanel' && (
+{!isActiveAppointment(viewApptModal) && <p style={{ color: '#D6CBB8', fontSize: '12px' }}>El registro se conserva en «Citas del día» y en el buscador. No ocupa un hueco ni se añade como visita realizada al pasaporte.</p>}<details className="lst-appt-notices"><summary>Notificaciones · Email, WhatsApp y push</summary>{currentScreen === 'adminPanel' && <AppointmentArrivalTools key={(viewApptModal.serverId||viewApptModal.id)+':'+viewApptModal.lifecycleStatus+':'+String(viewApptModal.completedAt||'')} id={viewApptModal.serverId||viewApptModal.id} onCancel={()=>changeAppointmentStatus(viewApptModal,'cancelled')} />}
+{!viewApptModal.completedAt && currentScreen === 'adminPanel' && (
               <section style={{ padding: '14px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
                   <h4 style={{ color: '#E4C687', fontSize: '14px', margin: 0 }}>Emails automáticos de la cita</h4>
