@@ -644,14 +644,14 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
   </div></div>}
  </section>;
 }
-export function BookingVoucher({selectedId,onChange,services,dateKey,promotionId,clientId,appointmentId,onSaved}:{selectedId:string|null;onChange:(id:string|null)=>void;services:unknown;dateKey:string;promotionId?:string|null;clientId?:string;appointmentId?:string;onSaved?:()=>Promise<unknown>}){
+export function BookingVoucher({selectedId,onChange,services,dateKey,promotionId,clientId,appointmentId,onSaved,compact=false}:{selectedId:string|null;onChange:(id:string|null)=>void;services:unknown;dateKey:string;promotionId?:string|null;clientId?:string;appointmentId?:string;onSaved?:()=>Promise<unknown>;compact?:boolean}){
  const [data,setData]=useState<studioApi.VoucherPage|null>(null),[page,setPage]=useState(0),[quote,setQuote]=useState<studioApi.VoucherQuote|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[writing,setWriting]=useState(false);
  const live=useRef(false),gen=useRef(0),lock=useRef(false);const signature=JSON.stringify([selectedId,services,dateKey,promotionId,clientId,appointmentId]);
  useEffect(()=>{live.current=true;return()=>{live.current=false;gen.current++;};},[]);
  useEffect(()=>{let valid=true;Promise.resolve().then(()=>studioApi.fetchVouchers(voucherToken(),clientId,page,true)).then(result=>{if(valid)setData(result);}).catch(e=>{if(valid)setError(e instanceof Error?e.message:'No se pudieron consultar los bonos.');});return()=>{valid=false;};},[clientId,page,appointmentId]);
  useEffect(()=>{const request=++gen.current;setQuote(null);setError('');setBusy(false);if(!selectedId||appointmentId)return;setBusy(true);Promise.resolve().then(()=>studioApi.quoteVoucher(voucherToken(),{voucherId:selectedId,clientId,services,dateKey,promotionId})).then(({quote})=>{if(live.current&&request===gen.current)setQuote(quote);}).catch(e=>{if(live.current&&request===gen.current)setError(e instanceof Error?e.message:'No se pudo aplicar el bono.');}).finally(()=>{if(live.current&&request===gen.current)setBusy(false);});},[signature]);
  const attach=async()=>{if(!appointmentId||lock.current)return;lock.current=true;setWriting(true);setError('');try{await studioApi.attachAppointmentVoucher(voucherToken(),appointmentId,selectedId);await onSaved?.();}catch(e){if(live.current)setError(e instanceof Error?e.message:'No se pudo aplicar el bono.');}finally{lock.current=false;if(live.current)setWriting(false);}};
- return <section className="lst-bonos"><VoucherStyles/><details className="vb-panel" open={!!selectedId||!!appointmentId}><summary>Usar tarjeta regalo o bono</summary><label>Elige tu bono<select disabled={writing} value={selectedId||''} onChange={e=>onChange(e.target.value||null)}><option value="">Reservar sin bono</option>{selectedId&&!data?.vouchers.some(v=>v.id===selectedId)&&<option value={selectedId}>Bono seleccionado · se comprobará al guardar</option>}{data?.vouchers.map(v=><option key={v.id} value={v.id}>{v.title} · {v.kind==='gift'?voucherMoney(voucherAvailable(v)):voucherAvailable(v)+' sesiones disponibles'}</option>)}</select></label>
+ return <section className="lst-bonos"><VoucherStyles/><details className={'vb-panel'+(compact?' vb-compact':'')} open={compact?false:!!selectedId||!!appointmentId}><summary>Usar tarjeta regalo o bono</summary><label>Elige tu bono<select disabled={writing} value={selectedId||''} onChange={e=>onChange(e.target.value||null)}><option value="">Reservar sin bono</option>{selectedId&&!data?.vouchers.some(v=>v.id===selectedId)&&<option value={selectedId}>Bono seleccionado · se comprobará al guardar</option>}{data?.vouchers.map(v=><option key={v.id} value={v.id}>{v.title} · {v.kind==='gift'?voucherMoney(voucherAvailable(v)):voucherAvailable(v)+' sesiones disponibles'}</option>)}</select></label>
  {data&&data.total>12&&<div className="vb-actions"><button type="button" disabled={page===0} onClick={()=>setPage(p=>p-1)}>Anteriores</button><button type="button" disabled={(page+1)*12>=data.total} onClick={()=>setPage(p=>p+1)}>Más bonos</button></div>}
  {busy&&<p role="status">Comprobando cobertura…</p>}{error&&<p role="alert" className="vb-error">{error}</p>}{quote&&<div className="vb-current"><strong>{quote.title}</strong><p>{quote.kind==='gift'?'Saldo que se apartará: '+voucherMoney(quote.amountCents):'Incluye 1 sesión de '+quote.coveredServiceName}</p><p>{quote.dueCents===null?'Los complementos se confirman en el estudio.':'Resto por abonar: '+voucherMoney(quote.dueCents)}</p></div>}
  <small>Se aparta al reservar y se consume al finalizar la cita. Una sesión por cita; los complementos se cobran aparte. La fecha de la cita debe estar dentro de la validez.</small>{appointmentId&&<button type="button" disabled={writing} onClick={()=>void attach()}>{writing?'Guardando…':selectedId?'Aplicar bono a esta cita':'Guardar cita sin bono'}</button>}</details></section>;
@@ -660,7 +660,7 @@ export function voucherServiceOptions(catalog:CatalogCategory[],includeUnavailab
 function AppointmentVoucherTools({appointment,onSaved}:{appointment:Appointment;onSaved:()=>Promise<unknown>}){
  const [selected,setSelected]=useState<string|null>(appointment.voucherId||null);
  useEffect(()=>{setSelected(appointment.voucherId||null);},[appointment.serverId,appointment.voucherId]);
- return <div>{appointment.voucher&&<p style={{fontSize:12,color:'#DEC49B'}}>Bono · {appointment.voucher.title} · {appointment.voucher.state==='consumed'?'Consumido':appointment.voucher.state==='released'?'Reserva liberada':'Apartado para esta cita'} · {appointment.voucher.kind==='gift'?voucherMoney(appointment.voucher.amountCents):'1 sesión'}</p>}{!appointment.completedAt&&isActiveAppointment(appointment)&&appointment.clientId&&appointment.serverId&&<BookingVoucher selectedId={selected} onChange={setSelected} services={appointment.services||[]} dateKey={appointment.dateKey} clientId={appointment.clientId} appointmentId={appointment.serverId} onSaved={onSaved}/>}</div>;
+ return <div>{appointment.voucher&&<p style={{fontSize:12,color:'#DEC49B'}}>Bono · {appointment.voucher.title} · {appointment.voucher.state==='consumed'?'Consumido':appointment.voucher.state==='released'?'Reserva liberada':'Apartado para esta cita'} · {appointment.voucher.kind==='gift'?voucherMoney(appointment.voucher.amountCents):'1 sesión'}</p>}{!appointment.completedAt&&isActiveAppointment(appointment)&&appointment.clientId&&appointment.serverId&&<BookingVoucher compact selectedId={selected} onChange={setSelected} services={appointment.services||[]} dateKey={appointment.dateKey} clientId={appointment.clientId} appointmentId={appointment.serverId} onSaved={onSaved}/>}</div>;
 }
 
 type PortalProfileTab='hair'|'history'|'photos'|'vouchers';
@@ -1895,21 +1895,28 @@ function AppointmentArrivalTools({id,onCancel}:{id:string;onCancel:()=>void}){
   useEffect(()=>{mounted.current=true;void request();const timer=setInterval(()=>setTick(n=>n+1),30000);return()=>{mounted.current=false;clearInterval(timer);};},[id]);
   const now=Date.now()+offset.current,late=!!data&&now>=Date.parse(data.startsAt)+15*60000,
     open=!!data&&data.confirmed&&now<Date.parse(data.endsAt),canArrive=open&&now>=Date.parse(data!.startsAt)-2*3600000;
-  return <section aria-label="Llegada y cortesía" style={{padding:14,border:'1px solid #8C6A4B',borderRadius:8,marginBottom:14,color:'#FFF8EE'}}>
-    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10,flexWrap:'wrap'}}><strong style={{color:'#E4C687',fontSize:14}}>Llegada de la clienta · 15 min de cortesía</strong><button type="button" disabled={busy} onClick={()=>void request()} style={{minHeight:44,padding:9,background:'transparent',color:'#E4C687',border:'1px solid #8C6A4B',borderRadius:6}}>{busy?'Guardando / consultando…':'Actualizar estado'}</button></div>
+  return <section aria-label="Llegada y cortesía" className="lst-arrival-compact" style={{padding:10,border:'1px solid #8C6A4B',borderRadius:8,margin:0,color:'#FFF8EE'}}>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:8,flexWrap:'wrap'}}>
+      <strong style={{fontSize:12,color:'#E4C687'}}>Llegada de la clienta</strong>
+      {data&&!data.arrivedAt&&canArrive&&<button type="button" disabled={busy} onClick={()=>void request('arrived')} style={{minHeight:44,padding:'9px 12px',background:'#C99E52',color:'#29231F',border:0,borderRadius:6,fontWeight:600,fontSize:12}}>Clienta presente</button>}
+    </div>
     {data&&<>
-      <p style={{fontSize:13}}>{data.arrivedAt?'Clienta presente · '+new Date(data.arrivedAt).toLocaleTimeString('es-ES',{timeZone:'Europe/Madrid',hour:'2-digit',minute:'2-digit'}):'Llegada sin registrar'}</p>
+      <p style={{fontSize:12,margin:'5px 0',color:'#D6CBB8'}}>{data.arrivedAt?'Clienta presente · '+new Date(data.arrivedAt).toLocaleTimeString('es-ES',{timeZone:'Europe/Madrid',hour:'2-digit',minute:'2-digit'}):'Llegada sin registrar'}</p>
+      <details className="lst-arrival-options" open={open&&late&&!data.adaptedAt&&(!data.arrivedAt||Date.parse(data.arrivedAt)>=Date.parse(data.startsAt)+15*60000)}><summary>Aviso y cortesía</summary><div>
+        <button type="button" disabled={busy} onClick={()=>void request()} style={{minHeight:44,padding:8,background:'transparent',color:'#E4C687',border:'1px solid #8C6A4B',borderRadius:6}}>{busy?'Consultando…':'Actualizar estado'}</button>
       {!data.arrivedAt&&data.confirmed&&<label style={{display:'flex',gap:8,alignItems:'center',fontSize:12}}><input type="checkbox" disabled={busy} checked={data.enabled} onChange={event=>void request('enabled',event.target.checked)}/>Aviso push si no llega: a partir de los 10 minutos</label>}
       <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6}}>{(data.statuses.sent||0)>0?'Aviso enviado a '+data.statuses.sent+' dispositivo(s).':(data.statuses.sending||0)>0?'Aviso en proceso de envío.':(data.statuses.failed||0)>0?'Hay un envío pendiente de revisión.':(data.statuses.scheduled||0)>0?'Aviso programado para '+data.statuses.scheduled+' dispositivo(s).':data.arrivedAt?'Aviso de retraso anulado al registrar la llegada.':!data.enabled?'Aviso desactivado para esta cita.':!data.confirmed?'El aviso solo se programa para citas confirmadas.':(data.statuses.skipped||0)>0?'Aviso anulado o fuera de plazo.':'Sin dispositivos programados. La clienta necesita tener las notificaciones activadas.'}</p>
       {!data.arrivedAt&&data.confirmed&&!canArrive&&<p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6}}>{now>=Date.parse(data.endsAt)?'El horario previsto de esta cita ya ha terminado. La llegada se registra antes de su hora de finalización.':'El botón «Clienta presente» estará disponible desde dos horas antes de la cita.'}</p>}
-      {!data.arrivedAt&&canArrive&&<button type="button" disabled={busy} onClick={()=>void request('arrived')} style={{minHeight:44,padding:'10px 15px',background:'#C99E52',color:'#29231F',border:0,borderRadius:6,fontWeight:600}}>Clienta presente</button>}
+
       {open&&late&&!data.adaptedAt&&(!data.arrivedAt||Date.parse(data.arrivedAt)>=Date.parse(data.startsAt)+15*60000)&&<div style={{marginTop:12,padding:12,border:'1px solid #C99E52',borderRadius:7}}>
         <p style={{fontSize:13,lineHeight:1.6,marginTop:0}}>Han pasado los 15 minutos de cortesía. Decide si puedes atenderla manteniendo la finalización prevista a las {new Date(data.endsAt).toLocaleTimeString('es-ES',{timeZone:'Europe/Madrid',hour:'2-digit',minute:'2-digit'})} o si debes cancelar.</p>
         <div style={{display:'flex',gap:8,flexWrap:'wrap'}}><button type="button" disabled={busy} onClick={()=>setConfirmAdapt(true)} style={{minHeight:44,padding:10,borderRadius:6}}>Atender con el tiempo restante</button><button type="button" disabled={busy} onClick={onCancel} style={{minHeight:44,padding:10,borderRadius:6}}>Cancelar por retraso</button></div>
         {confirmAdapt&&<div role="alert" style={{marginTop:12,fontSize:12}}><p>Confirma que el servicio puede adaptarse al tiempo restante. La hora final y el precio reservado se mantienen; revisa manualmente el precio si corresponde.</p><button type="button" disabled={busy} onClick={()=>void request('adapted')} style={{minHeight:44}}>Confirmar atención adaptada</button><button type="button" disabled={busy} onClick={()=>setConfirmAdapt(false)} style={{minHeight:44,marginLeft:8}}>Volver</button></div>}
       </div>}
       {data.adaptedAt&&<p style={{fontSize:12,color:'#E4C687'}}>Atención adaptada registrada. Se mantiene la hora de finalización prevista.</p>}
+      </div></details>
     </>}
+    {!data&&<button type="button" disabled={busy} onClick={()=>void request()} style={{minHeight:44,fontSize:12}}>{busy?'Consultando…':'Reintentar'}</button>}
     {error&&<p role="alert" style={{color:'#FFB4A9',fontSize:12}}>{error}</p>}
   </section>;
 }
@@ -6625,6 +6632,19 @@ function StudioApp() {
 .lst-appt-head h3 {font-size:21px!important;margin:5px 0 0!important;line-height:1.25;overflow-wrap:anywhere;}
 .lst-appt-head p {line-height:1.4;}
 .lst-appt-head>div>span {padding:3px 8px;border:1px solid #67543C;border-radius:20px;}
+
+.lst-appt-quick{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:10px;align-items:start;margin-top:10px}
+.lst-appt-quick>div{min-width:0}
+.lst-appt-quick .lst-bonos .vb-panel{display:block;margin:0;padding:8px 10px;border-radius:8px;background:#30271F}
+.lst-appt-quick .lst-bonos .vb-panel>summary{font-size:12px;min-height:44px;padding:0;display:list-item;align-content:center;line-height:1.4}
+.lst-appt-quick .lst-bonos .vb-panel[open]{max-height:210px;overflow-y:auto}
+.lst-appt-quick .lst-bonos .vb-panel>label{margin-top:8px}
+.lst-appt-quick .lst-bonos .vb-panel>small{display:block;margin:8px 0}
+.lst-appt-quick .lst-bonos{font-size:12px}
+.lst-appt-quick .lst-arrival-options>summary{font-size:11px;color:#E4C687;cursor:pointer;min-height:30px;padding:4px 0}
+.lst-appt-quick .lst-arrival-options>div{max-height:190px;overflow-y:auto;padding:4px 0;overscroll-behavior:contain}
+@media(max-width:540px){.lst-appt-quick{grid-template-columns:1fr;gap:7px}.lst-appt-quick .lst-bonos .vb-panel{padding:3px 10px}.lst-appt-quick .lst-arrival-options>div{max-height:22dvh}.lst-appt-quick .lst-bonos .vb-panel[open]{max-height:24dvh}}
+
 .lst-appt-body {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,.85fr);gap:14px;padding:16px 18px;overflow-y:auto;min-height:0;overscroll-behavior:contain;}
 .lst-appt-column {display:flex;flex-direction:column;gap:10px;min-width:0;}
 .lst-appt-column h4 {margin-bottom:8px!important;font-size:13px!important;}
@@ -6646,18 +6666,19 @@ function StudioApp() {
 `}</style><div className="lst-appt-dialog" role="dialog" aria-modal="true" aria-label="Detalle de la cita"><header className="lst-appt-head"><div><p style={{ color: '#E4C687', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
 <h3 style={{ color: '#FFF8EE', fontSize: '26px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{viewApptModal.clientName}</h3>
             {renderCourtesyAction(viewApptModal)}
-            {currentScreen==='adminPanel'&&<AppointmentVoucherTools key={viewApptModal.serverId||viewApptModal.id} appointment={viewApptModal} onSaved={async()=>{
-              await syncFromServer();
-              const result=await studioApi.syncAll<{appointments?:Record<string,any>[]}>(voucherToken(),['appointments']);
-              const row=result.appointments?.find(item=>item.id===viewApptModal.serverId);
-              if(row)setViewApptModal(mapServerAppointment(row));
-            }}/>}
+
 
 <p style={{ color: '#E4C687', fontSize: 14, margin: '7px 0 0' }}>{viewApptModal.dateKey.split('-').reverse().join('/')} · {viewApptModal.time} · {viewApptModal.durationMinutes || 45} min</p>
 <span style={{ display: 'inline-block', fontSize: 11, color: '#E4C687', marginTop: 7 }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada' : viewApptModal.completedAt ? 'Finalizada' : viewApptModal.saturdayApproval?.status === 'rejected' ? 'Solicitud rechazada' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Anticipo pendiente' : 'Confirmada'}</span>
 {renderPromotionBadge(viewApptModal)}
+<div className="lst-appt-quick"><div>            {currentScreen==='adminPanel'&&<AppointmentVoucherTools key={viewApptModal.serverId||viewApptModal.id} appointment={viewApptModal} onSaved={async()=>{
+              await syncFromServer();
+              const result=await studioApi.syncAll<{appointments?:Record<string,any>[]}>(voucherToken(),['appointments']);
+              const row=result.appointments?.find(item=>item.id===viewApptModal.serverId);
+              if(row)setViewApptModal(mapServerAppointment(row));
+            }}/>}</div>{currentScreen === 'adminPanel' && <AppointmentArrivalTools key={(viewApptModal.serverId||viewApptModal.id)+':'+viewApptModal.lifecycleStatus+':'+String(viewApptModal.completedAt||'')} id={viewApptModal.serverId||viewApptModal.id} onCancel={()=>changeAppointmentStatus(viewApptModal,'cancelled')} />}</div>
 </div><button type="button" autoFocus onClick={() => setViewApptModal(null)} aria-label="Cerrar detalle de la cita" style={{background:'transparent',border:'1px solid #655039',borderRadius:8,color:'#FFF8EE',minWidth:40,minHeight:40,cursor:'pointer'}}>✕</button></header><div className="lst-appt-body"><div className="lst-appt-column">
-{currentScreen === 'adminPanel' && <AppointmentArrivalTools key={(viewApptModal.serverId||viewApptModal.id)+':'+viewApptModal.lifecycleStatus+':'+String(viewApptModal.completedAt||'')} id={viewApptModal.serverId||viewApptModal.id} onCancel={()=>changeAppointmentStatus(viewApptModal,'cancelled')} />}
+
 
 
 <section>
