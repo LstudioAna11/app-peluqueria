@@ -1,27 +1,38 @@
-/* Service worker de L'Studio Ana: recepción de notificaciones push. */
-const CACHE_VERSION = 'lstudio-logo-v6';
-
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', (event) => event.waitUntil((async () => {
-  const names = await caches.keys();
-  await Promise.all(names.filter((name) => name !== CACHE_VERSION).map((name) => caches.delete(name)));
+/* Static application shell only. Never cache API, auth, photos or private responses. */
+const CACHE_VERSION = 'lstudio-shell-offline-v1';
+const staticAsset = url => url.origin === self.location.origin && /^\/assets\/[^/]+\.(?:js|css)$/.test(url.pathname) && !url.search;
+self.addEventListener('install', event => event.waitUntil((async()=>{
+  try { const response=await fetch('/',{cache:'reload',credentials:'omit'}); if(response.ok && (response.headers.get('content-type')||'').includes('text/html'))await (await caches.open(CACHE_VERSION)).put('/',response); }catch{}
+  // Activation waits until the next page load, preserving the running build.
+})()));
+self.addEventListener('activate', event => event.waitUntil((async()=>{
+  for(const name of await caches.keys())if(name.startsWith('lstudio-')&&name!==CACHE_VERSION)await caches.delete(name);
   await self.clients.claim();
 })()));
-
-// Navegaciones y assets siempre en red primero, para que el enlace publicado
-// no sirva una versión antigua en la caché del navegador.
-self.addEventListener('fetch', (event) => {
-  const navigates = event.request.mode === 'navigate';
-  if (!navigates && !/\.(?:js|css|webp|png|jpeg|jpg|svg|json)$/.test(new URL(event.request.url).pathname)) return;
-  event.respondWith((async () => {
-    try {
-      return await fetch(new Request(event.request, { cache: 'reload' }));
-    } catch {
-      const cached = await caches.match(event.request);
-      if (cached) return cached;
-      throw new Error('Sin conexión y sin copia guardada de la app');
-    }
-  })());
+self.addEventListener('fetch',event=>{
+  const request=event.request,url=new URL(request.url);
+  if(request.method!=='GET'||url.origin!==self.location.origin)return;
+  if(request.mode==='navigate'&&url.pathname==='/'){
+    event.respondWith((async()=>{
+      const cache=await caches.open(CACHE_VERSION),control=new AbortController();const timeout=setTimeout(()=>control.abort(),4000);
+      try{
+        const response=await fetch(request,{signal:control.signal,cache:'no-cache'});
+        if(!response.ok)throw new Error('Navigation unavailable');
+        if((response.headers.get('content-type')||'').includes('text/html'))await cache.put('/',response.clone()).catch(()=>{});
+        return response;
+      }catch(error){const saved=await cache.match('/');if(saved)return saved;throw error;}finally{clearTimeout(timeout);}
+    })());
+  }else if(staticAsset(url)){
+    event.respondWith((async()=>{
+      const cache=await caches.open(CACHE_VERSION),saved=await cache.match(request);if(saved)return saved;
+      const response=await fetch(request);
+      const type=response.headers.get('content-type')||'';
+      if(response.ok&&/javascript|text\/css/.test(type)){
+        const keys=await cache.keys();if(keys.length<100)await cache.put(request,response.clone()).catch(()=>{});
+      }
+      return response;
+    })());
+  }
 });
 
 self.addEventListener('push', (event) => {
