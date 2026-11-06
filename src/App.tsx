@@ -1,3 +1,4 @@
+import {TimeClockEntry} from './TimeClockEntry';
 import {PrivacyPermissionsEntry,RegistrationPrivacyNotice} from './ClientPermissions';
 import {SocialBookingEntry} from './BookingLinks';
 import {markOfflineData, offlineConsultation, OFFLINE_EVENT} from './offlineSession';
@@ -2086,7 +2087,7 @@ function AppointmentArrivalTools({id,onCancel}:{id:string;onCancel:()=>void}){
 }
 
 export default function App() {
-  return <SocialBookingEntry><PrivateSessionGate><PortalErrorBoundary><StudioApp /></PortalErrorBoundary></PrivateSessionGate></SocialBookingEntry>;
+  return <TimeClockEntry><SocialBookingEntry><PrivateSessionGate><PortalErrorBoundary><StudioApp /></PortalErrorBoundary></PrivateSessionGate></SocialBookingEntry></TimeClockEntry>;
 }
 
 function StudioApp() {
@@ -2161,7 +2162,7 @@ function StudioApp() {
   const [adminLoginMessage, setAdminLoginMessage] = useState('');
   const [adminError, setAdminError] = useState<boolean>(false);
   const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'demands' | 'holidays' | 'news' | 'vouchers'>('agenda');
-  const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule' | 'reservas' | 'anticipada' | 'avisos' | 'backup' | 'precios' | 'empleados' | 'enlaces'>('marca');
+  const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule' | 'reservas' | 'anticipada' | 'avisos' | 'backup' | 'precios' | 'empleados' | 'enlaces' | 'fichajes'>('marca');
   const [adminCatalogStatus, setAdminCatalogStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [adminCatalogSearch, setAdminCatalogSearch] = useState('');
   const normalizeCatalogSearch = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
