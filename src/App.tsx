@@ -1,3 +1,4 @@
+import {AppointmentCountdown} from './AppointmentCountdown';
 import {TimeClockEntry} from './TimeClockEntry';
 import {PrivacyPermissionsEntry,RegistrationPrivacyNotice} from './ClientPermissions';
 import {SocialBookingEntry} from './BookingLinks';
@@ -5227,6 +5228,7 @@ function StudioApp() {
     : appointment.advancePayment?.status === 'pending' ? { background: '#DCE3EE', border: '#4A6FA5' }
     : { background: '#8FC98F', border: '#2E7D32' };
 
+  const clientCountdownAppointments = currentClientRecord && normalizeEmail(currentClientRecord.email) ? appointments.filter(appointment => normalizeEmail(appointment.email) === normalizeEmail(currentClientRecord.email)) : [];
   const clientNextAppointment = currentClientRecord ? appointments
     .filter(appointment => isActiveAppointment(appointment) && !!normalizeEmail(currentClientRecord.email) && normalizeEmail(appointment.email) === normalizeEmail(currentClientRecord.email)
       && new Date(`${appointment.dateKey}T${appointment.time}:00`).getTime() >= Date.now()
@@ -5842,6 +5844,7 @@ function StudioApp() {
               <p style={{ overflowWrap: 'anywhere' }}>{currentClientRecord?.email} · ID #{clientDisplayNumber(currentClientRecord)} · {currentClientRecord?.registroId}</p>
             </details>
           </div>
+          <AppointmentCountdown visits={clientCountdownAppointments} onView={()=>setCurrentScreen('myAppointmentsPage')} serviceName={id=>{const appointment=clientCountdownAppointments.find(item=>item.id===id);return appointment?appointmentServiceNames(appointment):'';}}/>
           <section aria-label="Reserva tu cita" style={{ background: 'linear-gradient(135deg, #221D19 0%, #322A25 100%)', border: '1px solid rgba(212, 175, 55, 0.45)', borderRadius: '14px', padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ width: 40, height: 40, minWidth: 40, borderRadius: '50%', background: 'rgba(201, 158, 82, 0.14)', border: '1px solid rgba(212, 175, 55, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E4C687' }}><Scissors size={19} strokeWidth={1.7} aria-hidden="true" /></span>
