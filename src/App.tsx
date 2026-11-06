@@ -1,3 +1,4 @@
+import type {AdvisorResult} from './serviceAdvisor';
 import {usePortalTranslations,portalLanguageCodes} from './portalLanguages';
 import {ClientPhotoGallery,StudioNews,VoucherHub,VoucherPanel,BookingVoucher,AppointmentVoucherTools,ClientProfileCompact} from './DeferredFeatures';
 import {voucherServiceOptions,voucherMoney,voucherToken,type RepeatPortalDraft} from './portalFeatureData';
@@ -1260,7 +1261,10 @@ function StudioApp() {
   const [editFormulas, setEditFormulas] = useState("");
   const [editMsg, setEditMsg] = useState<string | null>(null);
   const [clientWishText, setClientWishText] = useState("");
-  const [aiRecommendation, setAiRecommendation] = useState<string[] | null>(null);
+  const [aiRecommendation, setAiRecommendation] = useState<AdvisorResult | null>(null);
+  const [advisorBusy,setAdvisorBusy]=useState(false);
+  const advisorRequest=useRef(0);
+  useEffect(()=>()=>{advisorRequest.current++;},[]);
   const [logoClicks, setLogoClicks] = useState<number>(0);
   const [adminPin, setAdminPin] = useState<string>("");
   const [adminLoginBusy, setAdminLoginBusy] = useState(false);
@@ -2031,25 +2035,16 @@ function StudioApp() {
     setEditingClientId(null);
   };
 
-  const advisorNormalize = (value: string) => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase();
-  const handleRunAiRecommendation = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!clientWishText.trim()) return;
-    const query = advisorNormalize(clientWishText);
-    const tokens = query.split(/[^\p{L}\p{N}]+/u).filter(token => token.length >= 3);
-    const groups = [
-      ['balayage', 'mechas', 'rubio', 'blond', 'highlights', 'babylights', 'luz', 'lumiere', 'licht', 'اشقر', 'خصلات'],
-      ['corte', 'haircut', 'cut', 'coupe', 'taglio', 'schnitt', 'knip', 'strzyz', 'strih', 'klipp', 'قص'],
-      ['color', 'colour', 'raices', 'tinte', 'farbe', 'kleur', 'kolor', 'farge', 'farg', 'صبغ'],
-      ['hidrata', 'care', 'soin', 'cura', 'pflege', 'verzorg', 'pieleg', 'pece', 'pleie', 'vard', 'عناية', 'reconstru', 'salud']
-    ];
-    const intent = groups.filter(group => group.some(word => query.includes(word))).flat();
-    const ranked = catalog.flatMap(category => category.subservices.filter(service => service.active !== false).map(service => {
-      const text = advisorNormalize([service.name, serviceText(service, 'name'), service.description, serviceText(service, 'description'), category.title, categoryText(category)].join(' '));
-      const score = tokens.reduce((total, token) => total + (text.includes(token) ? 2 : 0), 0) + intent.reduce((total, word) => total + (text.includes(word) ? 1 : 0), 0);
-      return { id: service.id, score };
-    })).filter(item => item.score > 0).sort((left, right) => right.score - left.score).slice(0, 3);
-    setAiRecommendation(ranked.map(item => item.id));
+  const updateAdvisorQuestion=(value:string)=>{advisorRequest.current++;setClientWishText(value.slice(0,800));setAiRecommendation(null);setAdvisorBusy(false);};
+  const handleRunAiRecommendation = async (event?:React.FormEvent,question=clientWishText) => {
+    event?.preventDefault();if(!question.trim())return;
+    const request=++advisorRequest.current;setAdvisorBusy(true);setAiRecommendation(null);
+    try{
+      const {recommendServices}=await import('./serviceAdvisor');
+      const result=recommendServices(question,catalog.flatMap(category=>category.subservices.map(service=>({id:service.id,categoryId:category.id,name:bookingName(service),active:service.active!==false}))));
+      if(request===advisorRequest.current)setAiRecommendation(result);
+    }catch{if(request===advisorRequest.current)setAiRecommendation({message:'No se pudo abrir la orientación. Comprueba la conexión y vuelve a intentarlo.',suggestions:[]});}
+    finally{if(request===advisorRequest.current)setAdvisorBusy(false);}
   };
 
   const clientCreationBusyRef = useRef(false);
@@ -5123,27 +5118,29 @@ function StudioApp() {
               <span style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
                 <span aria-hidden="true" style={{ width: 40, height: 40, flexShrink: 0, display: 'grid', placeItems: 'center', background: 'rgba(196,154,88,.15)', borderRadius: 12 }}><Sparkles size={22} color="#E4C687" strokeWidth={1.6} /></span>
                 <span style={{ minWidth: 0 }}>
-                  <strong style={{ display: 'block', color: '#FFF8EE', fontSize: 17, lineHeight: 1.4, fontWeight: 500 }}>{currentLang === 'es' ? '¿No sabes qué servicio elegir?' : t('advisorAccess')}</strong>
-                  <span style={{ display: 'block', color: '#D6CBB8', fontSize: 13, lineHeight: 1.5, marginTop: 5 }}>{currentLang === 'es' ? 'Cuéntanos qué te gustaría hacerte y te orientamos.' : t('advisorIntro')}</span>
+                  <strong style={{ display: 'block', color: '#FFF8EE', fontSize: 17, lineHeight: 1.4, fontWeight: 500 }}>{currentLang === 'es' ? 'Tu coach profesional' : t('advisorAccess')}</strong>
+                  <span style={{ display: 'block', color: '#D6CBB8', fontSize: 13, lineHeight: 1.5, marginTop: 5 }}>{currentLang === 'es' ? 'Pregúntale qué servicio encaja contigo.' : t('advisorIntro')}</span>
                 </span>
               </span>
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, alignSelf: 'stretch', minHeight: 44, padding: '8px 14px', boxSizing: 'border-box', background: '#C49A58', color: '#221D19', borderRadius: 9, fontSize: 14, fontWeight: 600 }}>
-                <span className="lst-advisor-open-label">{currentLang === 'es' ? 'Ayúdame a elegir' : t('advisorAccess')}</span>
+                <span className="lst-advisor-open-label">{currentLang === 'es' ? 'Pregúntale' : t('advisorAccess')}</span>
                 <span className="lst-advisor-close-label">{currentLang === 'es' ? 'Cerrar ayuda' : t('advisorTitle')}</span>
                 <ChevronDown size={17} aria-hidden="true" />
               </span>
             </summary>
             <p style={{ color: '#D6CBB8', fontSize: '11px', lineHeight: 1.4, margin: '8px 0' }}>{t('advisorIntro')}</p>
             <form onSubmit={handleRunAiRecommendation} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'stretch', margin: '12px 0' }}>
-              <textarea aria-label={t('advisorTitle')} value={clientWishText} onChange={event => { setClientWishText(event.target.value); setAiRecommendation(null); }} placeholder={t('advisorPlaceholder')} rows={2} style={{ flex: '1 1 240px', minWidth: 0, width: '100%', boxSizing: 'border-box', background: '#3E342C', border: '1px solid rgba(255, 248, 238, 0.18)', color: '#FFF8EE', borderRadius: '8px', padding: '8px 10px', fontSize: '16px', lineHeight: 1.5, minHeight: '64px', resize: 'none' }} />
-              <button type="submit" disabled={!clientWishText.trim()} style={{ minHeight: '44px', padding: '8px 14px', flex: '1 1 160px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', opacity: clientWishText.trim() ? 1 : 0.5 }}>{t('advisorButton')}</button>
+              <textarea aria-label={t('advisorTitle')} value={clientWishText} onChange={event => updateAdvisorQuestion(event.target.value)} maxLength={800} placeholder={currentLang==='es'?'Ej.: Tengo canas y solo quiero retocar la raíz.':t('advisorPlaceholder')} rows={2} style={{ flex: '1 1 240px', minWidth: 0, width: '100%', boxSizing: 'border-box', background: '#3E342C', border: '1px solid rgba(255, 248, 238, 0.18)', color: '#FFF8EE', borderRadius: '8px', padding: '8px 10px', fontSize: '16px', lineHeight: 1.5, minHeight: '64px', resize: 'none' }} />
+              <button type="submit" disabled={advisorBusy||!clientWishText.trim()} style={{ minHeight: '44px', padding: '8px 14px', flex: '1 1 160px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', opacity: clientWishText.trim() ? 1 : 0.5 }}>{advisorBusy?'Buscando opciones…':t('advisorButton')}</button>
             </form>
+            {currentLang==='es'&&<p style={{color:'#D6CBB8',fontSize:11,lineHeight:1.5,margin:'0 0 10px'}}>Orientación automática basada en los nombres de nuestros servicios. Ana confirma qué opción es adecuada para ti.</p>}
             {aiRecommendation !== null && <div role="status" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {!aiRecommendation.some(id => catalog.some(category => category.subservices.some(service => service.id === id && service.active !== false))) && <p style={{ color: '#FFF8EE', lineHeight: 1.7 }}>{t('advisorNone')}</p>}
-              {aiRecommendation.map(id => { const category = catalog.find(item => item.subservices.some(service => service.id === id)); const service = category?.subservices.find(item => item.id === id && item.active !== false); if (!category || !service) return null; return <article key={id} style={{ background: '#3E342C', border: '1px solid rgba(255, 248, 238, 0.16)', padding: '12px', borderRadius: '12px' }}>
-                <h4 style={{ color: '#FFF8EE', fontSize: '18px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: '0 0 10px' }}>{serviceText(service, 'name')}</h4>
-                <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.7 }}>{t('advisorReason')}</p>
-                <button type="button" onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); setActiveCatalogTab(category.id); setViewServiceDetail(null); setCurrentScreen('categoryScreen'); window.setTimeout(() => document.getElementById(`portal-service-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }} style={{ minHeight: '44px', padding: '12px 16px', background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.16)', borderRadius: '8px', cursor: 'pointer' }}>{t('advisorView')}</button>
+              <p style={{color:'#FFF8EE',fontSize:13,lineHeight:1.6,margin:0}}>{currentLang==='es'?aiRecommendation.message:aiRecommendation.suggestions.length?t('advisorReason'):t('advisorNone')}</p>
+              {currentLang==='es'&&aiRecommendation.choices&&<div style={{display:'flex',flexWrap:'wrap',gap:8}}>{aiRecommendation.choices.map(choice=><button key={choice.query} type="button" onClick={()=>{setClientWishText(choice.query);void handleRunAiRecommendation(undefined,choice.query);}} style={{background:'#322A25',border:'1px solid #806340',borderRadius:8,color:'#E4C687',fontSize:12,padding:'8px 12px',minHeight:44,cursor:'pointer'}}>{choice.label}</button>)}</div>}
+              {aiRecommendation.suggestions.map(suggestion => { const category = catalog.find(item => item.id===suggestion.categoryId); const service = category?.subservices.find(item => item.id === suggestion.id && item.active !== false); if (!category || !service) return null; return <article key={category.id+':'+service.id} style={{ background: '#3E342C', border: '1px solid rgba(255, 248, 238, 0.16)', padding: '12px', borderRadius: '12px' }}>
+                <h4 style={{ color: '#FFF8EE', fontSize: '18px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: '0 0 10px' }}>{bookingName(service)}</h4>
+                <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.7 }}>{currentLang==='es'?suggestion.reason:t('advisorReason')}</p>
+                <button type="button" onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); setActiveCatalogTab(category.id); setViewServiceDetail({cat:category,sub:service}); setCurrentScreen('serviceDetail');window.scrollTo({top:0}); }} style={{ minHeight: '44px', padding: '12px 16px', background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.16)', borderRadius: '8px', cursor: 'pointer' }}>{t('advisorView')}</button>
               </article>; })}
               <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#E4C687', padding: '12px 0' }}>WhatsApp · Ana</a>
             </div>}
