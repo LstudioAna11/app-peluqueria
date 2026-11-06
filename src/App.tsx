@@ -1,3 +1,4 @@
+import {SocialBookingEntry} from './BookingLinks';
 import {markOfflineData, offlineConsultation, OFFLINE_EVENT} from './offlineSession';
 import {privateStorage, PrivateSessionGate, ensureAdminPrivateSession, clearStudioSession, flushPrivateCache} from './PrivateSessionGate';
 import PinRecovery from './PinRecovery';
@@ -2084,7 +2085,7 @@ function AppointmentArrivalTools({id,onCancel}:{id:string;onCancel:()=>void}){
 }
 
 export default function App() {
-  return <PrivateSessionGate><PortalErrorBoundary><StudioApp /></PortalErrorBoundary></PrivateSessionGate>;
+  return <SocialBookingEntry><PrivateSessionGate><PortalErrorBoundary><StudioApp /></PortalErrorBoundary></PrivateSessionGate></SocialBookingEntry>;
 }
 
 function StudioApp() {
@@ -2092,6 +2093,7 @@ function StudioApp() {
   useEffect(()=>{const changed=()=>setConsultationMode(offlineConsultation());window.addEventListener(OFFLINE_EVENT,changed);return()=>window.removeEventListener(OFFLINE_EVENT,changed);},[]);
   const [currentScreen, setCurrentScreen] = useState<'clientPin' | 'clientRegistration' | 'clientPortal' | 'myAppointmentsPage' | 'catalogBooking' | 'categoryScreen' | 'serviceDetail' | 'visualAgenda' | 'clientHistoryPage' | 'adminLogin' | 'adminPanel'>('clientPin');
   
+  const [socialBookingPending,setSocialBookingPending]=useState(()=>new URLSearchParams(window.location.search).get('iniciarReserva')==='1');
   useAppUsageRegistration(currentScreen);
   const [currentLang, setCurrentLang] = useState<string>(() => { const saved = privateStorage.getItem('lst_portal_language'); return saved && TRANSLATIONS[saved] ? saved : 'es'; });
   useEffect(() => { privateStorage.setItem('lst_portal_language', currentLang); }, [currentLang]);
@@ -2158,7 +2160,7 @@ function StudioApp() {
   const [adminLoginMessage, setAdminLoginMessage] = useState('');
   const [adminError, setAdminError] = useState<boolean>(false);
   const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'demands' | 'holidays' | 'news' | 'vouchers'>('agenda');
-  const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule' | 'reservas' | 'anticipada' | 'avisos' | 'backup' | 'precios' | 'empleados'>('marca');
+  const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule' | 'reservas' | 'anticipada' | 'avisos' | 'backup' | 'precios' | 'empleados' | 'enlaces'>('marca');
   const [adminCatalogStatus, setAdminCatalogStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [adminCatalogSearch, setAdminCatalogSearch] = useState('');
   const normalizeCatalogSearch = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -4054,6 +4056,13 @@ function StudioApp() {
       }else setCurrentScreen('myAppointmentsPage');
     }
   });
+  useEffect(()=>{
+    if(!socialBookingPending||currentScreen!=='clientPortal'||portalEntry.restoring||portalEntry.linkBusy||studioApi.storedRole()!=='client'||!studioApi.currentToken()||!currentClientRecord?.serverId||!catalog.length)return;
+    const url=new URL(window.location.href);
+    if(['cita','opinion','notificacion'].some(key=>url.searchParams.has(key))||new URLSearchParams(url.hash.slice(1)).has('recuperar'))return;
+    url.searchParams.delete('iniciarReserva');window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);
+    setSocialBookingPending(false);setCurrentScreen('catalogBooking');
+  },[socialBookingPending,currentScreen,currentClientRecord?.serverId,catalog.length,portalEntry.restoring,portalEntry.linkBusy]);
   const renderEntryNotice=()=>portalEntry.label?<div role="status" aria-live="polite" style={{width:'100%',maxWidth:520,boxSizing:'border-box',padding:'12px 14px',margin:'10px 0',background:'#322A25',border:'1px solid #8B704A',borderRadius:9,color:'#E8D7BB',fontSize:13,lineHeight:1.7}}>
     {portalEntry.label}{portalEntry.retryable&&<button type="button" onClick={portalEntry.retryEntry} disabled={portalEntry.restoring||portalEntry.linkBusy} style={{display:'block',minHeight:44,marginTop:7,padding:'8px 13px',border:'1px solid #B9955F',borderRadius:6,background:'transparent',color:'#E4C687',cursor:'pointer'}}>Reintentar</button>}
   </div>:null;
