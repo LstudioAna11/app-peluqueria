@@ -1,4 +1,4 @@
-mport {BookingLinksPanel} from './BookingLinks';
+import {BookingLinksPanel} from './BookingLinks';
 import BirthdayPanel from './BirthdayPanel';
 import ClientExcelExport from './ClientExcelExport';
 import {captureOfflineSnapshot} from './OfflineIntranet';
