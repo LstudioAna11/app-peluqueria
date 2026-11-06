@@ -1,3 +1,4 @@
+import {PrivacyPermissionsEntry,RegistrationPrivacyNotice} from './ClientPermissions';
 import {SocialBookingEntry} from './BookingLinks';
 import {markOfflineData, offlineConsultation, OFFLINE_EVENT} from './offlineSession';
 import {privateStorage, PrivateSessionGate, ensureAdminPrivateSession, clearStudioSession, flushPrivateCache} from './PrivateSessionGate';
@@ -5766,6 +5767,7 @@ function StudioApp() {
           <img src={optimizedImageUrl(brandLogoSrc)} onError={fallbackBrandLogo} decoding="async" alt="L’A · Hair Experience" style={{ width: '150px', height: 'auto', mixBlendMode: 'screen', display: 'block', margin: '0 auto 12px' }} />
           <h2 style={{ color: '#FFF8EE', fontSize: '25px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0, textAlign: 'center' }}>{t('clientRegistrationTitle')}</h2>
           <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.7, textAlign: 'center', margin: '0 0 10px 0' }}>{t('clientRegistrationDesc')}</p>
+          <RegistrationPrivacyNotice />
           <form aria-busy={registrationBusy} onSubmit={handleRegistroClientaPortalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <fieldset disabled={registrationBusy} style={{border:0,padding:0,margin:0,display:'contents'}}>
 
@@ -6789,6 +6791,7 @@ function StudioApp() {
             <button type="button" aria-label="Cerrar notificaciones" onClick={() => setPushPanelOpen(false)} style={{ minWidth: 44, minHeight: 44, background: 'transparent', color: '#E4C687', border: '1px solid #67543C', borderRadius: 8 }}>✕</button>
           </div>
           <p style={{ color: '#D6CBB8', fontSize: 13, lineHeight: 1.6 }}>Activa los avisos de tus citas en este dispositivo. No necesitas hacer una reserva para probarlos.</p>
+          <PrivacyPermissionsEntry />
           {renderClientPushPanel()}
           <p style={{ color: '#D6CBB8', fontSize: 12, lineHeight: 1.6 }}>Un envío aceptado por el servidor no confirma la entrega. Comprueba si la prueba aparece en las notificaciones de tu móvil.</p>
         </div>
