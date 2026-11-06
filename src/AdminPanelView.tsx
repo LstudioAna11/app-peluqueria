@@ -1,4 +1,4 @@
-import {BookingLinksPanel} from './BookingLinks';
+mport {BookingLinksPanel} from './BookingLinks';
 import BirthdayPanel from './BirthdayPanel';
 import ClientExcelExport from './ClientExcelExport';
 import {captureOfflineSnapshot} from './OfflineIntranet';
@@ -339,6 +339,7 @@ async function validateStudioBackup(document:StudioBackupFile):Promise<void>{
   if(document?.format!=='lstudio-business-backup'||document.version!==2||document.snapshot?.snapshotVersion!==1||!Number.isFinite(Date.parse(document.createdAt)))throw new Error('El contenido de la copia no es válido.');
   for(const table of BACKUP_CORE_TABLES)if(!Array.isArray(document.snapshot.tables?.[table]))throw new Error('Faltan datos esenciales: '+table);
   for(const [table,rows]of Object.entries(document.snapshot.tables))if(!Array.isArray(rows)||document.snapshot.counts?.[table]!==rows.length)throw new Error('El recuento de datos no coincide: '+table);
+  if(document.snapshot.tables.studio_birthday_settings?.some(row=>Object.prototype.hasOwnProperty.call(row,'unsubscribe_secret')))throw new Error('La copia contiene una clave operativa de cumpleaños. Actualiza el exportador antes de continuar.');
   if(!document.media||typeof document.media.included!=='boolean'||!Array.isArray(document.media.files)||!Number.isInteger(document.media.expected)||document.media.expected<0)throw new Error('El índice de fotos no es válido.');
   if(!document.media.included&&document.media.files.length)throw new Error('El índice de fotos no coincide con el tipo de copia.');
   if(document.media.included&&document.media.files.length!==document.media.expected)throw new Error('Faltan fotos en esta copia.');
@@ -383,12 +384,12 @@ function StudioBackupPanel({hasUnsavedChanges}:{hasUnsavedChanges:boolean}){
   const [password,setPassword]=useState(''),[repeat,setRepeat]=useState(''),[withPhotos,setWithPhotos]=useState(false);
   const [file,setFile]=useState<File|null>(null),[openPassword,setOpenPassword]=useState('');
   const [busy,setBusy]=useState(false),[message,setMessage]=useState(''),[error,setError]=useState('');
-  const [summary,setSummary]=useState<{date:string;clients:number;appointments:number;passports:number;visits:number;photos:number;included:boolean;source:string}|null>(null);
+  const [summary,setSummary]=useState<{date:string;clients:number;appointments:number;passports:number;visits:number;photos:number;included:boolean;source:string;birthdaySettings:boolean;birthdayPreferences:number|null;birthdayDeliveries:number|null;bookingLinks:number|null}|null>(null);
   const [prepared,setPrepared]=useState<PreparedStudioBackup|null>(null);
   const preparedRef=useRef<PreparedStudioBackup|null>(null);
   const lock=useRef(false),controller=useRef<AbortController|null>(null);
   useEffect(()=>()=>{controller.current?.abort();if(preparedRef.current)URL.revokeObjectURL(preparedRef.current.url);},[]);
-  const showSummary=(data:StudioBackupFile)=>setSummary({date:data.createdAt,clients:data.snapshot.tables.studio_clients.length,appointments:data.snapshot.tables.studio_appointments.length,passports:data.snapshot.tables.studio_passports.length,visits:data.snapshot.tables.studio_visits.length,photos:data.media.files.length,included:data.media.included,source:data.source});
+  const showSummary=(data:StudioBackupFile)=>setSummary({date:data.createdAt,clients:data.snapshot.tables.studio_clients.length,appointments:data.snapshot.tables.studio_appointments.length,passports:data.snapshot.tables.studio_passports.length,visits:data.snapshot.tables.studio_visits.length,photos:data.media.files.length,included:data.media.included,source:data.source,birthdaySettings:Array.isArray(data.snapshot.tables.studio_birthday_settings),birthdayPreferences:data.snapshot.tables.studio_birthday_preferences?.length??null,birthdayDeliveries:data.snapshot.tables.studio_birthday_deliveries?.length??null,bookingLinks:data.snapshot.tables.studio_booking_links?.length??null});
   const download=async()=>{
     if(lock.current)return;setError('');setSummary(null);
     if(hasUnsavedChanges){setError('Guarda los cambios del catálogo y la configuración antes de crear la copia.');return;}
@@ -482,6 +483,10 @@ function StudioBackupPanel({hasUnsavedChanges}:{hasUnsavedChanges:boolean}){
       <strong>{new Date(summary.date).toLocaleString('es-ES',{timeZone:'Europe/Madrid'})}</strong><br/>
       {summary.clients} clientas · {summary.appointments} citas · {summary.passports} pasaportes · {summary.visits} visitas<br/>
       {summary.included?`${summary.photos} fotos incluidas`:'Copia de datos sin archivos de fotos'}<br/>
+      <div style={{margin:'8px 0',borderTop:'1px solid #655039',paddingTop:8}}>
+        Cumpleaños: {summary.birthdaySettings&&summary.birthdayPreferences!==null&&summary.birthdayDeliveries!==null?`${summary.birthdayPreferences} preferencias · ${summary.birthdayDeliveries} registros de envío`:'No incluidos en esta copia'}<br/>
+        Enlaces de reserva: {summary.bookingLinks!==null?`${summary.bookingLinks} configuración guardada`:'No incluidos en esta copia'}
+      </div>
       <span style={{fontSize:11,color:'#D6CBB8',overflowWrap:'anywhere'}}>Origen: {summary.source}</span>
     </div>}
     <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6,margin:0}}>No incluye sesiones, claves de envío ni el código de la aplicación. La restauración automática todavía no está incluida.</p>
