@@ -30,6 +30,7 @@ export async function requestBookingLinks(action:'public'|'status'|'save',body?:
 const button:React.CSSProperties={minHeight:44,padding:'10px 16px',border:'1px solid #B9955F',borderRadius:8,background:'#3E342C',color:'#FFF8EE',cursor:'pointer',fontSize:14};
 const primary:React.CSSProperties={...button,background:'#D6B77B',color:'#29231F'};
 const field:React.CSSProperties={width:'100%',boxSizing:'border-box',padding:12,border:'1px solid #806340',borderRadius:8,background:'#221D19',color:'#FFF8EE',fontSize:16};
+const LazyReservationQr=React.lazy(()=>import('./ReservationQr'));
 const names:Record<BookingPlatform,string>={google:'Google',facebook:'Facebook',instagram:'Instagram'};
 function LinkPreview({config,onContinue,busy=false}:{config:BookingLinkConfig;onContinue?:()=>void;busy?:boolean}){
  return <div style={{textAlign:'center',padding:'24px 12px',background:'#322A25',borderRadius:12,color:'#FFF8EE'}}>
@@ -77,6 +78,7 @@ export function BookingLinksPanel(){
     <div><p style={{fontSize:12,color:'#D6CBB8',marginTop:0}}>Vista previa de tus cambios</p><LinkPreview config={draft} onContinue={()=>setNotice('Vista previa: el enlace real se comprueba con «Probar enlace».')}/></div>
    </div>
    <div role="status" aria-live="polite">{notice}</div>
+   <React.Suspense fallback={<p>Preparando el QR…</p>}><LazyReservationQr /></React.Suspense>
    <details><summary style={{cursor:'pointer',color:'#E4C687'}}>Dónde poner cada enlace</summary><div style={{fontSize:13,lineHeight:1.7,color:'#D6CBB8'}}><p><strong>Google:</strong> en el enlace de reservas de tu Perfil de Empresa, si tu perfil dispone de esa opción.</p><p><strong>Instagram:</strong> como enlace del perfil o en una historia con enlace.</p><p><strong>Facebook:</strong> como enlace de tu página, publicación fijada o botón que acepte una dirección web.</p><p>El botón nativo «Reservar» de las redes depende de las opciones de cada cuenta. Este apartado no publica ni cambia botones en esas plataformas. El texto que configuras aquí aparece en tu página.</p><p>Pausar este acceso afecta a nuevas entradas por estos enlaces. La app, las citas existentes y las reservas ya iniciadas mantienen su funcionamiento habitual.</p></div></details>
   </>}
  </section>;
