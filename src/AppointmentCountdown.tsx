@@ -30,12 +30,17 @@ export function AppointmentCountdown({visits,onView,serviceName}:{visits:Visit[]
  },[]);
  const next=nextCountdownVisit(visits,now);if(!next)return null;
  const {visit,start}=next,arrived=start<=now,pending=visit.saturdayApproval?.status==='pending'?'Pendiente de aprobación':visit.advancePayment?.status==='pending'?'Pendiente de Bizum':null;
- const values=countdownParts(start,now),labels=['Días','Horas','Minutos'];
- return <section aria-label="Cuenta atrás de tu cita" style={{background:'linear-gradient(135deg,#322A25,#221D19)',border:'1px solid #B9955F',borderRadius:14,padding:18,display:'grid',gap:14,color:'#FFF8EE'}}>
-  <div style={{display:'flex',justifyContent:'space-between',gap:10,flexWrap:'wrap'}}><h3 style={{fontFamily:'Georgia,serif',fontSize:21,fontWeight:400,color:'#E4C687',margin:0}}>{arrived?'Es la hora de tu cita':'Tu momento en el Studio'}</h3>{pending&&<span style={{fontSize:11,color:'#E4C687'}}>{pending}</span>}</div>
-  {!arrived&&<div aria-label={`Faltan ${values[0]} días, ${values[1]} horas y ${values[2]} minutos`} style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:10}}>{values.map((value,index)=><div key={labels[index]} aria-hidden="true" style={{textAlign:'center',padding:'13px 4px',borderRadius:10,background:'rgba(228,198,135,.06)',border:'1px solid rgba(228,198,135,.18)'}}><strong style={{display:'block',fontSize:'clamp(25px,7vw,36px)',fontWeight:400,fontVariantNumeric:'tabular-nums',color:'#E4C687',lineHeight:1.2}}>{String(value).padStart(2,'0')}</strong><span style={{fontSize:11,color:'#D6CBB8'}}>{labels[index]}</span></div>)}</div>}
-  <p style={{margin:0,fontSize:13,lineHeight:1.6}}>{new Intl.DateTimeFormat('es-ES',{timeZone:'Europe/Madrid',weekday:'long',day:'numeric',month:'long'}).format(new Date(start))} · {visit.time}<span style={{display:'block',color:'#D6CBB8',fontSize:12}}>Hora del salón · Madrid</span></p>
-  <p style={{margin:0,fontSize:13,lineHeight:1.5,overflowWrap:'anywhere'}}>{serviceName(visit.id)}</p>
-  {arrived?<p style={{margin:0,fontSize:12,color:'#D6CBB8'}}>Ha llegado la hora reservada. Si necesitas ayuda, contacta con el Studio.</p>:<button type="button" onClick={onView} style={{minHeight:44,padding:'10px 16px',borderRadius:8,border:'1px solid #B9955F',background:'transparent',color:'#E4C687',fontSize:13,cursor:'pointer'}}>Ver mi cita</button>}
+ const values=countdownParts(start,now),services=serviceName(visit.id);
+ return <section aria-label="Cuenta atrás de tu cita" style={{background:'#2D2621',border:'1px solid #806340',borderRadius:10,padding:'10px 12px',display:'grid',gap:5,color:'#FFF8EE'}}>
+  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+   <div style={{minWidth:0}}>
+    <h3 style={{fontFamily:'Georgia,serif',fontSize:15,fontWeight:400,color:'#E4C687',margin:'0 0 4px'}}>{arrived?'Es la hora de tu cita':'Tu momento en el Studio'}</h3>
+    {!arrived&&<p aria-label={`Faltan ${values[0]} días, ${values[1]} horas y ${values[2]} minutos`} style={{margin:0,fontSize:19,fontVariantNumeric:'tabular-nums',color:'#E4C687',lineHeight:1.3}}><span aria-hidden="true">{values[0]} <small style={{fontSize:12}}>d</small> · {String(values[1]).padStart(2,'0')} <small style={{fontSize:12}}>h</small> · {String(values[2]).padStart(2,'0')} <small style={{fontSize:12}}>min</small></span></p>}
+   </div>
+   {!arrived&&<button type="button" onClick={onView} style={{flexShrink:0,minHeight:44,padding:'7px 10px',borderRadius:7,border:'1px solid #806340',background:'transparent',color:'#E4C687',fontSize:12,cursor:'pointer'}}>Ver mi cita</button>}
+  </div>
+  <p style={{margin:0,fontSize:12,lineHeight:1.4,color:'#D6CBB8'}}>{new Intl.DateTimeFormat('es-ES',{timeZone:'Europe/Madrid',day:'numeric',month:'short'}).format(new Date(start))} · {visit.time} <span style={{fontSize:11}}>(Madrid)</span></p>
+  {services&&<p title={services} style={{margin:0,fontSize:12,lineHeight:1.4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{services}</p>}
+  {pending&&<span style={{fontSize:11,color:'#E4C687'}}>{pending}</span>}
  </section>;
 }
