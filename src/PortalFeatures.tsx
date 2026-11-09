@@ -7,6 +7,7 @@ import {exactPrice} from './promotionPricing';
 import {getBookingName} from './serviceNames';
 import type {Appointment,BusinessConfig,CatalogCategory,ClientRecord,ServiceVariant,SubService} from './App';
 import {voucherMoney,voucherToken,voucherServiceOptions,deleteTestVoucher,type VoucherServiceOption,type VoucherClientOption,type RepeatPortalDraft} from './portalFeatureData';
+const LazyMemoriesClient=React.lazy(()=>import('./MemoriesClient'));
 const DEFAULT_BRAND_LOGO='/studio-brand-default.webp';
 const isActiveAppointment=(a:Appointment)=>a.lifecycleStatus!=='cancelled'&&a.lifecycleStatus!=='no_show';
 export function privatePhotoExpiry(date:string):string|null{
@@ -569,11 +570,11 @@ function RepeatLastAppointment({clientId,showPrices,onProceed,onCatalog}:{client
   </section>;
 }
 
-type PortalProfileTab='hair'|'history'|'photos'|'vouchers';
+type PortalProfileTab='hair'|'history'|'photos'|'vouchers'|'memories';
 export function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,onBack,onBook,onReserve,onRepeat,showPrices}:{client?:ClientRecord|null;catalog:CatalogCategory[];logoSrc:string;t:(key:string)=>string;compactVisitText:(text:string)=>string;onBack:()=>void;onBook:()=>void;onReserve:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void;onRepeat:(draft:RepeatPortalDraft)=>void;showPrices:boolean}){
  const [tab,setTab]=useState<PortalProfileTab>('hair'),[historyPage,setHistoryPage]=useState(0);
- const [visited,setVisited]=useState<Record<PortalProfileTab,boolean>>({hair:true,history:false,photos:false,vouchers:false});
- const tabs:{id:PortalProfileTab;label:string}[]=[{id:'hair',label:'Mi cabello'},{id:'history',label:'Historial'},{id:'photos',label:'Fotos'},{id:'vouchers',label:'Mis bonos'}];
+ const [visited,setVisited]=useState<Record<PortalProfileTab,boolean>>({hair:true,history:false,photos:false,vouchers:false,memories:false});
+ const tabs:{id:PortalProfileTab;label:string}[]=[{id:'hair',label:'Mi cabello'},{id:'history',label:'Historial'},{id:'photos',label:'Fotos'},{id:'vouchers',label:'Mis bonos'},{id:'memories',label:'Logros y recuerdos'}];
  useEffect(()=>{window.scrollTo({top:0,behavior:'auto'});},[]);
  const select=(id:PortalProfileTab)=>{setTab(id);setVisited(previous=>({...previous,[id]:true}));window.scrollTo({top:0,behavior:'auto'});};
  const tabKey=(event:React.KeyboardEvent<HTMLButtonElement>,index:number)=>{
@@ -591,8 +592,8 @@ export function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,
    .lp-header .lp-back{width:40px;min-height:44px;background:transparent;color:#DDC29A;border:1px solid #6C583D;border-radius:50%;display:grid;place-items:center;padding:0}
    .lp-header h2{font-family:Georgia,serif;font-size:21px;font-weight:400;line-height:1.3;color:#EAD5B4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
    .lp-header p{font-size:12px;color:#C8B79E;line-height:1.5;margin-top:3px;overflow-wrap:anywhere}
-   .lp-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;position:sticky;top:8px;z-index:20;padding:4px;background:#2C251F;border:1px solid #665039;border-radius:9px;margin-bottom:15px;box-shadow:0 4px 12px rgba(0,0,0,.13)}
-   .lp-tabs button{min-width:0;min-height:44px;padding:8px 3px;border:0;border-radius:6px;background:transparent;color:#CDBCA4;font-size:11px;white-space:nowrap;letter-spacing:.015em}
+   .lp-tabs{display:flex;overflow-x:auto;gap:3px;position:sticky;top:8px;z-index:20;padding:4px;background:#2C251F;border:1px solid #665039;border-radius:9px;margin-bottom:15px;box-shadow:0 4px 12px rgba(0,0,0,.13)}
+   .lp-tabs button{flex:0 0 auto;min-width:76px;min-height:44px;padding:8px 3px;border:0;border-radius:6px;background:transparent;color:#CDBCA4;font-size:11px;white-space:nowrap;letter-spacing:.015em}
    .lp-tabs button[aria-selected=true]{background:#D0AA71;color:#2C2219;font-weight:600}
    .lp-panel[hidden]{display:none!important}.lp-panel{min-width:0}.lp-hair{display:grid;gap:10px}
    .lp-next{border:1px solid #846A45;background:linear-gradient(120deg,#3B3025,#2B241E);border-radius:10px;padding:14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px 12px;align-items:center}
@@ -622,6 +623,7 @@ export function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,
   </div>
   <div className="lp-panel" id="lp-panel-history" role="tabpanel" aria-labelledby="lp-tab-history" hidden={tab!=='history'}>{visited.history&&<><header className="lp-section-head"><h3>{t('visitHistory')}</h3><small>{visits.length} {visits.length===1?'visita':'visitas'}</small></header><div className="lp-history-list">{visits.length?visits.slice(page*4,page*4+4).map((visit,index)=><details className="lp-fold lp-visit" key={page*4+index}><summary><span><time>{visit.date}</time><strong>{compactVisitText(visit.service)}</strong></span><ChevronDown size={16}/></summary><div className="lp-fold-body"><p>{compactVisitText(visit.service)}</p>{visit.stylist&&<p>Con {visit.stylist}</p>}{visit.notes&&<p className="lp-notes">{visit.notes}</p>}</div></details>):<p className="lp-quiet">{t('emptyVisits')}</p>}</div>{pages>1&&<div className="lp-pages"><button type="button" disabled={page===0} onClick={()=>setHistoryPage(page-1)}>Anterior</button><span>{page+1} / {pages}</span><button type="button" disabled={page+1>=pages} onClick={()=>setHistoryPage(page+1)}>Siguiente</button></div>}</>}</div>
   <div className="lp-panel" id="lp-panel-photos" role="tabpanel" aria-labelledby="lp-tab-photos" hidden={tab!=='photos'}>{visited.photos&&<ClientPhotoGallery key={client?.serverId||'own-gallery'} clientId={client?.serverId}/>}</div>
+  <div className="lp-panel" id="lp-panel-memories" role="tabpanel" aria-labelledby="lp-tab-memories" hidden={tab!=='memories'}>{visited.memories&&<React.Suspense fallback={<p>Cargando recuerdos…</p>}><LazyMemoriesClient key={client?.serverId||'own-memories'}/></React.Suspense>}</div>
   <div className="lp-panel" id="lp-panel-vouchers" role="tabpanel" aria-labelledby="lp-tab-vouchers" hidden={tab!=='vouchers'}>{visited.vouchers&&<VoucherPanel logoSrc={logoSrc} services={voucherServiceOptions(catalog)} onReserve={onReserve}/>}</div>
  </section>;
 }
