@@ -1,6 +1,6 @@
 import {useEffect} from 'react';
 import * as studioApi from './studioApi';
-export type AudienceCounts={installed:number;browser:number;legacy?:{installed:number;browser:number;captured_at:string};transition?:{installed:number;browser:number};resetRevision?:number;resetAt?:string|null;resetApplied?:boolean;periodDays:number};
+export type AudienceCounts={installed:number;browser:number;metricVersion?:number;installedSince?:string|null;installedAccesses?:number;legacy?:{installed:number;browser:number;captured_at:string};transition?:{installed:number;browser:number};resetRevision?:number;resetAt?:string|null;resetApplied?:boolean;periodDays:number};
 // Memoria de esta página únicamente: no cookies, UUID ni almacenamiento analítico.
 const attempted=new Set<string>();
 export async function audienceCall<T>(action:'register'|'stats'|'reset',body:unknown={},signal?:AbortSignal):Promise<T>{
@@ -15,7 +15,8 @@ export function useAppAudience(screen:string){
   const register=()=>{
    if(!studioApi.serverConfigured||studioApi.storedRole()!=='client'||!studioApi.currentToken()||['clientPin','clientRegistration','adminLogin','adminPanel'].includes(screen)||!navigator.onLine)return;
    const mode=window.matchMedia('(display-mode: standalone)').matches||(navigator as any).standalone===true?'installed':'browser';
-   if(attempted.has(mode))return;attempted.add(mode);
+   const account=studioApi.storedClientId()||studioApi.currentToken();
+   const key=account+':'+mode;if(attempted.has(key))return;attempted.add(key);
    // No reintentar automáticamente: una respuesta perdida podría duplicar la cifra.
    void audienceCall('register',{accessMode:mode}).catch(()=>{});
   };
