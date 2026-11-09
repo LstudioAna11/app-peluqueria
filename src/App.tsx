@@ -1,4 +1,4 @@
-import {usePrivateUsageRegistration,usageCall} from './usagePrivacy';
+import {useAppAudience,audienceCall,type AudienceCounts} from './appAudience';
 import type {AdvisorResult} from './serviceAdvisor';
 import {usePortalTranslations,portalLanguageCodes} from './portalLanguages';
 import {ClientPhotoGallery,StudioNews,VoucherHub,VoucherPanel,BookingVoucher,AppointmentVoucherTools,ClientProfileCompact} from './DeferredFeatures';
@@ -253,7 +253,6 @@ function usePortalEntry(options:{screen:string;recoveryOpen:boolean;syncSession:
 }
 
 const LazyAdminPanelView = React.lazy(() => import('./AdminPanelView'));
-const LazyUsagePreferences=React.lazy(()=>import('./UsagePreferences'));
 // Optimized copies of bundled photos only; custom uploads remain unchanged.
 const FAST_PHOTO_URLS: Readonly<Record<string,string>> = {
   "/s1.webp": "/s1-fast.webp",
@@ -1066,7 +1065,7 @@ function ClientAppointmentDetail({title,date,time,status,services,promotion,canM
 
 
 export function AppUsageStats(){
-  const [counts,setCounts]=useState<{installed:number;browser:number;legacy?:{installed:number;browser:number;captured_at:string};enabled?:boolean}|null>(null),[tab,setTab]=useState<'installed'|'browser'>('installed'),[busy,setBusy]=useState(false),[error,setError]=useState('');
+  const [counts,setCounts]=useState<AudienceCounts|null>(null),[tab,setTab]=useState<'installed'|'browser'>('installed'),[busy,setBusy]=useState(false),[error,setError]=useState('');
   const running=useRef(false),mounted=useRef(false),controller=useRef<AbortController|null>(null);
   const load=async()=>{
     if(running.current)return;
@@ -1075,7 +1074,7 @@ export function AppUsageStats(){
     running.current=true;setBusy(true);setError('');
     const control=new AbortController();controller.current=control;const timer=setTimeout(()=>control.abort(),12000);
     try{
-      const data=await usageCall<{installed:number;browser:number;legacy?:{installed:number;browser:number;captured_at:string};enabled?:boolean}>('stats');
+      const data=await audienceCall<AudienceCounts>('stats',{},control.signal);
       if(!Number.isSafeInteger(data.installed)||data.installed<0||!Number.isSafeInteger(data.browser)||data.browser<0)throw new Error('No se pudo consultar el contador.');
       if(mounted.current&&studioApi.currentToken()===token&&studioApi.storedRole()==='admin')setCounts(data);
     }catch{if(mounted.current&&!control.signal.aborted)setError('No se pudo consultar el contador. Comprueba el SQL y la API e inténtalo de nuevo.');else if(mounted.current)setError('La consulta ha tardado demasiado. Pulsa Actualizar.');}
@@ -1088,14 +1087,14 @@ export function AppUsageStats(){
     </div>
     <div role="tabpanel" id={'usage-panel-'+tab} aria-labelledby={'usage-tab-'+tab}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}>
-        <div><p style={{margin:'0 0 6px',fontSize:13,color:'#E4C687'}}>Dispositivos con permiso vigente · {tab==='installed'?'App instalada':'Navegador'}</p><strong style={{fontSize:28}} aria-live="polite">{counts===null?'—':counts[tab].toLocaleString('es-ES')}</strong></div>
+        <div><p style={{margin:'0 0 6px',fontSize:13,color:'#E4C687'}}>Accesos · últimos 365 días · {tab==='installed'?'App instalada':'Navegador'}</p><strong style={{fontSize:28}} aria-live="polite">{counts===null?'—':counts[tab].toLocaleString('es-ES')}</strong></div>
         <button type="button" onClick={()=>void load()} disabled={busy} style={{minHeight:44,padding:'9px 14px',border:'1px solid #B9955F',borderRadius:7,background:'transparent',color:'#E4C687',cursor:busy?'wait':'pointer'}}>{busy?'Consultando…':'Actualizar'}</button>
       </div>
-      <p style={{margin:'8px 0 0',fontSize:12,lineHeight:1.6,color:'#D6CBB8'}}>{tab==='installed'?'Se registra al abrir desde el icono y acceder al portal de clienta.':'Se registra al acceder al portal de clienta desde el navegador.'} Solo se incluyen navegadores con autorización vigente; no es un recuento exacto de descargas.</p>
+      <p style={{margin:'8px 0 0',fontSize:12,lineHeight:1.6,color:'#D6CBB8'}}>{tab==='installed'?'Se registra al abrir desde el icono y acceder al portal de clienta.':'Se registra al acceder al portal de clienta desde el navegador.'} Se cuentan aperturas, no personas ni instalaciones únicas. Recargar la página puede sumar otro acceso.</p>
     </div>
-    <details style={{marginTop:8,fontSize:12,color:'#D6CBB8'}}><summary style={{cursor:'pointer'}}>Cómo se calcula</summary><p style={{lineHeight:1.6}}>Recuento con autorización vigente, de un máximo de seis meses, sin accesos de administración. Rechazar, retirar el permiso o dejarlo caducar puede reducir este número. Un mismo dispositivo puede aparecer en ambas pestañas; no deben sumarse como personas únicas. Las apps ya instaladas se registran cuando vuelvan a abrirse y se acceda al portal. Usar otro navegador o borrar sus datos puede generar otro registro. No se detectan desinstalaciones.</p></details>
-    {counts?.legacy&&<p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6}}>Histórico anterior al cambio de privacidad: {counts.legacy[tab].toLocaleString('es-ES')} · Corte: {new Date(counts.legacy.captured_at).toLocaleDateString('es-ES')}. Este total agregado se conserva aparte y no se suma al contador vigente.</p>}
-    {counts?.enabled===false&&<p style={{fontSize:12,color:'#E4C687'}}>Pendiente de activar las estadísticas opcionales en Supabase.</p>}
+    <details style={{marginTop:8,fontSize:12,color:'#D6CBB8'}}><summary style={{cursor:'pointer'}}>Cómo se calcula</summary><p style={{lineHeight:1.6}}>Cifras agregadas por día y modalidad durante los últimos 365 días. No se guardan identificadores de seguimiento. Se intenta registrar una vez por modalidad mientras esta página permanece abierta y hay una sesión de clienta; navegar por el portal no vuelve a contar. Recargar, abrir otra pestaña o volver a abrir puede sumar un acceso. Una conexión fallida puede dejar un acceso sin registrar. No se miden personas únicas, instalaciones únicas ni desinstalaciones. Los accesos de administración se excluyen.</p></details>
+    {counts?.legacy&&<p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6}}>Dispositivos del contador original (histórico): {counts.legacy[tab].toLocaleString('es-ES')} · Corte: {new Date(counts.legacy.captured_at).toLocaleDateString('es-ES')}. Este total agregado se conserva aparte y no se suma al contador vigente.</p>}
+    {counts?.transition&&counts.transition[tab]>0&&<p style={{fontSize:12,color:'#D6CBB8'}}>Registros durante la actualización anterior: {counts.transition[tab].toLocaleString('es-ES')}. Se conservan aparte; pueden coincidir con el histórico.</p>}
     {error&&<p role="alert" style={{fontSize:12,color:'#FFB4A9'}}>{error}</p>}
   </section>;
 }
@@ -1160,7 +1159,7 @@ function StudioApp() {
   const [currentScreen, setCurrentScreen] = useState<'clientPin' | 'clientRegistration' | 'clientPortal' | 'myAppointmentsPage' | 'catalogBooking' | 'categoryScreen' | 'serviceDetail' | 'visualAgenda' | 'clientHistoryPage' | 'adminLogin' | 'adminPanel'>('clientPin');
   
   const [socialBookingPending,setSocialBookingPending]=useState(()=>new URLSearchParams(window.location.search).get('iniciarReserva')==='1');
-  usePrivateUsageRegistration(currentScreen);
+  useAppAudience(currentScreen);
   const [currentLang, setCurrentLang] = useState<string>(() => { const saved = privateStorage.getItem('lst_portal_language'); return saved && portalLanguageCodes.includes(saved) ? saved : 'es'; });
   const {translations:TRANSLATIONS,languageError,retryLanguage}=usePortalTranslations(currentLang);
   useEffect(() => { privateStorage.setItem('lst_portal_language', currentLang); }, [currentLang]);
@@ -4886,7 +4885,7 @@ function StudioApp() {
             </details>
           </div>
           <AppointmentCountdown visits={clientCountdownAppointments} onView={()=>setCurrentScreen('myAppointmentsPage')} serviceName={id=>{const appointment=clientCountdownAppointments.find(item=>item.id===id);return appointment?appointmentServiceNames(appointment):'';}}/>
-          <React.Suspense fallback={null}><LazyUsagePreferences prompt/></React.Suspense>
+          
           <section aria-label="Reserva tu cita" style={{ background: 'linear-gradient(135deg, #221D19 0%, #322A25 100%)', border: '1px solid rgba(212, 175, 55, 0.45)', borderRadius: '14px', padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ width: 40, height: 40, minWidth: 40, borderRadius: '50%', background: 'rgba(201, 158, 82, 0.14)', border: '1px solid rgba(212, 175, 55, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E4C687' }}><Scissors size={19} strokeWidth={1.7} aria-hidden="true" /></span>
@@ -5840,7 +5839,7 @@ function StudioApp() {
           </div>
           <p style={{ color: '#D6CBB8', fontSize: 13, lineHeight: 1.6 }}>Activa los avisos de tus citas en este dispositivo. No necesitas hacer una reserva para probarlos.</p>
           <PrivacyPermissionsEntry />
-          <React.Suspense fallback={<p>Cargando preferencias…</p>}><LazyUsagePreferences/></React.Suspense>
+          
           {renderClientPushPanel()}
           <p style={{ color: '#D6CBB8', fontSize: 12, lineHeight: 1.6 }}>Un envío aceptado por el servidor no confirma la entrega. Comprueba si la prueba aparece en las notificaciones de tu móvil.</p>
         </div>
