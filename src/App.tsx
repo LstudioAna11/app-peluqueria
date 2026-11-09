@@ -1,3 +1,4 @@
+import {appointmentDiscountDepositLimit,clearAppointmentDiscount,type AppointmentDiscount} from './appointmentDiscounts';
 import {useAppAudience,audienceCall,type AudienceCounts} from './appAudience';
 import type {AdvisorResult} from './serviceAdvisor';
 import {usePortalTranslations,portalLanguageCodes} from './portalLanguages';
@@ -252,6 +253,7 @@ function usePortalEntry(options:{screen:string;recoveryOpen:boolean;syncSession:
  return {restoring,linkBusy,label,retryable,restore,retryEntry};
 }
 
+const LazyAppointmentDiscountEditor=React.lazy(()=>import('./AppointmentDiscountEditor'));
 const LazyAdminPanelView = React.lazy(() => import('./AdminPanelView'));
 // Optimized copies of bundled photos only; custom uploads remain unchanged.
 const FAST_PHOTO_URLS: Readonly<Record<string,string>> = {
@@ -430,7 +432,7 @@ export interface Appointment {
   serviceCategory: string;
   serviceSubcategory: string;
   selectedVariant?: ServiceVariant | null;
-  services?: { categoryId: string; categoryName: string; sub: SubService; variant: ServiceVariant | null }[];
+  services?: { categoryId: string; categoryName: string; sub: SubService; variant: ServiceVariant | null; appointmentDiscount?:AppointmentDiscount }[];
   remindersStatus: {
     email48h: boolean;
     whatsapp48h: boolean;
@@ -2237,7 +2239,7 @@ function StudioApp() {
     } finally { pendingBookingBusyRef.current = false; setPendingBookingBusy(false); }
   };
   const [advancePaymentModal, setAdvancePaymentModal] = useState<Appointment | null>(null);
-  const serviceDepositAmount = (items: Appointment['services'], legacyDuration = 0) => calculateServiceDeposit(items || [],catalog.flatMap(category=>category.subservices),bizConfig,legacyDuration);
+  const serviceDepositAmount = (items: Appointment['services'], legacyDuration = 0) => appointmentDiscountDepositLimit(items||[],calculateServiceDeposit(items || [],catalog.flatMap(category=>category.subservices),bizConfig,legacyDuration));
   const createAdvancePayment = (items: Appointment['services'], legacyDuration = 0) => ({ amount: serviceDepositAmount(items,legacyDuration), reference: `LS-${crypto.randomUUID().slice(0, 8).toUpperCase()}`, status: 'pending' as const });
   const advancePaymentConcept = (appointment: Appointment) => `${appointment.clientName} · Reserva anticipada · ${appointment.advancePayment?.reference || ''}`;
   useEffect(() => { setPendingBookingError(''); }, [saturdayRequestModal?.id, advancePaymentModal?.id]);
@@ -2304,7 +2306,7 @@ function StudioApp() {
       setPendingBookingError(error instanceof Error ? error.message : 'No se ha podido enviar la solicitud. Conservamos tus datos para reintentar.');
     } finally { pendingBookingBusyRef.current = false; setPendingBookingBusy(false); }
   };
-  const [modalServices, setModalServices] = useState<{ categoryId: string; categoryName: string; sub: SubService; variant: ServiceVariant | null }[]>([]);
+  const [modalServices, setModalServices] = useState<NonNullable<Appointment['services']>>([]);
   const getModalService = () => {
     const category = catalog[modalCatIndex];
     const sub = category?.subservices[modalSubIndex];
@@ -4390,7 +4392,8 @@ function StudioApp() {
     }
   };
 
-  const renderBookedServicePrice = (appointment: Appointment, item: { sub: SubService; variant: ServiceVariant | null }) => {
+  const renderBookedServicePrice = (appointment: Appointment, item: { sub: SubService; variant: ServiceVariant | null;appointmentDiscount?:AppointmentDiscount }) => {
+    if(item.appointmentDiscount){const adjustment=item.appointmentDiscount;return <span style={{display:'flex',flexWrap:'wrap',gap:7,color:'#E4C687',fontSize:13}}><del style={{color:'#D6CBB8'}}>{adjustment.originalPrice}</del><strong>{item.variant?.price??item.sub.price}</strong><span>· {adjustment.kind==='gift'?'Obsequio':'Descuento'} · {item.variant?.duration||item.sub.duration}</span></span>;} 
     const discount = appointment.promotion;
     const duration = item.variant?.duration || item.sub.duration;
     if (discount?.serviceId === item.sub.id) {
@@ -5813,10 +5816,13 @@ function StudioApp() {
                   <strong>Servicios de esta cita</strong>
                   {modalServices.map(item => (
                     <div key={item.sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '8px' }}>
-                      <span>{bookingName(item.sub)}{item.variant ? ` (${item.variant.name})` : ''} · {item.variant?.duration || item.sub.duration}</span>
+                      <div style={{flex:1,minWidth:0}}><span>{bookingName(item.sub)}{item.variant ? ` (${item.variant.name})` : ''} · {item.variant?.duration || item.sub.duration}</span>
+                        <React.Suspense fallback={<span>{item.variant?.price??item.sub.price}</span>}><LazyAppointmentDiscountEditor item={item} name={bookingName(item.sub)} locked={!!(editingAppointment?.promotion||editingAppointment?.voucherId||editingAppointment?.completedAt||editingAppointment?.advancePayment)} onChange={next=>setModalServices(previous=>previous.map(entry=>entry.sub.id===item.sub.id?next:entry))}/></React.Suspense>
+                      </div>
                       <button type="button" aria-label={`Quitar ${bookingName(item.sub)}`} onClick={() => setModalServices(previous => previous.filter(entry => entry.sub.id !== item.sub.id))} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '6px', borderRadius: '4px', cursor: 'pointer' }}>Quitar</button>
                     </div>
                   ))}
+                  <p style={{color:'#E4C687'}}>Total de servicios: {getSelectionTotal(modalServices).total.toFixed(2).replace('.',',')} €{getSelectionTotal(modalServices).orientative?' · Orientativo':''}</p>
                   <p style={{ color: '#E4C687', marginBottom: 0 }}>Tiempo de servicio: {getServiceDuration(modalServices)} min · Buffer: {getBufferDuration(modalServices)} min · Agenda: {getModalDuration(modalServices)} min</p>
                 </div>
               )}
@@ -6196,7 +6202,7 @@ function StudioApp() {
                 }
                 if (repeatAppointmentMode) {
                   if (new Date(newRescheduleDate + 'T' + newRescheduleTime + ':00').getTime() <= Date.now()) { alert('Elige una fecha y hora futuras para repetir la cita.'); return; }
-                  const services = rescheduleModalAppt.services || [];
+                  const services = (rescheduleModalAppt.services || []).map(clearAppointmentDiscount);
                   const error = getInactiveServiceError(services) || getStylingError(services) || getTonerError(services);
                   if (error) { alert(error); return; }
                   const repeated: Appointment = {
