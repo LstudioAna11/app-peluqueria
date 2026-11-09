@@ -137,6 +137,7 @@ export const deleteTimeBlock = (token: string, id: string) =>
   call<{ ok: true }>("timeblock", { method: "DELETE", token, body: { id } });
 
 export interface ServerAppointmentInput {
+  clientNote?: string;
   waiveDeposit?: boolean;
   voucherId?: string | null;
   voucherExpectedCents?: number;
@@ -165,7 +166,7 @@ export interface ServerAppointmentInput {
 }
 
 export const createAppointmentOnServer = (token: string, appointment: ServerAppointmentInput) =>
-  call<{ ok: true; id: string;depositWaived?:boolean;voucherSummary?:VoucherQuote|null;depositStatus?:string;depositAmount?:number|null;depositReference?:string|null }>("appointment", { token, body: appointment });
+  call<{ ok: true; id: string;clientNote?:string;depositWaived?:boolean;voucherSummary?:VoucherQuote|null;depositStatus?:string;depositAmount?:number|null;depositReference?:string|null }>("appointment", { token, body: appointment });
 
 export interface ServerAppointmentPatch {
   waiveDeposit?: boolean;
