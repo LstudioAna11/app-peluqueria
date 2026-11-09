@@ -1238,7 +1238,7 @@ function StudioApp() {
   const [adminLoginMessage, setAdminLoginMessage] = useState('');
   const [adminError, setAdminError] = useState<boolean>(false);
   const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'demands' | 'holidays' | 'news' | 'vouchers' | 'club'>('agenda');
-  const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule' | 'reservas' | 'anticipada' | 'avisos' | 'backup' | 'precios' | 'empleados' | 'enlaces' | 'fichajes'>('marca');
+  const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule' | 'reservas' | 'anticipada' | 'avisos' | 'backup' | 'precios' | 'empleados' | 'enlaces' | 'fichajes' | 'holidays'>('marca');
   const [adminCatalogStatus, setAdminCatalogStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [adminCatalogSearch, setAdminCatalogSearch] = useState('');
   const normalizeCatalogSearch = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
