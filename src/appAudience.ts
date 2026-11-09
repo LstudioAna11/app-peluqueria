@@ -1,4 +1,4 @@
-mport {useEffect} from 'react';
+import {useEffect} from 'react';
 import * as studioApi from './studioApi';
 export type AudienceCounts={installed:number;browser:number;legacy?:{installed:number;browser:number;captured_at:string};transition?:{installed:number;browser:number};periodDays:number};
 // Memoria de esta página únicamente: no cookies, UUID ni almacenamiento analítico.
