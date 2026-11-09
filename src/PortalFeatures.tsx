@@ -9,6 +9,13 @@ import type {Appointment,BusinessConfig,CatalogCategory,ClientRecord,ServiceVari
 import {voucherMoney,voucherToken,voucherServiceOptions,deleteTestVoucher,type VoucherServiceOption,type VoucherClientOption,type RepeatPortalDraft} from './portalFeatureData';
 const DEFAULT_BRAND_LOGO='/studio-brand-default.webp';
 const isActiveAppointment=(a:Appointment)=>a.lifecycleStatus!=='cancelled'&&a.lifecycleStatus!=='no_show';
+export function privatePhotoExpiry(date:string):string|null{
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return null;
+ const parsed=new Date(date+'T12:00:00Z');if(!Number.isFinite(parsed.getTime())||parsed.toISOString().slice(0,10)!==date)return null;
+ const [year,month,day]=date.split('-').map(Number),nextYear=year+1;
+ const lastDay=new Date(Date.UTC(nextYear,month,0)).getUTCDate();
+ return String(nextYear).padStart(4,'0')+'-'+String(month).padStart(2,'0')+'-'+String(Math.min(day,lastDay)).padStart(2,'0');
+}
 export function ClientPhotoGallery({clientId,editable=false}:{clientId?:string;editable?:boolean}){
   const [photos,setPhotos]=useState<studioApi.ClientPhoto[]>([]),[total,setTotal]=useState(0),[page,setPage]=useState(0);
   const [loading,setLoading]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
@@ -40,6 +47,10 @@ export function ClientPhotoGallery({clientId,editable=false}:{clientId?:string;e
   const upload=async(event:React.FormEvent)=>{
     event.preventDefault();if(locked.current)return;setError('');setMessage('');
     if(!canEdit||!clientId||!file){setError('Selecciona una foto y una ficha guardada.');return;}
+    const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+    const expiry=privatePhotoExpiry(takenOn);
+    if(!expiry||takenOn>today){setError('Revisa la fecha de toma de la fotografía. No puede ser futura.');return;}
+    if(expiry<=today){setError('Esta fotografía ya cumple 12 meses desde su toma. Selecciona una foto más reciente para el seguimiento privado.');return;}
     locked.current=true;setBusy(true);
     try{
       const token=studioApi.currentToken();if(!token||studioApi.storedRole()!=='admin')throw new Error('Entra de nuevo en la intranet para subir la foto.');
@@ -81,6 +92,7 @@ export function ClientPhotoGallery({clientId,editable=false}:{clientId?:string;e
           <label style={{fontSize:12}}>Fecha<input type="date" required disabled={busy} max={new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())} value={takenOn} onChange={event=>setTakenOn(event.target.value)} style={input}/></label>
           <label style={{fontSize:12}}>Tipo<select disabled={busy} value={label} onChange={event=>setLabel(event.target.value)} style={input}><option value="antes">Antes</option><option value="despues">Después</option><option value="seguimiento">Seguimiento</option></select></label>
         </div>
+        <small style={{color:'#D6CBB8',fontSize:11}}>Conservación del seguimiento privado: máximo de 12 meses desde la toma de cada foto.</small>
         <label style={{fontSize:12}}>Nota visible a la clienta · opcional<textarea disabled={busy} maxLength={1000} rows={2} value={note} onChange={event=>setNote(event.target.value)} style={input}/></label>
         <button type="submit" disabled={busy||!file||!clientId} style={{...button,background:'#C99E52',color:'#29231F',fontWeight:600}}>{busy?'Guardando…':'Subir foto a la ficha'}</button>
       </form>}
