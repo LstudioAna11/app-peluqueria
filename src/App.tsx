@@ -410,6 +410,7 @@ export interface ServiceVariant {
 }
 
 export interface Appointment {
+  clientNote?: string;
   depositWaived?: boolean;
   voucherId?: string | null;
   voucher?: studioApi.VoucherQuote;
@@ -1210,6 +1211,8 @@ function StudioApp() {
   const [lightboxImage, setLightboxImage] = useState<string | null>(null);
   const [expandedSubDetails, setExpandedSubDetails] = useState<{ [key: string]: boolean }>({});
   const [expandedCategories, setExpandedCategories] = useState<{ [key: string]: boolean }>({});
+  const [bookingClientNote,setBookingClientNote]=useState('');
+  useEffect(()=>{setBookingClientNote('');},[currentClientRecord?.serverId||currentClientRecord?.email||'']);
   const [selectedVisualTime, setSelectedVisualTime] = useState<string>('');
   const [bookingSuccessMsg, setBookingSuccessMsg] = useState<string | null>(null);
   const [selectedPromotionOrigin, setSelectedPromotionOrigin] = useState<{ id: string; title: string } | null>(null);
@@ -2235,7 +2238,7 @@ function StudioApp() {
       setAppointments(previous => [...previous.filter(item => item.id !== saved.id && item.serverId !== saved.serverId), saved]);
       setRegisteredAppointment(saved);
       setBookingSuccessMsg('Solicitud enviada al Studio · Pendiente de confirmación de Ana.');
-      setSelectedServicesToBook([]); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setSelectedVoucherId(null); setIsModalOpen(false); setSaturdayRequestModal(null);
+      setSelectedServicesToBook([]); setBookingClientNote(''); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setSelectedVoucherId(null); setIsModalOpen(false); setSaturdayRequestModal(null);
       setCurrentScreen('catalogBooking');
     } catch (error) {
       setPendingBookingError(error instanceof Error ? error.message : 'No se ha podido enviar la solicitud. Conservamos tus datos para reintentar.');
@@ -2254,6 +2257,7 @@ function StudioApp() {
     const existing = before.appointments?.find(row => row.id === draft.serverId || String(row.source_legacy_id || '') === draft.id);
     if (existing) {
       const saved = mapServerAppointment(existing);
+      if(String(saved.clientNote||'')!==String(draft.clientNote||'').trim())throw new Error('La cita ya se guardó con otra nota. Revisa la reserva antes de volver a enviarla.');
       if(studioApi.storedRole()==='admin'&&!!saved.depositWaived!==!!draft.depositWaived)throw new Error('La cita ya se guardó con otra condición de anticipo. Abre la cita para revisarla antes de cambiarla.');
       if (saved.dateKey !== draft.dateKey || saved.time !== draft.time || saved.email.trim().toLowerCase() !== draft.email.trim().toLowerCase()) throw new Error('Hay una reserva con esta referencia y otros datos. Revisa Mis citas o consulta con Ana antes de reintentar.');
       return saved;
@@ -2275,6 +2279,7 @@ function StudioApp() {
       approval: draft.saturdayApproval ? { status: draft.saturdayApproval.status, reason: draft.saturdayApproval.reason, reference: draft.saturdayApproval.reference } : null,
       advancePayment: draft.advancePayment ? { status: draft.advancePayment.status, amount: draft.advancePayment.amount, reference: draft.advancePayment.reference } : null,
       ...(studioApi.storedRole()==='admin'?{waiveDeposit:!!draft.depositWaived}:{}),
+      clientNote: draft.clientNote?.trim()||'',
       services: draft.services, clientName: draft.clientName, phone: draft.phone, email: draft.email,
       serviceCategory: draft.serviceCategory, serviceSubcategory: draft.serviceSubcategory,
       selectedVariant: draft.selectedVariant, remindersStatus: draft.remindersStatus,
@@ -2285,7 +2290,7 @@ function StudioApp() {
       try{
         const check=await studioApi.syncAll<{appointments?:Record<string,any>[]}>(token,['appointments']);
         const row=check.appointments?.find(item=>String(item.source_legacy_id||'')===draft.id);
-        if(row){const saved=mapServerAppointment(row);if(saved.dateKey===draft.dateKey&&saved.time===draft.time&&saved.email.trim().toLowerCase()===draft.email.trim().toLowerCase()&&(saved.voucherId||null)===(draft.voucherId||null)&&(studioApi.storedRole()!=='admin'||!!saved.depositWaived===!!draft.depositWaived))return saved;}
+        if(row){const saved=mapServerAppointment(row);if(saved.dateKey===draft.dateKey&&saved.time===draft.time&&saved.email.trim().toLowerCase()===draft.email.trim().toLowerCase()&&(saved.voucherId||null)===(draft.voucherId||null)&&(studioApi.storedRole()!=='admin'||!!saved.depositWaived===!!draft.depositWaived)&&String(saved.clientNote||'')===String(draft.clientNote||'').trim())return saved;}
       }catch{/* Retain the original reference when persistence remains uncertain. */}
       throw error;
     }
@@ -2297,11 +2302,13 @@ function StudioApp() {
     }catch{/* The successful POST can confirm persistence when readback is unavailable. */}
     if(confirmedRow){
       const saved=mapServerAppointment(confirmedRow);
+      if(String(saved.clientNote||'')!==String(draft.clientNote||'').trim())throw new Error('No se pudo verificar la nota de la cita. Conservamos el texto para comprobarlo antes de reintentar.');
       if(studioApi.storedRole()==='admin'&&(!!saved.depositWaived!==!!draft.depositWaived||draft.depositWaived&&saved.advancePayment))throw new Error('No se confirmó la condición de anticipo. Revisa la cita guardada antes de reintentar.');
       return saved;
     }
     if(studioApi.storedRole()==='admin'&&(!!result.depositWaived!==!!draft.depositWaived||draft.depositWaived&&result.depositStatus!=='not_required'))throw new Error('No se confirmó la exención del anticipo. Revisa la cita antes de reintentar.');
-    return { ...draft, depositWaived:result.depositWaived===true, serverId: result.id, voucher:result.voucherSummary||draft.voucher,
+    if(String(result.clientNote||'')!==String(draft.clientNote||'').trim())throw new Error('El servidor no confirmó la nota de la reserva. Comprueba que studio-api esté actualizado y reintenta sin cerrar el formulario.');
+    return { ...draft, clientNote:result.clientNote||'', depositWaived:result.depositWaived===true, serverId: result.id, voucher:result.voucherSummary||draft.voucher,
       advancePayment:result.depositStatus===undefined?draft.advancePayment:['pending','confirmed','received','paid'].includes(result.depositStatus)?{amount:Number(result.depositAmount)||0,reference:result.depositReference||'',status:result.depositStatus==='pending'?'pending':'confirmed'}:undefined };
   };
   const savePendingAdvanceAppointment = async () => {
@@ -2312,7 +2319,7 @@ function StudioApp() {
       setAppointments(previous => [...previous.filter(item => item.id !== saved.id && item.serverId !== saved.serverId), saved]);
       setRegisteredAppointment(saved);
       setBookingSuccessMsg(saved.saturdayApproval?.status === 'pending' ? 'Solicitud enviada al Studio · Pendiente de confirmación de Ana.' : 'Solicitud enviada al Studio · Pendiente de comprobar el anticipo.');
-      setSelectedServicesToBook([]); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setSelectedVoucherId(null); setIsModalOpen(false); setCurrentScreen('catalogBooking'); setAdvancePaymentModal(null);
+      setSelectedServicesToBook([]); setBookingClientNote(''); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setSelectedVoucherId(null); setIsModalOpen(false); setCurrentScreen('catalogBooking'); setAdvancePaymentModal(null);
     } catch (error) {
       setPendingBookingError(error instanceof Error ? error.message : 'No se ha podido enviar la solicitud. Conservamos tus datos para reintentar.');
     } finally { pendingBookingBusyRef.current = false; setPendingBookingBusy(false); }
@@ -2919,6 +2926,7 @@ function StudioApp() {
       time: iso.slice(11, 16),
       durationMinutes: row.duration_minutes ?? 45,
       depositWaived: snap.depositWaiver?.reason==='trusted_client',
+      clientNote: typeof snap.clientNote==='string'?snap.clientNote:'',
       internalNotes: typeof snap.internalNotes === 'string' ? snap.internalNotes : '',
       clientName: snap.clientName || '',
       phone: snap.phone || '',
@@ -3646,7 +3654,7 @@ function StudioApp() {
 
   const visualBookingSignature = () => JSON.stringify({
     client: currentClientRecord?.serverId || currentClientRecord?.email || '',
-    date: formatDateKey(bookingDate), time: selectedVisualTime, professional: selectedProfessionalId,
+    date: formatDateKey(bookingDate), time: selectedVisualTime, professional: selectedProfessionalId, clientNote:bookingClientNote.trim(),
     voucherId:selectedVoucherId, promotionId: selectedPromotionId, promotionOriginId: selectedPromotionOrigin?.id,
     services: selectedServicesToBook.map(item => ({ id: item.sub.id, variant: item.variant?.id || null }))
   });
@@ -3708,6 +3716,7 @@ function StudioApp() {
     const dateFormattedStr = `${String(bookingDate.getDate()).padStart(2, '0')}/${String(bookingDate.getMonth() + 1).padStart(2, '0')}/${bookingDate.getFullYear()}`;
     const newApp: Appointment = {
       bookingChannel: 'portal',
+      clientNote: bookingClientNote.trim(),
       promotion: promoPreview.discount || undefined,
       promotionOrigin: selectedPromotionOrigin || undefined,
       id: Date.now().toString(),
@@ -3774,7 +3783,7 @@ function StudioApp() {
           : tf('bookingConfirmed', { date: new Date(saved.dateKey + 'T12:00:00').toLocaleDateString(portalLocale), time: saved.time });
       setBookingSuccessMsg(message);
       visualBookingAttemptRef.current = null;
-      setSelectedServicesToBook([]); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setSelectedVoucherId(null);
+      setSelectedServicesToBook([]); setBookingClientNote(''); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setSelectedVoucherId(null);
       setCurrentScreen('catalogBooking');
       setTimeout(() => setBookingSuccessMsg(null), 8000);
     } catch (error) {
@@ -5434,6 +5443,11 @@ function StudioApp() {
             <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6 }}>{selectedServicesToBook.map(item => serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name') + (item.variant ? ` · ${variantText(item.variant, item.sub)}` : '')).join(' + ')}</p>
             {(() => { const totalSel = getSelectionTotal(selectedServicesToBook); if (!portalShowsPrices || totalSel.total <= 0) return null; return <p style={{ color: totalSel.orientative ? '#E4C687' : '#FFF8EE', fontSize: '13px', margin: '6px 0 0' }}>{totalSel.orientative ? 'Importe orientativo' : 'Importe total'}: {totalSel.total.toFixed(2).replace('.', ',')} €{totalSel.orientative ? ' · se confirma en el estudio' : ''}</p>; })()}
             {selectedVisualTime && <p style={{ color: '#FFF8EE', fontSize: '15px' }}>{bookingDate.toLocaleDateString(portalLocale, { day: 'numeric', month: 'long' })} · {selectedVisualTime}</p>}
+            <section style={{padding:12,background:'#322A25',border:'1px solid #655039',borderRadius:8}}>
+              <label htmlFor="booking-client-note" style={{display:'block',color:'#E4C687',fontSize:14}}>¿Quieres comentarnos algo? <small style={{color:'#D6CBB8'}}>Opcional</small></label>
+              <textarea id="booking-client-note" maxLength={500} rows={3} value={bookingClientNote} disabled={visualBookingBusy||!!visualBookingAttemptRef.current} onChange={event=>setBookingClientNote(event.target.value)} placeholder="Escribe aquí lo que quieras que tengamos en cuenta para tu cita." aria-describedby="booking-client-note-help" style={{display:'block',width:'100%',boxSizing:'border-box',margin:'8px 0',padding:10,border:'1px solid #806340',borderRadius:6,background:'#29231F',color:'#FFF8EE',fontSize:14,resize:'vertical'}}/>
+              <small id="booking-client-note-help" style={{display:'block',color:'#D6CBB8',lineHeight:1.5}}>{bookingClientNote.length}/500 · Lo leeremos junto a tu reserva.{visualBookingAttemptRef.current?' Comprueba el guardado pendiente antes de cambiar la nota.':''}</small>
+            </section>
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px', background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', cursor: 'pointer' }}>
               <input type="checkbox" checked={whatsappConsent} onChange={e => setWhatsappConsent(e.target.checked)} style={{ width: 18, height: 18, marginTop: 2, accentColor: '#C49A58', flexShrink: 0 }} />
               <span style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6 }}>Autorizo a L'Studio Ana a enviarme avisos de mi cita por WhatsApp al teléfono de mi ficha (confirmaciones y cambios). Puedo retirar el consentimiento cuando quiera en el portal.</span>
@@ -5938,6 +5952,7 @@ function StudioApp() {
               {validRecipientPhone(viewApptModal.phone) && <a href={'https://wa.me/' + (viewApptModal.phone.replace(/[^0-9]/g, '').length === 9 ? '34' : '') + viewApptModal.phone.replace(/[^0-9]/g, '')} target="_blank" rel="noopener noreferrer" style={{ color: '#E4C687', padding: '8px 0' }}>Abrir WhatsApp</a>}
               <span style={{ padding: '8px 0' }}>{viewApptModal.email}</span>
             </div>
+{viewApptModal.clientNote&&<section aria-label="Nota de la clienta" style={{padding:12,border:'1px solid #B9955F',borderRadius:8,background:'#322A25',color:'#FFF8EE'}}><strong style={{color:'#E4C687',fontSize:13}}>Nota de la clienta</strong><p style={{margin:'8px 0 0',whiteSpace:'pre-wrap',overflowWrap:'anywhere',fontSize:14,lineHeight:1.6}}>{viewApptModal.clientNote}</p></section>}
 <details className="lst-appt-notices"><summary>Notas internas{viewApptModal.internalNotes ? ' · Con notas' : ''}</summary><section style={{ padding: '14px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px' }}>
               <label htmlFor="appointment-internal-notes" style={{ color: '#E4C687', fontSize: '13px' }}>Notas internas · Solo 360studio</label>
               <textarea id="appointment-internal-notes" disabled={notesSaving} value={appointmentNoteDraft} onChange={event => setAppointmentNoteDraft(event.target.value)}
@@ -6152,7 +6167,7 @@ function StudioApp() {
             time={viewApptModal.time}
             status={viewApptModal.lifecycleStatus==='cancelled'?'Cancelada':viewApptModal.lifecycleStatus==='no_show'?'No realizada':viewApptModal.completedAt?'Realizada':viewApptModal.saturdayApproval?.status==='rejected'?'Solicitud no aceptada':viewApptModal.saturdayApproval?.status==='pending'?'Pendiente de aprobación':viewApptModal.advancePayment?.status==='pending'?'Anticipo pendiente':'Confirmada'}
             promotion={renderPromotionBadge(viewApptModal)}
-            services={viewApptModal.services?.length?viewApptModal.services.map((item,index)=><div key={index} style={{padding:'10px 0',borderBottom:'1px solid #655039',fontSize:14,lineHeight:1.6}}><strong>{bookingName(item.sub)}</strong>{item.variant&&<span style={{display:'block',color:'#D6CBB8',fontSize:12}}>{item.variant.name}</span>}{renderBookedServicePrice(viewApptModal,item)}</div>):<p style={{fontSize:14,lineHeight:1.6}}>{appointmentServiceNames(viewApptModal)}</p>}
+            services={<>{viewApptModal.services?.length?viewApptModal.services.map((item,index)=><div key={index} style={{padding:'10px 0',borderBottom:'1px solid #655039',fontSize:14,lineHeight:1.6}}><strong>{bookingName(item.sub)}</strong>{item.variant&&<span style={{display:'block',color:'#D6CBB8',fontSize:12}}>{item.variant.name}</span>}{renderBookedServicePrice(viewApptModal,item)}</div>):<p style={{fontSize:14,lineHeight:1.6}}>{appointmentServiceNames(viewApptModal)}</p>}{viewApptModal.clientNote&&<section aria-label="Tu nota para esta cita" style={{padding:12,border:'1px solid #655039',borderRadius:7,marginTop:10}}><strong>Tu nota para esta cita</strong><p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',marginBottom:0}}>{viewApptModal.clientNote}</p></section>}</>}
             canModify={!viewApptModal.completedAt&&isActiveAppointment(viewApptModal)&&viewApptModal.saturdayApproval?.status!=='rejected'&&canManageAppointment(viewApptModal)}
             policy={!viewApptModal.completedAt&&isActiveAppointment(viewApptModal)&&viewApptModal.saturdayApproval?.status!=='rejected'?policyNotice():null}
             onChange={()=>{setRepeatAppointmentMode(false);setRescheduleError('');setRescheduleModalAppt(viewApptModal);setNewRescheduleDate(viewApptModal.dateKey);setNewRescheduleTime(viewApptModal.time);setViewApptModal(null);}}
