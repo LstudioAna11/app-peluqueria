@@ -52,6 +52,8 @@ export async function persistVerifiedAppointmentEdit(token: string, patch: studi
     return row;
   };
   const matches = (row: Record<string, any>) => {
+    if (patch.waiveDeposit !== undefined && (row.client_snapshot?.depositWaiver?.reason==='trusted_client')!==patch.waiveDeposit) return false;
+    if (patch.waiveDeposit===true && row.deposit_status!=='not_required') return false;
     if (patch.services !== undefined && !catalogValuesMatch(row.services, patch.services)) return false;
     if (patch.durationMinutes !== undefined && Number(row.duration_minutes) !== patch.durationMinutes) return false;
     if (patch.clientSnapshot && typeof patch.clientSnapshot === 'object') {
@@ -408,6 +410,7 @@ export interface ServiceVariant {
 }
 
 export interface Appointment {
+  depositWaived?: boolean;
   voucherId?: string | null;
   voucher?: studioApi.VoucherQuote;
   promotionOrigin?: { id: string; title: string };
@@ -2251,6 +2254,7 @@ function StudioApp() {
     const existing = before.appointments?.find(row => row.id === draft.serverId || String(row.source_legacy_id || '') === draft.id);
     if (existing) {
       const saved = mapServerAppointment(existing);
+      if(studioApi.storedRole()==='admin'&&!!saved.depositWaived!==!!draft.depositWaived)throw new Error('La cita ya se guardó con otra condición de anticipo. Abre la cita para revisarla antes de cambiarla.');
       if (saved.dateKey !== draft.dateKey || saved.time !== draft.time || saved.email.trim().toLowerCase() !== draft.email.trim().toLowerCase()) throw new Error('Hay una reserva con esta referencia y otros datos. Revisa Mis citas o consulta con Ana antes de reintentar.');
       return saved;
     }
@@ -2270,6 +2274,7 @@ function StudioApp() {
       durationMinutes: draft.durationMinutes, bookingChannel: draft.bookingChannel || (studioApi.storedRole() === 'admin' ? 'admin' : 'portal'),
       approval: draft.saturdayApproval ? { status: draft.saturdayApproval.status, reason: draft.saturdayApproval.reason, reference: draft.saturdayApproval.reference } : null,
       advancePayment: draft.advancePayment ? { status: draft.advancePayment.status, amount: draft.advancePayment.amount, reference: draft.advancePayment.reference } : null,
+      ...(studioApi.storedRole()==='admin'?{waiveDeposit:!!draft.depositWaived}:{}),
       services: draft.services, clientName: draft.clientName, phone: draft.phone, email: draft.email,
       serviceCategory: draft.serviceCategory, serviceSubcategory: draft.serviceSubcategory,
       selectedVariant: draft.selectedVariant, remindersStatus: draft.remindersStatus,
@@ -2280,17 +2285,23 @@ function StudioApp() {
       try{
         const check=await studioApi.syncAll<{appointments?:Record<string,any>[]}>(token,['appointments']);
         const row=check.appointments?.find(item=>String(item.source_legacy_id||'')===draft.id);
-        if(row){const saved=mapServerAppointment(row);if(saved.dateKey===draft.dateKey&&saved.time===draft.time&&saved.email.trim().toLowerCase()===draft.email.trim().toLowerCase()&&(saved.voucherId||null)===(draft.voucherId||null))return saved;}
+        if(row){const saved=mapServerAppointment(row);if(saved.dateKey===draft.dateKey&&saved.time===draft.time&&saved.email.trim().toLowerCase()===draft.email.trim().toLowerCase()&&(saved.voucherId||null)===(draft.voucherId||null)&&(studioApi.storedRole()!=='admin'||!!saved.depositWaived===!!draft.depositWaived))return saved;}
       }catch{/* Retain the original reference when persistence remains uncertain. */}
       throw error;
     }
     if (!result.ok || !result.id) throw new Error('El servidor no ha confirmado el guardado. Reintenta sin cerrar esta ventana.');
+    let confirmedRow:Record<string,any>|undefined;
     try {
-      const after = await studioApi.syncAll<{ appointments?: Record<string, any>[] }>(token, ['appointments']);
-      const row = after.appointments?.find(item => item.id === result.id);
-      if (row) return mapServerAppointment(row);
-    } catch { /* The successful POST already confirms persistence. */ }
-    return { ...draft, serverId: result.id, voucher:result.voucherSummary||draft.voucher,
+      const after=await studioApi.syncAll<{appointments?:Record<string,any>[]}>(token,['appointments']);
+      confirmedRow=after.appointments?.find(item=>item.id===result.id);
+    }catch{/* The successful POST can confirm persistence when readback is unavailable. */}
+    if(confirmedRow){
+      const saved=mapServerAppointment(confirmedRow);
+      if(studioApi.storedRole()==='admin'&&(!!saved.depositWaived!==!!draft.depositWaived||draft.depositWaived&&saved.advancePayment))throw new Error('No se confirmó la condición de anticipo. Revisa la cita guardada antes de reintentar.');
+      return saved;
+    }
+    if(studioApi.storedRole()==='admin'&&(!!result.depositWaived!==!!draft.depositWaived||draft.depositWaived&&result.depositStatus!=='not_required'))throw new Error('No se confirmó la exención del anticipo. Revisa la cita antes de reintentar.');
+    return { ...draft, depositWaived:result.depositWaived===true, serverId: result.id, voucher:result.voucherSummary||draft.voucher,
       advancePayment:result.depositStatus===undefined?draft.advancePayment:['pending','confirmed','received','paid'].includes(result.depositStatus)?{amount:Number(result.depositAmount)||0,reference:result.depositReference||'',status:result.depositStatus==='pending'?'pending':'confirmed'}:undefined };
   };
   const savePendingAdvanceAppointment = async () => {
@@ -2306,6 +2317,7 @@ function StudioApp() {
       setPendingBookingError(error instanceof Error ? error.message : 'No se ha podido enviar la solicitud. Conservamos tus datos para reintentar.');
     } finally { pendingBookingBusyRef.current = false; setPendingBookingBusy(false); }
   };
+  const [modalWaiveDeposit,setModalWaiveDeposit]=useState(false);
   const [modalServices, setModalServices] = useState<NonNullable<Appointment['services']>>([]);
   const getModalService = () => {
     const category = catalog[modalCatIndex];
@@ -2906,6 +2918,7 @@ function StudioApp() {
       dayName: snap.dayName || '',
       time: iso.slice(11, 16),
       durationMinutes: row.duration_minutes ?? 45,
+      depositWaived: snap.depositWaiver?.reason==='trusted_client',
       internalNotes: typeof snap.internalNotes === 'string' ? snap.internalNotes : '',
       clientName: snap.clientName || '',
       phone: snap.phone || '',
@@ -3273,7 +3286,7 @@ function StudioApp() {
     setModalClientName("");
     setModalPhone("");
     setModalEmail("");
-    setModalServices([]);
+    setModalServices([]); setModalWaiveDeposit(false);
     setModalCatIndex(0);
     setModalSubIndex(0);
     const defaultSub = catalog[0]?.subservices[0];
@@ -3545,6 +3558,7 @@ function StudioApp() {
     const dateFormattedStr = `${String(targetDateObj.getDate()).padStart(2, '0')}/${String(targetDateObj.getMonth() + 1).padStart(2, '0')}/${targetDateObj.getFullYear()}`;
     const newApp: Appointment = {
       bookingChannel: 'admin',
+      depositWaived: modalWaiveDeposit,
       id: adminBookingDraftId.current || (adminBookingDraftId.current = Date.now().toString()),
       dateKey: formatDateKey(targetDateObj),
       dayName: targetDayName,
@@ -3566,13 +3580,13 @@ function StudioApp() {
         !(editingAppointment.services || []).some(item => item.sub.requiresAssessment);
       const approval = needsNewAssessment ? { status: 'pending' as const, reason: 'assessment' as const,
         reference: 'REV-' + crypto.randomUUID().slice(0, 8).toUpperCase() } : editingAppointment.saturdayApproval;
-      const payment = editingAppointment.advancePayment ||
+      const payment = modalWaiveDeposit ? undefined : editingAppointment.advancePayment ||
         (approval?.status !== 'pending' && serviceDepositAmount(services,durationMin)>0 ? createAdvancePayment(services,durationMin) : undefined);
       const prefix = approval?.status === 'pending' ? 'PENDIENTE VALORACIÓN' :
         payment?.status === 'pending' ? 'PENDIENTE BIZUM' : 'RESERVADO';
       const updated: Appointment = { ...editingAppointment, clientName: modalClientName,
         phone: modalPhone, email: modalEmail, services, durationMinutes: durationMin,
-        saturdayApproval: approval, advancePayment: payment,
+        saturdayApproval: approval, advancePayment: payment, depositWaived: modalWaiveDeposit,
         selectedVariant: services[0].variant, serviceCategory: newApp.serviceCategory,
         serviceSubcategory: newApp.serviceSubcategory.replace(/^RESERVADO/, prefix) };
       adminBookingSavingRef.current = true; setAdminBookingSaving(true);
@@ -3581,6 +3595,7 @@ function StudioApp() {
         if (!studioApi.serverConfigured || !token || studioApi.storedRole() !== 'admin') throw new Error('Necesitas conexión y una sesión de administración válida para guardar.');
         const row = await persistVerifiedAppointmentEdit(token, {
           id: updated.serverId || updated.id,
+          waiveDeposit: modalWaiveDeposit,
           durationMinutes: updated.durationMinutes,
           services: updated.services,
           ...(needsNewAssessment && approval ? {approval: {status: approval.status, reason: approval.reason, reference: approval.reference}} : {}),
@@ -3607,7 +3622,7 @@ function StudioApp() {
       setSaturdayRequestModal(newApp);
       return;
     }
-    if (serviceDepositAmount(newApp.services,newApp.durationMinutes)>0) {
+    if (!newApp.depositWaived && serviceDepositAmount(newApp.services,newApp.durationMinutes)>0) {
       newApp.advancePayment = createAdvancePayment(newApp.services,newApp.durationMinutes);
       newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE BIZUM');
       newApp.remindersStatus = { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false };
@@ -4312,7 +4327,7 @@ function StudioApp() {
           id: row.id,
           approval: { status, reason: row.approval_reason || undefined, reference: row.approval_reference || undefined }
         };
-        if (status === 'accepted') {
+        if (status === 'accepted' && row.client_snapshot?.depositWaiver?.reason!=='trusted_client') {
           const cfg = before.settings;
           if (!cfg) throw new Error('No se ha podido leer la configuración de anticipos. Reintenta.');
           if(!Array.isArray(before.catalog))throw new Error('No se pudo leer el catálogo de anticipos. Reintenta.');
@@ -5648,7 +5663,7 @@ function StudioApp() {
               : t('reviewExplanation')}</p>
             <p>{saturdayRequestModal.dateKey.split('-').reverse().join('/')} · {saturdayRequestModal.time}</p>
             <p>{appointmentServiceNames(saturdayRequestModal)}</p>
-            {serviceDepositAmount(saturdayRequestModal.services,saturdayRequestModal.durationMinutes)>0 && <p>{tf('reviewDeposit', {amount: serviceDepositAmount(saturdayRequestModal.services,saturdayRequestModal.durationMinutes)+' €'})}</p>}
+            {!saturdayRequestModal.depositWaived && serviceDepositAmount(saturdayRequestModal.services,saturdayRequestModal.durationMinutes)>0 && <p>{tf('reviewDeposit', {amount: serviceDepositAmount(saturdayRequestModal.services,saturdayRequestModal.durationMinutes)+' €'})}</p>}
             <p style={{ color: '#D6CBB8', fontSize: '12px' }}>{t('localRequestNotice')}</p>
             {pendingBookingError && <p role="alert" style={{color:'#F5C7B8',fontSize:13,lineHeight:1.6}}>{pendingBookingError}</p>}
             <button type="button" disabled={pendingBookingBusy} onClick={() => setSaturdayRequestModal(null)} style={{ padding: '10px', marginRight: '10px' }}>{t('backAction')}</button>
@@ -5827,6 +5842,10 @@ function StudioApp() {
                 </div>
               )}
               <small style={{ color: '#D6CBB8' }}>Selecciona cada servicio y pulsa «Añadir servicio». Si repites uno, se actualiza su variante. Se guardarán los servicios de la lista; sin lista, se guardará el servicio seleccionado.</small>
+              <section style={{padding:12,border:'1px solid #806340',borderRadius:8,color:'#FFF8EE'}}>
+                <label style={{display:'flex',alignItems:'center',gap:10,minHeight:44,cursor:'pointer'}}><input type="checkbox" checked={modalWaiveDeposit} disabled={!!editingAppointment?.completedAt||editingAppointment?.advancePayment?.status==='confirmed'} onChange={e=>setModalWaiveDeposit(e.target.checked)} style={{width:20,height:20,accentColor:'#C99E52'}}/>No solicitar anticipo en esta cita · Clienta de confianza</label>
+                <small style={{display:'block',color:'#D6CBB8',lineHeight:1.6}}>{editingAppointment?.advancePayment?.status==='confirmed'?'El anticipo ya está pagado y no se modifica desde aquí.':modalWaiveDeposit?'Se guardará «Anticipo exento por administración». El servicio se cobrará en el salón y la valoración previa, si corresponde, se mantiene.':'Si no la marcas, se aplica la regla habitual de Bizum para esta cita.'}</small>
+              </section>
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
                 <button type="button" disabled={adminBookingSaving} onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
                 <button type="submit" disabled={adminBookingSaving} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{adminBookingSaving ? 'Guardando…' : editingAppointment ? 'Guardar cambios' : 'Guardar Cita'}</button>
@@ -5976,13 +5995,14 @@ function StudioApp() {
               setTargetDateObj(new Date(viewApptModal.dateKey + 'T12:00:00'));
               setTargetDayName(viewApptModal.dayName); setTargetTime(viewApptModal.time);
               setModalClientName(viewApptModal.clientName); setModalPhone(viewApptModal.phone); setModalEmail(viewApptModal.email);
-              setModalServices(viewApptModal.services || []);
+              setModalServices(viewApptModal.services || []); setModalWaiveDeposit(!!viewApptModal.depositWaived);
               setModalCatIndex(0); setModalSubIndex(0); setModalSelectedVariant(catalog[0]?.subservices[0]?.variants?.[0] || null);
               setViewApptModal(null); setIsModalOpen(true);
             }} style={{ background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059',
               borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>Editar servicios y duración</button>}</div></details></div><aside className="lst-appt-column"><div style={{ backgroundColor: adminAppointmentColor(viewApptModal).background, border: `1px solid ${adminAppointmentColor(viewApptModal).border}`, borderRadius: '10px', padding: '18px', color: adminAppointmentText(viewApptModal) }}>
               <strong style={{ fontSize: '14px', color: adminAppointmentText(viewApptModal) }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada · Hueco liberado' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada · Registro conservado' : viewApptModal.completedAt ? 'Realizada · Registrada en el pasaporte' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Cita confirmada'}</strong>
               <p style={{ color: adminAppointmentText(viewApptModal), fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '21px', margin: '12px 0 8px' }}>{new Date(`${viewApptModal.dateKey}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {viewApptModal.time}</p>
+              {viewApptModal.depositWaived&&<p style={{fontSize:12,color:adminAppointmentText(viewApptModal)}}>Anticipo exento por administración{!viewApptModal.completedAt&&' · Importe del servicio pendiente de cobro en el salón.'}</p>}
               <span style={{ color: adminAppointmentText(viewApptModal), fontSize: '13px' }}>Duración total: {viewApptModal.durationMinutes || 45} min</span>
               {viewApptModal.professionalName && <span style={{ color: adminAppointmentText(viewApptModal), fontSize: '13px', display: 'block', marginTop: '4px' }}>Profesional: {viewApptModal.professionalName}</span>}
             </div>
