@@ -1,3 +1,4 @@
+import {usePrivateUsageRegistration,usageCall} from './usagePrivacy';
 import type {AdvisorResult} from './serviceAdvisor';
 import {usePortalTranslations,portalLanguageCodes} from './portalLanguages';
 import {ClientPhotoGallery,StudioNews,VoucherHub,VoucherPanel,BookingVoucher,AppointmentVoucherTools,ClientProfileCompact} from './DeferredFeatures';
@@ -252,6 +253,7 @@ function usePortalEntry(options:{screen:string;recoveryOpen:boolean;syncSession:
 }
 
 const LazyAdminPanelView = React.lazy(() => import('./AdminPanelView'));
+const LazyUsagePreferences=React.lazy(()=>import('./UsagePreferences'));
 // Optimized copies of bundled photos only; custom uploads remain unchanged.
 const FAST_PHOTO_URLS: Readonly<Record<string,string>> = {
   "/s1.webp": "/s1-fast.webp",
@@ -1063,49 +1065,8 @@ function ClientAppointmentDetail({title,date,time,status,services,promotion,canM
 }
 
 
-// One random browser identifier; no client identifiers or device fingerprinting.
-function useAppUsageRegistration(screen:string) {
-  const inFlight=useRef(false);
-  useEffect(()=>{
-    const register=async()=>{
-      if(inFlight.current||!studioApi.serverConfigured||studioApi.storedRole()!=='client'||['clientPin','clientRegistration','adminLogin','adminPanel'].includes(screen))return;
-      const standalone=window.matchMedia('(display-mode: standalone)').matches||(window.navigator as any).standalone===true;
-      const token=studioApi.currentToken();
-      if(!token)return;
-      const accessMode=standalone?'installed':'browser';
-      const root=String(import.meta.env.VITE_SUPABASE_URL||'');
-      const prefix='lst_app_usage:'+root;
-      let deviceId:string;
-      try{
-        const previous=Number(window.localStorage.getItem(prefix+':ack:'+accessMode)||0);
-        if(previous>0&&Date.now()-previous>=0&&Date.now()-previous<86400000)return;
-        deviceId=window.localStorage.getItem(prefix+':id')||'';
-        if(!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(deviceId)){
-          deviceId=crypto.randomUUID();window.localStorage.setItem(prefix+':id',deviceId);
-          if(window.localStorage.getItem(prefix+':id')!==deviceId)return;
-        }
-      }catch{return;}
-      inFlight.current=true;
-      try{
-        const response=await fetch(root+'/functions/v1/studio-api/app-usage',{
-          method:'POST',headers:{'Content-Type':'application/json',apikey:String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY||import.meta.env.VITE_SUPABASE_ANON_KEY||''),Authorization:'Bearer '+token},
-          body:JSON.stringify({deviceId,accessMode}),signal:AbortSignal.timeout(12000),cache:'no-store',
-        });
-        const data=await response.json();
-        if(response.ok&&data?.ok===true)try{window.localStorage.setItem(prefix+':ack:'+accessMode,String(Date.now()));}catch{}
-      }catch{/* Optional metric never interrupts booking or login. */}
-      finally{inFlight.current=false;}
-    };
-    void register();
-    const mode=window.matchMedia('(display-mode: standalone)');
-    mode.addEventListener?.('change',register);
-    window.addEventListener('pageshow',register);
-    return()=>{mode.removeEventListener?.('change',register);window.removeEventListener('pageshow',register);};
-  },[screen]);
-}
-
 export function AppUsageStats(){
-  const [counts,setCounts]=useState<{installed:number;browser:number}|null>(null),[tab,setTab]=useState<'installed'|'browser'>('installed'),[busy,setBusy]=useState(false),[error,setError]=useState('');
+  const [counts,setCounts]=useState<{installed:number;browser:number;legacy?:{installed:number;browser:number;captured_at:string};enabled?:boolean}|null>(null),[tab,setTab]=useState<'installed'|'browser'>('installed'),[busy,setBusy]=useState(false),[error,setError]=useState('');
   const running=useRef(false),mounted=useRef(false),controller=useRef<AbortController|null>(null);
   const load=async()=>{
     if(running.current)return;
@@ -1114,13 +1075,9 @@ export function AppUsageStats(){
     running.current=true;setBusy(true);setError('');
     const control=new AbortController();controller.current=control;const timer=setTimeout(()=>control.abort(),12000);
     try{
-      const response=await fetch(String(import.meta.env.VITE_SUPABASE_URL||'')+'/functions/v1/studio-api/app-usage-stats',{
-        method:'POST',headers:{'Content-Type':'application/json',apikey:String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY||import.meta.env.VITE_SUPABASE_ANON_KEY||''),Authorization:'Bearer '+token},
-        body:'{}',signal:control.signal,cache:'no-store',
-      });
-      const data=await response.json();
-      if(!response.ok||!Number.isSafeInteger(data.installed)||data.installed<0||!Number.isSafeInteger(data.browser)||data.browser<0)throw new Error(data.error||'No se pudo consultar el contador.');
-      if(mounted.current&&studioApi.currentToken()===token&&studioApi.storedRole()==='admin')setCounts({installed:data.installed,browser:data.browser});
+      const data=await usageCall<{installed:number;browser:number;legacy?:{installed:number;browser:number;captured_at:string};enabled?:boolean}>('stats');
+      if(!Number.isSafeInteger(data.installed)||data.installed<0||!Number.isSafeInteger(data.browser)||data.browser<0)throw new Error('No se pudo consultar el contador.');
+      if(mounted.current&&studioApi.currentToken()===token&&studioApi.storedRole()==='admin')setCounts(data);
     }catch{if(mounted.current&&!control.signal.aborted)setError('No se pudo consultar el contador. Comprueba el SQL y la API e inténtalo de nuevo.');else if(mounted.current)setError('La consulta ha tardado demasiado. Pulsa Actualizar.');}
     finally{clearTimeout(timer);running.current=false;if(controller.current===control)controller.current=null;if(mounted.current)setBusy(false);}
   };
@@ -1131,12 +1088,14 @@ export function AppUsageStats(){
     </div>
     <div role="tabpanel" id={'usage-panel-'+tab} aria-labelledby={'usage-tab-'+tab}>
       <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}>
-        <div><p style={{margin:'0 0 6px',fontSize:13,color:'#E4C687'}}>Dispositivos registrados · {tab==='installed'?'App instalada':'Navegador'}</p><strong style={{fontSize:28}} aria-live="polite">{counts===null?'—':counts[tab].toLocaleString('es-ES')}</strong></div>
+        <div><p style={{margin:'0 0 6px',fontSize:13,color:'#E4C687'}}>Dispositivos con permiso vigente · {tab==='installed'?'App instalada':'Navegador'}</p><strong style={{fontSize:28}} aria-live="polite">{counts===null?'—':counts[tab].toLocaleString('es-ES')}</strong></div>
         <button type="button" onClick={()=>void load()} disabled={busy} style={{minHeight:44,padding:'9px 14px',border:'1px solid #B9955F',borderRadius:7,background:'transparent',color:'#E4C687',cursor:busy?'wait':'pointer'}}>{busy?'Consultando…':'Actualizar'}</button>
       </div>
-      <p style={{margin:'8px 0 0',fontSize:12,lineHeight:1.6,color:'#D6CBB8'}}>{tab==='installed'?'Se registra al abrir desde el icono y acceder al portal de clienta.':'Se registra al acceder al portal de clienta desde el navegador.'} Cada dispositivo se cuenta una vez en esta pestaña.</p>
+      <p style={{margin:'8px 0 0',fontSize:12,lineHeight:1.6,color:'#D6CBB8'}}>{tab==='installed'?'Se registra al abrir desde el icono y acceder al portal de clienta.':'Se registra al acceder al portal de clienta desde el navegador.'} Solo se incluyen navegadores con autorización vigente; no es un recuento exacto de descargas.</p>
     </div>
-    <details style={{marginTop:8,fontSize:12,color:'#D6CBB8'}}><summary style={{cursor:'pointer'}}>Cómo se calcula</summary><p style={{lineHeight:1.6}}>Acumulado desde la activación del contador, sin incluir accesos de administración. Un mismo dispositivo puede aparecer en ambas pestañas; no deben sumarse como personas únicas. Las apps ya instaladas se registran cuando vuelvan a abrirse y se acceda al portal. Usar otro navegador o borrar sus datos puede generar otro registro. No se detectan desinstalaciones.</p></details>
+    <details style={{marginTop:8,fontSize:12,color:'#D6CBB8'}}><summary style={{cursor:'pointer'}}>Cómo se calcula</summary><p style={{lineHeight:1.6}}>Recuento con autorización vigente, de un máximo de seis meses, sin accesos de administración. Rechazar, retirar el permiso o dejarlo caducar puede reducir este número. Un mismo dispositivo puede aparecer en ambas pestañas; no deben sumarse como personas únicas. Las apps ya instaladas se registran cuando vuelvan a abrirse y se acceda al portal. Usar otro navegador o borrar sus datos puede generar otro registro. No se detectan desinstalaciones.</p></details>
+    {counts?.legacy&&<p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6}}>Histórico anterior al cambio de privacidad: {counts.legacy[tab].toLocaleString('es-ES')} · Corte: {new Date(counts.legacy.captured_at).toLocaleDateString('es-ES')}. Este total agregado se conserva aparte y no se suma al contador vigente.</p>}
+    {counts?.enabled===false&&<p style={{fontSize:12,color:'#E4C687'}}>Pendiente de activar las estadísticas opcionales en Supabase.</p>}
     {error&&<p role="alert" style={{fontSize:12,color:'#FFB4A9'}}>{error}</p>}
   </section>;
 }
@@ -1201,7 +1160,7 @@ function StudioApp() {
   const [currentScreen, setCurrentScreen] = useState<'clientPin' | 'clientRegistration' | 'clientPortal' | 'myAppointmentsPage' | 'catalogBooking' | 'categoryScreen' | 'serviceDetail' | 'visualAgenda' | 'clientHistoryPage' | 'adminLogin' | 'adminPanel'>('clientPin');
   
   const [socialBookingPending,setSocialBookingPending]=useState(()=>new URLSearchParams(window.location.search).get('iniciarReserva')==='1');
-  useAppUsageRegistration(currentScreen);
+  usePrivateUsageRegistration(currentScreen);
   const [currentLang, setCurrentLang] = useState<string>(() => { const saved = privateStorage.getItem('lst_portal_language'); return saved && portalLanguageCodes.includes(saved) ? saved : 'es'; });
   const {translations:TRANSLATIONS,languageError,retryLanguage}=usePortalTranslations(currentLang);
   useEffect(() => { privateStorage.setItem('lst_portal_language', currentLang); }, [currentLang]);
@@ -1701,11 +1660,6 @@ function StudioApp() {
   const [newCatCode, setNewCatCode] = useState("");
   const [newCatTitle, setNewCatTitle] = useState("");
 
-  const [appVisitsCount, setAppVisitsCount] = useState<number>(() => {
-    const saved = privateStorage.getItem('lst_app_visits');
-    return saved ? parseInt(saved, 10) : 48;
-  });
-
   const [bookingAttempts, setBookingAttempts] = useState<{ id: string; email: string; name: string; services: string; date: string; time: string; step: string; updatedAt: string; registered?: boolean; contactedAt?: string; recoveredAt?: string; reachedDate?: boolean; reachedTime?: boolean }[]>(() => readStoredValue('lst_booking_attempts', privateStorage.getItem('lst_booking_attempts') || '[]'));
   const [attemptClock, setAttemptClock] = useState(Date.now());
   useEffect(() => { privateStorage.setItem('lst_booking_attempts', JSON.stringify(bookingAttempts)); }, [bookingAttempts]);
@@ -1714,19 +1668,10 @@ function StudioApp() {
   const [opportunitySearch, setOpportunitySearch] = useState('');
   const [opportunityPage, setOpportunityPage] = useState(1);
   const [demandFilter, setDemandFilter] = useState<'all' | 'no_slots' | 'unfinished' | 'contacted' | 'recovered'>('all');
-  const [trafficEvents, setTrafficEvents] = useState<{ id: string; type: string; visitor: string; session: string; at: string; source: string }[]>(() => readStoredValue('lst_traffic_events', privateStorage.getItem('lst_traffic_events') || '[]'));
-  const trackTraffic = (type: string) => {
-    let visitor = privateStorage.getItem('lst_visitor_id');
-    if (!visitor) { visitor = crypto.randomUUID(); privateStorage.setItem('lst_visitor_id', visitor); }
-    let session = sessionStorage.getItem('lst_session_id');
-    if (!session) { session = crypto.randomUUID(); sessionStorage.setItem('lst_session_id', session); }
-    const utm = new URLSearchParams(window.location.search).get('utm_source');
-    const source = utm || (document.referrer ? new URL(document.referrer).hostname : 'directo');
-    const record = { id: crypto.randomUUID(), type, visitor, session, at: new Date().toISOString(), source };
-    setTrafficEvents(previous => [record, ...previous]);
-  };
-  useEffect(() => { privateStorage.setItem('lst_traffic_events', JSON.stringify(trafficEvents)); }, [trafficEvents]);
-  useEffect(() => { if (!sessionStorage.getItem('lst_visit_recorded')) { trackTraffic('visit'); sessionStorage.setItem('lst_visit_recorded', '1'); } }, []);
+  // Previous local traffic history is read only for administration. New analytics only use the optional device counter.
+  const [trafficEvents]=useState<{id:string;type:string;visitor:string;session:string;at:string;source:string}[]>(()=>studioApi.storedRole()==='admin'?readStoredValue('lst_traffic_events',privateStorage.getItem('lst_traffic_events')||'[]'):[]);
+  const trackTraffic=(_type:string)=>{};
+  useEffect(()=>{try{sessionStorage.removeItem('lst_session_id');sessionStorage.removeItem('lst_visit_recorded');}catch{}},[]);
   const [compareStart, setCompareStart] = useState(() => { const date = new Date(); date.setDate(date.getDate() - 6); return formatDateKey(date); });
   const [compareEnd, setCompareEnd] = useState(() => formatDateKey(new Date()));
   const [crmView, setCrmView] = useState<'resumen' | 'clientas' | 'servicios' | 'informes'>('resumen');
@@ -2836,10 +2781,6 @@ function StudioApp() {
     privateStorage.setItem('lst_business_config', JSON.stringify(bizConfig));
   }, [bizConfig]);
 
-  useEffect(() => {
-    privateStorage.setItem('lst_app_visits', appVisitsCount.toString());
-  }, [appVisitsCount]);
-
   const handleClientPinSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     if (!/^\d{4}$/.test(pin)) return;
@@ -2852,7 +2793,7 @@ function StudioApp() {
                 await syncFromServer();
                 setPinError(false);
                 setPin("");
-                setAppVisitsCount(prev => prev + 1);
+
                 setFeedbackSubmitted(false);
                 if (studioApi.storedRole() === 'admin') {
                   setCurrentScreen('adminPanel');
@@ -2871,7 +2812,7 @@ function StudioApp() {
             const matched = clientMatch;
             setPinError(false);
             setPin("");
-            setAppVisitsCount(prev => prev + 1);
+
             setFeedbackSubmitted(false);
             const finishLocalLogin = () => {
               if (matched) {
@@ -4945,6 +4886,7 @@ function StudioApp() {
             </details>
           </div>
           <AppointmentCountdown visits={clientCountdownAppointments} onView={()=>setCurrentScreen('myAppointmentsPage')} serviceName={id=>{const appointment=clientCountdownAppointments.find(item=>item.id===id);return appointment?appointmentServiceNames(appointment):'';}}/>
+          <React.Suspense fallback={null}><LazyUsagePreferences prompt/></React.Suspense>
           <section aria-label="Reserva tu cita" style={{ background: 'linear-gradient(135deg, #221D19 0%, #322A25 100%)', border: '1px solid rgba(212, 175, 55, 0.45)', borderRadius: '14px', padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ width: 40, height: 40, minWidth: 40, borderRadius: '50%', background: 'rgba(201, 158, 82, 0.14)', border: '1px solid rgba(212, 175, 55, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E4C687' }}><Scissors size={19} strokeWidth={1.7} aria-hidden="true" /></span>
@@ -5898,6 +5840,7 @@ function StudioApp() {
           </div>
           <p style={{ color: '#D6CBB8', fontSize: 13, lineHeight: 1.6 }}>Activa los avisos de tus citas en este dispositivo. No necesitas hacer una reserva para probarlos.</p>
           <PrivacyPermissionsEntry />
+          <React.Suspense fallback={<p>Cargando preferencias…</p>}><LazyUsagePreferences/></React.Suspense>
           {renderClientPushPanel()}
           <p style={{ color: '#D6CBB8', fontSize: 12, lineHeight: 1.6 }}>Un envío aceptado por el servidor no confirma la entrega. Comprueba si la prueba aparece en las notificaciones de tu móvil.</p>
         </div>
