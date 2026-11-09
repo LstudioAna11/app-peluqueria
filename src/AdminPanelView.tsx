@@ -83,8 +83,8 @@ interface Props {
   setEnableOutOfHours: React.Dispatch<React.SetStateAction<boolean>>;
   enableDoubleBooking: boolean;
   setEnableDoubleBooking: React.Dispatch<React.SetStateAction<boolean>>;
-  setConfigSubTab: React.Dispatch<React.SetStateAction<"marca" | "precios" | "empleados" | "schedule" | "reservas" | "avisos" | "backup" | "general" | "anticipada" | "enlaces" | "fichajes">>;
-  configSubTab: "marca" | "precios" | "empleados" | "schedule" | "reservas" | "avisos" | "backup" | "general" | "anticipada" | "enlaces" | "fichajes";
+  setConfigSubTab: React.Dispatch<React.SetStateAction<"marca" | "precios" | "empleados" | "schedule" | "reservas" | "avisos" | "backup" | "general" | "anticipada" | "enlaces" | "fichajes" | "holidays">>;
+  configSubTab: "marca" | "precios" | "empleados" | "schedule" | "reservas" | "avisos" | "backup" | "general" | "anticipada" | "enlaces" | "fichajes" | "holidays";
   saveState: "idle" | "saving" | "saved" | "error";
   configHasPendingChanges: boolean;
   handleSaveSection: (sectionName: string) => Promise<void>;
@@ -721,14 +721,14 @@ export default function AdminPanelView(props: Props) {
             <details style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '9px', padding: '14px' }}>
               <summary style={{ color: '#E4C687', cursor: 'pointer', fontSize: '14px' }}>Más opciones{!['agenda', 'clients', 'catalog'].includes(adminTab) ? ' · ' + ({ config: 'Configuración', detractors: 'Buzón', crm: 'CRM e informes', demands: 'Oportunidades de cita', holidays: 'Vacaciones y festivos', club: 'L’Studio Club' } as Record<string, string>)[adminTab] : ''}</summary>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '8px', marginTop: '14px' }}>
-                {([['config', 'Configuración'], ['detractors', `Buzón (${feedbackList.filter(f => !f.resolvedAt).length})`], ['crm', 'CRM e informes'], ['demands', 'Oportunidades de cita'], ['holidays', 'Vacaciones y festivos'], ['news', 'Novedades'], ['vouchers', 'Bonos'], ['club', 'L’Studio Club']] as const).map(([tab, label]) => <button type="button" key={tab} aria-current={!promotionsOpen && adminTab === tab ? 'page' : undefined} onClick={() => { setPromotionsOpen(false); setAdminTab(tab); }} style={{ minHeight: '44px', padding: '10px 12px', textAlign: 'left', backgroundColor: !promotionsOpen && adminTab === tab ? '#322A25' : 'transparent', border: '1px solid #C5A059', color: !promotionsOpen && adminTab === tab ? '#F3D994' : '#FFF8EE', borderRadius: '7px', fontSize: '13px', cursor: 'pointer' }}>{label}</button>)}
+                {([['config', 'Configuración'], ['detractors', `Buzón (${feedbackList.filter(f => !f.resolvedAt).length})`], ['crm', 'CRM e informes'], ['demands', 'Oportunidades de cita'], ['news', 'Novedades'], ['vouchers', 'Bonos'], ['club', 'L’Studio Club']] as const).map(([tab, label]) => <button type="button" key={tab} aria-current={!promotionsOpen && adminTab === tab ? 'page' : undefined} onClick={() => { setPromotionsOpen(false); setAdminTab(tab); }} style={{ minHeight: '44px', padding: '10px 12px', textAlign: 'left', backgroundColor: !promotionsOpen && adminTab === tab ? '#322A25' : 'transparent', border: '1px solid #C5A059', color: !promotionsOpen && adminTab === tab ? '#F3D994' : '#FFF8EE', borderRadius: '7px', fontSize: '13px', cursor: 'pointer' }}>{label}</button>)}
               </div>
             </details>
           </nav>
 
           <nav className="studio-desktop-nav" aria-label="Menú lateral de 360studio">
             <p style={{ color: '#C9BCA9', fontSize: '11px', letterSpacing: '2px', padding: '0 12px', margin: '0 0 12px' }}>GESTIÓN DEL STUDIO</p>
-            {([['agenda', 'Agenda Maestra'], ['clients', 'Clientes'], ['catalog', 'Catálogo'], ['config', 'Configuración'], ['detractors', `Buzón (${feedbackList.filter(f => !f.resolvedAt).length})`], ['crm', 'CRM e informes'], ['demands', 'Oportunidades de cita'], ['holidays', 'Vacaciones y festivos'], ['news', 'Novedades'], ['vouchers', 'Bonos'], ['club', 'L’Studio Club']] as const).map(([tab, label]) => <React.Fragment key={tab}><button type="button" key={tab} aria-current={!promotionsOpen && adminTab === tab ? 'page' : undefined} onClick={() => { setPromotionsOpen(false); setAdminTab(tab); }} style={{ width: '100%', textAlign: 'left', minHeight: '48px', padding: '14px', backgroundColor: !promotionsOpen && adminTab === tab ? 'rgba(201, 158, 82, 0.16)' : 'transparent', color: !promotionsOpen && adminTab === tab ? '#F3D994' : '#FFF8EE', border: !promotionsOpen && adminTab === tab ? '1px solid rgba(228, 198, 135, 0.45)' : '1px solid transparent', borderRadius: '9px', fontSize: '14px', cursor: 'pointer' }}>{label}</button></React.Fragment>)}
+            {([['agenda', 'Agenda Maestra'], ['clients', 'Clientes'], ['catalog', 'Catálogo'], ['config', 'Configuración'], ['detractors', `Buzón (${feedbackList.filter(f => !f.resolvedAt).length})`], ['crm', 'CRM e informes'], ['demands', 'Oportunidades de cita'], ['news', 'Novedades'], ['vouchers', 'Bonos'], ['club', 'L’Studio Club']] as const).map(([tab, label]) => <React.Fragment key={tab}><button type="button" key={tab} aria-current={!promotionsOpen && adminTab === tab ? 'page' : undefined} onClick={() => { setPromotionsOpen(false); setAdminTab(tab); }} style={{ width: '100%', textAlign: 'left', minHeight: '48px', padding: '14px', backgroundColor: !promotionsOpen && adminTab === tab ? 'rgba(201, 158, 82, 0.16)' : 'transparent', color: !promotionsOpen && adminTab === tab ? '#F3D994' : '#FFF8EE', border: !promotionsOpen && adminTab === tab ? '1px solid rgba(228, 198, 135, 0.45)' : '1px solid transparent', borderRadius: '9px', fontSize: '14px', cursor: 'pointer' }}>{label}</button></React.Fragment>)}
           <button type="button" aria-current={promotionsOpen ? "page" : undefined} onClick={() => { setAgendaExpanded(false); setPromotionsOpen(true); }} style={{minHeight:48,padding:14,borderRadius:9,border:"1px solid #C5A059",background:promotionsOpen ? "#C49A58" : "#322A25",color:promotionsOpen ? "#221D19" : "#FFF8EE",cursor:"pointer"}}>Promociones</button>
           </nav>
           <main className="studio-admin-content">
@@ -953,7 +953,7 @@ export default function AdminPanelView(props: Props) {
               <header><p style={{ color: '#E4C687', fontSize: '14px', letterSpacing: '2px', margin: '0 0 8px' }}>360studio · AJUSTES DEL STUDIO</p><h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '28px', fontWeight: 'normal', margin: '0 0 10px' }}>Configuración</h2><p style={{ color: '#FFF8EE', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>Elige un apartado, revisa sus opciones y guarda los cambios.</p></header>
               <div className="studio-settings-layout">
               <nav className="studio-settings-nav" aria-label="Apartados de configuración">
-                {([['marca', 'Datos del Studio'], ['precios', 'Precios'], ['empleados', 'Empleados'], ['schedule', 'Horarios'], ['reservas', 'Reservas'], ['enlaces', 'Enlaces de reserva'], ['fichajes', 'Fichajes'], ['avisos', 'Avisos'], ['backup', 'Acceso y seguridad']] as const).map(([tab, label]) => <button type="button" key={tab} aria-current={configSubTab === tab ? 'page' : undefined} onClick={() => setConfigSubTab(tab)}>{label}</button>)}
+                {([['marca', 'Datos del Studio'], ['precios', 'Precios'], ['empleados', 'Empleados'], ['schedule', 'Horarios'], ['holidays', 'Vacaciones y festivos'], ['reservas', 'Reservas'], ['enlaces', 'Enlaces de reserva'], ['fichajes', 'Fichajes'], ['avisos', 'Avisos'], ['backup', 'Acceso y seguridad']] as const).map(([tab, label]) => <button type="button" key={tab} aria-current={configSubTab === tab ? 'page' : undefined} onClick={() => setConfigSubTab(tab)}>{label}</button>)}
               </nav>
               <div className="studio-settings-content"><style>{`
 .studio-settings-content :is(.studio-security-pin,.studio-security-compact) { padding:14px 16px !important; max-width:860px; box-sizing:border-box; font-size:13px; line-height:1.5; gap:12px !important; }
@@ -972,6 +972,7 @@ export default function AdminPanelView(props: Props) {
 :is(.studio-reservas-compact,.studio-avisos-compact) p { font-size:12px; line-height:1.5; }
 @media(max-width:640px) { :is(.studio-reservas-compact,.studio-avisos-compact) { grid-template-columns:minmax(0,1fr); padding:14px !important; } :is(.studio-reservas-compact,.studio-avisos-compact) input:not([type="checkbox"]) { font-size:16px; min-height:44px; } }
 `}</style>
+                {configSubTab !== 'holidays' && <>
                 <div className="studio-settings-savebar">
                   <span role="status">{saveState === 'saving' ? 'Guardando…' : saveState === 'saved' && !configHasPendingChanges ? 'Cambios guardados' : saveState === 'error' ? 'No se pudo guardar. Reintenta.' : configHasPendingChanges ? 'Cambios pendientes' : 'Todo guardado'}</span>
                   <button type="button" disabled={(!configHasPendingChanges && saveState !== 'error') || saveState === 'saving'} onClick={() => handleSaveSection('Ajustes del Studio')}>Guardar cambios</button>
@@ -986,6 +987,7 @@ export default function AdminPanelView(props: Props) {
                   {savedMsg}
                 </div>
               )}
+</>}
 {configSubTab === 'precios' && <section style={{ background: '#322A25', padding: 20, borderRadius: 12, color: '#FFF8EE' }}>
   <h3 style={{ color: '#E4C687', marginTop: 0 }}>Visibilidad de precios</h3>
   <label style={{ display: 'flex', gap: 12, alignItems: 'center', minHeight: 48 }}><input type="checkbox" checked={tempConfig.showPrices !== false} onChange={e => setTempConfig(previous => ({ ...previous, showPrices: e.target.checked }))} style={{ width: 22, height: 22, accentColor: '#C5A059' }} />Mostrar precios en el portal de clientas</label>
@@ -1200,6 +1202,124 @@ export default function AdminPanelView(props: Props) {
                   
                 </div>
               )}
+          {/* TAB 7: VACACIONES Y FESTIVOS */}
+
+          {configSubTab === 'holidays' && (
+            <div className="studio-holidays-premium" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <style>{`
+                .studio-holidays-premium form { background: #322A25 !important; border-color: #3A312A !important; border-radius: 14px !important; padding: 22px !important; gap: 18px !important; }
+                .studio-holidays-premium input, .studio-holidays-premium select { min-height: 44px; box-sizing: border-box; font-size: 13px !important; padding: 11px !important; color-scheme: dark; border-radius: 8px !important; background: #322A25 !important; border-color: #3A312A !important; }
+                .studio-holidays-premium label { font-size: 12px !important; color: #D6CBB8 !important; margin-bottom: 5px; }
+                .studio-holidays-premium button { font-size: 12px !important; min-height: 40px; font-weight: normal !important; border-radius: 8px !important; }
+                .studio-holidays-premium form button[type=submit] { padding: 12px 20px !important; }
+                .studio-holidays-premium > div:last-child > div { background: #322A25 !important; border-color: #3A312A !important; border-radius: 12px !important; padding: 18px !important; }
+                .studio-holidays-premium > div:last-child button { background: transparent !important; color: #D6CBB8 !important; border-color: #3A312A !important; }
+              `}</style>
+              <div>
+                <h3 style={{ color: '#E4C687', fontSize: '24px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Vacaciones y festivos</h3>
+                <p style={{ color: '#D6CBB8', fontSize: '11px', margin: 0 }}>Festivos oficiales y cierres guardados en el servidor. Las reservas existentes se conservan.</p>
+              </div>
+              <p style={{ color: '#D6CBB8', fontSize: 13, margin: 0 }}>Los cierres se guardan desde este apartado con «Guardar cierre»; no necesitan el botón general de configuración.</p>
+              <OfficialHolidaysView onChanged={onPromotionsSaved} appointments={appointments} />
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', background: '#322A25', border: '1px solid #454634', borderRadius: '10px', padding: '14px', color: '#D6CBB8', fontSize: '12px' }}><span>Agenda y portal · Cierres compartidos en Supabase</span><button type="button" onClick={() => setAdminTab('agenda')} style={{ marginLeft: 'auto', cursor: 'pointer', color: '#E4C687', background: 'none', border: '1px solid #C5A059', borderRadius: '7px', padding: '9px 12px' }}>Ver agenda →</button></div>
+              {newHolidayStart && newHolidayEnd && newHolidayEnd >= newHolidayStart && appointments.some(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd) && <div style={{ color: '#E4C687', fontSize: '13px', padding: '14px', borderLeft: '2px solid #b69b60' }}>Hay {appointments.filter(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd).length} citas en estas fechas. Guardar el cierre no las cancela.</div>}
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                if (holidayWriteRef.current) return;
+                if (!newHolidayStart || !newHolidayEnd) {
+                  alert('Por favor, indica fecha de inicio y fin.');
+                  return;
+                }
+                if (newHolidayEnd < newHolidayStart) { alert('La fecha final debe ser igual o posterior a la inicial.'); return; }
+                if (holidaysList.some(block => !block.id.startsWith('auto-') && newHolidayStart <= block.endDate && newHolidayEnd >= block.startDate)) { alert('Ya existe un cierre en estas fechas. Revisa los periodos guardados.'); return; }
+                const affected = appointments.filter(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd);
+                if (affected.length && !window.confirm(`Hay ${affected.length} citas en este periodo. Se conservarán y tendrás que revisarlas. ¿Guardar el cierre?`)) return;
+                const newBlock: HolidayBlock = {
+                  id: Date.now().toString(),
+                  startDate: newHolidayStart,
+                  endDate: newHolidayEnd,
+                  reason: newHolidayReason.trim() || (newHolidayType === 'vacaciones' ? 'Vacaciones' : 'Festivo'),
+                  type: newHolidayType
+                };
+                holidayWriteRef.current = true; setHolidayWriteBusy(true);
+                try {
+                  const token = studioApi.currentToken();
+                  if (!token || studioApi.storedRole() !== 'admin') throw new Error('Vuelve a iniciar sesión en la intranet.');
+                  const result = await studioApi.createClosure(token, { ...newBlock });
+                  if (!result.ok || !result.id) throw new Error('No se ha confirmado el guardado del cierre.');
+                  setHolidaysList(previous => [...previous, { ...newBlock, id: result.id }]);
+                setNewHolidayStart("");
+                setNewHolidayEnd("");
+                setNewHolidayReason("");
+                alert('¡Periodo bloqueado correctamente y sincronizado con la agenda!');
+                } catch (error) { alert(error instanceof Error ? error.message : 'No se pudo guardar el cierre.'); }
+                finally { holidayWriteRef.current = false; setHolidayWriteBusy(false); }
+              }} style={{ backgroundColor: '#322A25', border: '1px solid #B98A3E', borderRadius: '10px', padding: '16px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <h4 style={{ color: '#E4C687', fontSize: '13px', margin: 0 }}>Nuevo cierre</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Tipo:</label>
+                    <select value={newHolidayType} onChange={(e) => setNewHolidayType(e.target.value as any)} style={{ padding: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '11px' }}>
+                      <option value="vacaciones">Vacaciones</option>
+                      <option value="festivo">Festivo</option>
+                    </select>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Desde el día:</label>
+                    <input type="date" value={newHolidayStart} onChange={(e) => setNewHolidayStart(e.target.value)} required style={{ padding: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '11px' }} />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Hasta el día:</label>
+                    <input type="date" min={newHolidayStart || undefined} value={newHolidayEnd} onChange={(e) => setNewHolidayEnd(e.target.value)} required style={{ padding: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '11px' }} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Motivo o descripción:</label>
+                  <input type="text" placeholder="Ej. Vacaciones de verano o Festivo local de Elche" value={newHolidayReason} onChange={(e) => setNewHolidayReason(e.target.value)} style={{ padding: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '11px' }} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <button type="submit" disabled={holidayWriteBusy} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>
+                    Guardar cierre
+                  </button>
+                </div>
+              </form>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <h4 style={{ color: '#E4C687', fontSize: '13px', margin: '5px 0 0 0' }}>Cierres programados</h4>
+                {holidaysList.length === 0 ? (
+                  <div style={{ backgroundColor: '#322A25', padding: '15px', borderRadius: '8px', color: '#D6CBB8', fontSize: '11px', textAlign: 'center' }}>
+                    No hay vacaciones ni festivos bloqueados actualmente.
+                  </div>
+                ) : (
+                  holidaysList.filter(item => !item.id.startsWith('auto-')).sort((a,b) => a.startDate.localeCompare(b.startDate)).map((h) => (
+                    <div key={h.id} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                          <span style={{ backgroundColor: h.type === 'vacaciones' ? '#3E342C' : '#F2DCD8', color: h.type === 'vacaciones' ? '#8F6D24' : '#C0392B', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>
+                            {h.type === 'vacaciones' ? 'VACACIONES' : 'FESTIVO'}
+                          </span>
+                          <span style={{ color: '#FFF8EE', fontSize: '12px', fontWeight: 'bold' }}>{h.reason}</span>
+                        </div>
+                        <span style={{ color: '#D6CBB8', fontSize: '11px' }}>Desde el <strong>{h.startDate.split('-').reverse().join('/')}</strong> hasta el <strong>{h.endDate.split('-').reverse().join('/')}</strong></span>
+                      </div>
+                      <button disabled={holidayWriteBusy} onClick={async () => {
+                        if (holidayWriteRef.current || !window.confirm('¿Eliminar este cierre manual? Otros festivos o cierres seguirán aplicándose.')) return;
+                        holidayWriteRef.current = true; setHolidayWriteBusy(true);
+                        try {
+                          const token = studioApi.currentToken();
+                          if (!token || studioApi.storedRole() !== 'admin') throw new Error('Vuelve a iniciar sesión.');
+                          await studioApi.deleteClosure(token, h.id);
+                          setHolidaysList(previous => previous.filter(item => item.id !== h.id));
+                        } catch (error) { alert(error instanceof Error ? error.message : 'No se pudo eliminar.'); }
+                        finally { holidayWriteRef.current = false; setHolidayWriteBusy(false); }
+                      }} style={{ backgroundColor: '#F2DCD8', border: '1px solid #8A2F23', color: '#C0392B', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>
+                        Quitar cierre
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
               </div>
               </div>
             </div>
@@ -1960,123 +2080,6 @@ export default function AdminPanelView(props: Props) {
 
           {adminTab === 'demands' && <React.Suspense fallback={<p role="status" style={{padding:24,color:'#E4C687'}}>Cargando las oportunidades…</p>}><LazyOpportunitiesView attemptClock={attemptClock} bizConfig={bizConfig} bookingAttempts={bookingAttempts} crmPeriod={crmPeriod} demandEnd={demandEnd} demandFilter={demandFilter} demandStart={demandStart} formatDateKey={formatDateKey} listaClientes={listaClientes} lostDemandsList={lostDemandsList} normalizeEmail={normalizeEmail} opportunityPage={opportunityPage} opportunitySearch={opportunitySearch} opportunityStatus={opportunityStatus} setAdminTab={setAdminTab} setBookingAttempts={setBookingAttempts} setBusquedaCliente={setBusquedaCliente} setClientStatusFilter={setClientStatusFilter} setCrmPeriod={setCrmPeriod} setDemandEnd={setDemandEnd} setDemandFilter={setDemandFilter} setDemandStart={setDemandStart} setLostDemandsList={setLostDemandsList} setOpportunityPage={setOpportunityPage} setOpportunitySearch={setOpportunitySearch} setOpportunityStatus={setOpportunityStatus} /></React.Suspense>}
 
-          {/* TAB 7: VACACIONES Y FESTIVOS */}
-
-          {adminTab === 'holidays' && (
-            <div className="studio-holidays-premium" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <style>{`
-                .studio-holidays-premium form { background: #322A25 !important; border-color: #3A312A !important; border-radius: 14px !important; padding: 22px !important; gap: 18px !important; }
-                .studio-holidays-premium input, .studio-holidays-premium select { min-height: 44px; box-sizing: border-box; font-size: 13px !important; padding: 11px !important; color-scheme: dark; border-radius: 8px !important; background: #322A25 !important; border-color: #3A312A !important; }
-                .studio-holidays-premium label { font-size: 12px !important; color: #D6CBB8 !important; margin-bottom: 5px; }
-                .studio-holidays-premium button { font-size: 12px !important; min-height: 40px; font-weight: normal !important; border-radius: 8px !important; }
-                .studio-holidays-premium form button[type=submit] { padding: 12px 20px !important; }
-                .studio-holidays-premium > div:last-child > div { background: #322A25 !important; border-color: #3A312A !important; border-radius: 12px !important; padding: 18px !important; }
-                .studio-holidays-premium > div:last-child button { background: transparent !important; color: #D6CBB8 !important; border-color: #3A312A !important; }
-              `}</style>
-              <div>
-                <h3 style={{ color: '#E4C687', fontSize: '24px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Vacaciones y festivos</h3>
-                <p style={{ color: '#D6CBB8', fontSize: '11px', margin: 0 }}>Festivos oficiales y cierres guardados en el servidor. Las reservas existentes se conservan.</p>
-              </div>
-              <OfficialHolidaysView onChanged={onPromotionsSaved} appointments={appointments} />
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', background: '#322A25', border: '1px solid #454634', borderRadius: '10px', padding: '14px', color: '#D6CBB8', fontSize: '12px' }}><span>Agenda y portal · Cierres compartidos en Supabase</span><button type="button" onClick={() => setAdminTab('agenda')} style={{ marginLeft: 'auto', cursor: 'pointer', color: '#E4C687', background: 'none', border: '1px solid #C5A059', borderRadius: '7px', padding: '9px 12px' }}>Ver agenda →</button></div>
-              {newHolidayStart && newHolidayEnd && newHolidayEnd >= newHolidayStart && appointments.some(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd) && <div style={{ color: '#E4C687', fontSize: '13px', padding: '14px', borderLeft: '2px solid #b69b60' }}>Hay {appointments.filter(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd).length} citas en estas fechas. Guardar el cierre no las cancela.</div>}
-              <form onSubmit={async (e) => {
-                e.preventDefault();
-                if (holidayWriteRef.current) return;
-                if (!newHolidayStart || !newHolidayEnd) {
-                  alert('Por favor, indica fecha de inicio y fin.');
-                  return;
-                }
-                if (newHolidayEnd < newHolidayStart) { alert('La fecha final debe ser igual o posterior a la inicial.'); return; }
-                if (holidaysList.some(block => !block.id.startsWith('auto-') && newHolidayStart <= block.endDate && newHolidayEnd >= block.startDate)) { alert('Ya existe un cierre en estas fechas. Revisa los periodos guardados.'); return; }
-                const affected = appointments.filter(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd);
-                if (affected.length && !window.confirm(`Hay ${affected.length} citas en este periodo. Se conservarán y tendrás que revisarlas. ¿Guardar el cierre?`)) return;
-                const newBlock: HolidayBlock = {
-                  id: Date.now().toString(),
-                  startDate: newHolidayStart,
-                  endDate: newHolidayEnd,
-                  reason: newHolidayReason.trim() || (newHolidayType === 'vacaciones' ? 'Vacaciones' : 'Festivo'),
-                  type: newHolidayType
-                };
-                holidayWriteRef.current = true; setHolidayWriteBusy(true);
-                try {
-                  const token = studioApi.currentToken();
-                  if (!token || studioApi.storedRole() !== 'admin') throw new Error('Vuelve a iniciar sesión en la intranet.');
-                  const result = await studioApi.createClosure(token, { ...newBlock });
-                  if (!result.ok || !result.id) throw new Error('No se ha confirmado el guardado del cierre.');
-                  setHolidaysList(previous => [...previous, { ...newBlock, id: result.id }]);
-                setNewHolidayStart("");
-                setNewHolidayEnd("");
-                setNewHolidayReason("");
-                alert('¡Periodo bloqueado correctamente y sincronizado con la agenda!');
-                } catch (error) { alert(error instanceof Error ? error.message : 'No se pudo guardar el cierre.'); }
-                finally { holidayWriteRef.current = false; setHolidayWriteBusy(false); }
-              }} style={{ backgroundColor: '#322A25', border: '1px solid #B98A3E', borderRadius: '10px', padding: '16px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                <h4 style={{ color: '#E4C687', fontSize: '13px', margin: 0 }}>Nuevo cierre</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Tipo:</label>
-                    <select value={newHolidayType} onChange={(e) => setNewHolidayType(e.target.value as any)} style={{ padding: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '11px' }}>
-                      <option value="vacaciones">Vacaciones</option>
-                      <option value="festivo">Festivo</option>
-                    </select>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Desde el día:</label>
-                    <input type="date" value={newHolidayStart} onChange={(e) => setNewHolidayStart(e.target.value)} required style={{ padding: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '11px' }} />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Hasta el día:</label>
-                    <input type="date" min={newHolidayStart || undefined} value={newHolidayEnd} onChange={(e) => setNewHolidayEnd(e.target.value)} required style={{ padding: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '11px' }} />
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Motivo o descripción:</label>
-                  <input type="text" placeholder="Ej. Vacaciones de verano o Festivo local de Elche" value={newHolidayReason} onChange={(e) => setNewHolidayReason(e.target.value)} style={{ padding: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '11px' }} />
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                  <button type="submit" disabled={holidayWriteBusy} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '11px', fontWeight: '600', cursor: 'pointer' }}>
-                    Guardar cierre
-                  </button>
-                </div>
-              </form>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <h4 style={{ color: '#E4C687', fontSize: '13px', margin: '5px 0 0 0' }}>Cierres programados</h4>
-                {holidaysList.length === 0 ? (
-                  <div style={{ backgroundColor: '#322A25', padding: '15px', borderRadius: '8px', color: '#D6CBB8', fontSize: '11px', textAlign: 'center' }}>
-                    No hay vacaciones ni festivos bloqueados actualmente.
-                  </div>
-                ) : (
-                  holidaysList.filter(item => !item.id.startsWith('auto-')).sort((a,b) => a.startDate.localeCompare(b.startDate)).map((h) => (
-                    <div key={h.id} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <span style={{ backgroundColor: h.type === 'vacaciones' ? '#3E342C' : '#F2DCD8', color: h.type === 'vacaciones' ? '#8F6D24' : '#C0392B', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>
-                            {h.type === 'vacaciones' ? 'VACACIONES' : 'FESTIVO'}
-                          </span>
-                          <span style={{ color: '#FFF8EE', fontSize: '12px', fontWeight: 'bold' }}>{h.reason}</span>
-                        </div>
-                        <span style={{ color: '#D6CBB8', fontSize: '11px' }}>Desde el <strong>{h.startDate.split('-').reverse().join('/')}</strong> hasta el <strong>{h.endDate.split('-').reverse().join('/')}</strong></span>
-                      </div>
-                      <button disabled={holidayWriteBusy} onClick={async () => {
-                        if (holidayWriteRef.current || !window.confirm('¿Eliminar este cierre manual? Otros festivos o cierres seguirán aplicándose.')) return;
-                        holidayWriteRef.current = true; setHolidayWriteBusy(true);
-                        try {
-                          const token = studioApi.currentToken();
-                          if (!token || studioApi.storedRole() !== 'admin') throw new Error('Vuelve a iniciar sesión.');
-                          await studioApi.deleteClosure(token, h.id);
-                          setHolidaysList(previous => previous.filter(item => item.id !== h.id));
-                        } catch (error) { alert(error instanceof Error ? error.message : 'No se pudo eliminar.'); }
-                        finally { holidayWriteRef.current = false; setHolidayWriteBusy(false); }
-                      }} style={{ backgroundColor: '#F2DCD8', border: '1px solid #8A2F23', color: '#C0392B', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', cursor: 'pointer', fontWeight: 'bold' }}>
-                        Quitar cierre
-                      </button>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
           </>}
           </main>
         </div>);
