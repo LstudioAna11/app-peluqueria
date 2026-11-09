@@ -22,6 +22,7 @@ const LazyTimeClockAdmin=React.lazy(()=>import('./TimeClock').then(m=>({default:
 const LazyOpportunitiesView=React.lazy(()=>import('./OpportunitiesView'));
 
 const LazyClubAdmin=React.lazy(()=>import('./ClubAdmin'));
+const LazyMemoriesAdmin=React.lazy(()=>import('./MemoriesAdmin'));
 const LazyClubProfile=React.lazy(()=>import('./ClubAdmin').then(m=>({default:m.ClubProfile})));
 const LazyCrmView=React.lazy(()=>import('./CrmView'));
 
@@ -1866,6 +1867,7 @@ export default function AdminPanelView(props: Props) {
 </button>
 {expandedClientId === c.idNum && <div id={`client-details-${c.idNum}`} style={{display:'flex',flexDirection:'column',gap:10,padding:14,borderTop:'1px solid #655039'}}>
 <React.Suspense fallback={null}><LazyClubProfile clientId={c.serverId}/></React.Suspense>
+<React.Suspense fallback={null}><LazyMemoriesAdmin key={c.serverId||c.idNum} clientId={c.serverId} clientName={[c.nombre,c.apellidos].filter(Boolean).join(' ')}/></React.Suspense>
 {c.archivedAt && <p style={{margin:0,fontSize:12,color:'#F5C7B8'}}>De baja desde {new Date(c.archivedAt).toLocaleDateString('es-ES')}. Su historial se conserva.</p>}
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
