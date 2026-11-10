@@ -512,6 +512,13 @@ export default function AdminPanelView(props: Props) {
    });
  },[appointments,listaClientes,timeBlocks,appointmentServiceNames]);
 
+ const [agendaSummaryOpen,setAgendaSummaryOpen]=useState(false);
+ const summaryToggle=useRef<HTMLButtonElement|null>(null);
+ const closeSummary=()=>{setAgendaSummaryOpen(false);summaryToggle.current?.focus();};
+ const rangeStart=agendaViewMode==='week'?semanaActual[0]?.dateObj:fechaSeleccionada;
+ const rangeEnd=agendaViewMode==='week'?semanaActual[semanaActual.length-1]?.dateObj:fechaSeleccionada;
+ const fullDate=(d:Date)=>d.toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'});
+ const rangeLabel=rangeStart&&rangeEnd?(agendaViewMode==='day'?fechaSeleccionada.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'}):rangeStart.getMonth()===rangeEnd.getMonth()&&rangeStart.getFullYear()===rangeEnd.getFullYear()?rangeStart.getDate()+'–'+fullDate(rangeEnd):fullDate(rangeStart)+' – '+fullDate(rangeEnd)):'';
  const [summaryNow, setSummaryNow] = useState(() => new Date());
  useEffect(() => { const timer = window.setInterval(() => setSummaryNow(new Date()), 30000); return () => window.clearInterval(timer); }, []);
  const madridParts = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(summaryNow);
@@ -550,15 +557,17 @@ export default function AdminPanelView(props: Props) {
               <button type="button" onClick={() => { setFechaSeleccionada(new Date(todaySummaryKey + 'T12:00:00')); setAgendaViewMode('day'); setAgendaSidePanel('day'); }}>
                 <small>Citas de hoy</small><strong>{todaySummary.length}</strong><small>{todaySummary.filter(item => !!item.completedAt).length} realizadas · Incluye solicitudes pendientes</small>
               </button>
-              <button type="button" disabled={!nextSummary} onClick={() => { if (nextSummary) setViewApptModal(nextSummary); }}>
+              {nextSummary&&<button type="button" disabled={!nextSummary} onClick={() => { if (nextSummary) setViewApptModal(nextSummary); }}>
                 <small>{ongoingSummary ? 'En horario de cita' : 'Próxima cita confirmada'}</small><strong>{nextSummary?.time || '—'}</strong>
                 <small>{nextSummary ? nextSummary.clientName : 'Sin más citas confirmadas hoy'}</small>
                 {nextSummary && <small>{appointmentServiceNames(nextSummary)}</small>}
-              </button>
-              <button type="button" onClick={() => { setPendingPanelFilter('approval'); setAgendaSidePanel('pending'); }}>
+              </button>}
+              {!nextSummary&&<p className="studio-summary-empty">Sin más citas confirmadas hoy</p>}
+              </div><div className="studio-summary-pending">
+              <button type="button" data-pending={approvalSummaryCount>0} onClick={() => { setPendingPanelFilter('approval'); setAgendaSidePanel('pending'); }}>
                 <small>Solicitudes por aceptar</small><strong>{approvalSummaryCount}</strong><small>Todas las fechas · Toca para revisar</small>
               </button>
-              <button type="button" onClick={() => { setPendingPanelFilter('payment'); setAgendaSidePanel('pending'); }}>
+              <button type="button" data-pending={paymentSummaryCount>0} onClick={() => { setPendingPanelFilter('payment'); setAgendaSidePanel('pending'); }}>
                 <small>Anticipos por comprobar</small><strong>{paymentSummaryCount}</strong><small>Todas las fechas · Toca para revisar</small>
               </button>
             </div>
@@ -703,11 +712,54 @@ export default function AdminPanelView(props: Props) {
               .studio-mobile-summary[open] > summary { margin-bottom: 10px; }
               .studio-mobile-summary .studio-day-summary { grid-template-columns: repeat(2,minmax(0,1fr)); margin-bottom: 0; }
             }
+
+            .studio-admin-header { gap:12px; padding-bottom:8px !important; min-height:42px; }
+            .studio-admin-header h2 { font-size:18px !important; margin:0 !important; }
+            .studio-admin-header button { min-height:40px; }
+            .studio-agenda-layout.summary-closed { grid-template-columns:minmax(0,1fr) !important; }
+            .studio-calendar-tools[hidden] { display:none !important; }
+            .studio-calendar-tools { box-shadow:none !important; }
+            .studio-summary-header { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; color:#E4C687; font-size:14px; }
+            .studio-summary-header button { min-height:36px; min-width:36px; background:transparent; border:1px solid #67543C; border-radius:7px; color:#E4C687; cursor:pointer; }
+            .studio-day-summary { margin-bottom:10px; }
+            .studio-summary-empty { margin:2px 0; color:#D6CBB8; font-size:11px; line-height:1.5; }
+            .studio-summary-pending { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; margin-bottom:14px; }
+            .studio-summary-pending button { padding:7px 8px; border:1px solid #655039; border-radius:7px; background:transparent; color:#FFF8EE; text-align:left; cursor:pointer; min-width:0; }
+            .studio-summary-pending button[data-pending=true] { border-color:#C5A059; background:#443623; }
+            .studio-summary-pending small { font-size:10px; display:block; color:#D6CBB8; line-height:1.4; }
+            .studio-summary-pending small:nth-of-type(2) { display:none; }
+            .studio-summary-pending strong { display:block; color:#E4C687; font-size:16px; margin-top:3px; }
+            .studio-agenda-datebar { display:flex; justify-content:space-between; gap:12px; align-items:center; flex-wrap:wrap; }
+            .studio-agenda-date-navigation { display:flex; align-items:center; gap:8px; }
+            .studio-agenda-date-navigation button { min-height:40px; min-width:40px; font-size:23px; border:1px solid #655039; border-radius:8px; color:#E4C687; background:transparent; cursor:pointer; }
+            .studio-agenda-date-navigation h3 { margin:0; font-size:15px; line-height:1.4; font-weight:500; color:#E4C687; text-align:center; }
+            .studio-agenda-help { position:relative; font-size:12px; color:#D6CBB8; }
+            .studio-agenda-help summary { cursor:pointer; padding:8px; }
+            .studio-agenda-help p { position:absolute; right:0; top:32px; z-index:12; margin:0; background:#29231F; border:1px solid #806340; padding:12px; border-radius:8px; width:250px; line-height:1.6; }
+            .studio-agenda-legend { display:flex; gap:14px; flex-wrap:wrap; color:#D6CBB8; font-size:10px; }
+            .studio-agenda-legend span { display:inline-flex; align-items:center; gap:6px; }
+            .studio-agenda-legend i { display:inline-block; width:12px; height:12px; border:1px solid #655039; border-radius:3px; }
+            .studio-agenda-legend .is-free { background:#3B3026; }
+            .studio-agenda-legend .is-outside { background:repeating-linear-gradient(135deg,#27221E,#27221E 3px,#3A332C 3px,#3A332C 4px); }
+            .studio-agenda-legend .is-closed { background:#573A34; border-color:#A57463; }
+            .studio-agenda-legend .is-blocked { background:#4B4034; border-style:dashed; }
+            .studio-agenda-day-heading.studio-agenda-today { background:#493A28 !important; color:#F1D8A3 !important; border-bottom:2px solid #C5A059 !important; }
+            .studio-agenda-slot.is-free { background:#332B24 !important; }
+            .studio-agenda-slot.studio-agenda-today.is-free { background:#3C3024 !important; }
+            .studio-agenda-slot.is-outside { background:repeating-linear-gradient(135deg,#27221E,#27221E 7px,#302923 7px,#302923 8px) !important; }
+            .studio-agenda-slot.is-closed { background:repeating-linear-gradient(135deg,#3D2C29,#3D2C29 7px,#49332F 7px,#49332F 8px) !important; color:#E9B6A4 !important; }
+            .studio-agenda-slot.is-blocked { background:#4B4034 !important; }
+            .studio-agenda-slot:not(:disabled):hover { background:#51412E !important; }
+            .studio-agenda-slot.is-outside:not(:disabled):hover::after { content:'+'; }
+            .studio-agenda-now { border-top-color:#E5A185 !important; }
+            .studio-mini-day:focus-visible, .studio-summary-toggle:focus-visible { outline:2px solid #E4C687; outline-offset:2px; }
+            .studio-agenda-scroll { padding:8px !important; }
+            @media(max-width:700px) { .studio-summary-toggle { display:none !important; } .studio-admin-brand { width:120px !important; height:32px !important; } .studio-admin-header h2 { font-size:16px !important; } .studio-mobile-summary .studio-summary-pending { margin:10px 0 0; } }
           `}</style>
           <div className="studio-admin-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid rgba(212, 175, 55, 0.2)', paddingBottom: '15px' }}>
-            <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}><img src={headerLogoSrc} alt={bizConfig.name} decoding="async" style={{width:160,height:48,objectFit:'contain',mixBlendMode:'screen'}} onError={fallbackHeaderLogo}/><div>
+            <div style={{display:'flex',alignItems:'center',gap:14,flexWrap:'wrap'}}><img src={headerLogoSrc} alt={bizConfig.name} decoding="async" className="studio-admin-brand" style={{width:140,height:36,objectFit:'contain',mixBlendMode:'screen'}} onError={fallbackHeaderLogo}/><div>
               <h2 style={{ color: '#E4C687', fontSize: '28px', margin: '0 0 3px 0', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em' }}>{t('adminMasterTitle')}</h2>
-              <p style={{ color: '#C9BCA9', fontSize: '12px', letterSpacing: '1px', margin: 0 }}>{bizConfig.name} - {t('adminSubtitle')}</p>
+
             </div>
             </div>
             <button type="button" onClick={onLogout} style={{ background: 'none', border: '1px solid rgba(234, 220, 199, 0.4)', color: '#E4C687', padding: '6px 14px', borderRadius: '20px', fontSize: '11px', cursor: 'pointer' }}>
@@ -745,7 +797,7 @@ export default function AdminPanelView(props: Props) {
 
           {/* TAB 1: AGENDA MAESTRA */}
           {adminTab === 'agenda' && (
-            <div ref={agendaLayoutRef} className="studio-agenda-layout" style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+            <div ref={agendaLayoutRef} className={`studio-agenda-layout ${agendaSummaryOpen?'has-summary':'summary-closed'}`} style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
               <div className="studio-calendar-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px', minWidth: 0, overflowX: 'auto' }}>
 
                 <details className="studio-mobile-summary"><summary>Resumen de hoy · {todaySummary.length} citas · {approvalSummaryCount + paymentSummaryCount} gestiones pendientes</summary>{renderCompactDaySummary()}</details>
@@ -763,9 +815,10 @@ export default function AdminPanelView(props: Props) {
                     if (!freeTime) { alert('No hay huecos libres en el día seleccionado.'); return; }
                     handleCellClick(fechaSeleccionada, diaSeleccionadoObj.name, freeTime);
                   }} style={{ padding: '9px 16px', border: '1px solid #C5A059', borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap' }}>+ Nueva cita</button>
+                  <button ref={summaryToggle} className="studio-summary-toggle" type="button" aria-expanded={agendaSummaryOpen&&!agendaExpanded} aria-controls="studio-agenda-summary" onClick={()=>{if(agendaExpanded){setAgendaExpanded(false);setAgendaSummaryOpen(true);}else setAgendaSummaryOpen(v=>!v);}} style={{padding:'9px 12px',border:'1px solid #806340',borderRadius:8,cursor:'pointer'}}>Resumen{approvalSummaryCount+paymentSummaryCount>0?' · '+(approvalSummaryCount+paymentSummaryCount)+' pendientes':''}</button>
                   <button type="button" aria-pressed={agendaExpanded} aria-label={agendaExpanded ? 'Volver a vista normal' : 'Ampliar agenda'} title={agendaExpanded ? 'Volver a vista normal' : 'Ampliar agenda'} onClick={() => setAgendaExpanded(previous => !previous)} style={{ display: 'grid', placeItems: 'center', marginInlineStart: 'auto', padding: 9, minWidth: 40, border: '1px solid rgba(196,154,88,.3)', borderRadius: 8, cursor: 'pointer' }}>{agendaExpanded ? <Minimize2 size={18} aria-hidden="true" /> : <Maximize2 size={18} aria-hidden="true" />}</button>
                 </div>
-                <section aria-label="Buscar citas" style={{ padding: '10px', border: '1px solid #3A312A', borderRadius: '8px', background: '#322A25' }}>
+                <section className="studio-agenda-search" aria-label="Buscar citas" style={{padding:0}}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <label htmlFor="agenda-search" style={{ color: '#E4C687', fontSize: '12px', flexShrink: 0 }}>Buscar cita</label>
                     <input id="agenda-search" type="search" value={appointmentSearch} onChange={event => setAppointmentSearch(event.target.value)}
@@ -778,10 +831,10 @@ export default function AdminPanelView(props: Props) {
                     <p role="status" aria-live="polite" style={{ color: '#D6CBB8', fontSize: '12px', margin: '6px 0' }}>{appointmentSearchResults.length} citas encontradas · Todas las fechas</p>
                     <div style={{ maxHeight: '250px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       {appointmentSearchResults.map(appointment => <article key={appointment.id} style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px',
-                        padding: '10px', border: '1px solid #3A312A', borderRadius: '6px', background: 'rgba(234,220,199,0.55)' }}>
+                        padding: '10px', border: '1px solid #3A312A', borderRadius: '6px', background: '#2B241F' }}>
                         <div style={{ flex: '1 1 170px', fontSize: '12px', lineHeight: 1.5, overflowWrap: 'anywhere' }}>
                           <strong style={{ color: '#FFF8EE' }}>{appointment.clientName}</strong>
-                          {appointment.lifecycleStatus && <span style={{ marginLeft: '8px', color: '#D6CBB8' }}>{appointment.lifecycleStatus === 'cancelled' ? 'Cancelada' : 'No presentada'}</span>}
+                          {(appointment.lifecycleStatus==='cancelled'||appointment.lifecycleStatus==='no_show') && <span style={{ marginLeft: '8px', color: '#D6CBB8' }}>{appointment.lifecycleStatus === 'cancelled' ? 'Cancelada' : 'No presentada'}</span>}
                           <div style={{ color: '#E4C687' }}>{appointment.dateKey.split('-').reverse().join('/')} · {appointment.time} · {appointment.phone}</div>
                           <div style={{ color: '#D6CBB8' }}>{appointmentServiceNames(appointment)}</div>
                         </div>
@@ -797,18 +850,16 @@ export default function AdminPanelView(props: Props) {
                   </div>}
                 </section>
 
-<p className="studio-desktop-agenda-heading" style={{ color: '#D6CBB8', fontSize: '12px', margin: 0 }}>Pulsa un hueco libre para agendar · Pulsa una cita para editarla.</p>
-                <div className="studio-desktop-agenda-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                  <h3 style={{ color: '#E4C687', fontSize: '15px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>
-                    {agendaViewMode === 'week' ? 'Tu semana' : 'Tu día'}
-                  </h3>
-                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() - (agendaViewMode === 'week' ? 7 : 1)); setFechaSeleccionada(d); }} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>◀ Anterior</button>
-                    <span style={{ color: '#E4C687', fontSize: '12px', fontWeight: 'bold' }}>
-                      {agendaViewMode === 'week' ? `Semana del ${semanaActual[0].dateFormatted}` : `${diaSeleccionadoObj.name} ${diaSeleccionadoObj.dateFormatted}`}
-                    </span>
-                    <button onClick={() => { const d = new Date(fechaSeleccionada); d.setDate(d.getDate() + (agendaViewMode === 'week' ? 7 : 1)); setFechaSeleccionada(d); }} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}>Siguiente ►</button>
-                  </div>
+                <div className="studio-agenda-datebar studio-desktop-agenda-heading">
+                  <nav aria-label="Navegar por fechas de agenda" className="studio-agenda-date-navigation">
+                    <button type="button" aria-label={agendaViewMode==='week'?'Semana anterior':'Día anterior'} onClick={() => { const d=new Date(fechaSeleccionada);d.setDate(d.getDate()-(agendaViewMode==='week'?7:1));setFechaSeleccionada(d); }}>‹</button>
+                    <h3 aria-live="polite">{rangeLabel}</h3>
+                    <button type="button" aria-label={agendaViewMode==='week'?'Semana siguiente':'Día siguiente'} onClick={() => { const d=new Date(fechaSeleccionada);d.setDate(d.getDate()+(agendaViewMode==='week'?7:1));setFechaSeleccionada(d); }}>›</button>
+                  </nav>
+                  <details className="studio-agenda-help"><summary>Ayuda</summary><p>Pulsa un hueco disponible para crear una cita o un bloqueo. Pulsa una cita para abrir su detalle. Los cierres y horarios se gestionan en Configuración.</p></details>
+                </div>
+                <div className="studio-agenda-legend studio-desktop-agenda-heading" aria-label="Leyenda de disponibilidad">
+                  <span><i className="is-free"/>Disponible</span><span><i className="is-outside"/>Fuera de horario</span><span><i className="is-closed"/>Cierre / festivo</span><span><i className="is-blocked"/>Bloqueo</span>
                 </div>
 
                 <section className="studio-mobile-daily-agenda" aria-label="Agenda diaria móvil">
@@ -850,14 +901,14 @@ export default function AdminPanelView(props: Props) {
                   {renderDurationAgenda(agendaViewMode === 'week' ? semanaActual : [diaSeleccionadoObj])}
                 </div>
               </div>
-              <details open className="studio-calendar-tools" style={{ width: '280px', backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '16px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-                <summary>Resumen, calendario y ajustes</summary>
+              <aside hidden={!agendaSummaryOpen} id="studio-agenda-summary" aria-label="Resumen de agenda" onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();closeSummary();}}} className="studio-calendar-tools" style={{ width: '280px', backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '16px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                <header className="studio-summary-header"><strong>Resumen</strong><button type="button" aria-label="Cerrar resumen" onClick={closeSummary}>×</button></header>
                 {renderCompactDaySummary()}
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                    <button onClick={() => cambiarMesMiniCal(-1)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>◀</button>
+                    <button type="button" aria-label="Mes anterior" onClick={() => cambiarMesMiniCal(-1)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>◀</button>
                     <span style={{ color: '#E4C687', fontSize: '12px', fontWeight: 'bold', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em' }}>{nombresMeses[mesMini]} {anioMini}</span>
-                    <button onClick={() => cambiarMesMiniCal(1)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>▶</button>
+                    <button type="button" aria-label="Mes siguiente" onClick={() => cambiarMesMiniCal(1)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '4px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}>▶</button>
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '2px', textAlign: 'center', marginBottom: '6px' }}>
                     {['L', 'M', 'X', 'J', 'V', 'S', 'D'].map((d, i) => (
@@ -871,37 +922,13 @@ export default function AdminPanelView(props: Props) {
                       const isBlocked = isDateBlockedByHoliday(dKey);
                       const isSelected = dKey === formatDateKey(fechaSeleccionada);
                       return (
-                        <button className="studio-mini-day" key={i} onClick={() => setFechaSeleccionada(dateObj)} style={{ backgroundColor: isBlocked ? '#F2DCD8' : (isSelected ? '#C49A58' : '#3E342C'), color: isBlocked ? '#8A2F23' : (isSelected ? '#29231F' : '#5C5248'), border: isBlocked ? '1px solid #C0392B' : '1px solid rgba(255, 248, 238, 0.18)', borderRadius: '4px', padding: '5px 0', fontSize: '13px', cursor: 'pointer', fontWeight: isSelected ? 'bold' : 'normal' }}>
+                        <button type="button" className="studio-mini-day" aria-label={fullDate(dateObj)+(isBlocked?' · Cierre o festivo':'')} aria-pressed={isSelected} key={i} onClick={() => setFechaSeleccionada(dateObj)} style={{ backgroundColor: isBlocked ? '#F2DCD8' : (isSelected ? '#C49A58' : '#3E342C'), color: isBlocked ? '#8A2F23' : (isSelected ? '#29231F' : '#E8D9C4'), border: isBlocked ? '1px solid #C0392B' : '1px solid rgba(255, 248, 238, 0.18)', borderRadius: '4px', padding: '5px 0', fontSize: '13px', cursor: 'pointer', fontWeight: isSelected ? 'bold' : 'normal' }}>
                           {dateObj.getDate()}
                         </button>
                       );
                     })}
                   </div>
                 </div>
-                <hr style={{ borderColor: 'rgba(212, 175, 55, 0.2)', margin: 0 }} />
-<details className="studio-calendar-settings"><summary>Calendarios</summary>
-
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#322A25', padding: '8px 10px', borderRadius: '6px', border: '1px solid #3A312A' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#8F6D24' }} />
-                      <span style={{ color: '#FFF8EE', fontSize: '13px', fontWeight: 'bold' }}>L'Studio Ana</span>
-                    </div>
-                    <span style={{ color: '#D6CBB8', fontSize: '13px' }}>Principal</span>
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#322A25', padding: '8px 10px', borderRadius: '6px', border: '1px solid #B98A3E' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <input type="checkbox" checked={googleCalendarSyncActive} onChange={() => setGoogleCalendarSyncActive(!googleCalendarSyncActive)} style={{ accentColor: '#8F6D24', cursor: 'pointer' }} />
-                      <span style={{ color: '#FFF8EE', fontSize: '13px' }}>Agenda Citas L'Studio</span>
-                    </div>
-                    <span style={{ color: googleCalendarConnected ? '#2E7D32' : '#C0392B', fontSize: '13px', fontWeight: 'bold' }}>{googleCalendarConnected ? 'Google Sync 🔗' : 'Desconectado'}</span>
-                  </div>
-                  <button onClick={() => {
-                    setGoogleCalendarConnected(!googleCalendarConnected);
-                    alert(googleCalendarConnected ? 'Google Calendar desconectado.' : '¡Google Calendar conectado y sincronizado con éxito con la Intranet!');
-                  }} style={{ background: 'transparent', border: '1px dashed #C5A059', color: '#E4C687', padding: '6px', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', textAlign: 'center', fontWeight: 'bold' }}>
-                    {googleCalendarConnected ? '+ Vincular otro calendario' : 'Conectar con Google Calendar'}
-                  </button>
-                </details>
                 <hr style={{ borderColor: 'rgba(212, 175, 55, 0.2)', margin: 0 }} />
 <details className="studio-calendar-settings"><summary>Opciones de reserva</summary>
 
@@ -929,7 +956,7 @@ export default function AdminPanelView(props: Props) {
                     🖨️ Imprimir calendario (CTRL + P)
                   </button>
                 </details>
-              </details>
+              </aside>
 
 
             </div>
