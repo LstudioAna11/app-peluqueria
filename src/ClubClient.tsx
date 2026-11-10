@@ -1,8 +1,10 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {clubCall,clubRequest,ClubError,type ClubState} from './clubApi';
 const btn:React.CSSProperties={minHeight:44,padding:'9px 13px',background:'#C49A58',border:'1px solid #B9955F',borderRadius:7,color:'#29231F',cursor:'pointer',fontSize:13};
+const LazyRaffleClient=React.lazy(()=>import('./RaffleClient'));
 export default function ClubClient({lang='es'}:{lang?:string}){
  const es=lang==='es';const [data,setData]=useState<ClubState|null>(null),[open,setOpen]=useState(false),[accepted,setAccepted]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[pending,setPending]=useState(false),[leave,setLeave]=useState(false);
+ const [rafflesOpen,setRafflesOpen]=useState(false);
  const termsRead=useRef('');
  const openRef=useRef(open);openRef.current=open;
  const mounted=useRef(false),reading=useRef(false),lastRead=useRef(0),lock=useRef(false),operation=useRef<{action:string;body:Record<string,unknown>}|null>(null);
@@ -40,6 +42,7 @@ export default function ClubClient({lang='es'}:{lang?:string}){
    {data.reviewCount>0&&<p>{es?'Hay una visita pendiente de confirmar su importe. Consúltanos en el salón.':'A visit is awaiting confirmation of its final price. Please ask in the salon.'}</p>}
    <details><summary style={{cursor:'pointer'}}>{es?'Mis movimientos':'My activity'}</summary>{data.events.map(e=><div key={e.id} style={{padding:'7px 0',borderBottom:'1px solid #655039'}}><strong>{e.delta>0?'+':''}{e.delta} · </strong>{e.reason}<small style={{display:'block',color:'#D6CBB8'}}>{new Date(e.created_at).toLocaleDateString(lang)}</small></div>)}</details>
    <button type="button" style={{...btn,background:'transparent',color:'#E4C687'}} disabled={busy||pending} onClick={()=>setLeave(!leave)}>{es?'Salir del club':'Leave the club'}</button>{leave&&<div><p>{es?'Dejarás de sumar puntos. Tu saldo quedará suspendido y tus reservas seguirán funcionando.':'You will stop earning points. Your balance will be suspended and your bookings will remain available.'}</p><button type="button" style={btn} disabled={busy||pending} onClick={()=>void mutate('leave',{})}>{es?'Confirmar baja':'Confirm leaving'}</button></div>}</>}
+   <details onToggle={e=>setRafflesOpen(e.currentTarget.open)}><summary style={{cursor:'pointer',color:'#E4C687'}}>Sorteos del club</summary>{rafflesOpen&&<React.Suspense fallback={<p>Cargando sorteos…</p>}><LazyRaffleClient/></React.Suspense>}</details>
    {pending&&<button type="button" style={btn} disabled={busy} onClick={()=>{const op=operation.current;if(op)void mutate(op.action,op.body);}}>{es?'Comprobar y reintentar mi elección':'Check and retry my choice'}</button>}
    {error&&<p role="alert" style={{color:'#FFB4A9',margin:0}}>{error}</p>}
   </div>}
