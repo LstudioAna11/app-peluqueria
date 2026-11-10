@@ -75,6 +75,7 @@ const rawCall = async <T = Record<string, unknown>>(
     body: opts.method === "GET" || opts.method === "HEAD" || opts.body === undefined ? undefined : JSON.stringify(opts.body),
   });
   const data = await res.json();
+  if(!res.ok&&data.code==='PORTAL_MAINTENANCE'&&data.maintenance&&typeof window!=='undefined')window.dispatchEvent(new CustomEvent('lst-portal-maintenance',{detail:data.maintenance}));
   if (!res.ok) throw new StudioApiError(data.error || "Error del servidor",res.status);
   return data as T;
 };

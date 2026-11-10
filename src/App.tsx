@@ -5,6 +5,7 @@ import {usePortalTranslations,portalLanguageCodes} from './portalLanguages';
 import {ClientPhotoGallery,StudioNews,VoucherHub,VoucherPanel,BookingVoucher,AppointmentVoucherTools,ClientProfileCompact} from './DeferredFeatures';
 import {voucherServiceOptions,voucherMoney,voucherToken,type RepeatPortalDraft} from './portalFeatureData';
 import {AppointmentCountdown} from './AppointmentCountdown';
+import MaintenancePortal from './MaintenancePortal';
 import {TimeClockEntry} from './TimeClockEntry';
 import {PrivacyPermissionsEntry,RegistrationPrivacyNotice} from './ClientPermissions';
 import {SocialBookingEntry} from './BookingLinks';
@@ -1244,7 +1245,7 @@ function StudioApp() {
   const [adminLoginMessage, setAdminLoginMessage] = useState('');
   const [adminError, setAdminError] = useState<boolean>(false);
   const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'demands' | 'holidays' | 'news' | 'vouchers' | 'club'>('agenda');
-  const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule' | 'reservas' | 'anticipada' | 'avisos' | 'backup' | 'precios' | 'empleados' | 'enlaces' | 'fichajes' | 'holidays'>('marca');
+  const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule' | 'reservas' | 'anticipada' | 'avisos' | 'backup' | 'precios' | 'empleados' | 'enlaces' | 'fichajes' | 'holidays' | 'maintenance'>('marca');
   const [adminCatalogStatus, setAdminCatalogStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [adminCatalogSearch, setAdminCatalogSearch] = useState('');
   const normalizeCatalogSearch = (value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
@@ -4600,6 +4601,7 @@ function StudioApp() {
               {pushError && <p role="alert" style={{ color: '#F2B8AC', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>{pushError}</p>}
             </section>);
   return (
+    <MaintenancePortal adminAccess={currentScreen==='adminPanel'||currentScreen==='adminLogin'} onAdmin={()=>{setIsModalOpen(false);setViewApptModal(null);setCurrentScreen('adminLogin');}}>
     <div className={selectedServicesToBook.length > 0 && ['catalogBooking', 'categoryScreen', 'serviceDetail'].includes(currentScreen) ? 'lst-has-booking-summary' : undefined} lang={currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang} dir={currentLang === 'ar' && currentScreen !== 'adminPanel' && currentScreen !== 'adminLogin' ? 'rtl' : 'ltr'} style={{ backgroundColor: '#29231F', color: '#FFF8EE', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', fontFamily: "'Garet', 'Poppins', sans-serif", margin: 0, padding: currentScreen === 'adminPanel' ? '8px 10px 24px' : '20px 20px 96px', position: 'relative' }}>
       
       <style>{`
@@ -6336,6 +6338,7 @@ function StudioApp() {
         </div>
       )}
     </div>
+    </MaintenancePortal>
   );
 }
 

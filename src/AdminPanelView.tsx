@@ -22,6 +22,7 @@ const LazyTimeClockAdmin=React.lazy(()=>import('./TimeClock').then(m=>({default:
 const LazyOpportunitiesView=React.lazy(()=>import('./OpportunitiesView'));
 
 const LazyClubAdmin=React.lazy(()=>import('./ClubAdmin'));
+const LazyMaintenanceSettings=React.lazy(()=>import('./MaintenanceSettings'));
 const LazyMemoriesAdmin=React.lazy(()=>import('./MemoriesAdmin'));
 const LazyClubProfile=React.lazy(()=>import('./ClubAdmin').then(m=>({default:m.ClubProfile})));
 const LazyCrmView=React.lazy(()=>import('./CrmView'));
@@ -84,8 +85,8 @@ interface Props {
   setEnableOutOfHours: React.Dispatch<React.SetStateAction<boolean>>;
   enableDoubleBooking: boolean;
   setEnableDoubleBooking: React.Dispatch<React.SetStateAction<boolean>>;
-  setConfigSubTab: React.Dispatch<React.SetStateAction<"marca" | "precios" | "empleados" | "schedule" | "reservas" | "avisos" | "backup" | "general" | "anticipada" | "enlaces" | "fichajes" | "holidays">>;
-  configSubTab: "marca" | "precios" | "empleados" | "schedule" | "reservas" | "avisos" | "backup" | "general" | "anticipada" | "enlaces" | "fichajes" | "holidays";
+  setConfigSubTab: React.Dispatch<React.SetStateAction<"marca" | "precios" | "empleados" | "schedule" | "reservas" | "avisos" | "backup" | "general" | "anticipada" | "enlaces" | "fichajes" | "holidays" | "maintenance">>;
+  configSubTab: "marca" | "precios" | "empleados" | "schedule" | "reservas" | "avisos" | "backup" | "general" | "anticipada" | "enlaces" | "fichajes" | "holidays" | "maintenance";
   saveState: "idle" | "saving" | "saved" | "error";
   configHasPendingChanges: boolean;
   handleSaveSection: (sectionName: string) => Promise<void>;
@@ -981,7 +982,7 @@ export default function AdminPanelView(props: Props) {
               <header><p style={{ color: '#E4C687', fontSize: '14px', letterSpacing: '2px', margin: '0 0 8px' }}>360studio · AJUSTES DEL STUDIO</p><h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '28px', fontWeight: 'normal', margin: '0 0 10px' }}>Configuración</h2><p style={{ color: '#FFF8EE', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>Elige un apartado, revisa sus opciones y guarda los cambios.</p></header>
               <div className="studio-settings-layout">
               <nav className="studio-settings-nav" aria-label="Apartados de configuración">
-                {([['marca', 'Datos del Studio'], ['precios', 'Precios'], ['empleados', 'Empleados'], ['schedule', 'Horarios'], ['holidays', 'Vacaciones y festivos'], ['reservas', 'Reservas'], ['enlaces', 'Enlaces de reserva'], ['fichajes', 'Fichajes'], ['avisos', 'Avisos'], ['backup', 'Acceso y seguridad']] as const).map(([tab, label]) => <button type="button" key={tab} aria-current={configSubTab === tab ? 'page' : undefined} onClick={() => setConfigSubTab(tab)}>{label}</button>)}
+                {([['marca', 'Datos del Studio'], ['precios', 'Precios'], ['empleados', 'Empleados'], ['schedule', 'Horarios'], ['holidays', 'Vacaciones y festivos'], ['reservas', 'Reservas'], ['enlaces', 'Enlaces de reserva'], ['fichajes', 'Fichajes'], ['maintenance', 'Mantenimiento'], ['avisos', 'Avisos'], ['backup', 'Acceso y seguridad']] as const).map(([tab, label]) => <button type="button" key={tab} aria-current={configSubTab === tab ? 'page' : undefined} onClick={() => setConfigSubTab(tab)}>{label}</button>)}
               </nav>
               <div className="studio-settings-content"><style>{`
 .studio-settings-content :is(.studio-security-pin,.studio-security-compact) { padding:14px 16px !important; max-width:860px; box-sizing:border-box; font-size:13px; line-height:1.5; gap:12px !important; }
@@ -1000,7 +1001,7 @@ export default function AdminPanelView(props: Props) {
 :is(.studio-reservas-compact,.studio-avisos-compact) p { font-size:12px; line-height:1.5; }
 @media(max-width:640px) { :is(.studio-reservas-compact,.studio-avisos-compact) { grid-template-columns:minmax(0,1fr); padding:14px !important; } :is(.studio-reservas-compact,.studio-avisos-compact) input:not([type="checkbox"]) { font-size:16px; min-height:44px; } }
 `}</style>
-                {configSubTab !== 'holidays' && <>
+                {configSubTab !== 'holidays' && configSubTab !== 'maintenance' && <>
                 <div className="studio-settings-savebar">
                   <span role="status">{saveState === 'saving' ? 'Guardando…' : saveState === 'saved' && !configHasPendingChanges ? 'Cambios guardados' : saveState === 'error' ? 'No se pudo guardar. Reintenta.' : configHasPendingChanges ? 'Cambios pendientes' : 'Todo guardado'}</span>
                   <button type="button" disabled={(!configHasPendingChanges && saveState !== 'error') || saveState === 'saving'} onClick={() => handleSaveSection('Ajustes del Studio')}>Guardar cambios</button>
@@ -1016,6 +1017,7 @@ export default function AdminPanelView(props: Props) {
                 </div>
               )}
 </>}
+{configSubTab === 'maintenance'&&<React.Suspense fallback={<p>Cargando mantenimiento…</p>}><LazyMaintenanceSettings/></React.Suspense>}
 {configSubTab === 'precios' && <section style={{ background: '#322A25', padding: 20, borderRadius: 12, color: '#FFF8EE' }}>
   <h3 style={{ color: '#E4C687', marginTop: 0 }}>Visibilidad de precios</h3>
   <label style={{ display: 'flex', gap: 12, alignItems: 'center', minHeight: 48 }}><input type="checkbox" checked={tempConfig.showPrices !== false} onChange={e => setTempConfig(previous => ({ ...previous, showPrices: e.target.checked }))} style={{ width: 22, height: 22, accentColor: '#C5A059' }} />Mostrar precios en el portal de clientas</label>

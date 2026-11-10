@@ -1,5 +1,6 @@
 // Only application data, never authentication tokens, is routed through this cache.
 const PRIVATE_KEYS = new Set([
+  'lst_maintenance_pending',
   'lst_raffle_pending',
   'lst_club_pending', 'lst_memories_pending', 'lst_business_config', 'lst_studio_clientes_ids', 'lst_studio_appointments',
   'lst_feedback_list', 'lst_booking_attempts', 'lst_lost_demands_detailed',
