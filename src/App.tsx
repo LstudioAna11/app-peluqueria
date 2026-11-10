@@ -2191,7 +2191,8 @@ function StudioApp() {
 
   const [draggedApptId, setDraggedApptId] = useState<string | null>(null);
   const [fechaSeleccionada, setFechaSeleccionada] = useState<Date>(new Date());
-  const [mesNavegacion, setMesNavegacion] = useState<Date>(new Date(2026, 9, 1));
+  const [mesNavegacion, setMesNavegacion] = useState<Date>(() => new Date(fechaSeleccionada.getFullYear(), fechaSeleccionada.getMonth(), 1));
+  useEffect(() => { setMesNavegacion(new Date(fechaSeleccionada.getFullYear(), fechaSeleccionada.getMonth(), 1)); }, [fechaSeleccionada]);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [targetDateObj, setTargetDateObj] = useState<Date>(new Date());
@@ -4451,11 +4452,15 @@ function StudioApp() {
 
   const renderDurationAgenda = (days: { name: string; dateObj: Date; dateFormatted: string }[]) => {
     const minutes = (time: string) => { const [hour, minute] = time.split(':').map(Number); return hour * 60 + minute; };
+    const clockParts=new Intl.DateTimeFormat('en',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(agendaNow);
+    const clock=(kind:string)=>clockParts.find(p=>p.type===kind)?.value||'';
+    const nowKey=[clock('year'),clock('month'),clock('day')].join('-');
+    const nowMinute=Number(clock('hour'))*60+Number(clock('minute'));
     return <div className="studio-agenda-grid" style={{ display: 'grid', gridTemplateColumns: '52px repeat(' + days.length + ', minmax(105px, 1fr))',
       gridTemplateRows: 'auto repeat(' + hoursList.length + ', ' + agendaRowHeight + 'px)', gap: '2px',
       minWidth: days.length > 1 ? '700px' : '280px' }}>
       <div style={{ gridRow: 1, gridColumn: 1, color: '#D8C29A', padding: '8px', fontSize: '12px' }}>Hora</div>
-      {days.map((day, column) => <div key={'header-' + column} className={`studio-agenda-day-heading ${formatDateKey(day.dateObj) === formatDateKey(agendaNow) ? 'studio-agenda-today' : ''}`} style={{ gridRow: 1, gridColumn: column + 2,
+      {days.map((day, column) => <div key={'header-' + column} className={`studio-agenda-day-heading ${formatDateKey(day.dateObj) === nowKey ? 'studio-agenda-today' : ''}`} style={{ gridRow: 1, gridColumn: column + 2,
         background: '#322A25', color: '#FFF8EE', textAlign: 'center', padding: '8px', fontSize: '12px',
         borderBottom: '1px solid #C5A059' }}><strong>{day.name}</strong><div>{day.dateFormatted}</div>
       </div>)}
@@ -4464,29 +4469,31 @@ function StudioApp() {
         {days.map((day, column) => {
           const key = formatDateKey(day.dateObj);
           const holiday = isDateBlockedByHoliday(key);
-          const working = !holiday && (enableOutOfHours || isAgendaTimeWorking(day.dateObj, time));
+          const regularWorking = !holiday && isAgendaTimeWorking(day.dateObj, time);
+          const working = !holiday && (enableOutOfHours || regularWorking);
+          const blocked = timeBlockConflict(key,time);
           const occupied = appointments.some(item => isActiveAppointment(item) && item.dateKey === key && item.saturdayApproval?.status !== 'rejected' &&
             minutes(time) >= minutes(item.time) && minutes(time) < minutes(item.time) + (item.durationMinutes || 45));
-          return <button key={key} className={`studio-agenda-slot ${formatDateKey(day.dateObj) === formatDateKey(agendaNow) ? 'studio-agenda-today' : ''}`} type="button" disabled={!working || timeBlockConflict(key, time) || (occupied && !enableDoubleBooking)}
-            aria-label={day.name + ' ' + day.dateFormatted + ' ' + time + (working ? ' Crear cita' : ' No disponible')}
+          return <button key={key} className={`studio-agenda-slot ${key === nowKey ? 'studio-agenda-today' : ''} ${holiday?'is-closed':blocked?'is-blocked':!regularWorking?'is-outside':occupied?'is-occupied':'is-free'}`} type="button" disabled={!working || blocked || (occupied && !enableDoubleBooking)}
+            title={holiday?'Cierre o festivo':blocked?'Bloqueo de agenda':!regularWorking?(working?'Fuera de horario · Reserva excepcional habilitada':'Fuera de horario'):occupied?'Ocupado':'Disponible'}
+            aria-label={day.name + ' ' + day.dateFormatted + ' ' + time + (holiday?' Cierre o festivo':blocked?' Bloqueo de agenda':!regularWorking?(working?' Fuera de horario · Reserva excepcional habilitada':' Fuera de horario'):occupied?(enableDoubleBooking?' Ocupado · Solape habilitado':' Ocupado'):' Disponible · Crear cita')}
             onClick={() => chooseSlotAction(day.dateObj, day.name, time)} onDragOver={handleDragOver}
             onDrop={event => handleDrop(event, day.dateObj, day.name, time)}
             style={{ gridRow: row + 2, gridColumn: column + 2, border: '1px solid rgba(234, 220, 199, 0.35)', borderRadius: '1px',
-              background: holiday && day.dateObj.getDay() !== 6 ? '#F2DCD8' : working ? '#322A25' : 'rgba(41, 35, 31, 0.55)', color: '#FFF8EE', cursor: working ? 'pointer' : 'default',
-              padding: '2px', fontSize: '10px' }}>{holiday ? 'Cerrado' : ''}</button>;
+              background: holiday ? '#3D2C29' : !regularWorking ? '#27221E' : '#332B24', color: '#FFF8EE', cursor: working ? 'pointer' : 'default',
+              padding: '2px', fontSize: '10px' }}>{holiday && row===0 ? 'Cerrado' : ''}</button>;
         })}
       </React.Fragment>)}
       {(() => {
-        const column = days.findIndex(day => formatDateKey(day.dateObj) === formatDateKey(agendaNow));
-        const nowMinute = agendaNow.getHours() * 60 + agendaNow.getMinutes();
+        const column = days.findIndex(day => formatDateKey(day.dateObj) === nowKey);
         const row = hoursList.findIndex((time, index) => nowMinute >= minutes(time) &&
           nowMinute < Math.min(minutes(time) + agendaStep, index + 1 < hoursList.length ? minutes(hoursList[index + 1]) : 1440));
         if (column < 0 || row < 0) return null;
         const offset = Math.min(1, (nowMinute - minutes(hoursList[row])) / agendaStep) * agendaRowHeight;
-        return <div aria-label={'Hora actual: ' + agendaNow.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+        return <div className="studio-agenda-now" aria-label={'Hora actual: ' + agendaNow.toLocaleTimeString('es-ES', { timeZone:'Europe/Madrid', hour: '2-digit', minute: '2-digit' })}
           style={{ gridRow: row + 2, gridColumn: column + 2, position: 'relative', alignSelf: 'start',
-            top: offset, height: 0, borderTop: '1px solid #B8972E', zIndex: 5, pointerEvents: 'none' }}>
-          <span style={{ position: 'absolute', left: '-3px', top: '-3px', width: '5px', height: '5px', borderRadius: '50%', background: '#C99E52' }} />
+            top: offset, height: 0, borderTop: '2px solid #E5A185', zIndex: 5, pointerEvents: 'none' }}>
+          <span style={{ position: 'absolute', left: '-3px', top: '-3px', width: '5px', height: '5px', borderRadius: '50%', background: '#E5A185' }} />
         </div>;
       })()}
       {days.flatMap((day, column) => timeBlocks.filter(block => block.dateKey === formatDateKey(day.dateObj)).map(block => {
@@ -4593,7 +4600,7 @@ function StudioApp() {
               {pushError && <p role="alert" style={{ color: '#F2B8AC', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>{pushError}</p>}
             </section>);
   return (
-    <div className={selectedServicesToBook.length > 0 && ['catalogBooking', 'categoryScreen', 'serviceDetail'].includes(currentScreen) ? 'lst-has-booking-summary' : undefined} lang={currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang} dir={currentLang === 'ar' && currentScreen !== 'adminPanel' && currentScreen !== 'adminLogin' ? 'rtl' : 'ltr'} style={{ backgroundColor: '#29231F', color: '#FFF8EE', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', fontFamily: "'Garet', 'Poppins', sans-serif", margin: 0, padding: '20px 20px 96px', position: 'relative' }}>
+    <div className={selectedServicesToBook.length > 0 && ['catalogBooking', 'categoryScreen', 'serviceDetail'].includes(currentScreen) ? 'lst-has-booking-summary' : undefined} lang={currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang} dir={currentLang === 'ar' && currentScreen !== 'adminPanel' && currentScreen !== 'adminLogin' ? 'rtl' : 'ltr'} style={{ backgroundColor: '#29231F', color: '#FFF8EE', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', fontFamily: "'Garet', 'Poppins', sans-serif", margin: 0, padding: currentScreen === 'adminPanel' ? '8px 10px 24px' : '20px 20px 96px', position: 'relative' }}>
       
       <style>{`
         .lst-app-header { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 520px; padding: 4px 0 12px; }
@@ -4675,7 +4682,7 @@ function StudioApp() {
         @media (min-width: 900px) { .lst-carousel-arrow { display: flex; } }
       `}</style>
       {/* IDIOMA + SESIÓN · fila superior compacta */}
-      <div hidden={currentScreen === 'adminPanel' || currentScreen === 'adminLogin'} style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 1000, display: 'flex', alignItems: 'center', gap: '12px' }}>
+      {!['adminPanel','adminLogin'].includes(currentScreen) && <div style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 1000, display: 'flex', alignItems: 'center', gap: '12px' }}>
         {currentScreen === 'clientPortal' && (
           <button type="button" className="lst-app-header-btn" onClick={handleLogout} aria-label={t('logout')} style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, background: '#221D19', border: '1px solid rgba(212, 175, 55, 0.4)', color: '#E4C687' }}>
             <LogOut size={20} strokeWidth={1.7} aria-hidden="true" />
@@ -4694,7 +4701,7 @@ function StudioApp() {
             </div>
           </>}
         </div>
-      </div>
+      </div>}
 
       {!['clientPin', 'clientRegistration', 'adminLogin', 'adminPanel'].includes(currentScreen) && (
         <nav className="lst-bottom-nav" aria-label="Navegación principal" onClickCapture={event => { if (visualBookingBusyRef.current) { event.preventDefault(); event.stopPropagation(); } }} style={visualBookingBusy ? { pointerEvents: 'none', opacity: 0.6 } : undefined}>
@@ -5508,8 +5515,8 @@ function StudioApp() {
       )}
 
       {/* 4. PANEL DE ADMINISTRACIÓN */}
-      {currentScreen === 'adminPanel' && <div role="status" aria-live="polite" style={{width:'100%',boxSizing:'border-box',padding:'10px 14px',border:'1px solid #67543C',borderRadius:8,color:'#E4C687',fontSize:13,marginBottom:10}}>
-        <span>{liveAgenda.status}</span> <button type="button" onClick={liveAgenda.refresh} style={{background:'transparent',color:'#FFF8EE',border:'1px solid #67543C',padding:8,borderRadius:6}}>Actualizar</button>
+      {currentScreen === 'adminPanel' && <div className="studio-live-status" role="status" aria-live="polite" style={{width:'100%',maxWidth:1680,boxSizing:'border-box',display:'flex',alignItems:'center',flexWrap:'wrap',gap:8,padding:'2px 16px',color:'#D6CBB8',fontSize:12,marginBottom:0}}>
+        <span aria-hidden="true" style={{width:7,height:7,borderRadius:'50%',background:liveAgenda.status==='Agenda conectada en directo'?'#8FC98F':'#E4C687'}}/><span title={liveAgenda.status}>{liveAgenda.status==='Agenda conectada en directo'?'Conectada':liveAgenda.status}</span> <button type="button" onClick={liveAgenda.refresh} style={{minHeight:36,background:'transparent',color:'#E4C687',border:'1px solid #67543C',padding:'5px 10px',borderRadius:7}}>Actualizar</button>
         {liveAgenda.notice&&<div style={{marginTop:8,color:'#FFF8EE'}}>{liveAgenda.notice} <button type="button" onClick={liveAgenda.dismiss}>Cerrar aviso</button></div>}
       </div>}
       {currentScreen === 'adminPanel' && <React.Suspense fallback={<div role="status" style={{padding:32,color:'#E4C687',textAlign:'center'}}>Cargando la intranet…</div>}><LazyAdminPanelView onLogout={handleLogout} onPromotionsSaved={syncFromServer} bookingName={bookingName} appointmentServiceNames={appointmentServiceNames} compactVisitText={compactVisitText} AGENDA_SWATCHES={AGENDA_SWATCHES} DEFAULT_BRAND_LOGO={DEFAULT_BRAND_LOGO} DEFAULT_HEADER_LOGO={DEFAULT_HEADER_LOGO} FINISH_COPY={FINISH_COPY} TRANSLATIONS={TRANSLATIONS} activeEmployees={activeEmployees} adminCatalogSearch={adminCatalogSearch} adminCatalogStatus={adminCatalogStatus} adminTab={adminTab} agendaExpanded={agendaExpanded} agendaLayoutRef={agendaLayoutRef} agendaSwatch={agendaSwatch} agendaViewMode={agendaViewMode} anioMini={anioMini} appointmentSearch={appointmentSearch} appointmentSearchQuery={appointmentSearchQuery} appointmentSearchResults={appointmentSearchResults} appointments={appointments} attemptClock={attemptClock} bizConfig={bizConfig} bookingAttempts={bookingAttempts} busquedaCliente={busquedaCliente} cambiarMesMiniCal={cambiarMesMiniCal} catalog={catalog} catalogEditorId={catalogEditorId} catalogEditorTab={catalogEditorTab} catalogHasChanges={catalogHasChanges} catalogSavedMsg={catalogSavedMsg} catalogTranslationLang={catalogTranslationLang} clientStatusBusy={clientStatusBusy} clientStatusError={clientStatusError} clientStatusFilter={clientStatusFilter} clientsPageCount={clientsPageCount} configHasPendingChanges={configHasPendingChanges} configSubTab={configSubTab} crmPeriod={crmPeriod} crmView={crmView} dashboardEnd={dashboardEnd} dashboardStart={dashboardStart} demandEnd={demandEnd} demandFilter={demandFilter} demandStart={demandStart} detractorReplies={detractorReplies} diaSeleccionadoObj={diaSeleccionadoObj} diasRejillaMini={diasRejillaMini} editAdminDniCapilar={editAdminDniCapilar} editAdminFormulas={editAdminFormulas} editAdminPrescripcionCasa={editAdminPrescripcionCasa} editAdminProxima={editAdminProxima} editAdminUltimaVisita={editAdminUltimaVisita} editingClientId={editingClientId} effectiveClientsPage={effectiveClientsPage} emailConfigStatus={emailConfigStatus} employeePhotoBusy={employeePhotoBusy} enableDoubleBooking={enableDoubleBooking} enableOutOfHours={enableOutOfHours} expandedCategories={expandedCategories} expandedClientId={expandedClientId} fallbackHeaderLogo={fallbackHeaderLogo} fechaSeleccionada={fechaSeleccionada} feedbackList={feedbackList} feedbackRatingFilter={feedbackRatingFilter} feedbackStatusBusy={feedbackStatusBusy} filteredClientRows={filteredClientRows} formatDateKey={formatDateKey} googleCalendarConnected={googleCalendarConnected} googleCalendarSyncActive={googleCalendarSyncActive} handleAddCategorySubmit={handleAddCategorySubmit} handleAddSubserviceSubmit={handleAddSubserviceSubmit} handleAddVariant={handleAddVariant} handleCategoryPhotoDelete={handleCategoryPhotoDelete} handleCategoryPhotoSelect={handleCategoryPhotoSelect} handleCellClick={handleCellClick} handleClientStatus={handleClientStatus} handleDeleteClient={handleDeleteClient} handleDeleteCategory={handleDeleteCategory} handleDeleteSubservice={handleDeleteSubservice} handleDeleteVariant={handleDeleteVariant} handleFeedbackResolution={handleFeedbackResolution} handleGuardarEdicionAdminCliente={handleGuardarEdicionAdminCliente} handleGuardarNuevoCliente={handleGuardarNuevoCliente} handleMoveCategory={handleMoveCategory} handleSaveCatalogMaster={handleSaveCatalogMaster} handleSaveSection={handleSaveSection} handleServicePhotoDelete={handleServicePhotoDelete} handleServicePhotoSelect={handleServicePhotoSelect} handleToggleVariants={handleToggleVariants} handleUpdateCategoryCode={handleUpdateCategoryCode} handleUpdateCategoryTitle={handleUpdateCategoryTitle} headerLogoSrc={headerLogoSrc} holidaysList={holidaysList} hoursList={hoursList} isActiveAppointment={isActiveAppointment} isAddingCategory={isAddingCategory} isAddingClient={isAddingClient} isAddingSub={isAddingSub} isDateBlockedByHoliday={isDateBlockedByHoliday} isFinish={isFinish} isTimeSlotOccupied={isTimeSlotOccupied} listaClientes={listaClientes} logoUploadBusy={logoUploadBusy} logoUploadMessage={logoUploadMessage} lostDemandsList={lostDemandsList} mailboxError={mailboxError} mailboxFilter={mailboxFilter} mesMini={mesMini} newCatCode={newCatCode} newCatTitle={newCatTitle} newHolidayEnd={newHolidayEnd} newHolidayReason={newHolidayReason} newHolidayStart={newHolidayStart} newHolidayType={newHolidayType} newSubAchieved={newSubAchieved} newSubAlertBadge={newSubAlertBadge} newSubAlertText={newSubAlertText} newSubDesc={newSubDesc} newSubDur={newSubDur} newSubIncludes={newSubIncludes} newSubName={newSubName} newSubPrice={newSubPrice} newSubPriceType={newSubPriceType} newVariantDuration={newVariantDuration} newVariantName={newVariantName} newVariantPrice={newVariantPrice} nombresMeses={nombresMeses} normalizeCatalogSearch={normalizeCatalogSearch} normalizeEmail={normalizeEmail} novoApellidos={novoApellidos} novoDiagnostico={novoDiagnostico} novoEmail={novoEmail} novoNacimiento={novoNacimiento} novoNombre={novoNombre} novoPin={novoPin} novoTelefono={novoTelefono} openPassportEditor={openPassportEditor} opportunityPage={opportunityPage} opportunitySearch={opportunitySearch} opportunityStatus={opportunityStatus} photoUploadBusy={photoUploadBusy} renderAgendaLinks={renderAgendaLinks} renderDurationAgenda={renderDurationAgenda} returnToAppointmentId={returnToAppointmentId} saveErrorMsg={saveErrorMsg} saveState={saveState} savedMsg={savedMsg} semanaActual={semanaActual} setAdminCatalogSearch={setAdminCatalogSearch} setAdminCatalogStatus={setAdminCatalogStatus} setAdminTab={setAdminTab} setAgendaExpanded={setAgendaExpanded} setAgendaSidePanel={setAgendaSidePanel} setAgendaSwatch={setAgendaSwatch} setAgendaViewMode={setAgendaViewMode} setAppointmentSearch={setAppointmentSearch} setBookingAttempts={setBookingAttempts} setBusquedaCliente={setBusquedaCliente} setCatalog={setCatalog} setCatalogEditorId={setCatalogEditorId} setCatalogEditorTab={setCatalogEditorTab} setCatalogTranslationLang={setCatalogTranslationLang} setClientDetailsDraft={setClientDetailsDraft} setClientStatusFilter={setClientStatusFilter} setClientsPage={setClientsPage} setConfigSubTab={setConfigSubTab} setCrmPeriod={setCrmPeriod} setCrmView={setCrmView} setCurrentScreen={setCurrentScreen} setDashboardEnd={setDashboardEnd} setDashboardStart={setDashboardStart} setDemandEnd={setDemandEnd} setDemandFilter={setDemandFilter} setDemandStart={setDemandStart} setDetractorReplies={setDetractorReplies} setEditAdminDniCapilar={setEditAdminDniCapilar} setEditAdminFormulas={setEditAdminFormulas} setEditAdminPrescripcionCasa={setEditAdminPrescripcionCasa} setEditAdminProxima={setEditAdminProxima} setEditAdminUltimaVisita={setEditAdminUltimaVisita} setEditingClientId={setEditingClientId} setEnableDoubleBooking={setEnableDoubleBooking} setEnableOutOfHours={setEnableOutOfHours} setExpandedCategories={setExpandedCategories} setExpandedClientId={setExpandedClientId} setFechaSeleccionada={setFechaSeleccionada} setFeedbackRatingFilter={setFeedbackRatingFilter} setGoogleCalendarConnected={setGoogleCalendarConnected} setGoogleCalendarSyncActive={setGoogleCalendarSyncActive} setHolidaysList={setHolidaysList} setIsAddingCategory={setIsAddingCategory} setIsAddingClient={setIsAddingClient} setIsAddingSub={setIsAddingSub} setLogoUploadMessage={setLogoUploadMessage} setLostDemandsList={setLostDemandsList} setMailboxFilter={setMailboxFilter} setMesNavegacion={setMesNavegacion} setModalServices={setModalServices} setNewCatCode={setNewCatCode} setNewCatTitle={setNewCatTitle} setNewHolidayEnd={setNewHolidayEnd} setNewHolidayReason={setNewHolidayReason} setNewHolidayStart={setNewHolidayStart} setNewHolidayType={setNewHolidayType} setNewSubAchieved={setNewSubAchieved} setNewSubAlertBadge={setNewSubAlertBadge} setNewSubAlertText={setNewSubAlertText} setNewSubDesc={setNewSubDesc} setNewSubDur={setNewSubDur} setNewSubIncludes={setNewSubIncludes} setNewSubName={setNewSubName} setNewSubPrice={setNewSubPrice} setNewSubPriceType={setNewSubPriceType} setNewVariantDuration={setNewVariantDuration} setNewVariantName={setNewVariantName} setNewVariantPrice={setNewVariantPrice} setNovoApellidos={setNovoApellidos} setNovoDiagnostico={setNovoDiagnostico} setNovoEmail={setNovoEmail} setNovoNacimiento={setNovoNacimiento} setNovoNombre={setNovoNombre} setNovoPin={setNovoPin} setNovoTelefono={setNovoTelefono} setOpportunityPage={setOpportunityPage} setOpportunitySearch={setOpportunitySearch} setOpportunityStatus={setOpportunityStatus} setPendingPanelFilter={setPendingPanelFilter} setPreviewServiceId={setPreviewServiceId} setPreviewVariantId={setPreviewVariantId} setReturnToAppointmentId={setReturnToAppointmentId} setSelectedServicesToBook={setSelectedServicesToBook} setTempConfig={setTempConfig} setViewApptModal={setViewApptModal} t={t} tempConfig={tempConfig} timeBlocks={timeBlocks} trafficEvents={trafficEvents} translationLanguagePicker={translationLanguagePicker} updateEmployee={updateEmployee} updateServiceTranslation={updateServiceTranslation} updateSubserviceField={updateSubserviceField} uploadEmployeePhoto={uploadEmployeePhoto} uploadStudioLogo={uploadStudioLogo} visibleClientRows={visibleClientRows} whatsappConfigStatus={whatsappConfigStatus} workingRanges={workingRanges} /></React.Suspense>}
@@ -6342,7 +6349,7 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
   useEffect(()=>{
     if(!enabled)return;
     let stopped=false,client:ReturnType<typeof createClient>|null=null,channel:ReturnType<ReturnType<typeof createClient>['channel']>|null=null;
-    let timer:ReturnType<typeof setTimeout>|undefined,busy=false,again=false,ready=false;
+    let timer:ReturnType<typeof setTimeout>|undefined,busy=false,again=false,ready=false,liveSubscribed=false,connectionFailed=false;
     let ids=new Set<string>();
     const token=studioApi.currentToken();
     const refresh=async()=>{
@@ -6357,6 +6364,7 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
         const added=ready?data.appointments.filter(row=>!ids.has(String(row.id))):[];
         ids=nextIds;ready=true;
         applyRef.current(data.appointments,data.timeBlocks!);
+        setStatus(liveSubscribed?'Agenda conectada en directo':connectionFailed?'Agenda actualizada · sin conexión en directo':'Agenda actualizada · conexión en curso');
         if(added.length)setNotice(added.length===1?'Nueva cita recibida':'Nuevas citas recibidas: '+added.length);
       }catch(error){if(!stopped)setStatus('No se pudo actualizar la agenda. Pulsa Actualizar.');}
       finally{busy=false;if(again&&!stopped){again=false;void refresh();}}
@@ -6365,7 +6373,7 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
     refreshRef.current=()=>void refresh();
     let connectionGeneration=0;
     const connect=async()=>{
-      const generation=++connectionGeneration;
+      const generation=++connectionGeneration;connectionFailed=false;
       if(!token||document.hidden||stopped)return;
       try{
         const [config,{createClient}]=await Promise.all([studioApi.fetchAgendaLive(token),import('@supabase/supabase-js')]);
@@ -6374,13 +6382,13 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
         channel=client.channel(config.topic,{config:{private:false}})
           .on('broadcast',{event:'appointments_changed'},schedule)
           .subscribe((state)=>{
-            if(stopped)return;
-            if(state==='SUBSCRIBED'){setStatus('Agenda conectada en directo');void refresh();}
-            else if(state==='CHANNEL_ERROR'||state==='TIMED_OUT'||state==='CLOSED')setStatus('Conexión de agenda interrumpida. Pulsa Actualizar.');
+            if(stopped||generation!==connectionGeneration)return;
+            if(state==='SUBSCRIBED'){liveSubscribed=true;connectionFailed=false;setStatus('Actualizando agenda…');void refresh();}
+            else if(state==='CHANNEL_ERROR'||state==='TIMED_OUT'||state==='CLOSED'){liveSubscribed=false;connectionFailed=true;setStatus('Conexión de agenda interrumpida. Pulsa Actualizar.');}
           });
-      }catch(error){if(!stopped)setStatus((error instanceof Error?error.message:'No se pudo conectar la agenda en directo.')+' Pulsa Actualizar.');}
+      }catch(error){if(!stopped&&generation===connectionGeneration){connectionFailed=true;setStatus((error instanceof Error?error.message:'No se pudo conectar la agenda en directo.')+' Pulsa Actualizar.');}}
     };
-    const disconnect=()=>{connectionGeneration++;if(client&&channel)void client.removeChannel(channel);channel=null;if(client)client.realtime.disconnect();client=null;};
+    const disconnect=()=>{connectionGeneration++;liveSubscribed=false;if(client&&channel)void client.removeChannel(channel);channel=null;if(client)client.realtime.disconnect();client=null;};
     const visibility=()=>{if(document.hidden){disconnect();setStatus('Agenda en pausa mientras esta pestaña está oculta');}else void connect();};
     const focus=()=>{if(!document.hidden)void refresh();};
     refreshRef.current=()=>{setStatus('Reconectando la agenda…');disconnect();void connect();void refresh();};
