@@ -1377,19 +1377,22 @@ export default function AdminPanelView(props: Props) {
                 .studio-service-editor[data-editor-tab=booking] .studio-editor-options { display: none !important; }
 .studio-catalog-savebar { position: sticky; top: 0; z-index: 20; background: #322A25; border-bottom: 1px solid rgba(212, 175, 55, 0.35); padding: 12px 0; }
                 .studio-catalog-savebar h3 { font-size: 24px !important; }
-                .studio-catalog-category { padding: 10px 12px !important; gap: 7px !important; background: #322A25 !important; border-color: #5A5248 !important; }
+                .studio-catalog-compact button:focus-visible, .studio-catalog-compact summary:focus-visible { outline: 2px solid #E4C687; outline-offset: 3px; }
+                .studio-catalog-save:disabled { background: #3E342C !important; color: #D6CBB8 !important; border: 1px solid #655039 !important; cursor: default !important; }
+                .studio-catalog-creative-title { color: #D6CBB8; font-size: 13px; line-height: 1.5; margin: 0 0 8px; overflow-wrap: anywhere; }
+                .studio-catalog-category { padding: 12px 14px !important; gap: 4px !important; background: #322A25 !important; border-color: #5A5248 !important; }
                 .studio-catalog-category > div:first-child { padding: 4px !important; gap: 10px !important; }
                 .studio-catalog-category h3 { font-size: 20px !important; margin: 4px 0 !important; }
                 .studio-catalog-category > details:not([open]) { padding: 8px 10px !important; background: transparent !important; border: none !important; }
-                .studio-catalog-category > details > summary { font-size: 11px !important; }
-                .studio-catalog-service-row { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 7px !important; padding: 8px 10px !important; background: #322A25 !important; border: 1px solid #C5A059 !important; border-radius: 6px !important; }
+                .studio-catalog-category > details > summary { font-size: 13px !important; }
+                .studio-catalog-service-row { display: grid !important; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 7px !important; padding: 14px !important; background: #29231F !important; border: 1px solid #4B4035 !important; border-radius: 8px !important; }
                 .studio-catalog-service-heading { padding: 0 !important; gap: 10px !important; }
                 .studio-catalog-service-heading > div:first-child { flex: 1 1 180px !important; }
-                .studio-catalog-service-heading h4 { font-family: 'Garet', 'Poppins', sans-serif !important; font-size: 14px !important; margin: 0 0 4px !important; }
-                .studio-catalog-service-heading span { font-size: 12px !important; }
+                .studio-catalog-service-heading h4 { font-family: 'Garet', 'Poppins', sans-serif !important; font-size: 16px !important; margin: 0 0 6px !important; letter-spacing: normal !important; font-weight: 600 !important; }
+                .studio-catalog-service-heading span { font-size: 14px !important; }
                 .studio-catalog-service-heading button { min-height: 38px !important; padding: 8px 10px !important; font-size: 12px !important; }
                 .studio-catalog-service-row > .studio-service-editor:not([open]) { padding: 0 !important; border: none !important; background: transparent !important; }
-                .studio-catalog-service-row > .studio-service-editor > summary { list-style: none; padding: 10px 12px !important; background: #322A25; border: 1px solid #C5A059; border-radius: 6px; font-size: 12px !important; color: #E4C687 !important; cursor: pointer; }
+                .studio-catalog-service-row > .studio-service-editor > summary { list-style: none; padding: 10px 12px !important; background: #C49A58; border: 1px solid #C49A58; border-radius: 7px; font-size: 14px !important; color: #29231F !important; font-weight: 700; cursor: pointer; }
                 .studio-catalog-service-row > .studio-service-editor[open] { grid-column: 1 / -1; }
                 @media (max-width: 700px) {
                   .studio-catalog-service-row { grid-template-columns: 1fr !important; }
@@ -1440,25 +1443,24 @@ export default function AdminPanelView(props: Props) {
 
               <div className="studio-catalog-savebar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
-                  <h3 style={{ color: '#E4C687', fontSize: '28px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Catálogo · Servicios y experiencias</h3>
-                  <p style={{ color: '#D6CBB8', fontSize: '14px', margin: 0 }}>Gestiona servicios, precios y packs. Guarda los cambios para conservarlos en el catálogo de este navegador.</p>
+                  <h3 style={{ color: '#E4C687', fontSize: '28px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Catálogo</h3>
+                  <p style={{ color: '#D6CBB8', fontSize: '14px', margin: 0 }}>Gestiona servicios, precios y duración. Guarda los cambios para actualizarlos en el servidor y en el portal.</p>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
                   <button onClick={() => setIsAddingCategory(true)} style={{ backgroundColor: 'transparent', border: '1px solid #B98A3E', color: '#E4C687', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer' }}>+ Nueva Categoría</button>
-                  <span role="status" aria-live="polite" style={{ fontSize: '12px', color: catalogHasChanges ? '#B3823B' : '#2E7D32' }}>{catalogHasChanges ? 'Cambios pendientes' : 'Catálogo guardado'}</span>
-                  <button onClick={handleSaveCatalogMaster} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', boxShadow: 'none' }}>Guardar catálogo</button>
+                  <span role="status" aria-live="polite" style={{ fontSize: '12px', color: catalogHasChanges ? '#F2D18A' : '#BDE1B8' }}>{catalogHasChanges ? 'Cambios sin guardar' : 'Catálogo guardado'}</span>
+                  <button type="button" className="studio-catalog-save" disabled={!catalogHasChanges || photoUploadBusy} onClick={handleSaveCatalogMaster} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '10px 18px', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', boxShadow: 'none' }}>Guardar catálogo</button>
                 </div>
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '10px', padding: '16px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)' }}>
                 <input type="search" aria-label="Buscar categoría o servicio" placeholder="Buscar categoría o servicio…" value={adminCatalogSearch} onChange={e => setAdminCatalogSearch(e.target.value)} style={{ flex: '1 1 200px', minWidth: 0, padding: '12px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '7px', fontSize: '14px' }} />
-                <span style={{ color: '#D6CBB8', fontSize: '13px' }}>{catalog.flatMap(cat => cat.subservices).filter(sub => sub.active !== false).length} activos · {catalog.flatMap(cat => cat.subservices).filter(sub => sub.active === false).length} desactivados</span>
               </div>
               {adminCatalogSearch.trim() && !catalog.some(cat => normalizeCatalogSearch(cat.title + ' ' + (cat.portalTitle || '')).includes(normalizeCatalogSearch(adminCatalogSearch)) || cat.subservices.some(sub => normalizeCatalogSearch(sub.name + ' ' + bookingName(sub)).includes(normalizeCatalogSearch(adminCatalogSearch)))) && <p style={{ color: '#D6CBB8', fontSize: '14px' }}>No hay servicios que coincidan con esta búsqueda.</p>}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {([['all', 'Todos'], ['active', 'Activos'], ['inactive', 'Desactivados']] as const).map(([status, label]) => <button type="button" key={status} aria-pressed={adminCatalogStatus === status} onClick={() => setAdminCatalogStatus(status)} style={{ padding: '10px 16px', minHeight: '44px', backgroundColor: adminCatalogStatus === status ? '#8F6D24' : '#3E342C', color: adminCatalogStatus === status ? '#2C2521' : '#2C2521', border: '1px solid #3A312A', borderRadius: '8px', cursor: 'pointer' }}>{label}</button>)}
+                {([['all', 'Todos'], ['active', 'Activos'], ['inactive', 'Desactivados']] as const).map(([status, label]) => <button type="button" key={status} aria-pressed={adminCatalogStatus === status} onClick={() => setAdminCatalogStatus(status)} style={{ padding: '10px 16px', minHeight: '44px', backgroundColor: adminCatalogStatus === status ? '#C49A58' : '#29231F', color: adminCatalogStatus === status ? '#29231F' : '#FFF8EE', border: '1px solid #3A312A', borderRadius: '8px', cursor: 'pointer' }}>{label} · {catalog.flatMap(category => category.subservices).filter(service => status === 'all' || (status === 'active' ? service.active !== false : service.active === false)).length}</button>)}
               </div>
               {catalogSavedMsg && (
-                <div style={{ padding: '12px', backgroundColor: '#8FC98F', border: '1px solid #44bb44', color: '#2E7D32', borderRadius: '8px', fontSize: '12px', textAlign: 'center', fontWeight: 'bold' }}>
+                <div role="status" aria-live="polite" style={{ padding: '12px', backgroundColor: '#29231F', border: '1px solid #655039', color: '#FFF8EE', borderRadius: '8px', fontSize: '12px', textAlign: 'center', fontWeight: 'bold' }}>
                   {catalogSavedMsg}
                 </div>
               )}
@@ -1487,16 +1489,16 @@ export default function AdminPanelView(props: Props) {
                     <div className="studio-catalog-category" key={cat.id} style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '10px', padding: '15px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px', padding: '8px' }}>
                         <div style={{ flex: '1 1 240px' }}>
-                          <span style={{ color: '#E4C687', fontSize: '11px', letterSpacing: '1px' }}>{cat.code} · CATEGORÍA</span>
                           <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '24px', fontWeight: 'normal', lineHeight: 1.4, margin: '8px 0' }}>{cat.title}</h3>
                           <span style={{ color: '#D6CBB8', fontSize: '13px' }}>{cat.subservices.length} servicios · {cat.subservices.filter(sub => sub.active !== false).length} activos</span>
                         </div>
-                        <button type="button" aria-expanded={isCategoryExpandedAdmin} onClick={() => setExpandedCategories({ ...expandedCategories, [`admin_cat_${cat.id}`]: !isCategoryExpandedAdmin })} style={{ background: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>{isCategoryExpandedAdmin ? 'Ocultar servicios −' : 'Ver servicios +'}</button>
+                        <button type="button" aria-expanded={isCategoryExpandedAdmin} onClick={() => setExpandedCategories({ ...expandedCategories, [`admin_cat_${cat.id}`]: !isCategoryExpandedAdmin })} style={{ background: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '14px', cursor: 'pointer' }}>{isCategoryExpandedAdmin ? 'Ocultar servicios ▴' : 'Ver servicios ▾'}</button>
                       </div>
                       <details style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '9px', padding: '14px' }}>
-                        <summary style={{ color: '#E4C687', cursor: 'pointer', fontSize: '13px' }}>Editar categoría y ordenar</summary>
+                        <summary style={{ color: '#E4C687', cursor: 'pointer', fontSize: '13px' }}>Opciones de categoría</summary>
                         
 
+                        <p style={{color:'#D6CBB8',fontSize:13}}>Edita el nombre, la fotografía y el orden de esta categoría.</p>
                         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: '12px', marginTop: '16px' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%', backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px' }}>
                             <label style={{ color: '#E4C687', fontSize: '12px', fontWeight: 'bold' }}>Fotografía de la categoría</label>
@@ -1542,8 +1544,8 @@ export default function AdminPanelView(props: Props) {
                             return (
                               <div className="studio-catalog-service-row" key={sub.id} style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                                 <div className="studio-catalog-service-heading" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '14px', padding: '8px' }}>
-                                  <div style={{ flex: '1 1 220px' }}><h4 style={{ color: '#FFF8EE', fontSize: '18px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', lineHeight: 1.4, margin: '0 0 8px' }}>{sub.name}</h4><span style={{ color: '#E4C687', fontSize: '14px' }}>{sub.price}</span><span style={{ color: '#D6CBB8', fontSize: '13px', marginLeft: '14px' }}>{sub.duration}</span></div>
-                                  <span style={{ color: sub.active === false ? '#5C5248' : '#2E7D32', border: '1px solid #3A312A', borderRadius: '20px', padding: '6px 12px', fontSize: '12px' }}>{sub.active === false ? 'Desactivado' : 'Activo'}</span>
+                                  <div style={{ flex: '1 1 220px' }}><h4 style={{ color: '#FFF8EE', fontSize: '18px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', lineHeight: 1.4, margin: '0 0 8px' }}>{bookingName(sub)}</h4>{sub.name.trim() !== bookingName(sub).trim() && <p className="studio-catalog-creative-title">{sub.name}</p>}<span style={{ color: '#E4C687', fontSize: '14px' }}>{sub.price}</span><span style={{ color: '#D6CBB8', fontSize: '13px', marginLeft: '8px' }}>· {sub.duration}</span></div>
+                                  <span style={{ color: sub.active === false ? '#F5C7B8' : '#BDE1B8', border: '1px solid #3A312A', borderRadius: '20px', padding: '6px 12px', fontSize: '12px' }}>{sub.active === false ? 'Desactivado' : 'Activo'}</span>
                                   <button type="button" onClick={() => { setPreviewServiceId(sub.id); setPreviewVariantId(sub.hasVariants ? sub.variants?.[0]?.id || '' : ''); }} style={{ background: 'none', color: '#E4C687', border: '1px solid #C5A059', borderRadius: '7px', padding: '10px 14px', minHeight: '44px', cursor: 'pointer' }}>Vista previa</button>
                                 </div>
                                 <details open={catalogEditorId === sub.id} onToggle={event => {
@@ -1553,7 +1555,7 @@ export default function AdminPanelView(props: Props) {
                                   <summary style={{ color: '#E4C687', fontSize: '14px', cursor: 'pointer', padding: '8px 0' }}>Editar</summary>
                                   <div className="studio-editor-toolbar">
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px' }}>
-                                      <h3 style={{ color: '#FFF8EE', fontSize: '22px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>{sub.name}</h3>
+                                      <h3 style={{ color: '#FFF8EE', fontSize: '22px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>{bookingName(sub)}</h3>
                                       <button type="button" onClick={() => setCatalogEditorId(null)}>Cerrar</button>
                                     </div>
                                     <nav aria-label="Apartados del servicio" style={{ display: 'flex', flexWrap: 'wrap', gap: '7px', margin: '15px 0' }}>
@@ -1562,9 +1564,9 @@ export default function AdminPanelView(props: Props) {
                                           style={{ background: catalogEditorTab === tab ? '#8F6D24' : '#3E342C', color: catalogEditorTab === tab ? '#2C2521' : '#8F6D24', padding: '10px', border: '1px solid #C5A059', borderRadius: '6px', cursor: 'pointer' }}>{label}</button>)}
                                     </nav>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-                                      <button type="button" onClick={handleSaveCatalogMaster} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', padding: '10px', border: 0, cursor: 'pointer' }}>Guardar cambios</button>
+                                      <button type="button" className="studio-catalog-save" disabled={!catalogHasChanges || photoUploadBusy} onClick={handleSaveCatalogMaster} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', padding: '10px', border: 0, cursor: 'pointer' }}>Guardar cambios</button>
                                       <button type="button" onClick={() => { setPreviewServiceId(sub.id); setPreviewVariantId(sub.hasVariants ? sub.variants?.[0]?.id || '' : ''); }}>Vista previa</button>
-                                      <span style={{ color: '#D6CBB8', fontSize: '12px' }}>{catalogHasChanges ? 'Cambios pendientes' : 'Catálogo guardado'}</span>
+                                      <span style={{ color: '#D6CBB8', fontSize: '12px' }}>{catalogHasChanges ? 'Cambios sin guardar' : 'Catálogo guardado'}</span>
                                     </div>
                                     <p style={{ color: '#D6CBB8', fontSize: '11px', marginBottom: 0 }}>Guardar conserva todos los cambios pendientes del catálogo.</p>
                                     {catalogSavedMsg && <p role="status" style={{ color: '#2E7D32', fontSize: '12px' }}>{catalogSavedMsg}</p>}
@@ -1592,7 +1594,7 @@ export default function AdminPanelView(props: Props) {
                                       const updatedName = e.target.value;
                                       setCatalog(catalog.map(c => c.id === cat.id ? { ...c, subservices: c.subservices.map(s => s.id === sub.id ? { ...s, name: updatedName } : s) } : c));
                                     }} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', flex: 1 }} /></label>
-                                    <label className="studio-base-field">Nombre corto en citas<input type="text" maxLength={100} value={sub.bookingName ?? bookingName(sub)} placeholder="Styling & Peinados" onChange={event => updateSubserviceField(cat.id, sub.id, { bookingName: event.target.value })} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '4px 8px', borderRadius: 4, fontSize: 12, minWidth: 160 }} /><small style={{display:'block',color:'#D6CBB8',fontSize:11,marginTop:5}}>Se usa en las citas, agenda, resumen de reserva y cita rápida. El título creativo se conserva en el catálogo del portal.</small></label>
+                                    <label className="studio-base-field">Nombre corto · intranet y citas<input type="text" maxLength={100} value={sub.bookingName ?? bookingName(sub)} placeholder="Styling & Peinados" onChange={event => updateSubserviceField(cat.id, sub.id, { bookingName: event.target.value })} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '4px 8px', borderRadius: 4, fontSize: 12, minWidth: 160 }} /><small style={{display:'block',color:'#D6CBB8',fontSize:11,marginTop:5}}>Se usa en el listado de servicios de la intranet, las citas, agenda, resumen de reserva y cita rápida. El título creativo se conserva en el catálogo del portal.</small></label>
                                     <label className="studio-base-field">Tipo de precio<select aria-label={'Tipo de precio de '+bookingName(sub)} value={sub.priceType||'fijo'} onChange={event=>updateSubserviceField(cat.id,sub.id,{priceType:event.target.value as SubService['priceType']})} style={{backgroundColor:'#322A25',border:'1px solid #B98A3E',color:'#FFF8EE',padding:'8px',borderRadius:4,fontSize:13,minHeight:42,minWidth:130}}>
                                       <option value="fijo">Fijo</option>
                                       <option value="desde">Desde</option>
@@ -1837,7 +1839,7 @@ export default function AdminPanelView(props: Props) {
                 })}
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-                <button onClick={handleSaveCatalogMaster} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '12px 24px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: 'none' }}>Guardar catálogo</button>
+                <button type="button" className="studio-catalog-save" disabled={!catalogHasChanges || photoUploadBusy} onClick={handleSaveCatalogMaster} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '12px 24px', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', boxShadow: 'none' }}>Guardar catálogo</button>
               </div>
             </div>
           )}
@@ -2131,3 +2133,5 @@ export default function AdminPanelView(props: Props) {
 }
 
 // lst-client-list-v1
+
+// lst-catalog-layout-v1
