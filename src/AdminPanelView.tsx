@@ -2,6 +2,7 @@ import {ClientPermissionStatus,PrivacyDocumentsPanel} from './ClientPermissions'
 import {BookingLinksPanel} from './BookingLinks';
 import BirthdayPanel from './BirthdayPanel';
 import ClientExcelExport from './ClientExcelExport';
+import {clientVisitSummary} from './clientListSummary';
 import {captureOfflineSnapshot} from './OfflineIntranet';
 import {privateStorage} from './PrivateSessionGate';
 import { ClientPhotoGallery, StudioNews, VoucherPanel, voucherServiceOptions, NpsSummary, feedbackGroup, feedbackGroupLabel, feedbackInPeriod } from './App';
@@ -58,6 +59,9 @@ interface Props {
   fechaSeleccionada: Date;
   hoursList: string[];
   isTimeSlotOccupied: (dateKey: string, timeStr: string) => boolean;
+  clientForAppointment: ClientRecord | null;
+  onStartClientAppointment: (client: ClientRecord) => void;
+  onCancelClientAppointment: () => void;
   handleCellClick: (targetDate: Date, dayName: string, time: string) => void;
   diaSeleccionadoObj: { name: string; dateObj: Date; dateFormatted: string; };
   appointments: Appointment[];
@@ -801,6 +805,7 @@ export default function AdminPanelView(props: Props) {
             <div ref={agendaLayoutRef} className={`studio-agenda-layout ${agendaSummaryOpen?'has-summary':'summary-closed'}`} style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
               <div className="studio-calendar-main" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '15px', minWidth: 0, overflowX: 'auto' }}>
 
+                {props.clientForAppointment && <div role="status" style={{padding:14,border:'1px solid #C49A58',borderRadius:10,color:'#FFF8EE',display:'flex',gap:12,alignItems:'center',flexWrap:'wrap'}}><span style={{flex:'1 1 220px'}}>Nueva cita para <strong>{props.clientForAppointment.nombre} {props.clientForAppointment.apellidos}</strong>. Elige el día y pulsa un hueco libre.</span><button type="button" className="studio-btn-ghost" onClick={props.onCancelClientAppointment}>Cancelar selección</button></div>}
                 <details className="studio-mobile-summary"><summary>Resumen de hoy · {todaySummary.length} citas · {approvalSummaryCount + paymentSummaryCount} gestiones pendientes</summary>{renderCompactDaySummary()}</details>
                 <div className="studio-agenda-toolbar" role="group" aria-label="Controles de agenda">
                   <button type="button" onClick={() => setFechaSeleccionada(new Date())} style={{ padding: '9px 14px', border: '1px solid #C5A059', borderRadius: 8, cursor: 'pointer' }}>Hoy</button>
@@ -1840,7 +1845,6 @@ export default function AdminPanelView(props: Props) {
           {/* TAB 4: CLIENTES & ADN CAPILAR */}
           {adminTab === 'clients' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <ClientExcelExport />
               {returnToAppointmentId && <button type="button" onClick={() => {
                 const appointment = appointments.find(item => item.id === returnToAppointmentId);
                 setAdminTab('agenda'); setReturnToAppointmentId(null);
@@ -1853,12 +1857,15 @@ export default function AdminPanelView(props: Props) {
                 border: '1px solid #C5A059', borderRadius: '7px', cursor: 'pointer' }}>← Volver a la cita</button>}
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
-                  <h3 style={{ color: '#E4C687', fontSize: '28px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Clientas · Cuidado y seguimiento</h3>
-                  <p style={{ color: '#D6CBB8', fontSize: '14px', margin: 0 }}>Consulta sus datos, cuida su evolución y actualiza su pasaporte. Las bajas conservan la ficha y el historial; no cancelan citas ni bloquean el acceso al portal.</p>
+                  <h3 style={{ color: '#E4C687', fontSize: '28px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Clientas</h3>
+                  <p style={{ color: '#D6CBB8', fontSize: '14px', margin: 0 }}>Sus datos, próximas citas y seguimiento, en un mismo lugar.</p>
                 </div>
-                <button onClick={() => setIsAddingClient(!isAddingClient)} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>
-                  {isAddingClient ? 'Cancelar' : '+ Dar de Alta Clienta'}
+                <div style={{display:'flex',alignItems:'flex-start',gap:10,flexWrap:'wrap'}}>
+                <button type="button" onClick={() => setIsAddingClient(!isAddingClient)} style={{background:'#C49A58',color:'#29231F',border:0,padding:'11px 16px',borderRadius:8,fontSize:14,fontWeight:700,cursor:'pointer'}}>
+                  {isAddingClient ? 'Cancelar' : '+ Nueva clienta'}
                 </button>
+                <ClientExcelExport />
+                </div>
               </div>
               {isAddingClient && (
                 <form onSubmit={handleGuardarNuevoCliente} style={{ backgroundColor: '#322A25', border: '1px solid #B98A3E', borderRadius: '8px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -1878,22 +1885,29 @@ export default function AdminPanelView(props: Props) {
                 </form>
               )}
               <div>
-                <input type="text" placeholder="Buscar por Nombre, Email, Teléfono o ID..." value={busquedaCliente} onChange={(e) => setBusquedaCliente(e.target.value)} onFocus={(e) => e.target.select()} style={{ width: '100%', maxWidth: '560px', boxSizing: 'border-box', padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px', outline: 'none' }} />
+                <input type="text" aria-label="Buscar clientas" placeholder="Buscar por nombre, teléfono o email" value={busquedaCliente} onChange={(e) => setBusquedaCliente(e.target.value)} onFocus={(e) => e.target.select()} style={{ width: '100%', maxWidth: 'none', boxSizing: 'border-box', padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px', outline: 'none' }} />
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                {([{ value: 'active', label: 'Activas' }, { value: 'archived', label: 'De baja' }, { value: 'all', label: 'Todas' }] as const).map(option => <button key={option.value} type="button" aria-pressed={clientStatusFilter === option.value} onClick={() => setClientStatusFilter(option.value)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #655039', background: clientStatusFilter === option.value ? '#C49A58' : '#322A25', color: clientStatusFilter === option.value ? '#29231F' : '#FFF8EE', cursor: 'pointer', fontSize: 13 }}>{option.label}</button>)}
-                <span style={{ color: '#D6CBB8', fontSize: 12, marginLeft: 'auto' }}>{filteredClientRows.length} clientas</span>
+                {([{ value: 'active', label: 'Activas' }, { value: 'archived', label: 'De baja' }, { value: 'all', label: 'Todas' }] as const).map(option => <button key={option.value} type="button" aria-pressed={clientStatusFilter === option.value} onClick={() => setClientStatusFilter(option.value)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #655039', background: clientStatusFilter === option.value ? '#C49A58' : '#322A25', color: clientStatusFilter === option.value ? '#29231F' : '#FFF8EE', cursor: 'pointer', fontSize: 13 }}>{option.label} · {listaClientes.filter(client => option.value === 'all' || (option.value === 'archived' ? !!client.archivedAt : !client.archivedAt)).length}</button>)}
+                <span style={{ color: '#D6CBB8', fontSize: 12, marginLeft: 'auto' }}>{filteredClientRows.length} {filteredClientRows.length === 1 ? 'clienta' : 'clientas'}{busquedaCliente.trim() ? ' encontradas' : ''}</span>
               </div>
               {clientStatusError && <p role="alert" style={{ color: '#F5C7B8', margin: 0 }}>{clientStatusError}</p>}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 {visibleClientRows
                   .map((c) => {
                     const isEditing = editingClientId === c.idNum;
+                    const visits = clientVisitSummary(c, appointments, summaryNow);
                     return (
-                      <article key={c.idNum} style={{background:'#322A25',border:'1px solid #655039',borderRadius:9,overflow:'hidden'}}>
-<button type="button" aria-expanded={expandedClientId === c.idNum} aria-controls={`client-details-${c.idNum}`} onClick={() => { setExpandedClientId(previous => previous === c.idNum ? null : c.idNum); setEditingClientId(null); }} style={{width:'100%',display:'flex',alignItems:'center',gap:12,padding:'11px 14px',border:0,background:'transparent',color:'#FFF8EE',cursor:'pointer',textAlign:'left',flexWrap:'wrap'}}>
-<strong style={{fontSize:14,flex:'1 1 220px'}}>{c.nombre} {c.apellidos}</strong><span style={{fontSize:12,color:'#D6CBB8'}}>{c.telefono || 'Sin teléfono'}</span><span style={{fontSize:11,color:c.archivedAt ? '#F5C7B8' : '#BDE1B8'}}>{c.archivedAt ? 'De baja' : 'Activa'}</span><span style={{fontSize:11,color:'#D6CBB8'}}>#{clientDisplayNumber(c)}</span><span aria-hidden="true" style={{color:'#E4C687'}}>{expandedClientId === c.idNum ? '▴' : '▾'}</span>
-</button>
+                      <article key={c.idNum} style={{background:'#322A25',border:'1px solid #4B4035',borderRadius:12,overflow:'hidden'}}>
+<div style={{display:'flex',alignItems:'center',gap:16,padding:16,flexWrap:'wrap'}}>
+  <div style={{flex:'1 1 190px',minWidth:0}}><strong style={{fontSize:16,display:'block',overflowWrap:'anywhere'}}>{c.nombre} {c.apellidos}</strong><span style={{fontSize:14,color:'#D6CBB8',display:'block',marginTop:5}}>{c.telefono || 'Sin teléfono'}</span></div>
+  <div style={{flex:'1 1 180px',fontSize:14,color:'#D6CBB8',lineHeight:1.8}}><div>Última visita: <span style={{color:'#FFF8EE'}}>{visits.last || 'Sin visitas registradas'}</span></div><div>Próxima cita: <span style={{color:'#E4C687'}}>{visits.next || 'Sin cita reservada'}</span></div></div>
+  <span style={{fontSize:13,color:c.archivedAt ? '#F5C7B8' : '#BDE1B8'}}>{c.archivedAt ? 'De baja' : 'Activa'}</span>
+  <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+  {!c.archivedAt && <button type="button" className="studio-btn-ghost" aria-label={`Nueva cita para ${c.nombre} ${c.apellidos}`} onClick={() => props.onStartClientAppointment(c)}>+ Nueva cita</button>}
+  <button type="button" className="studio-btn-ghost" aria-expanded={expandedClientId === c.idNum} aria-controls={`client-details-${c.idNum}`} onClick={() => { setExpandedClientId(previous => previous === c.idNum ? null : c.idNum); setEditingClientId(null); }}>{expandedClientId === c.idNum ? 'Cerrar ficha' : 'Ver ficha'}</button>
+  </div>
+</div>
 {expandedClientId === c.idNum && <div id={`client-details-${c.idNum}`} style={{display:'flex',flexDirection:'column',gap:10,padding:14,borderTop:'1px solid #655039'}}>
 <React.Suspense fallback={null}><LazyClubProfile clientId={c.serverId}/></React.Suspense>
 <React.Suspense fallback={null}><LazyMemoriesAdmin key={c.serverId||c.idNum} clientId={c.serverId} clientName={[c.nombre,c.apellidos].filter(Boolean).join(' ')}/></React.Suspense>
@@ -1990,11 +2004,11 @@ export default function AdminPanelView(props: Props) {
                   })}
                 {!visibleClientRows.length && <p style={{ color: '#D6CBB8', padding: 16 }}>No hay clientas con estos filtros.</p>}
               </div>
-              <nav aria-label="Páginas de clientas" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12 }}>
+              {clientsPageCount > 1 && <nav aria-label="Páginas de clientas" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12 }}>
                 <button type="button" className="studio-btn-ghost" disabled={effectiveClientsPage <= 1} onClick={() => { setClientsPage(effectiveClientsPage - 1); setExpandedClientId(null); }}>Anterior</button>
                 <span style={{ color: '#D6CBB8', fontSize: 12 }}>Página {effectiveClientsPage} de {clientsPageCount} · 15 por página</span>
                 <button type="button" className="studio-btn-ghost" disabled={effectiveClientsPage >= clientsPageCount} onClick={() => { setClientsPage(effectiveClientsPage + 1); setExpandedClientId(null); }}>Siguiente</button>
-              </nav>
+              </nav>}
             </div>
           )}
 
@@ -2115,3 +2129,5 @@ export default function AdminPanelView(props: Props) {
           </main>
         </div>);
 }
+
+// lst-client-list-v1
