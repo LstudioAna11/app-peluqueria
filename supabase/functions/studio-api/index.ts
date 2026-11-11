@@ -1579,6 +1579,34 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({snapshot,source:origin,media}),{headers:{...corsHeaders,'Content-Type':'application/json','Cache-Control':'no-store','Pragma':'no-cache'}});
     }
 
+    // STUDIO_OPINIONS_V1
+    if(action==='nps-summary'){
+      if(!isAdmin)return json({error:'Solo administración'},403);
+      if(req.method!=='POST')return json({error:'Método no permitido'},405);
+      if(!['30d','90d','all'].includes(body.period))return json({error:'Periodo no válido'},422);
+      const {data,error}=await admin.rpc('studio_nps_summary_v1',{p_period:body.period});
+      if(error||!data){const setup=['PGRST202','42883','42703','42P01'].includes(String(error?.code||''));return json({error:setup?'No se pudo consultar el NPS. Comprueba la actualización SQL de Opiniones.':'No se pudo consultar el NPS. Reintenta.',code:setup?'NPS_SETUP_REQUIRED':'NPS_UNAVAILABLE'},503);}
+      return json(data);
+    }
+    if(action==='feedback'){
+      if(req.method!=='POST')return json({error:'Método no permitido'},405);
+      if(isAdmin||tokenRow.role!=='client'||!tokenRow.client_id)return json({error:'Accede como clienta para enviar tu opinión.'},403);
+      const scale=body.ratingScale===undefined?5:body.ratingScale;
+      if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(body.id||''))||!Number.isInteger(body.rating)||![5,10].includes(scale)||body.rating<(scale===5?1:0)||body.rating>scale||typeof body.comment!=='string'||body.comment.length>4000)return json({error:'Revisa la puntuación y el comentario.'},422);
+      const {data,error}=await admin.rpc('studio_nps_submit_v1',{p_client:tokenRow.client_id,p_id:body.id,p_rating:body.rating,p_comment:body.comment,p_scale:scale});
+      if(error){if(String(error.message||'').includes('NPS_REQUEST_CONFLICT'))return json({error:'La solicitud ya se usó para otra opinión.'},409);return json({error:'No se pudo confirmar tu opinión. Conservamos lo escrito para reintentar.'},503);}
+      return json(data);
+    }
+    if(action==='feedback-status'){
+      if(!isAdmin)return json({error:'Solo administración'},403);
+      if(req.method!=='PUT')return json({error:'Método no permitido'},405);
+      if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(body.id||''))||typeof body.resolved!=='boolean')return json({error:'Opinión no válida.'},422);
+      const {data,error}=await admin.from('studio_feedback').update({resolved_at:body.resolved?new Date().toISOString():null}).eq('id',body.id).select('id,resolved_at').maybeSingle();
+      if(error)return json({error:'No se pudo guardar el seguimiento de la opinión.'},503);
+      if(!data)return json({error:'No se encontró esa opinión.'},404);
+      return json({ok:true,resolvedAt:data.resolved_at});
+    }
+
     // Each caller can request only the sections it needs. Old clients still receive full sync.
     if (action === "sync") {
       const allowedSections = ['catalog', 'settings', 'closures', 'timeBlocks', 'clients', 'appointments', 'feedback'];
@@ -1637,7 +1665,7 @@ Deno.serve(async (req: Request) => {
         }
       })());
       if (isAdmin && sections.has('feedback')) jobs.push((async () => {
-        response.feedback = await read(admin.from('studio_feedback').select('id, rating, comment, resolved_at, created_at, client_id')) ?? [];
+        response.feedback = await read(admin.from('studio_feedback').select('id, rating, rating_scale, comment, resolved_at, created_at, client_id')) ?? [];
       })());
       await Promise.all(jobs);
       return json(response);
@@ -2575,3 +2603,5 @@ Deno.serve(async (req: Request) => {
   }
 });
 // lst-weekly-hours-installed-v1
+
+// lst-opinions-installed-v1

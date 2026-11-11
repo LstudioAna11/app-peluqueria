@@ -2112,26 +2112,27 @@ export default function AdminPanelView(props: Props) {
               `}</style>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
-                  <h3 style={{ color: '#E4C687', fontSize: '23px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>NPS y opiniones del Studio</h3>
-                  <p style={{ color: '#D6CBB8', fontSize: '11px', margin: 0 }}>Opiniones recibidas en el servidor y seguimiento de cada experiencia.</p>
+                  <h3 style={{ color: '#E4C687', fontSize: '23px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Opiniones de clientas</h3>
+                  <p style={{ color: '#D6CBB8', fontSize: '11px', margin: 0 }}>Lee las opiniones y atiende las pendientes.</p>
                 </div>
                 <a href={bizConfig.googleReviewUrl} target="_blank" rel="noreferrer" style={{ backgroundColor: '#322A25', border: '1px solid #B98A3E', color: '#FFF8EE', padding: '8px 14px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  Abrir enlace para reseñar ↗
+                  Abrir reseñas de Google ↗
                 </a>
               </div>
               <NpsSummary period={npsPeriod} onPeriodChange={setNpsPeriod}/>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {([['pending', 'Pendientes'], ['all', 'Todas'], ['resolved', 'Resueltas']] as const).map(([filter, label]) => <button type="button" key={filter} aria-pressed={mailboxFilter === filter} onClick={() => setMailboxFilter(filter)} style={{ background: mailboxFilter === filter ? '#322A25' : '#322A25', color: '#E4C687', border: '1px solid #3A312A', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer' }}>{label} · {feedbackList.filter(item => feedbackInPeriod(item,npsPeriod)&&(filter === 'all' || (filter === 'resolved' ? !!item.resolvedAt : !item.resolvedAt))).length}</button>)}
+                {([['pending', 'Pendientes'], ['all', 'Todas'], ['resolved', 'Resueltas']] as const).map(([filter, label]) => <button type="button" key={filter} aria-pressed={mailboxFilter === filter} onClick={() => setMailboxFilter(filter)} style={{ background: mailboxFilter === filter ? '#C49A58' : '#322A25', color: mailboxFilter === filter ? '#29231F' : '#E4C687', border: '1px solid #3A312A', padding: '10px 16px', borderRadius: '8px', cursor: 'pointer' }}>{label} · {feedbackList.filter(item => feedbackInPeriod(item,npsPeriod)&&(filter === 'all' || (filter === 'resolved' ? !!item.resolvedAt : !item.resolvedAt))).length}</button>)}
               </div>
               <details style={{ border: '1px solid #3A312A', padding: '16px', borderRadius: '10px', color: '#D6CBB8' }}>
-                <summary style={{ cursor: 'pointer', color: '#E4C687' }}>Solicitar opinión NPS · Visitas realizadas</summary>
+                <summary style={{ cursor: 'pointer', color: '#E4C687' }}>Solicitar opinión · Visitas realizadas</summary>
                 <p style={{ fontSize: '12px' }}>Abre el mensaje y envíalo desde WhatsApp. Abrirlo no confirma que se haya enviado.</p>
                 {appointments.filter(item => !!item.completedAt && item.lifecycleStatus !== 'cancelled' && item.lifecycleStatus !== 'no_show').map(item => <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', padding: '12px 0', borderTop: '1px solid #3A312A', fontSize: '13px' }}><span>{item.clientName} · {item.dateKey}</span>{item.phone ? <a target="_blank" rel="noreferrer" href={`https://wa.me/${item.phone.replace(/\D/g, '').length === 9 ? '34' : ''}${item.phone.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola ${item.clientName.split(' ')[0]}, gracias por tu visita a ${bizConfig.name}. Nos gustaría saber cómo ha sido tu experiencia. Puedes valorarla del 0 al 10 en tu portal: https://lstudioana.es/?opinion=1. Gracias por ayudarnos a cuidar cada detalle. Ana.`)}`} style={{ color: '#E4C687' }}>Preparar invitación NPS por WhatsApp ↗</a> : <span>Sin teléfono registrado</span>}</div>)}
                 {!appointments.some(item => !!item.completedAt) && <p style={{ fontSize: '13px' }}>Marca una cita como realizada para verla aquí.</p>}
               </details>
               {mailboxError && <p role="alert" style={{ color: '#F5C7B8', fontSize: 13 }}>{mailboxError}</p>}
-              <p style={{ color: '#D6CBB8', fontSize: 12 }}>El NPS usa todas las respuestas del periodo. Abajo puedes filtrar las opiniones cargadas por grupo y seguimiento. Las reseñas de Google se gestionan en Google.</p>
+              <details style={{padding:'10px 0'}}><summary style={{cursor:'pointer',color:'#E4C687',fontSize:14}}>Filtrar por puntuación{feedbackRatingFilter!=='all'?' · Filtro activo':''}</summary><div style={{marginTop:12}}>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{([{ id: 'all', label: 'Todas' }, { id: 'detractor', label: 'Detractores · 0–6' }, { id: 'passive', label: 'Pasivos · 7–8' }, { id: 'promoter', label: 'Promotores · 9–10' }, { id: 'legacy', label: 'Histórico sin NPS' }] as const).map(tab => <button type="button" key={tab.id} aria-pressed={feedbackRatingFilter === tab.id} onClick={() => setFeedbackRatingFilter(tab.id)} style={{ padding: '10px 14px', border: '1px solid #C5A059', borderRadius: 8, background: feedbackRatingFilter === tab.id ? '#C49A58' : '#322A25', color: feedbackRatingFilter === tab.id ? '#221D19' : '#FFF8EE', cursor: 'pointer', fontSize: 12 }}>{tab.label}</button>)}</div>
+              </div></details>
               <div className="studio-review-grid">
                 {feedbackList.filter(f => feedbackInPeriod(f,npsPeriod) && (feedbackRatingFilter === 'all' || feedbackGroup(f)===feedbackRatingFilter) && (mailboxFilter === 'all' || (mailboxFilter === 'resolved' ? !!f.resolvedAt : !f.resolvedAt))).length === 0 ? (
                   <div style={{ backgroundColor: '#322A25', padding: '20px', borderRadius: '8px', textAlign: 'center', color: '#D6CBB8', fontSize: '12px', border: '1px solid rgba(212, 175, 55, 0.2)' }}>
@@ -2220,3 +2221,5 @@ export default function AdminPanelView(props: Props) {
 // lst-notices-compact-v1
 
 // lst-security-compact-v1
+
+// lst-opinions-installed-v1

@@ -599,30 +599,35 @@ async function submitNpsFeedback(token:string,details:{id:string;rating:number;c
 }
 export function NpsSummary({period,onPeriodChange}:{period:NpsPeriod;onPeriodChange:(value:NpsPeriod)=>void}){
   type Summary={period:NpsPeriod;total:number;detractors:number;passives:number;promoters:number;score:number|null};
-  const [data,setData]=useState<Summary|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
-  const lock=useRef(false),mounted=useRef(false);
-  const load=async()=>{
-    if(lock.current)return;lock.current=true;setBusy(true);setError('');const token=studioApi.currentToken();
-    try{
-      if(!token||studioApi.storedRole()!=='admin')throw new Error('Accede a la intranet.');
-      const response=await fetch(String(import.meta.env.VITE_SUPABASE_URL||'')+'/functions/v1/studio-api/nps-summary',{
-        method:'POST',headers:{'Content-Type':'application/json',apikey:String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY||import.meta.env.VITE_SUPABASE_ANON_KEY||''),Authorization:'Bearer '+token},
-        body:JSON.stringify({period}),signal:AbortSignal.timeout(15000),cache:'no-store',
-      });const result=await response.json();
-      if(!response.ok||result.period!==period||!['total','detractors','passives','promoters'].every(k=>Number.isSafeInteger(result[k])&&result[k]>=0)||result.total!==result.detractors+result.passives+result.promoters||!(result.score===null&&result.total===0||typeof result.score==='number'&&result.score>=-100&&result.score<=100&&result.total>0))throw new Error('No se pudo comprobar el NPS.');
-      if(mounted.current&&studioApi.currentToken()===token&&studioApi.storedRole()==='admin')setData(result);
-    }catch{if(mounted.current)setError('No se pudo actualizar el NPS. Comprueba el SQL y la API y pulsa Actualizar.');}
-    finally{lock.current=false;if(mounted.current)setBusy(false);}
-  };
-  useEffect(()=>{mounted.current=true;void load();return()=>{mounted.current=false;};},[period]);
+  const [data,setData]=useState<Summary|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[refresh,setRefresh]=useState(0);
+  useEffect(()=>{
+    let live=true;const control=new AbortController(),timeout=setTimeout(()=>control.abort(),15000);const token=studioApi.currentToken();
+    setBusy(true);setError('');
+    void(async()=>{
+      try{
+        if(!token||studioApi.storedRole()!=='admin')throw new Error('Vuelve a entrar en la intranet.');
+        const response=await fetch(String(import.meta.env.VITE_SUPABASE_URL||'')+'/functions/v1/studio-api/nps-summary',{
+          method:'POST',headers:{'Content-Type':'application/json',apikey:String(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY||import.meta.env.VITE_SUPABASE_ANON_KEY||''),Authorization:'Bearer '+token},body:JSON.stringify({period}),signal:control.signal,cache:'no-store',
+        });const result=await response.json().catch(()=>null);
+        if(!response.ok)throw new Error(response.status===401||response.status===403?'Vuelve a entrar en la intranet.':response.status===404?'Falta actualizar la función de Opiniones en Supabase.':result?.code==='NPS_SETUP_REQUIRED'?'Falta completar la actualización SQL de Opiniones.':'No se pudo consultar el NPS. Pulsa Actualizar.');
+        if(!result||result.period!==period||!['total','detractors','passives','promoters'].every(k=>Number.isSafeInteger(result[k])&&result[k]>=0)||result.total!==result.detractors+result.passives+result.promoters||!(result.score===null&&result.total===0||typeof result.score==='number'&&Number.isFinite(result.score)&&result.score>=-100&&result.score<=100&&result.total>0))throw new Error('El resumen recibido no es válido. Pulsa Actualizar.');
+        if(live&&studioApi.currentToken()===token&&studioApi.storedRole()==='admin')setData(result);
+      }catch(value){if(live){setData(null);setError(value instanceof Error&&value.name==='AbortError'?'La consulta ha tardado demasiado. Pulsa Actualizar.':value instanceof Error?value.message:'No se pudo consultar el NPS.');}}
+      finally{clearTimeout(timeout);if(live)setBusy(false);}
+    })();
+    return()=>{live=false;clearTimeout(timeout);control.abort();};
+  },[period,refresh]);
   const active=data?.period===period?data:null;
-  return <section aria-label="Medición NPS" style={{border:'1px solid #8C6A4B',borderRadius:12,padding:16,color:'#FFF8EE',background:'#302820'}}>
-    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}><div><small style={{color:'#E4C687'}}>NPS · Recomendación del Studio</small><strong style={{display:'block',fontSize:30,color:'#E4C687'}}>{active?.score===null?'Sin respuestas':active?((active.score!>0?'+':'')+active.score):'—'}</strong><span style={{fontSize:12,color:'#D6CBB8'}}>{active?active.total+' respuestas NPS':'Consultando…'}</span></div>
-      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}><label style={{fontSize:12,color:'#D6CBB8'}}>Periodo<select aria-label="Periodo NPS" value={period} disabled={busy} onChange={e=>onPeriodChange(e.target.value as NpsPeriod)} style={{display:'block',minHeight:44,padding:8,background:'#29231F',color:'#E4C687',border:'1px solid #846A45',borderRadius:6}}><option value="30d">Últimos 30 días</option><option value="90d">Últimos 90 días</option><option value="all">Todo el histórico</option></select></label><button type="button" disabled={busy} onClick={()=>void load()} style={{minHeight:44,padding:9,alignSelf:'end',background:'transparent',color:'#E4C687',border:'1px solid #846A45',borderRadius:6}}>{busy?'Consultando…':'Actualizar NPS'}</button></div>
+  return <section aria-label="Medición NPS" style={{border:'1px solid #655039',borderRadius:12,padding:16,color:'#FFF8EE',background:'#29231F',display:'grid',gap:12}}>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:14,flexWrap:'wrap'}}>
+      <div><small style={{color:'#E4C687'}}>NPS · Recomendación</small><strong style={{display:'block',fontSize:30,color:'#E4C687'}}>{active?.score===null?'Sin respuestas':active?((active.score!>0?'+':'')+active.score):'—'}</strong><span style={{fontSize:13,color:'#D6CBB8'}}>{busy?'Consultando…':active?active.total+' respuestas':'Sin datos confirmados'}</span></div>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap'}}><label style={{fontSize:13,color:'#D6CBB8'}}>Periodo<select aria-label="Periodo NPS" value={period} onChange={e=>onPeriodChange(e.target.value as NpsPeriod)} style={{display:'block',minHeight:44,padding:8,background:'#322A25',color:'#E4C687',border:'1px solid #846A45',borderRadius:7}}><option value="30d">Últimos 30 días</option><option value="90d">Últimos 90 días</option><option value="all">Todo el histórico</option></select></label><button type="button" disabled={busy} onClick={()=>setRefresh(v=>v+1)} style={{minHeight:44,padding:'9px 14px',alignSelf:'end',background:'transparent',color:'#E4C687',border:'1px solid #846A45',borderRadius:7,cursor:'pointer'}}>Actualizar</button></div>
     </div>
-    <div style={{display:'grid',gridTemplateColumns:'repeat(3,minmax(0,1fr))',gap:8,marginTop:12,fontSize:12}}>{([{key:'detractors',label:'Detractores · 0–6'},{key:'passives',label:'Pasivos · 7–8'},{key:'promoters',label:'Promotores · 9–10'}] as const).map(group=><div key={group.key} style={{padding:10,background:'#29231F',borderRadius:7,color:'#D6CBB8'}}>{group.label}<strong style={{display:'block',fontSize:21,color:'#E4C687'}}>{active?active[group.key]:'—'}</strong></div>)}</div>
-    <p style={{fontSize:11,lineHeight:1.6,color:'#D6CBB8',margin:'10px 0 0'}}>% promotores − % detractores. Escala de −100 a +100. Incluye todas las respuestas NPS del periodo, también las atendidas. Las valoraciones antiguas de 1 a 5 no entran en el cálculo.</p>
-    {error&&<p role="alert" style={{fontSize:12,color:'#FFC3B0'}}>{error}</p>}
+    {error&&<p role="alert" style={{fontSize:13,color:'#FFC3B0',margin:0}}>{error}</p>}
+    <details><summary style={{cursor:'pointer',fontSize:13,color:'#D6CBB8'}}>Ver desglose y cálculo</summary>
+      <div style={{display:'flex',gap:12,flexWrap:'wrap',marginTop:12,fontSize:13,color:'#D6CBB8'}}>{([{key:'detractors',label:'Detractores · 0–6'},{key:'passives',label:'Pasivos · 7–8'},{key:'promoters',label:'Promotores · 9–10'}] as const).map(group=><span key={group.key}>{group.label}: <strong>{active?active[group.key]:'—'}</strong></span>)}</div>
+      <p style={{fontSize:12,lineHeight:1.6,color:'#D6CBB8',marginBottom:0}}>% promotores − % detractores, de −100 a +100. Incluye todas las respuestas NPS del periodo, también las resueltas. Las valoraciones antiguas de 1 a 5 quedan fuera del cálculo. Los filtros del buzón se aplican a las opiniones cargadas; las reseñas de Google se gestionan en Google.</p>
+    </details>
   </section>;
 }
 
@@ -6403,3 +6408,5 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
 // lst-weekly-hours-installed-v1
 
 // lst-bizum-catalog-only-v1
+
+// lst-opinions-installed-v1
