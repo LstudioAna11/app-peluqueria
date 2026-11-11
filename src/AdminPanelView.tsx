@@ -2188,8 +2188,8 @@ export default function AdminPanelView(props: Props) {
             </div>
           )}
 
-          {adminTab === 'crm' && OptionalAppUsageStats && <OptionalAppUsageStats />}
           {adminTab === 'crm' && <React.Suspense fallback={<p role="status" style={{padding:24,color:'#E4C687'}}>Cargando el CRM…</p>}><LazyCrmView appointments={appointments} bizConfig={bizConfig} crmView={crmView} dashboardEnd={dashboardEnd} dashboardStart={dashboardStart} formatDateKey={formatDateKey} isActiveAppointment={isActiveAppointment} isDateBlockedByHoliday={isDateBlockedByHoliday} listaClientes={listaClientes} lostDemandsList={lostDemandsList} setAdminTab={setAdminTab} setAgendaSidePanel={setAgendaSidePanel} setClientStatusFilter={setClientStatusFilter} setCrmView={setCrmView} setDashboardEnd={setDashboardEnd} setDashboardStart={setDashboardStart} setPendingPanelFilter={setPendingPanelFilter} timeBlocks={timeBlocks} trafficEvents={trafficEvents} workingRanges={workingRanges} /></React.Suspense>}
+          {adminTab === 'crm' && OptionalAppUsageStats && <OptionalAppUsageStats />}
 
           {adminTab === 'demands' && <React.Suspense fallback={<p role="status" style={{padding:24,color:'#E4C687'}}>Cargando las oportunidades…</p>}><LazyOpportunitiesView attemptClock={attemptClock} bizConfig={bizConfig} bookingAttempts={bookingAttempts} crmPeriod={crmPeriod} demandEnd={demandEnd} demandFilter={demandFilter} demandStart={demandStart} formatDateKey={formatDateKey} listaClientes={listaClientes} lostDemandsList={lostDemandsList} normalizeEmail={normalizeEmail} opportunityPage={opportunityPage} opportunitySearch={opportunitySearch} opportunityStatus={opportunityStatus} setAdminTab={setAdminTab} setBookingAttempts={setBookingAttempts} setBusquedaCliente={setBusquedaCliente} setClientStatusFilter={setClientStatusFilter} setCrmPeriod={setCrmPeriod} setDemandEnd={setDemandEnd} setDemandFilter={setDemandFilter} setDemandStart={setDemandStart} setLostDemandsList={setLostDemandsList} setOpportunityPage={setOpportunityPage} setOpportunitySearch={setOpportunitySearch} setOpportunityStatus={setOpportunityStatus} /></React.Suspense>}
 
@@ -2223,3 +2223,5 @@ export default function AdminPanelView(props: Props) {
 // lst-security-compact-v1
 
 // lst-opinions-installed-v1
+
+// lst-crm-client-access-v1

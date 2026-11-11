@@ -1,7 +1,7 @@
 import {depositMoney} from './serviceDeposits';
 import {studioDayRanges,studioWeekErrors,studioScheduleLabel,STUDIO_WEEK_DAYS,type StudioWeek} from './weeklyHours';
 import {appointmentDiscountDepositLimit,clearAppointmentDiscount,type AppointmentDiscount} from './appointmentDiscounts';
-import {useAppAudience,audienceCall,type AudienceCounts} from './appAudience';
+import {useAppAudience} from './appAudience';
 import type {AdvisorResult} from './serviceAdvisor';
 import {usePortalTranslations,portalLanguageCodes} from './portalLanguages';
 import {ClientPhotoGallery,StudioNews,VoucherHub,VoucherPanel,BookingVoucher,AppointmentVoucherTools,ClientProfileCompact} from './DeferredFeatures';
@@ -1081,46 +1081,8 @@ function ClientAppointmentDetail({title,date,time,status,services,promotion,canM
 }
 
 
-export function AppUsageStats(){
-  const [counts,setCounts]=useState<AudienceCounts|null>(null),[tab,setTab]=useState<'installed'|'browser'>('installed'),[busy,setBusy]=useState(false),[error,setError]=useState('');
-  const running=useRef(false),mounted=useRef(false),controller=useRef<AbortController|null>(null);
-  const load=async(reset=false)=>{
-    if(running.current)return;
-    if(reset&&(!counts||!Number.isSafeInteger(counts.resetRevision)))return;
-    if(reset&&!window.confirm('¿Poner a cero ambas pestañas? Se borrará el recuento de clientas con app instalada y los accesos actuales. Las clientas volverán a contarse al abrir la app desde su icono y acceder a su cuenta. No se puede deshacer.'))return;
-    const token=studioApi.currentToken();
-    if(!token||studioApi.storedRole()!=='admin'){setError('Entra en la intranet para consultar el contador.');return;}
-    running.current=true;setBusy(true);setError('');
-    const control=new AbortController();controller.current=control;const timer=setTimeout(()=>control.abort(),12000);
-    try{
-      const data=await audienceCall<AudienceCounts>(reset?'reset':'stats',reset?{expectedRevision:counts!.resetRevision}:{},control.signal);
-      if(data.metricVersion!==2||!Number.isSafeInteger(data.installed)||data.installed<0||!Number.isSafeInteger(data.browser)||data.browser<0)throw new Error('No se pudo consultar el contador.');
-      if(mounted.current&&studioApi.currentToken()===token&&studioApi.storedRole()==='admin')setCounts(data);
-    }catch{if(mounted.current&&!control.signal.aborted)setError(reset?'No se pudo confirmar el reinicio. Pulsa Actualizar para comprobar la fecha y las cifras antes de intentarlo otra vez.':'No se pudo consultar el contador. Comprueba el SQL y la API e inténtalo de nuevo.');else if(mounted.current)setError(reset?'No se pudo confirmar el reinicio. Pulsa Actualizar para comprobar el resultado.':'La consulta ha tardado demasiado. Pulsa Actualizar.');}
-    finally{clearTimeout(timer);running.current=false;if(controller.current===control)controller.current=null;if(mounted.current)setBusy(false);}
-  };
-  useEffect(()=>{mounted.current=true;void load();return()=>{mounted.current=false;};},[]);
-  return <section aria-label="Accesos al portal por dispositivo" style={{marginBottom:16,padding:18,border:'1px solid #8C6A4B',borderRadius:12,background:'#322A25',color:'#FFF8EE'}}>
-    <div role="tablist" aria-label="Forma de acceso" style={{display:'flex',gap:8,marginBottom:14,flexWrap:'wrap'}}>
-      {(['installed','browser'] as const).map(mode=><button key={mode} type="button" role="tab" id={'usage-tab-'+mode} aria-selected={tab===mode} aria-controls={'usage-panel-'+mode} onClick={()=>setTab(mode)} style={{minHeight:44,padding:'9px 14px',border:'1px solid #B9955F',borderRadius:7,background:tab===mode?'#C99E52':'transparent',color:tab===mode?'#29231F':'#E4C687',cursor:'pointer'}}>{mode==='installed'?'App instalada':'Navegador'}</button>)}
-    </div>
-    <div role="tabpanel" id={'usage-panel-'+tab} aria-labelledby={'usage-tab-'+tab}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}>
-        <div><p style={{margin:'0 0 6px',fontSize:13,color:'#E4C687'}}>{tab==='installed'?'Clientas con app instalada':('Accesos desde navegador · '+(counts?.resetAt?'desde el reinicio':'últimos 365 días'))}</p><strong style={{fontSize:28}} aria-live="polite">{counts===null?'—':counts[tab].toLocaleString('es-ES')}</strong></div>
-        <button type="button" onClick={()=>void load()} disabled={busy} style={{minHeight:44,padding:'9px 14px',border:'1px solid #B9955F',borderRadius:7,background:'transparent',color:'#E4C687',cursor:busy?'wait':'pointer'}}>{busy?'Consultando…':'Actualizar'}</button>
-        <button type="button" onClick={()=>void load(true)} disabled={busy||!counts||!Number.isSafeInteger(counts.resetRevision)} style={{minHeight:44,padding:'9px 14px',border:'1px solid #B9955F',borderRadius:7,background:'transparent',color:'#E4C687',cursor:busy?'wait':'pointer'}}>Poner a cero ambas pestañas</button>
-      </div>
-      {(tab==='installed'?counts?.installedSince:counts?.resetAt)&&<p style={{fontSize:12,color:'#E4C687'}}>Inicio del recuento: {new Date((tab==='installed'?counts!.installedSince:counts!.resetAt)!).toLocaleString('es-ES',{timeZone:'Europe/Madrid'})}.{tab==='browser'?' Se conservan como máximo los últimos 365 días.':''}</p>}
-      <p style={{margin:'8px 0 0',fontSize:12,lineHeight:1.6,color:'#D6CBB8'}}>{tab==='installed'?'Cada cuenta de clienta cuenta una vez al abrir desde el icono de la app y acceder al portal, aunque entre muchas veces o desde varios dispositivos. Las instalaciones anteriores se registran cuando vuelva a abrirla. No detecta desinstalaciones.':'Se cuentan aperturas desde el navegador, no clientas distintas. Recargar o abrir otra pestaña puede sumar otro acceso.'}</p>
-    </div>
-    <details style={{marginTop:8,fontSize:12,color:'#D6CBB8'}}><summary style={{cursor:'pointer'}}>Cómo se calcula</summary><p style={{lineHeight:1.6}}>App instalada cuenta cuentas de clienta distintas que han accedido desde la app instalada desde el inicio del recuento. La misma cuenta en dos móviles cuenta una vez; las cuentas compartidas no permiten distinguir personas. Se conserva el identificador de la ficha y su primera detección, sin identificadores de dispositivo, IP ni tokens de sesión. No detecta desinstalaciones ni permite reconstruir las instalaciones anteriores a esta actualización. Navegador conserva aperturas agregadas por día, con un máximo de 365 días. Los accesos de administración se excluyen. Poner a cero reinicia ambas pestañas y no modifica citas, fichas ni puntos del club. Tras reiniciar, las clientas vuelven a contarse en su próxima apertura. Una conexión fallida puede dejar una apertura sin registrar.</p>
-    {counts&&<p style={{fontSize:12,color:'#D6CBB8'}}>Aperturas desde la app instalada (dato separado, máximo 365 días desde el reinicio): {(counts.installedAccesses??0).toLocaleString('es-ES')}.</p>}
-    {counts?.legacy&&<p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6}}>Dispositivos del contador original (histórico): {counts.legacy[tab].toLocaleString('es-ES')} · Corte: {new Date(counts.legacy.captured_at).toLocaleDateString('es-ES')}. Este total agregado se conserva aparte y no se suma al contador vigente.</p>}
-    {counts?.transition&&counts.transition[tab]>0&&<p style={{fontSize:12,color:'#D6CBB8'}}>Registros durante la actualización anterior: {counts.transition[tab].toLocaleString('es-ES')}. Se conservan aparte; pueden coincidir con el histórico.</p>}
-    </details>
-    {error&&<p role="alert" style={{fontSize:12,color:'#FFB4A9'}}>{error}</p>}
-  </section>;
-}
+const LazyClientAccessStats=React.lazy(()=>import('./ClientAccessStats'));
+export function AppUsageStats(){return <React.Suspense fallback={<p style={{color:'#D6CBB8',fontSize:13}}>Preparando uso de la app…</p>}><LazyClientAccessStats/></React.Suspense>;}
 
 function AppointmentArrivalTools({id,onCancel}:{id:string;onCancel:()=>void}){
   type State={id:string;now:string;startsAt:string;endsAt:string;arrivedAt:string|null;adaptedAt:string|null;enabled:boolean;confirmed:boolean;statuses:Record<string,number>};
@@ -6410,3 +6372,5 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
 // lst-bizum-catalog-only-v1
 
 // lst-opinions-installed-v1
+
+// lst-crm-client-access-v1
