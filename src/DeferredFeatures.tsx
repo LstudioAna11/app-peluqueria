@@ -12,7 +12,8 @@ export function StudioNews(props:React.ComponentProps<(typeof import('./PortalFe
 const LazyVoucherHub=React.lazy(()=>import('./PortalFeatures').then(m=>({default:m.VoucherHub})));
 export function VoucherHub(props:React.ComponentProps<(typeof import('./PortalFeatures'))['VoucherHub']>){return <FeatureBoundary><React.Suspense fallback={<p role="status" style={{color:'#E4C687',fontSize:13,padding:12}}>Cargando…</p>}><LazyVoucherHub {...props}/></React.Suspense></FeatureBoundary>;}
 const LazyVoucherPanel=React.lazy(()=>import('./PortalFeatures').then(m=>({default:m.VoucherPanel})));
-export function VoucherPanel(props:React.ComponentProps<(typeof import('./PortalFeatures'))['VoucherPanel']>){return <FeatureBoundary><React.Suspense fallback={<p role="status" style={{color:'#E4C687',fontSize:13,padding:12}}>Cargando…</p>}><LazyVoucherPanel {...props}/></React.Suspense></FeatureBoundary>;}
+const LazyVoucherAdmin=React.lazy(()=>import('./VoucherAdmin'));
+export function VoucherPanel(props:React.ComponentProps<(typeof import('./PortalFeatures'))['VoucherPanel']>){return <FeatureBoundary><React.Suspense fallback={<p role="status" style={{color:'#E4C687',fontSize:13,padding:12}}>Cargando…</p>}>{props.admin?<LazyVoucherAdmin {...props}/>:<LazyVoucherPanel {...props}/>}</React.Suspense></FeatureBoundary>;}
 const LazyBookingVoucher=React.lazy(()=>import('./PortalFeatures').then(m=>({default:m.BookingVoucher})));
 export function BookingVoucher(props:React.ComponentProps<(typeof import('./PortalFeatures'))['BookingVoucher']>){return <FeatureBoundary><React.Suspense fallback={<p role="status" style={{color:'#E4C687',fontSize:13,padding:12}}>Cargando…</p>}><LazyBookingVoucher {...props}/></React.Suspense></FeatureBoundary>;}
 const LazyAppointmentVoucherTools=React.lazy(()=>import('./PortalFeatures').then(m=>({default:m.AppointmentVoucherTools})));
@@ -21,3 +22,5 @@ const LazyClientProfileCompact=React.lazy(()=>import('./PortalFeatures').then(m=
 export function ClientProfileCompact(props:React.ComponentProps<(typeof import('./PortalFeatures'))['ClientProfileCompact']>){return <FeatureBoundary><React.Suspense fallback={<p role="status" style={{color:'#E4C687',fontSize:13,padding:12}}>Cargando…</p>}><LazyClientProfileCompact {...props}/></React.Suspense></FeatureBoundary>;}
 
 // lst-news-compact-admin-v1
+
+// lst-vouchers-compact-admin-v1
