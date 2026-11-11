@@ -996,12 +996,12 @@ export default function AdminPanelView(props: Props) {
               <header><p style={{ color: '#E4C687', fontSize: '14px', letterSpacing: '2px', margin: '0 0 8px' }}>360studio · AJUSTES DEL STUDIO</p><h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '28px', fontWeight: 'normal', margin: '0 0 10px' }}>Configuración</h2><p style={{ color: '#FFF8EE', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>Elige un apartado, revisa sus opciones y guarda los cambios.</p></header>
               <div className="studio-settings-layout">
               <nav className="studio-settings-nav" aria-label="Apartados de configuración">
-<section className="studio-settings-group" aria-label="Studio"><h3>Studio</h3><div>{([["marca","Datos e imagen"],["precios","Precios"],["empleados","Empleados"]] as const).map(([tab,label]) => <button type="button" key={tab} aria-current={configSubTab === tab ? 'page' : undefined} onClick={() => setConfigSubTab(tab)}>{label}</button>)}</div></section>
+<section className="studio-settings-group" aria-label="Studio"><h3>Studio</h3><div>{([["marca","Datos e imagen"],["precios","Precios en el portal"],["empleados","Empleados"]] as const).map(([tab,label]) => <button type="button" key={tab} aria-current={configSubTab === tab ? 'page' : undefined} onClick={() => setConfigSubTab(tab)}>{label}</button>)}</div></section>
 <section className="studio-settings-group" aria-label="Agenda y reservas"><h3>Agenda y reservas</h3><div>{([["schedule","Horarios"],["holidays","Vacaciones y festivos"],["reservas","Reservas"],["enlaces","Enlaces de reserva"]] as const).map(([tab,label]) => <button type="button" key={tab} aria-current={configSubTab === tab ? 'page' : undefined} onClick={() => setConfigSubTab(tab)}>{label}</button>)}</div></section>
 <section className="studio-settings-group" aria-label="Gestión"><h3>Gestión</h3><div>{([["fichajes","Fichajes"],["maintenance","Mantenimiento"],["avisos","Avisos"]] as const).map(([tab,label]) => <button type="button" key={tab} aria-current={configSubTab === tab ? 'page' : undefined} onClick={() => setConfigSubTab(tab)}>{label}</button>)}</div></section>
 <section className="studio-settings-group" aria-label="Seguridad"><h3>Seguridad</h3><div>{([["backup","Acceso y seguridad"]] as const).map(([tab,label]) => <button type="button" key={tab} aria-current={configSubTab === tab ? 'page' : undefined} onClick={() => setConfigSubTab(tab)}>{label}</button>)}</div></section>
 </nav>
-              <div className="studio-settings-content"><h3 className="studio-settings-current" tabIndex={-1}>{({marca:'Datos e imagen',precios:'Precios',empleados:'Empleados',schedule:'Horarios',holidays:'Vacaciones y festivos',reservas:'Reservas',enlaces:'Enlaces de reserva',fichajes:'Fichajes',avisos:'Avisos',backup:'Acceso y seguridad',maintenance:'Mantenimiento',mantenimiento:'Mantenimiento'} as Record<string,string>)[configSubTab] || 'Ajustes del Studio'}</h3><style>{`
+              <div className="studio-settings-content"><h3 className="studio-settings-current" tabIndex={-1}>{({marca:'Datos e imagen',precios:'Precios en el portal',empleados:'Empleados',schedule:'Horarios',holidays:'Vacaciones y festivos',reservas:'Reservas',enlaces:'Enlaces de reserva',fichajes:'Fichajes',avisos:'Avisos',backup:'Acceso y seguridad',maintenance:'Mantenimiento',mantenimiento:'Mantenimiento'} as Record<string,string>)[configSubTab] || 'Ajustes del Studio'}</h3><style>{`
 .studio-settings-content :is(.studio-security-pin,.studio-security-compact) { padding:14px 16px !important; max-width:860px; box-sizing:border-box; font-size:13px; line-height:1.5; gap:12px !important; }
 .studio-settings-content :is(.studio-security-pin,.studio-security-compact) h3 { font-size:16px !important; margin:0 0 10px; }
 .studio-settings-content :is(.studio-security-pin,.studio-security-compact) label { font-size:13px !important; }
@@ -1035,11 +1035,16 @@ export default function AdminPanelView(props: Props) {
               )}
 </>}
 {configSubTab === 'maintenance'&&<React.Suspense fallback={<p>Cargando mantenimiento…</p>}><LazyMaintenanceSettings/></React.Suspense>}
-{configSubTab === 'precios' && <section style={{ background: '#322A25', padding: 20, borderRadius: 12, color: '#FFF8EE' }}>
-  <h3 style={{ color: '#E4C687', marginTop: 0 }}>Visibilidad de precios</h3>
-  <label style={{ display: 'flex', gap: 12, alignItems: 'center', minHeight: 48 }}><input type="checkbox" checked={tempConfig.showPrices !== false} onChange={e => setTempConfig(previous => ({ ...previous, showPrices: e.target.checked }))} style={{ width: 22, height: 22, accentColor: '#C5A059' }} />Mostrar precios en el portal de clientas</label>
-  <p style={{ color: '#E5D7BF', fontSize: 13, lineHeight: 1.6 }}>Controla los precios de servicios, opciones, complementos y totales de la reserva. Los precios siguen disponibles en administración. Los anticipos necesarios para confirmar una cita se siguen mostrando.</p>
-  <p style={{ fontSize: 13 }}>Pulsa «Guardar cambios» para aplicar la selección.</p>
+{configSubTab === 'precios' && <section aria-label="Visibilidad de precios en el portal" style={{background:'#29231F',border:'1px solid #4B4035',padding:20,borderRadius:12,color:'#FFF8EE',maxWidth:700,boxSizing:'border-box'}}>
+  <style>{`.studio-prices-switch:focus-visible,.studio-prices-catalog:focus-visible {outline:2px solid #E4C687;outline-offset:4px;} .studio-prices-switch:hover {filter:brightness(1.08);} @media(prefers-reduced-motion:reduce){.studio-prices-switch span{transition:none !important;}}`}</style>
+  <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:18}}>
+    <div><h4 id="studio-prices-label" style={{margin:'0 0 6px',fontSize:17,fontWeight:600,color:'#FFF8EE'}}>Mostrar precios a las clientas</h4><p id="studio-prices-description" style={{margin:0,color:'#D6CBB8',fontSize:14,lineHeight:1.6}}>Las clientas podrán ver los precios de los servicios, las opciones, los complementos y el total de su reserva.</p></div>
+    <button type="button" role="switch" className="studio-prices-switch" aria-checked={tempConfig.showPrices !== false} aria-labelledby="studio-prices-label" aria-describedby="studio-prices-description" onClick={()=>setTempConfig(previous=>({...previous,showPrices:previous.showPrices === false}))} style={{flexShrink:0,position:'relative',width:60,height:44,padding:5,border:'1px solid #806340',borderRadius:24,background:tempConfig.showPrices !== false?'#C49A58':'#51483F',cursor:'pointer'}}><span aria-hidden="true" style={{display:'block',width:30,height:30,borderRadius:'50%',background:tempConfig.showPrices !== false?'#29231F':'#FFF8EE',transform:tempConfig.showPrices !== false?'translateX(18px)':'translateX(0)',transition:'transform .15s ease'}}/></button>
+  </div>
+  <p role="status" aria-live="polite" style={{fontSize:15,fontWeight:600,margin:'18px 0 8px',color:tempConfig.showPrices !== false?'#BDE1B8':'#E4C687'}}>{tempConfig.showPrices !== false?'Precios visibles':'Precios ocultos'}</p>
+  <p style={{fontSize:13,color:'#D6CBB8',lineHeight:1.6,margin:'0 0 18px'}}>Pulsa «Guardar cambios» para aplicar la selección al portal.</p>
+  <p style={{fontSize:14,lineHeight:1.7,color:'#D6CBB8',borderTop:'1px solid #4B4035',paddingTop:16,margin:0}}>Los anticipos necesarios para confirmar la cita se muestran siempre. Tú seguirás viendo todos los precios en la intranet.</p>
+  <button type="button" className="studio-prices-catalog" onClick={()=>{setAdminCatalogSearch('');setAdminCatalogStatus('all');setAdminTab('catalog');}} style={{marginTop:18,padding:'10px 14px',minHeight:44,background:'transparent',border:'1px solid #806340',borderRadius:8,color:'#E4C687',fontSize:14,cursor:'pointer'}}>Editar importes en Catálogo →</button>
 </section>}
 {configSubTab === 'empleados' && <section style={{ background: '#322A25', padding: 20, borderRadius: 12, color: '#FFF8EE' }}>
   <h3 style={{ color: '#E4C687', marginTop: 0 }}>Empleados</h3>
@@ -2153,3 +2158,5 @@ export default function AdminPanelView(props: Props) {
 // lst-catalog-layout-v1
 
 // lst-settings-layout-v1
+
+// lst-prices-portal-v1
