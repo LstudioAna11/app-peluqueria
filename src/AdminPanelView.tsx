@@ -1266,21 +1266,13 @@ export default function AdminPanelView(props: Props) {
           {configSubTab === 'holidays' && (
             <div className="studio-holidays-premium" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <style>{`
-                .studio-holidays-premium form { background: #322A25 !important; border-color: #3A312A !important; border-radius: 14px !important; padding: 22px !important; gap: 18px !important; }
+                .studio-holidays-premium form { background: #322A25 !important; border-color: #3A312A !important; border-radius: 14px !important; padding: 16px !important; gap: 12px !important; }
                 .studio-holidays-premium input, .studio-holidays-premium select { min-height: 44px; box-sizing: border-box; font-size: 13px !important; padding: 11px !important; color-scheme: dark; border-radius: 8px !important; background: #322A25 !important; border-color: #3A312A !important; }
                 .studio-holidays-premium label { font-size: 12px !important; color: #D6CBB8 !important; margin-bottom: 5px; }
-                .studio-holidays-premium button { font-size: 12px !important; min-height: 40px; font-weight: normal !important; border-radius: 8px !important; }
+                .studio-holidays-premium button { font-size: 14px !important; min-height: 44px; font-weight: normal !important; border-radius: 8px !important; }
                 .studio-holidays-premium form button[type=submit] { padding: 12px 20px !important; }
-                .studio-holidays-premium > div:last-child > div { background: #322A25 !important; border-color: #3A312A !important; border-radius: 12px !important; padding: 18px !important; }
-                .studio-holidays-premium > div:last-child button { background: transparent !important; color: #D6CBB8 !important; border-color: #3A312A !important; }
               `}</style>
-              <div>
-                <h3 style={{ color: '#E4C687', fontSize: '24px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Vacaciones y festivos</h3>
-                <p style={{ color: '#D6CBB8', fontSize: '11px', margin: 0 }}>Festivos oficiales y cierres guardados en el servidor. Las reservas existentes se conservan.</p>
-              </div>
-              <p style={{ color: '#D6CBB8', fontSize: 13, margin: 0 }}>Los cierres se guardan desde este apartado con «Guardar cierre»; no necesitan el botón general de configuración.</p>
-              <OfficialHolidaysView onChanged={onPromotionsSaved} appointments={appointments} />
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', background: '#322A25', border: '1px solid #454634', borderRadius: '10px', padding: '14px', color: '#D6CBB8', fontSize: '12px' }}><span>Agenda y portal · Cierres compartidos en Supabase</span><button type="button" onClick={() => setAdminTab('agenda')} style={{ marginLeft: 'auto', cursor: 'pointer', color: '#E4C687', background: 'none', border: '1px solid #C5A059', borderRadius: '7px', padding: '9px 12px' }}>Ver agenda →</button></div>
+              <p style={{color:'#D6CBB8',fontSize:14,margin:0}}>Las citas existentes no se cancelan.</p>
               {newHolidayStart && newHolidayEnd && newHolidayEnd >= newHolidayStart && appointments.some(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd) && <div style={{ color: '#E4C687', fontSize: '13px', padding: '14px', borderLeft: '2px solid #b69b60' }}>Hay {appointments.filter(item => isActiveAppointment(item) && item.dateKey >= newHolidayStart && item.dateKey <= newHolidayEnd).length} citas en estas fechas. Guardar el cierre no las cancela.</div>}
               <form onSubmit={async (e) => {
                 e.preventDefault();
@@ -1317,23 +1309,23 @@ export default function AdminPanelView(props: Props) {
                 <h4 style={{ color: '#E4C687', fontSize: '13px', margin: 0 }}>Nuevo cierre</h4>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Tipo:</label>
+                    <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Tipo</label>
                     <select value={newHolidayType} onChange={(e) => setNewHolidayType(e.target.value as any)} style={{ padding: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '11px' }}>
                       <option value="vacaciones">Vacaciones</option>
                       <option value="festivo">Festivo</option>
                     </select>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Desde el día:</label>
+                    <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Desde</label>
                     <input type="date" value={newHolidayStart} onChange={(e) => setNewHolidayStart(e.target.value)} required style={{ padding: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '11px' }} />
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Hasta el día:</label>
+                    <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Hasta</label>
                     <input type="date" min={newHolidayStart || undefined} value={newHolidayEnd} onChange={(e) => setNewHolidayEnd(e.target.value)} required style={{ padding: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '11px' }} />
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Motivo o descripción:</label>
+                  <label style={{ color: '#FFF8EE', fontSize: '11px' }}>Motivo (opcional)</label>
                   <input type="text" placeholder="Ej. Vacaciones de verano o Festivo local de Elche" value={newHolidayReason} onChange={(e) => setNewHolidayReason(e.target.value)} style={{ padding: '8px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '11px' }} />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -1342,18 +1334,15 @@ export default function AdminPanelView(props: Props) {
                   </button>
                 </div>
               </form>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <h4 style={{ color: '#E4C687', fontSize: '13px', margin: '5px 0 0 0' }}>Cierres programados</h4>
-                {holidaysList.length === 0 ? (
-                  <div style={{ backgroundColor: '#322A25', padding: '15px', borderRadius: '8px', color: '#D6CBB8', fontSize: '11px', textAlign: 'center' }}>
-                    No hay vacaciones ni festivos bloqueados actualmente.
-                  </div>
-                ) : (
-                  holidaysList.filter(item => !item.id.startsWith('auto-')).sort((a,b) => a.startDate.localeCompare(b.startDate)).map((h) => (
-                    <div key={h.id} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              {(() => {
+                const manual=holidaysList.filter(item=>!item.id.startsWith('auto-')).sort((a,b)=>a.startDate.localeCompare(b.startDate));
+                const upcoming=manual.filter(item=>item.endDate>=todaySummaryKey);
+                const past=manual.filter(item=>item.endDate<todaySummaryKey).reverse();
+                const renderClosure=(h:HolidayBlock)=>(
+<div key={h.id} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '8px', padding: '12px 15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
                         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                          <span style={{ backgroundColor: h.type === 'vacaciones' ? '#3E342C' : '#F2DCD8', color: h.type === 'vacaciones' ? '#8F6D24' : '#C0392B', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>
+                          <span style={{ backgroundColor: h.type === 'vacaciones' ? '#3E342C' : '#F2DCD8', color: h.type === 'vacaciones' ? '#E4C687' : '#8A2F23', padding: '2px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold' }}>
                             {h.type === 'vacaciones' ? 'VACACIONES' : 'FESTIVO'}
                           </span>
                           <span style={{ color: '#FFF8EE', fontSize: '12px', fontWeight: 'bold' }}>{h.reason}</span>
@@ -1374,9 +1363,15 @@ export default function AdminPanelView(props: Props) {
                         Quitar cierre
                       </button>
                     </div>
-                  ))
-                )}
-              </div>
+                );
+                return <section aria-label="Cierres guardados" style={{display:'grid',gap:12}}>
+                  <h4 style={{color:'#E4C687',fontSize:16,margin:0}}>Próximos cierres · {upcoming.length}</h4>
+                  {upcoming.length?upcoming.map(renderClosure):<p style={{margin:0,color:'#D6CBB8',fontSize:14}}>No hay cierres programados.</p>}
+                  {past.length>0&&<details><summary style={{color:'#D6CBB8',cursor:'pointer',padding:'10px 0',fontSize:14}}>Anteriores · {past.length}</summary><div style={{display:'grid',gap:10,marginTop:8}}>{past.map(renderClosure)}</div></details>}
+                </section>;
+              })()}
+              <OfficialHolidaysView onChanged={onPromotionsSaved} appointments={appointments}/>
+              <details style={{borderTop:'1px solid #4B4035',paddingTop:12,color:'#D6CBB8',fontSize:13,lineHeight:1.6}}><summary style={{cursor:'pointer'}}>Ayuda</summary><p>«Guardar cierre» bloquea nuevas reservas en la agenda y el portal. Los cierres de este apartado se guardan por separado de los ajustes generales. Revisa las citas que coincidan con el periodo.</p><button type="button" onClick={()=>setAdminTab('agenda')} style={{color:'#E4C687',background:'transparent',border:'1px solid #655039',borderRadius:7,padding:'10px 14px',cursor:'pointer'}}>Ver agenda →</button></details>
             </div>
           )}
               </div>
@@ -2167,3 +2162,5 @@ export default function AdminPanelView(props: Props) {
 // lst-employees-cards-v1
 
 // lst-weekly-hours-installed-v1
+
+// lst-compact-closures-v1
