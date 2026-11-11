@@ -1,3 +1,4 @@
+import {depositMoney} from './serviceDeposits';
 import {studioDayRanges,studioWeekErrors,studioScheduleLabel,STUDIO_WEEK_DAYS,type StudioWeek} from './weeklyHours';
 import {appointmentDiscountDepositLimit,clearAppointmentDiscount,type AppointmentDiscount} from './appointmentDiscounts';
 import {useAppAudience,audienceCall,type AudienceCounts} from './appAudience';
@@ -3205,7 +3206,8 @@ function StudioApp() {
         alert('Este PIN maestro ya pertenece a una clienta. Elige otro.'); return;
       }
     }
-    if (configSubTab === 'reservas' && (!Number.isFinite(tempConfig.advancePaymentThresholdMinutes) || tempConfig.advancePaymentThresholdMinutes < 0 || !Number.isFinite(parseFloat(tempConfig.depositAmount.replace(',', '.'))) || parseFloat(tempConfig.depositAmount.replace(',', '.')) <= 0)) { alert('Revisa el importe y la duración de la reserva anticipada.'); return; }
+    const depositConfig=configDraftRef.current;
+    if((sectionName==='Anticipos'||configSubTab==='reservas') && depositConfig.advancePaymentEnabled && catalog.some(category=>category.subservices.some(service=>!service.bizumPolicy||service.bizumPolicy==='general')) && (!Number.isFinite(depositConfig.advancePaymentThresholdMinutes)||depositConfig.advancePaymentThresholdMinutes<0||!(depositMoney(depositConfig.depositAmount)>0))){alert('Revisa la regla anterior en Catálogo → Configuración de anticipos.');return;}
     const submittedDraft = structuredClone(configDraftRef.current);
     if(submittedDraft.weeklyHours !== undefined){const issues=studioWeekErrors(submittedDraft.weeklyHours);if(issues.length){alert(issues.join('\n'));return;}}
     const normalizedConfig = normalizeOpeningHours(submittedDraft);
@@ -6399,3 +6401,5 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
 // lst-client-list-v1
 
 // lst-weekly-hours-installed-v1
+
+// lst-bizum-catalog-only-v1
