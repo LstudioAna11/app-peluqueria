@@ -1,3 +1,4 @@
+import {useLostDemand} from './useLostDemand';
 import {depositMoney} from './serviceDeposits';
 import {studioDayRanges,studioWeekErrors,studioScheduleLabel,STUDIO_WEEK_DAYS,type StudioWeek} from './weeklyHours';
 import {appointmentDiscountDepositLimit,clearAppointmentDiscount,type AppointmentDiscount} from './appointmentDiscounts';
@@ -2219,13 +2220,16 @@ function StudioApp() {
     if (!saturdayRequestModal || pendingBookingBusyRef.current) return;
     pendingBookingBusyRef.current = true; setPendingBookingBusy(true); setPendingBookingError('');
     try {
+      demandTracker.submit();
       const saved = await persistPendingAppointment(saturdayRequestModal);
       setAppointments(previous => [...previous.filter(item => item.id !== saved.id && item.serverId !== saved.serverId), saved]);
       setRegisteredAppointment(saved);
+      demandTracker.complete(saved.serverId||saved.id);setDemandExplicitDate('');
       setBookingSuccessMsg('Solicitud enviada al Studio · Pendiente de confirmación de Ana.');
       setSelectedServicesToBook([]); setBookingClientNote(''); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setSelectedVoucherId(null); setIsModalOpen(false); setSaturdayRequestModal(null);
       setCurrentScreen('catalogBooking');
     } catch (error) {
+      demandTracker.failed(error instanceof Error&&/hueco.*ocup/i.test(error.message),saturdayRequestModal?.id);
       setPendingBookingError(error instanceof Error ? error.message : 'No se ha podido enviar la solicitud. Conservamos tus datos para reintentar.');
     } finally { pendingBookingBusyRef.current = false; setPendingBookingBusy(false); }
   };
@@ -2300,12 +2304,15 @@ function StudioApp() {
     if (!advancePaymentModal || pendingBookingBusyRef.current) return;
     pendingBookingBusyRef.current = true; setPendingBookingBusy(true); setPendingBookingError('');
     try {
+      demandTracker.submit();
       const saved = await persistPendingAppointment(advancePaymentModal);
       setAppointments(previous => [...previous.filter(item => item.id !== saved.id && item.serverId !== saved.serverId), saved]);
       setRegisteredAppointment(saved);
+      demandTracker.complete(saved.serverId||saved.id);setDemandExplicitDate('');
       setBookingSuccessMsg(saved.saturdayApproval?.status === 'pending' ? 'Solicitud enviada al Studio · Pendiente de confirmación de Ana.' : 'Solicitud enviada al Studio · Pendiente de comprobar el anticipo.');
       setSelectedServicesToBook([]); setBookingClientNote(''); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setSelectedVoucherId(null); setIsModalOpen(false); setCurrentScreen('catalogBooking'); setAdvancePaymentModal(null);
     } catch (error) {
+      demandTracker.failed(error instanceof Error&&/hueco.*ocup/i.test(error.message),advancePaymentModal?.id);
       setPendingBookingError(error instanceof Error ? error.message : 'No se ha podido enviar la solicitud. Conservamos tus datos para reintentar.');
     } finally { pendingBookingBusyRef.current = false; setPendingBookingBusy(false); }
   };
@@ -3761,12 +3768,14 @@ function StudioApp() {
     visualBookingBusyRef.current = true;
     setVisualBookingBusy(true);
     try {
+      demandTracker.submit();
       const saved = await persistPendingAppointment(draft);
       setAppointments(previous => [
         ...previous.filter(item => item.id !== draft.id && item.id !== saved.id && !(saved.serverId && item.serverId === saved.serverId)),
         saved
       ]);
       setRegisteredAppointment(saved);
+      demandTracker.complete(saved.serverId||saved.id);setDemandExplicitDate('');
       const message = saved.saturdayApproval?.status === 'pending'
         ? 'Solicitud enviada al Studio · Pendiente de confirmación de Ana.'
         : saved.advancePayment?.status === 'pending'
@@ -3778,6 +3787,7 @@ function StudioApp() {
       setCurrentScreen('catalogBooking');
       setTimeout(() => setBookingSuccessMsg(null), 8000);
     } catch (error) {
+      demandTracker.failed(error instanceof Error&&/hueco.*ocup/i.test(error.message),visualBookingAttemptRef.current?.draft.id);
       if(error instanceof Error&&error.message.includes('La disponibilidad del bono ha cambiado'))visualBookingAttemptRef.current=null;
       setAvailabilityReload(value=>value+1);
       setVisualBookingError((error instanceof Error ? error.message : 'No se pudo confirmar el guardado en el servidor.') + ' Conservamos tu selección. Pulsa «Comprobar y reintentar» para revisar si se guardó antes de volver a enviarla.');
@@ -4083,7 +4093,8 @@ function StudioApp() {
     }
     return Array.from(new Set(times));
   };
-  const choosePortalDate = (date: Date) => { setBookingDate(date); setSelectedVisualTime(''); };
+  const [demandExplicitDate,setDemandExplicitDate]=useState('');
+  const choosePortalDate = (date: Date,explicit=true) => { setDemandExplicitDate(explicit?formatDateKey(date):'');setBookingDate(date); setSelectedVisualTime(''); };
   const saturdayPolicyText = bizConfig.saturdayNoticeMessage?.trim() || INITIAL_BUSINESS_CONFIG.saturdayNoticeMessage;
   const saturdayPolicyKey = formatDateKey(bookingDate) + '|' + saturdayPolicyText;
   const saturdayNeedsAcceptance = bookingDate.getDay() === 6 && bizConfig.saturdayPolicyEnabled !== false;
@@ -4161,6 +4172,7 @@ function StudioApp() {
   },[clientRescheduleActive]);
 
   const portalTimes = portalAvailableTimes(bookingDate);
+  const demandTracker=useLostDemand({screen:currentScreen,clientId:currentClientRecord?.serverId,services:selectedServicesToBook.map(item=>({id:item.sub.id,variantId:item.variant?.id||null})),date:formatDateKey(bookingDate),explicit:demandExplicitDate===formatDateKey(bookingDate),time:selectedVisualTime,ready:availabilityReady,error:!!portalAvailability?.error&&!portalAvailability.loading&&portalAvailability.token===availabilityToken&&portalAvailability.startDate<=formatDateKey(bookingDate)&&portalAvailability.endDate>=formatDateKey(bookingDate),hasSlots:portalTimes.length>0});
   useEffect(() => {
     if (!['catalogBooking', 'visualAgenda'].includes(currentScreen) || !currentClientRecord || !selectedServicesToBook.length) return;
     const email = currentClientRecord.email.trim().toLowerCase();
@@ -5401,15 +5413,15 @@ function StudioApp() {
             </div>
           </section>}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-            <button type="button" aria-label={t('previousWeek')} onClick={() => { const day = new Date(bookingDate); day.setDate(day.getDate() - 7); choosePortalDate(day); }} style={{ padding: '12px', background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', cursor: 'pointer' }}>←</button>
+            <button type="button" aria-label={t('previousWeek')} onClick={() => { const day = new Date(bookingDate); day.setDate(day.getDate() - 7); choosePortalDate(day,false); }} style={{ padding: '12px', background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', cursor: 'pointer' }}>←</button>
             <span style={{ color: '#FFF8EE', fontSize: '14px', textAlign: 'center' }}>{portalWeekStart.toLocaleDateString(portalLocale, { month: 'long', year: 'numeric' })}</span>
-            <button type="button" aria-label={t('nextWeek')} onClick={() => { const day = new Date(bookingDate); day.setDate(day.getDate() + 7); choosePortalDate(day); }} style={{ padding: '12px', background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', cursor: 'pointer' }}>→</button>
+            <button type="button" aria-label={t('nextWeek')} onClick={() => { const day = new Date(bookingDate); day.setDate(day.getDate() + 7); choosePortalDate(day,false); }} style={{ padding: '12px', background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', cursor: 'pointer' }}>→</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: '5px' }}>
             {portalWeekDays.map(day => {
               const selected = formatDateKey(day) === formatDateKey(bookingDate);
               const available = portalAvailableTimes(day).length > 0;
-              return <button type="button" key={formatDateKey(day)} aria-pressed={selected} disabled={!portalDateAllowed(day)} onClick={() => choosePortalDate(day)} style={{ minHeight: '70px', padding: '8px 1px', backgroundColor: selected ? '#C49A58' : '#322A25', color: selected ? '#29231F' : '#FFF8EE', opacity: portalDateAllowed(day) ? 1 : 0.35, border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '9px', cursor: 'pointer' }}><span style={{ fontSize: '10px', display: 'block' }}>{day.toLocaleDateString(portalLocale, { weekday: 'short' })}</span><strong style={{ fontSize: '18px', display: 'block', margin: '5px 0' }}>{day.getDate()}</strong><span aria-label={portalIntervalReady(portalAvailability,availabilityToken,formatDateKey(day))?(available?t('slotsAvailable'):t('noSlots')):'Comprobando disponibilidad'} style={{ fontSize: '10px' }}>{portalIntervalReady(portalAvailability,availabilityToken,formatDateKey(day))?(available?'●':'—'):'…'}</span></button>;
+              return <button type="button" key={formatDateKey(day)} aria-pressed={selected} onClick={() => choosePortalDate(day)} style={{ minHeight: '70px', padding: '8px 1px', backgroundColor: selected ? '#C49A58' : '#322A25', color: selected ? '#29231F' : '#FFF8EE', opacity: portalDateAllowed(day) ? 1 : 0.35, border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '9px', cursor: 'pointer' }}><span style={{ fontSize: '10px', display: 'block' }}>{day.toLocaleDateString(portalLocale, { weekday: 'short' })}</span><strong style={{ fontSize: '18px', display: 'block', margin: '5px 0' }}>{day.getDate()}</strong><span aria-label={portalIntervalReady(portalAvailability,availabilityToken,formatDateKey(day))?(available?t('slotsAvailable'):t('noSlots')):'Comprobando disponibilidad'} style={{ fontSize: '10px' }}>{portalIntervalReady(portalAvailability,availabilityToken,formatDateKey(day))?(available?'●':'—'):'…'}</span></button>;
             })}
           </div>
           <label style={{ color: '#C9BCA9', fontSize: '13px' }}>{t('otherDate')}<input ref={portalDateInputRef} aria-label={t('otherDate')} type="date" value={formatDateKey(bookingDate)} onChange={e => { if (e.target.value) choosePortalDate(new Date(`${e.target.value}T12:00:00`)); }} style={{ display: 'block', marginTop: '8px', padding: '12px', backgroundColor: '#3E342C', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', boxSizing: 'border-box', width: '100%' }} /></label>
@@ -6374,3 +6386,5 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
 // lst-opinions-installed-v1
 
 // lst-crm-client-access-v1
+
+// lst-lost-demand-v1
