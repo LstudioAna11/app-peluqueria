@@ -466,15 +466,14 @@ function StudioBackupPanel({hasUnsavedChanges}:{hasUnsavedChanges:boolean}){
   const input:React.CSSProperties={display:'block',width:'100%',boxSizing:'border-box',padding:10,marginTop:6,background:'#29231F',color:'#FFF8EE',border:'1px solid #8C6A4B',borderRadius:6};
   const button:React.CSSProperties={padding:12,minHeight:44,background:'#C99E52',color:'#29231F',border:0,borderRadius:6,fontWeight:600,cursor:busy?'wait':'pointer'};
   return <section style={{display:'flex',flexDirection:'column',gap:12}} aria-busy={busy}>
-    <p style={{fontSize:13,lineHeight:1.6,margin:0}}>Prepara una copia de las clientas, citas, pasaportes, historial guardado, catálogo, promociones, ajustes y bloqueos desde el servidor. La copia se protege con una contraseña que eliges tú.</p>
-    <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6,margin:0}}>También conserva una sección de datos locales de este dispositivo, incluidas las fórmulas que todavía no se sincronizan.</p>
-    <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6,margin:0}}>Guarda esa contraseña por separado: si la pierdes, no podremos abrir la copia. No uses tu PIN de acceso.</p>
+    <p style={{fontSize:13,color:'#D6CBB8',margin:0}}>Guarda su contraseña. No incluye el código de la app.</p>
     {hasUnsavedChanges&&<p style={{fontSize:13,color:'#E4C687'}}>Tienes cambios sin guardar. Guarda el catálogo y la configuración antes de exportar.</p>}
+    <details><summary style={{cursor:'pointer',fontSize:15,color:'#E4C687',padding:'10px 0'}}>Crear copia</summary><div style={{display:'grid',gap:12,marginTop:12}}>
     <label style={{fontSize:13}}>Contraseña de la copia<input type="password" autoComplete="new-password" minLength={12} disabled={busy} value={password} onChange={event=>setPassword(event.target.value)} style={input}/></label>
     <label style={{fontSize:13}}>Repite la contraseña<input type="password" autoComplete="new-password" disabled={busy} value={repeat} onChange={event=>setRepeat(event.target.value)} style={input}/></label>
     <label style={{fontSize:13,lineHeight:1.6}}><input type="checkbox" disabled={busy} checked={withPhotos} onChange={event=>setWithPhotos(event.target.checked)}/> Incluir fotos, logos y galerías privadas</label>
-    <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6,margin:0}}>Las fotos aumentan el tamaño y consumen transferencia al descargarlas. Las imágenes externas o incluidas en el código de la app se conservan como enlaces.</p>
     <button type="button" disabled={busy||hasUnsavedChanges} onClick={()=>void download()} style={button}>{busy?'Un momento…':withPhotos?'1. Preparar copia con fotos':'1. Preparar copia de datos'}</button>
+    </div></details>
     {prepared&&<div style={{padding:14,border:'1px solid #B9955F',borderRadius:8,display:'grid',gap:10}}>
       <strong style={{fontSize:13,color:'#E4C687'}}>Tu copia está lista para guardar</strong>
       <span style={{fontSize:11,overflowWrap:'anywhere'}}>{prepared.name}</span>
@@ -503,7 +502,13 @@ function StudioBackupPanel({hasUnsavedChanges}:{hasUnsavedChanges:boolean}){
       </div>
       <span style={{fontSize:11,color:'#D6CBB8',overflowWrap:'anywhere'}}>Origen: {summary.source}</span>
     </div>}
+    <details style={{fontSize:13,color:'#D6CBB8',lineHeight:1.6}}><summary style={{cursor:'pointer'}}>Ayuda de la copia</summary><div style={{display:'grid',gap:10,marginTop:10}}>
+    <p style={{fontSize:13,lineHeight:1.6,margin:0}}>Prepara una copia de las clientas, citas, pasaportes, historial guardado, catálogo, promociones, ajustes y bloqueos desde el servidor. La copia se protege con una contraseña que eliges tú.</p>
+    <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6,margin:0}}>También conserva una sección de datos locales de este dispositivo, incluidas las fórmulas que todavía no se sincronizan.</p>
+    <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6,margin:0}}>Guarda esa contraseña por separado: si la pierdes, no podremos abrir la copia. No uses tu PIN de acceso.</p>
+    <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6,margin:0}}>Las fotos aumentan el tamaño y consumen transferencia al descargarlas. Las imágenes externas o incluidas en el código de la app se conservan como enlaces.</p>
     <p style={{fontSize:12,color:'#D6CBB8',lineHeight:1.6,margin:0}}>No incluye sesiones, claves de envío ni el código de la aplicación. La restauración automática todavía no está incluida.</p>
+    </div></details>
   </section>;
 }
 
@@ -1115,19 +1120,25 @@ export default function AdminPanelView(props: Props) {
   <p style={{fontSize:12,color:'#D6CBB8',margin:0}}>Recordatorios y plantilla: pulsa «Guardar cambios» arriba.</p>
   <BirthdayPanel clients={listaClientes}/>
   <details style={{border:'1px solid #4B4035',borderRadius:12,padding:18,color:'#FFF8EE'}}><summary style={{cursor:'pointer',color:'#E4C687',fontSize:17}}>Privacidad y permisos</summary><div style={{marginTop:14}}><p style={{fontSize:12,color:'#D6CBB8',margin:'0 0 12px'}}>Los textos se aplican con «Publicar nueva versión».</p><PrivacyDocumentsPanel/></div></details>
-</>}{configSubTab === 'enlaces' && <BookingLinksPanel />}{configSubTab === 'fichajes' && <React.Suspense fallback={<p>Preparando fichajes…</p>}><LazyTimeClockAdmin/></React.Suspense>}{configSubTab === 'backup' && <section className="studio-security-pin"><h3>PIN de administración</h3>                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold' }}>PIN Maestro de Administración (4 dígitos):</label>
-                    <input type="password" maxLength={4} value={tempConfig.masterPin} onChange={(e) => setTempConfig(previous => ({ ...previous, masterPin: e.target.value }))} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px', textAlign: 'center', letterSpacing: '4px' }} />
-                  </div></section>}{configSubTab === 'backup' && <div className="studio-security-compact" style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Copia de seguridad</h3><StudioBackupPanel hasUnsavedChanges={catalogHasChanges||configHasPendingChanges}/>
-<div style={{ marginTop: '14px', padding: '14px', background: '#29231F', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px' }}>
-  <strong style={{ color: '#E4C687', fontSize: '13px' }}>Emails automáticos de citas</strong>
+</>}{configSubTab === 'enlaces' && <BookingLinksPanel />}{configSubTab === 'fichajes' && <React.Suspense fallback={<p>Preparando fichajes…</p>}><LazyTimeClockAdmin/></React.Suspense>}{configSubTab === 'backup' && <details className="studio-security-pin"><summary style={{cursor:'pointer',fontSize:16,color:'#E4C687'}}>Cambiar PIN</summary>                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginTop: 14 }}>
+                    <label style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold' }}>PIN de administración · 4 dígitos</label>
+                    <input type="password" autoComplete="new-password" aria-label="PIN de administración de cuatro dígitos" maxLength={4} value={tempConfig.masterPin} onChange={(e) => setTempConfig(previous => ({ ...previous, masterPin: e.target.value }))} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px', textAlign: 'center', letterSpacing: '4px' }} />
+                  </div><p style={{fontSize:12,color:'#D6CBB8',margin:'12px 0 0'}}>Pulsa «Guardar cambios» arriba.</p></details>}{configSubTab === 'backup' && <div className="studio-security-compact" style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Copia de seguridad</h3><StudioBackupPanel hasUnsavedChanges={catalogHasChanges||configHasPendingChanges}/></div>}{configSubTab === 'backup' && <section aria-label="Conexiones de envío" style={{display:'grid',gap:12,padding:18,border:'1px solid #4B4035',borderRadius:12,color:'#FFF8EE'}}><h3 style={{margin:0,color:'#E4C687',fontSize:17}}>Conexiones de envío</h3>
+
+<div style={{ padding: '14px', background: '#29231F', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px' }}>
+  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}><strong style={{color:'#FFF8EE',fontSize:15}}>Email de citas</strong><span style={{fontSize:13,color:emailConfigStatus?.providerConfigured?'#BDE1B8':'#E4C687'}}>{emailConfigStatus===null?'Sin comprobar':emailConfigStatus.providerConfigured?'Configurado':'Pendiente de configurar'}</span></div>
+  <details style={{marginTop:10}}><summary style={{cursor:'pointer',color:'#E4C687',fontSize:14}}>Ver conexión</summary>
+
   {emailConfigStatus === null && <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: '8px 0 0' }}>No se pudo consultar el estado de la configuración de email en este momento.</p>}
   {emailConfigStatus && !emailConfigStatus.providerConfigured && <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0' }}>Estado: pendiente de configurar. Los emails se programan y quedan registrados, pero no se envían hasta completar: una cuenta en Resend (proveedor de email), su API key guardada como secreto del proyecto y un remitente verificado en Resend (dominio propio o dirección verificada). No se muestra ningún envío como realizado sin confirmación del proveedor.</p>}
   {emailConfigStatus && emailConfigStatus.providerConfigured && <p style={{ color: '#8FC98F', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0' }}>Estado: configurado. Remitente: {emailConfigStatus.fromEmail} · Proveedor: {emailConfigStatus.provider || 'resend'}.</p>}
   {emailConfigStatus && <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: '8px 0 0' }}>El estado de los emails de cada cita se consulta en el detalle de la cita, en «Emails automáticos de la cita».</p>}
+</details>
 </div>
-<div style={{ marginTop: '14px', padding: '14px', background: '#29231F', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px' }}>
-  <strong style={{ color: '#E4C687', fontSize: '13px' }}>WhatsApp automático de citas</strong>
+<div style={{ padding: '14px', background: '#29231F', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px' }}>
+  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:12,flexWrap:'wrap'}}><strong style={{color:'#FFF8EE',fontSize:15}}>WhatsApp de citas</strong><span style={{fontSize:13,color:whatsappConfigStatus?.providerConfigured?'#BDE1B8':'#E4C687'}}>{whatsappConfigStatus===null?'Sin comprobar':whatsappConfigStatus.providerConfigured?'Configurado':'Pendiente de configurar'}</span></div>
+  <details style={{marginTop:10}}><summary style={{cursor:'pointer',color:'#E4C687',fontSize:14}}>Ver conexión</summary>
+
   {whatsappConfigStatus === null && <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: '8px 0 0' }}>No se pudo consultar el estado de la configuración de WhatsApp en este momento.</p>}
   {whatsappConfigStatus && !whatsappConfigStatus.providerConfigured && (
     <div style={{ margin: '8px 0 0' }}>
@@ -1140,7 +1151,9 @@ export default function AdminPanelView(props: Props) {
   )}
   {whatsappConfigStatus && whatsappConfigStatus.providerConfigured && <p style={{ color: '#8FC98F', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0' }}>Estado: configurado. Número del Studio: {whatsappConfigStatus.studioPhone} · Plantilla: {whatsappConfigStatus.templateName}.</p>}
   {whatsappConfigStatus && <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: '8px 0 0' }}>El estado de los WhatsApp de cada cita se consulta en el detalle de la cita, en «WhatsApp automático de la cita». Los emails siguen funcionando de forma independiente.</p>}
-</div></div>}
+</details>
+</div>
+</section>}
               {configSubTab === 'marca' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)' }}>
@@ -2205,3 +2218,5 @@ export default function AdminPanelView(props: Props) {
 // lst-timeclock-compact-v1
 
 // lst-notices-compact-v1
+
+// lst-security-compact-v1
