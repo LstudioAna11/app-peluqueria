@@ -1,3 +1,4 @@
+import {PersonalDailyTimer,ClockDailyValue,useClockDailyReport} from './ClockDailyTimer';
 import React,{useEffect,useRef,useState} from 'react';
 import {clockCall,ClockError,clockDate,clockMonth,clockMetrics,clockDuration,madridInput,type ClockState,type ClockStaff,type ClockShift,type ClockReport} from './timeclockApi';
 import {clockWorkbook} from './clockWorkbook';
@@ -22,6 +23,7 @@ export function ClockPortal(){
   finally{lock.current=false;if(mounted.current)setBusy(false);}
  };
  useEffect(()=>{mounted.current=true;const start=setTimeout(()=>void refresh(),0);return()=>{clearTimeout(start);mounted.current=false;};},[]);
+ useEffect(()=>{if(!session)return;const update=()=>{if(document.visibilityState!=='hidden'&&!pending.current)void refresh(session);};const timer=setInterval(update,60000);window.addEventListener('focus',update);window.addEventListener('online',update);document.addEventListener('visibilitychange',update);return()=>{clearInterval(timer);window.removeEventListener('focus',update);window.removeEventListener('online',update);document.removeEventListener('visibilitychange',update);};},[session?.token]);
  const login=async(e:React.FormEvent)=>{
   e.preventDefault();if(lock.current)return;lock.current=true;setBusy(true);setError('');setReceipt('');
   try{const next=await clockCall<ClockSession>('auth',{code:code.trim().toUpperCase(),pin,mode:shared?'salon':'mobile'});setPin('');if(!mounted.current)return;setSession(next);keepSession(next);const data=await clockCall<ClockState>('state',{},next.token);if(mounted.current)setState(data);}
@@ -49,14 +51,17 @@ export function ClockPortal(){
    <div style={{display:'flex',justifyContent:'space-between',gap:12,flexWrap:'wrap'}}><strong style={{color:'#E4C687'}}>{state?.staff.displayName||session.staff.displayName}</strong><button type="button" style={button} disabled={busy} onClick={leave}>{shared?'Cambiar persona':'Cerrar sesión de fichajes'}</button></div>
    <button type="button" style={button} disabled={busy} onClick={()=>void refresh()}>Actualizar estado</button>
    {state&&<section style={{padding:18,border:'1px solid #806340',borderRadius:12,display:'grid',gap:14}}>
-    <h2 style={{fontSize:22,margin:0,color:'#E4C687'}}>{!state.shift?'Fuera de jornada':state.shift.pauseStartedAt?'En pausa':'Jornada iniciada'}</h2>
-    {state.shift&&<p style={{margin:0}}>Entrada: {clockDate(state.shift.startedAt)}{state.shift.pauseStartedAt&&<> · Pausa desde {clockDate(state.shift.pauseStartedAt)}</>}</p>}
-    {state.lastEvent&&<small>Último registro: {actions[state.lastEvent.action]} · {clockDate(state.lastEvent.at)}</small>}
-    <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>{(!state.shift?['in']:state.shift.pauseStartedAt?['resume','out']:['pause','out']).map(action=><button key={action} type="button" style={primary} disabled={busy||!!pending.current} onClick={()=>void punch(action)}>{actions[action]}</button>)}</div>
+    <h2 style={{fontSize:18,margin:0,color:'#E4C687'}}>Tu jornada</h2>
+    <PersonalDailyTimer token={session.token} state={state}/>
+    <details><summary style={{cursor:'pointer',color:'#D6CBB8',fontSize:14}}>Ver horas y último registro</summary>
+    {state.shift&&<p style={{fontSize:14}}>Entrada: {clockDate(state.shift.startedAt)}{state.shift.pauseStartedAt&&<> · Pausa desde {clockDate(state.shift.pauseStartedAt)}</>}</p>}
+    {state.lastEvent&&<p style={{fontSize:13}}>Último registro: {actions[state.lastEvent.action]} · {clockDate(state.lastEvent.at)}</p>}
+    </details>
+    <div style={{display:'flex',gap:12,flexWrap:'wrap'}}>{(!state.shift?['in']:state.shift.pauseStartedAt?['resume','out']:['pause','out']).map(action=><button key={action} type="button" style={primary} disabled={busy||!!pending.current} onClick={()=>void punch(action)}>{({in:'Iniciar jornada',pause:'Pausar',resume:'Reanudar',out:'Finalizar jornada'} as Record<string,string>)[action]}</button>)}</div>
     {pending.current&&<button type="button" style={button} disabled={busy} onClick={()=>void punch(pending.current!.action,true)}>Reintentar último fichaje</button>}
     <small style={{color:'#D6CBB8'}}>La confirmación y la hora proceden del servidor. Si cierras la jornada durante una pausa, esa pausa termina a la hora de salida.</small>
    </section>}
-   {!shared&&state&&<ClockReportView staff={[state.staff]} token={session.token}/>}
+   {!shared&&state&&<details><summary style={{cursor:'pointer',color:'#E4C687',padding:'10px 0'}}>Historial y resumen mensual</summary><ClockReportView staff={[state.staff]} token={session.token}/></details>}
   </>}
   {!shared&&<a href="/" style={{color:'#E4C687',padding:12,textAlign:'center'}}>Volver al Studio</a>}
  </div></main>;
@@ -92,8 +97,10 @@ export function TimeClockAdmin(){
  const [data,setData]=useState<AdminData|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const [name,setName]=useState(''),[employeeId,setEmployeeId]=useState(''),[credential,setCredential]=useState<{staff:ClockStaff;pin:string|null}|null>(null),[showPin,setShowPin]=useState(false);
  const [company,setCompany]=useState({name:'',taxId:'',center:''}),[editing,setEditing]=useState<EditShift|null>(null),[reportVersion,setReportVersion]=useState(0);
+ const [dailyRefresh,setDailyRefresh]=useState(0);
+ const daily=useClockDailyReport({admin:true,enabled:!!data,refreshKey:reportVersion+':'+dailyRefresh});
  const mounted=useRef(false),lock=useRef(false),creation=useRef<{requestId:string;name:string;employeeId:string}|null>(null),companyDirty=useRef(false);
- const load=async()=>{if(lock.current)return;lock.current=true;setBusy(true);setError('');try{const value=await clockCall<AdminData>('admin');if(mounted.current){setData(value);if(!companyDirty.current)setCompany({name:value.settings.employer_name,taxId:value.settings.tax_id,center:value.settings.work_center});}}catch(value){if(mounted.current)setError(value instanceof Error?value.message:'No se pudo cargar Fichajes.');}finally{lock.current=false;if(mounted.current)setBusy(false);}};
+ const load=async()=>{if(lock.current)return;lock.current=true;setBusy(true);setError('');try{const value=await clockCall<AdminData>('admin');if(mounted.current){setData(value);setDailyRefresh(v=>v+1);if(!companyDirty.current)setCompany({name:value.settings.employer_name,taxId:value.settings.tax_id,center:value.settings.work_center});}}catch(value){if(mounted.current)setError(value instanceof Error?value.message:'No se pudo cargar Fichajes.');}finally{lock.current=false;if(mounted.current)setBusy(false);}};
  useEffect(()=>{mounted.current=true;const start=setTimeout(()=>void load(),0);return()=>{clearTimeout(start);mounted.current=false;};},[]);
  const mutate=async(action:string,body:unknown,success:(value:any)=>void)=>{
   if(lock.current)return;lock.current=true;setBusy(true);setError('');setNotice('');let done=false;
@@ -113,13 +120,16 @@ export function TimeClockAdmin(){
   {data&&<>
    {credential&&<section style={{padding:16,border:'1px solid #B9955F',borderRadius:10,display:'grid',gap:10}}><strong>{credential.staff.displayName}</strong><label>Código<input readOnly style={field} value={credential.staff.code}/></label>{credential.pin?<><label>PIN nuevo · entrégalo a su titular<input readOnly type={showPin?'text':'password'} style={field} value={credential.pin}/></label><button type="button" style={button} onClick={()=>setShowPin(!showPin)}>{showPin?'Ocultar PIN':'Mostrar PIN'}</button></>:<p>El acceso ya existe y su PIN no puede recuperarse. Usa Restablecer PIN.</p>}<button type="button" style={button} onClick={()=>{setCredential(null);setShowPin(false);}}>Cerrar credenciales</button></section>}
    <section aria-label="Personal de fichajes" style={{display:'grid',gap:12}}>
-    <h3 style={{margin:0,color:'#E4C687',fontSize:17}}>Personal · {data.staff.length}</h3>
+    <h3 style={{margin:0,color:'#E4C687',fontSize:17}}>Personal · {data.staff.length}</h3><p style={{margin:0,fontSize:13,color:'#D6CBB8'}}>Tiempo trabajado hoy · sin pausas · Actualización cada minuto</p>{daily.error&&<p role="status" style={{fontSize:13,color:'#F5C7B8',margin:0}}>Contadores sin actualizar. Se conserva la última consulta confirmada.</p>}
     {!data.staff.length&&<p style={{margin:0,color:'#D6CBB8',fontSize:14}}>Crea el primer acceso en Configuración.</p>}
-    {data.staff.map(p=><article key={p.id} style={{padding:14,border:'1px solid #4B4035',borderRadius:10,display:'grid',gap:10}}>
-      <div style={{display:'flex',justifyContent:'space-between',gap:10,alignItems:'center',flexWrap:'wrap'}}><strong style={{fontSize:16}}>{p.displayName}</strong><span style={{fontSize:13,color:p.active?'#BDE1B8':'#F5C7B8'}}>{p.active?'Acceso activo':'Acceso desactivado'}</span></div>
+    <style>{`.studio-clock-person {display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:10px 12px;border:1px solid #4B4035;border-radius:9px;} .studio-clock-person>details[open]{flex-basis:100%;}.studio-clock-person summary{cursor:pointer;color:#E4C687;font-size:13px;padding:10px 0;} @media(max-width:520px){.studio-clock-person>strong{flex-basis:45% !important;}}`}</style>
+    {data.staff.map(p=><article key={p.id} className="studio-clock-person">
+      <strong style={{fontSize:15,flex:'1 1 160px'}}>{p.displayName}</strong>
+      <ClockDailyValue report={daily.report} staffId={p.id} now={daily.now} stale={daily.stale} compact/>
+      {!p.active&&<small style={{color:'#F5C7B8'}}>Acceso desactivado</small>}
       {p.pinReady===false&&<small style={{color:'#E4C687'}}>Necesita un PIN nuevo</small>}
-      <details><summary style={{cursor:'pointer',color:'#E4C687',fontSize:14,padding:'8px 0'}}>Gestionar acceso</summary><div style={{display:'grid',gap:12,marginTop:10}}>
-       <small style={{color:'#D6CBB8'}}>Código: {p.code}</small>
+      <details><summary>Gestionar acceso</summary><div style={{display:'grid',gap:12,marginTop:10}}>
+       <small style={{color:'#D6CBB8'}}>Código: {p.code} · {p.active?'Acceso activo':'Acceso desactivado'}</small>
        <div style={{display:'flex',gap:10,flexWrap:'wrap'}}><button type="button" style={button} disabled={busy} onClick={()=>access(p,true)}>Restablecer PIN</button><button type="button" style={button} disabled={busy} onClick={()=>access(p)}>{p.active?'Desactivar acceso':'Activar acceso'}</button></div>
       </div></details>
     </article>)}
@@ -150,3 +160,5 @@ export function TimeClockAdmin(){
 }
 
 // lst-timeclock-compact-v1
+
+// lst-clock-daily-timer-v1
