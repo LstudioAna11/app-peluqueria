@@ -1092,18 +1092,30 @@ export default function AdminPanelView(props: Props) {
   <label style={{display:'grid',gap:6,fontSize:14,color:'#D6CBB8'}}>Número de Bizum<input type="tel" value={tempConfig.bizumNumber} onChange={e=>setTempConfig(previous=>({...previous,bizumNumber:e.target.value}))} style={{padding:12,minHeight:44,boxSizing:'border-box',background:'#322A25',color:'#FFF8EE',border:'1px solid #655039',borderRadius:7,fontSize:14,maxWidth:320,width:'100%'}}/></label>
   <p style={{color:'#D6CBB8',fontSize:14,lineHeight:1.6,margin:'14px 0 0'}}>Los sábados requieren tu aprobación antes de solicitar el anticipo.</p>
   <button type="button" onClick={()=>{setAdminCatalogSearch('');setAdminCatalogStatus('all');setAdminTab('catalog');}} style={{marginTop:14,minHeight:44,padding:'10px 14px',color:'#E4C687',background:'transparent',border:'1px solid #655039',borderRadius:7,cursor:'pointer'}}>Gestionar anticipos en Catálogo →</button>
-</section>}{configSubTab === 'avisos' && <div className="studio-avisos-compact" style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Avisos y recordatorios</h3><label>WhatsApp del Studio<input type="tel"  value={tempConfig.studioWhatsapp} onChange={(e) => setTempConfig(previous => ({ ...previous, studioWhatsapp: e.target.value }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><label>Recordatorio antes de la cita (horas)<input type="number" min="0" value={tempConfig.reminderHours} onChange={(e) => setTempConfig(previous => ({ ...previous, reminderHours: Number(e.target.value) }))} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', marginTop: '6px' }} /></label><p style={{ color: '#E4C687' }}>Envío automático pendiente de configurar.</p><p>Estos datos guardan tus preferencias. No envían mensajes ni programan recordatorios hasta conectar un servicio de envío. El registro de entregas y errores estará disponible con esa conexión.</p></div>}{configSubTab === 'avisos' && (<>
-                  <div style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    <span style={{ color: '#E4C687', fontSize: '13px', fontWeight: 'bold' }}>Plantilla de WhatsApp · mensajes manuales</span>
-                    <p style={{ color: '#D6CBB8', fontSize: '14px', margin: 0 }}>Personaliza el texto que preparas desde las citas. Usa {'{nombre}'}, {'{fecha}'} y {'{hora}'} para insertar los datos de la clienta. El envío automático se configura en «Acceso y seguridad».</p>
-                    <textarea aria-label="Plantilla de WhatsApp para mensajes manuales"
-                      value={tempConfig.whatsappTemplate} 
-                      onChange={(e) => setTempConfig(previous => ({ ...previous, whatsappTemplate: e.target.value }))}
-                      rows={3} 
-                      style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px', resize: 'vertical' }} 
-                    />
-                  </div>
-</>)}{configSubTab === 'avisos' && <BirthdayPanel clients={listaClientes} />}{configSubTab === 'avisos' && <PrivacyDocumentsPanel/>}{configSubTab === 'enlaces' && <BookingLinksPanel />}{configSubTab === 'fichajes' && <React.Suspense fallback={<p>Preparando fichajes…</p>}><LazyTimeClockAdmin/></React.Suspense>}{configSubTab === 'backup' && <section className="studio-security-pin"><h3>PIN de administración</h3>                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+</section>}{configSubTab === 'avisos' && <>
+  <section style={{background:'#29231F',border:'1px solid #4B4035',borderRadius:12,padding:18,display:'grid',gap:14,color:'#FFF8EE'}} aria-label="Recordatorios de citas">
+    <h3 style={{margin:0,color:'#E4C687',fontSize:17}}>Recordatorios de citas</h3>
+    <div style={{display:'flex',gap:16,flexWrap:'wrap',fontSize:13,color:'#D6CBB8'}}>
+      <span>Email: <strong>{emailConfigStatus===null?'Sin comprobar':emailConfigStatus.providerConfigured?'Proveedor configurado':'Pendiente de configurar'}</strong></span>
+      <span>WhatsApp automático: <strong>{whatsappConfigStatus===null?'Sin comprobar':whatsappConfigStatus.providerConfigured?'Proveedor configurado':'Pendiente de configurar'}</strong></span>
+    </div>
+    <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(min(100%,220px),1fr))',gap:14}}>
+      <label style={{fontSize:14,color:'#D6CBB8'}}>WhatsApp del Studio<input type="tel" value={tempConfig.studioWhatsapp} onChange={e=>setTempConfig(previous=>({...previous,studioWhatsapp:e.target.value}))} style={{display:'block',boxSizing:'border-box',width:'100%',padding:12,minHeight:44,marginTop:6,background:'#322A25',color:'#FFF8EE',border:'1px solid #655039',borderRadius:7,fontSize:14}}/></label>
+      <label style={{fontSize:14,color:'#D6CBB8'}}>Preferencia de recordatorio (horas)<input type="number" min={0} value={tempConfig.reminderHours} onChange={e=>setTempConfig(previous=>({...previous,reminderHours:Number(e.target.value)}))} style={{display:'block',boxSizing:'border-box',width:'100%',padding:12,minHeight:44,marginTop:6,background:'#322A25',color:'#FFF8EE',border:'1px solid #655039',borderRadius:7,fontSize:14}}/></label>
+    </div>
+    <details><summary style={{cursor:'pointer',color:'#D6CBB8',fontSize:14}}>Ayuda y conexión</summary><div style={{fontSize:13,lineHeight:1.6,color:'#D6CBB8'}}><p>Proveedor configurado indica que el servicio tiene configuración; no confirma el envío de un mensaje. Consulta los envíos y errores en cada cita.</p><p>La preferencia de horas no programa envíos por sí sola. Los horarios efectivos dependen del servicio de envío conectado.</p><button type="button" onClick={()=>setConfigSubTab('backup')} style={{minHeight:44,padding:'10px 14px',color:'#E4C687',background:'transparent',border:'1px solid #655039',borderRadius:7,cursor:'pointer'}}>Revisar conexión de envíos →</button></div></details>
+  </section>
+  <details style={{background:'#29231F',border:'1px solid #4B4035',borderRadius:12,padding:18,color:'#FFF8EE'}}>
+    <summary style={{cursor:'pointer',color:'#E4C687',fontSize:17}}>WhatsApp manual · Plantilla</summary>
+    <div style={{display:'grid',gap:12,marginTop:14}}>
+      <textarea aria-label="Plantilla de WhatsApp para mensajes manuales" value={tempConfig.whatsappTemplate} onChange={e=>setTempConfig(previous=>({...previous,whatsappTemplate:e.target.value}))} rows={3} style={{width:'100%',boxSizing:'border-box',padding:12,background:'#322A25',border:'1px solid #655039',color:'#FFF8EE',borderRadius:7,fontSize:14,resize:'vertical'}}/>
+      <details><summary style={{cursor:'pointer',color:'#D6CBB8',fontSize:14}}>Ayuda</summary><p style={{fontSize:13,color:'#D6CBB8',lineHeight:1.6}}>Usa {'{nombre}'}, {'{fecha}'} y {'{hora}'} para insertar los datos de la cita. Esta plantilla prepara los mensajes manuales; los automáticos se configuran en Acceso y seguridad.</p></details>
+    </div>
+  </details>
+  <p style={{fontSize:12,color:'#D6CBB8',margin:0}}>Recordatorios y plantilla: pulsa «Guardar cambios» arriba.</p>
+  <BirthdayPanel clients={listaClientes}/>
+  <details style={{border:'1px solid #4B4035',borderRadius:12,padding:18,color:'#FFF8EE'}}><summary style={{cursor:'pointer',color:'#E4C687',fontSize:17}}>Privacidad y permisos</summary><div style={{marginTop:14}}><p style={{fontSize:12,color:'#D6CBB8',margin:'0 0 12px'}}>Los textos se aplican con «Publicar nueva versión».</p><PrivacyDocumentsPanel/></div></details>
+</>}{configSubTab === 'enlaces' && <BookingLinksPanel />}{configSubTab === 'fichajes' && <React.Suspense fallback={<p>Preparando fichajes…</p>}><LazyTimeClockAdmin/></React.Suspense>}{configSubTab === 'backup' && <section className="studio-security-pin"><h3>PIN de administración</h3>                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
                     <label style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold' }}>PIN Maestro de Administración (4 dígitos):</label>
                     <input type="password" maxLength={4} value={tempConfig.masterPin} onChange={(e) => setTempConfig(previous => ({ ...previous, masterPin: e.target.value }))} onFocus={(e) => e.target.select()} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px', textAlign: 'center', letterSpacing: '4px' }} />
                   </div></section>}{configSubTab === 'backup' && <div className="studio-security-compact" style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '12px', padding: '20px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', display: 'flex', flexDirection: 'column', gap: '16px', color: '#FFF8EE' }}><h3 style={{ color: '#E4C687', margin: 0 }}>Copia de seguridad</h3><StudioBackupPanel hasUnsavedChanges={catalogHasChanges||configHasPendingChanges}/>
@@ -2191,3 +2203,5 @@ export default function AdminPanelView(props: Props) {
 // lst-booking-links-compact-v1
 
 // lst-timeclock-compact-v1
+
+// lst-notices-compact-v1
