@@ -1,3 +1,4 @@
+import WeeklyHoursEditor from './WeeklyHoursEditor';
 import {ClientPermissionStatus,PrivacyDocumentsPanel} from './ClientPermissions';
 import {BookingLinksPanel} from './BookingLinks';
 import BirthdayPanel from './BirthdayPanel';
@@ -1248,32 +1249,16 @@ export default function AdminPanelView(props: Props) {
                 </div>
               )}
               {configSubTab === 'schedule' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Horario Lunes:</label>
-                    <input type="text" value={tempConfig.scheduleMonday} onChange={(e) => setTempConfig(previous => ({ ...previous, scheduleMonday: e.target.value }))} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Horario Martes y Miércoles:</label>
-                    <input type="text" value={tempConfig.scheduleTueWed} onChange={(e) => setTempConfig(previous => ({ ...previous, scheduleTueWed: e.target.value }))} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Horario Jueves y Viernes:</label>
-                    <input type="text" value={tempConfig.scheduleThuFri} onChange={(e) => setTempConfig(previous => ({ ...previous, scheduleThuFri: e.target.value }))} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
-                  </div>
-                  <section style={{ border: '1px solid #C5A059', borderRadius: 10, padding: 16 }}>
-                    <h4 style={{ color: '#E4C687', marginTop: 0 }}>Política de reservas de los sábados</h4>
+                <div style={{display:'grid',gap:18}}>
+                  <WeeklyHoursEditor config={tempConfig} setConfig={setTempConfig}/>
+                  <details style={{ border: '1px solid #C5A059', borderRadius: 10, padding: 16 }}>
+                    <summary style={{color:'#E4C687',cursor:'pointer',fontSize:16,padding:'6px 0 14px'}}>Política de reservas de los sábados</summary>
                     <label style={{ display: 'block', color: '#FFF8EE', fontSize: 13 }}><input type="checkbox" checked={tempConfig.saturdayPolicyEnabled !== false} onChange={e => setTempConfig(previous => ({ ...previous, saturdayPolicyEnabled: e.target.checked }))} /> Mostrar aviso y solicitar aceptación al reservar un sábado</label>
                     <label style={{ display: 'block', fontSize: 13, color: '#D6CBB8', marginTop: 12 }}>Texto para la clienta
                       <textarea rows={6} value={tempConfig.saturdayNoticeMessage} onChange={e => setTempConfig(previous => ({ ...previous, saturdayNoticeMessage: e.target.value }))} style={{ display: 'block', boxSizing: 'border-box', width: '100%', padding: 12, marginTop: 6, background: '#29231F', color: '#FFF8EE', border: '1px solid #C5A059', borderRadius: 8 }} />
                     </label>
                     <p style={{ fontSize: 12, color: '#D6CBB8' }}>Guarda los cambios de Configuración para publicar el texto. Desactivar el aviso no elimina la aprobación previa de las solicitudes del sábado.</p>
-                  </section>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
-                    <label style={{ color: '#D6CBB8', fontSize: '14px' }}>Horario Sábados:</label>
-                    <input type="text" value={tempConfig.scheduleSaturday} onChange={(e) => setTempConfig(previous => ({ ...previous, scheduleSaturday: e.target.value }))} style={{ padding: '10px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '12px' }} />
-                  </div>
-                  
+                  </details>
                 </div>
               )}
           {/* TAB 7: VACACIONES Y FESTIVOS */}
@@ -2180,3 +2165,5 @@ export default function AdminPanelView(props: Props) {
 // lst-prices-portal-v1
 
 // lst-employees-cards-v1
+
+// lst-weekly-hours-installed-v1

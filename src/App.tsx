@@ -1,3 +1,4 @@
+import {studioDayRanges,studioWeekErrors,studioScheduleLabel,STUDIO_WEEK_DAYS,type StudioWeek} from './weeklyHours';
 import {appointmentDiscountDepositLimit,clearAppointmentDiscount,type AppointmentDiscount} from './appointmentDiscounts';
 import {useAppAudience,audienceCall,type AudienceCounts} from './appAudience';
 import type {AdvisorResult} from './serviceAdvisor';
@@ -336,6 +337,7 @@ export interface BusinessConfig {
   location: string;
   phone: string;
   description: string;
+  weeklyHours?: StudioWeek;
   scheduleMonday: string;
   scheduleTueWed: string;
   scheduleThuFri: string;
@@ -920,6 +922,7 @@ const INITIAL_APPOINTMENTS: Appointment[] = [
 
 
 const normalizeOpeningHours = (config: BusinessConfig): BusinessConfig => {
+  if(config.weeklyHours !== undefined)return config;
   // No reescribe los horarios escritos: solo añade la hora de apertura si el texto no contiene ninguna.
   const opening = (schedule: string, time: string) =>
     /\d{1,2}(?::\d{2}|h(?:\s*\d{2})?)/i.test(schedule) ? schedule : (schedule.trim() ? `${schedule.trim()} ${time}` : schedule);
@@ -3204,6 +3207,7 @@ function StudioApp() {
     }
     if (configSubTab === 'reservas' && (!Number.isFinite(tempConfig.advancePaymentThresholdMinutes) || tempConfig.advancePaymentThresholdMinutes < 0 || !Number.isFinite(parseFloat(tempConfig.depositAmount.replace(',', '.'))) || parseFloat(tempConfig.depositAmount.replace(',', '.')) <= 0)) { alert('Revisa el importe y la duración de la reserva anticipada.'); return; }
     const submittedDraft = structuredClone(configDraftRef.current);
+    if(submittedDraft.weeklyHours !== undefined){const issues=studioWeekErrors(submittedDraft.weeklyHours);if(issues.length){alert(issues.join('\n'));return;}}
     const normalizedConfig = normalizeOpeningHours(submittedDraft);
     const changedKeys = (Object.keys(normalizedConfig) as (keyof BusinessConfig)[])
       .filter(key => !configEqual(normalizedConfig[key], configBaselineRef.current[key]));
@@ -3215,6 +3219,7 @@ function StudioApp() {
       const token = studioApi.currentToken();
       if (!studioApi.serverConfigured) throw new Error('Servidor no configurado. No se han guardado los cambios.');
       if (!token || studioApi.storedRole() !== 'admin') throw new Error('Se necesita una sesión de administración válida. Vuelve a iniciar sesión con el PIN maestro.');
+      if(normalizedConfig.weeklyHours !== undefined){const support=await studioApi.fetchSchedulingSupport();if(support.weeklyHoursVersion !== 1)throw new Error('Actualiza primero la función studio-api de Supabase con el instalador de Horarios. El servidor aún no admite horarios por día.');}
       // Read the latest settings before merging to preserve unrelated server values.
       const before = await studioApi.syncAll<Record<string, any>>(token, ['settings']);
       if (!before?.settings || typeof before.settings !== 'object') throw new Error('No se pudo leer la configuración del servidor.');
@@ -4049,30 +4054,17 @@ function StudioApp() {
   for (let d = 1; d <= diasEnMes; d++) diasRejillaMini.push(new Date(anioMini, mesMini, d));
 
   const workingRanges = (date: Date): { start: number; end: number }[] => {
-    if (date.getDay() === 0 || isDateBlockedByHoliday(formatDateKey(date))) return [];
-    const day = date.getDay();
-    const schedule = day === 1 ? bizConfig.scheduleMonday : day <= 3 ? bizConfig.scheduleTueWed : day <= 5 ? bizConfig.scheduleThuFri : bizConfig.scheduleSaturday;
-    const matches = Array.from(schedule.matchAll(/(\d{1,2})(?::(\d{2})|h(?:\s*(\d{2}))?)/gi));
-    const ranges: { start: number; end: number }[] = [];
-    for (let i = 0; i + 1 < matches.length; i += 2) {
-      const start = Number(matches[i][1]) * 60 + Number(matches[i][2] || matches[i][3] || 0);
-      const end = Number(matches[i + 1][1]) * 60 + Number(matches[i + 1][2] || matches[i + 1][3] || 0);
-      if (start >= 0 && end <= 1440 && start < end) ranges.push({ start, end });
-    }
-    if (!ranges.length && day === 6 &&
-        !/cerrado|closed/i.test(schedule)) {
-      // Un aviso de sábado bajo demanda no equivale a salón cerrado.
-      return [{ start: 9 * 60, end: 19 * 60 }];
-    }
-    return ranges;
+    if (isDateBlockedByHoliday(formatDateKey(date))) return [];
+    return studioDayRanges(bizConfig,date.getDay());
   };
+  const agendaWeekLength = studioDayRanges(bizConfig,0).length || appointments.some(item=>new Date(item.dateKey+'T12:00:00').getDay()===0) ? 7 : 6;
   const minuteTime = (minutes: number) => String(Math.floor(minutes / 60)).padStart(2, '0') + ':' + String(minutes % 60).padStart(2, '0');
   const isAgendaTimeWorking = (date: Date, time: string, duration = 1) => {
     const [hour, minute] = time.split(':').map(Number);
     const start = hour * 60 + minute;
     return Number.isFinite(start) && duration > 0 && workingRanges(date).some(range => start >= range.start && start + duration <= range.end);
   };
-  const agendaDates = agendaViewMode === 'day' ? [fechaSeleccionada] : Array.from({ length: 6 }, (_, index) => {
+  const agendaDates = agendaViewMode === 'day' ? [fechaSeleccionada] : Array.from({ length: agendaWeekLength }, (_, index) => {
     const date = new Date(fechaSeleccionada);
     date.setDate(date.getDate() - ((date.getDay() + 6) % 7) + index);
     return date;
@@ -4100,7 +4092,7 @@ function StudioApp() {
   const portalDateAllowed = (date: Date) => {
     const earliest = new Date(); earliest.setHours(0, 0, 0, 0); earliest.setDate(earliest.getDate() + bizConfig.minAdvanceDays);
     const latest = new Date(); latest.setHours(23, 59, 59, 999); latest.setMonth(latest.getMonth() + bizConfig.maxBookingMonths);
-    return date >= earliest && date <= latest && date.getDay() !== 0 && !isDateBlockedByHoliday(formatDateKey(date));
+    return date >= earliest && date <= latest && workingRanges(date).length > 0 && !isDateBlockedByHoliday(formatDateKey(date));
   };
   const [portalAvailability,setPortalAvailability]=useState<PortalAvailability|null>(null);
   const [availabilityReload,setAvailabilityReload]=useState(0);
@@ -4250,8 +4242,8 @@ function StudioApp() {
     const diff = d.getDate() - day + (day === 0 ? -6 : 1);
     const monday = new Date(d.setDate(diff));
     const weekDays = [];
-    const names = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
-    for (let i = 0; i < 6; i++) {
+    const names = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
+    for (let i = 0; i < agendaWeekLength; i++) {
       const nextDay = new Date(monday);
       nextDay.setDate(monday.getDate() + i);
       weekDays.push({
@@ -4974,16 +4966,11 @@ function StudioApp() {
               <span aria-hidden="true" style={{ marginLeft: 'auto', color: '#D8C29A', fontSize: '13px', transition: 'transform 0.3s ease' }}>⌄</span>
             </summary>
             <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column' }}>
-              {[
-                { day: 'Lunes', time: bizConfig.scheduleMonday },
-                { day: 'Martes y miércoles', time: bizConfig.scheduleTueWed },
-                { day: 'Jueves y viernes', time: bizConfig.scheduleThuFri },
-                { day: 'Sábados', time: bizConfig.scheduleSaturday }
-              ].map((row, index) => (
+              {STUDIO_WEEK_DAYS.map(({key,label})=>({day:label,time:studioScheduleLabel(bizConfig,Number(key))})).map((row, index) => (
                 <div key={row.day} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '16px', padding: '13px 0', borderTop: index === 0 ? 'none' : '1px solid rgba(255, 248, 238, 0.08)' }}>
                   <span style={{ color: '#FFF8EE', fontSize: '14px', lineHeight: 1.5 }}>{row.day}</span>
-                  <span style={{ color: '#FFF8EE', fontSize: '14px', lineHeight: 1.5, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                    {(row.time.match(/(\d{1,2}:\d{2})\D+(\d{1,2}:\d{2})/) || []).slice(1).join('–') || row.time}
+                  <span style={{ color: '#FFF8EE', fontSize: '14px', lineHeight: 1.5, textAlign: 'right', whiteSpace: 'normal' }}>
+                    {row.time}
                   </span>
                 </div>
               ))}
@@ -6410,3 +6397,5 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
   return {status,notice,dismiss:()=>setNotice(''),refresh:()=>refreshRef.current()};
 }
 // lst-client-list-v1
+
+// lst-weekly-hours-installed-v1

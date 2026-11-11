@@ -881,6 +881,52 @@ async function portalMaintenanceRejection(admin:any):Promise<Response|null>{
  return new Response(JSON.stringify({error:data.message||'El portal está en mantenimiento. Inténtalo de nuevo en unos minutos.',code:'PORTAL_MAINTENANCE',maintenance:data}),{status:503,headers:{...corsHeaders,'Content-Type':'application/json','Cache-Control':'no-store','Retry-After':'60'}});
 }
 
+// STUDIO_WEEKLY_HOURS_V1
+type StudioHourSpan={start:string;end:string};
+type StudioWeek=Record<string,StudioHourSpan[]>;
+type StudioHoursConfig={weeklyHours?:StudioWeek;scheduleMonday?:string;scheduleTueWed?:string;scheduleThuFri?:string;scheduleSaturday?:string};
+const STUDIO_WEEK_DAYS=[{key:'1',label:'Lunes'},{key:'2',label:'Martes'},{key:'3',label:'Miércoles'},{key:'4',label:'Jueves'},{key:'5',label:'Viernes'},{key:'6',label:'Sábado'},{key:'0',label:'Domingo'}];
+function studioHourMinute(value:unknown,end=false):number {
+ if(typeof value!=='string'||!/^([01]\d|2[0-3]):[0-5]\d$/.test(value))return NaN;
+ const minute=Number(value.slice(0,2))*60+Number(value.slice(3));return end&&minute===0?1440:minute;
+}
+function studioWeekErrors(week:unknown):string[]{
+ if(!week||typeof week!=='object'||Array.isArray(week))return ['El horario semanal no es válido.'];
+ const values=week as Record<string,unknown>,errors:string[]=[];
+ for(const {key,label} of STUDIO_WEEK_DAYS){const spans=values[key];if(!Array.isArray(spans)||spans.length>8){errors.push(label+': revisa los tramos (máximo 8).');continue;}
+  const ranges:{start:number;end:number}[]=[];
+  for(const raw of spans){const span=raw as StudioHourSpan|null;const start=studioHourMinute(span?.start),end=studioHourMinute(span?.end,true);if(!Number.isFinite(start)||!Number.isFinite(end)||start>=end){errors.push(label+': indica una apertura y un cierre posterior.');continue;}ranges.push({start,end});}
+  ranges.sort((a,b)=>a.start-b.start);if(ranges.some((r,i)=>i>0&&r.start<ranges[i-1].end))errors.push(label+': hay tramos solapados.');
+ }
+ return errors;
+}
+function studioLegacyHours(config:StudioHoursConfig,day:number):string {return day===0?'Cerrado':String(day===1?config.scheduleMonday:day<=3?config.scheduleTueWed:day<=5?config.scheduleThuFri:config.scheduleSaturday);}
+function studioLegacySpans(text:string,day:number):StudioHourSpan[]|null {
+ if(/cerrado|closed/i.test(text)||!text.trim())return [];
+ const matches=Array.from(text.matchAll(/(\d{1,2})(?::(\d{2})|h(?:\s*(\d{2}))?)/gi));
+ if(!matches.length&&day===6)return [{start:'09:00',end:'19:00'}];
+ if(!matches.length||matches.length%2)return null;
+ const result:StudioHourSpan[]=[];for(let i=0;i<matches.length;i+=2){const format=(m:RegExpMatchArray,end=false)=>{const h=Number(m[1]),n=Number(m[2]||m[3]||0);return end&&h===24&&n===0?'00:00':String(h).padStart(2,'0')+':'+String(n).padStart(2,'0');};result.push({start:format(matches[i]),end:format(matches[i+1],true)});}return result;
+}
+function studioReadWeek(config:StudioHoursConfig):StudioWeek {
+ if(config.weeklyHours!==undefined)return config.weeklyHours;
+ return Object.fromEntries(STUDIO_WEEK_DAYS.map(({key})=>[key,studioLegacySpans(studioLegacyHours(config,Number(key)),Number(key))||[]]));
+}
+function studioImportErrors(config:StudioHoursConfig):string[]{
+ if(config.weeklyHours!==undefined)return studioWeekErrors(config.weeklyHours);
+ const issues=STUDIO_WEEK_DAYS.filter(({key})=>studioLegacySpans(studioLegacyHours(config,Number(key)),Number(key))===null).map(({label})=>label+': no se pudo interpretar el horario anterior.');
+ return [...issues,...studioWeekErrors(studioReadWeek(config))];
+}
+function studioDayRanges(config:StudioHoursConfig,day:number):{start:number;end:number}[]{
+ const week=studioReadWeek(config);if(studioWeekErrors(week).length)return [];
+ return (week[String(day)]||[]).map(span=>({start:studioHourMinute(span.start),end:studioHourMinute(span.end,true)})).sort((a,b)=>a.start-b.start);
+}
+function studioScheduleLabel(config:StudioHoursConfig,day:number):string {
+ if(config.weeklyHours===undefined)return studioLegacyHours(config,day);
+ const ranges=studioDayRanges(config,day);const time=(n:number)=>String(Math.floor(n/60)).padStart(2,'0')+':'+String(n%60).padStart(2,'0');
+ return ranges.length?ranges.map(span=>time(span.start)+' – '+time(span.end)).join(' · '):'Cerrado';
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 200, headers: corsHeaders });
 
@@ -895,7 +941,7 @@ Deno.serve(async (req: Request) => {
     const body = req.method === "GET" ? {} : await req.json().catch(() => ({}));
 
     // ---------- health ----------
-    if (action === "health") return json({ ok: true, version: "studio-api-egress-20261027", promotionDiscount: true, portalMaintenanceGuard: 1 });
+    if (action === "health") return json({ weeklyHoursVersion: 1, ok: true, version: "studio-api-egress-20261027", promotionDiscount: true, portalMaintenanceGuard: 1 });
 
     if (action === 'holidays-monthly' && req.method === 'POST') {
       const secret = Deno.env.get('HOLIDAY_SYNC_SECRET');
@@ -1737,6 +1783,7 @@ Deno.serve(async (req: Request) => {
 
     if (action === "settings" && req.method === "PUT") {
       if (!isAdmin) return json({ error: "Solo administración" }, 403);
+      if(body.settings?.weeklyHours !== undefined){const issues=studioWeekErrors(body.settings.weeklyHours);if(issues.length)return json({error:issues.join(' ')},422);}
       const { error } = await admin.from("studio_settings").upsert({ id: true, configuration: body.settings }, { onConflict: "id" });
       if (error) return json(failed(error), 500);
       // Si se cambió el PIN maestro, invalidar todas las demás sesiones admin.
@@ -1943,12 +1990,12 @@ Deno.serve(async (req: Request) => {
         latest.setUTCMonth(latest.getUTCMonth()+(Number.isFinite(months)?Math.max(0,months):3));
         if(body.dateKey<earliest.toISOString().slice(0,10)||body.dateKey>latest.toISOString().slice(0,10))return json({error:'La fecha está fuera del periodo de reservas del Studio.'},422);
         try{if(Date.parse(notificationInstant(startsAt))<=Date.now())return json({error:'Elige una fecha y hora futuras.'},422);}catch{return json({error:'La hora seleccionada no es válida.'},422);}
-        const day=date.getUTCDay(),schedule=String(day===1?cfg.scheduleMonday:day<=3?cfg.scheduleTueWed:day<=5?cfg.scheduleThuFri:cfg.scheduleSaturday);
+        const day=date.getUTCDay(),schedule=studioScheduleLabel(cfg,day);
         const hours=Array.from(schedule.matchAll(/(\d{1,2})(?::(\d{2})|h(?:\s*(\d{2}))?)/gi));
         const start=Number(body.time.slice(0,2))*60+Number(body.time.slice(3));let fits=false;
         for(let i=0;i+1<hours.length;i+=2){const open=Number(hours[i][1])*60+Number(hours[i][2]||hours[i][3]||0),close=Number(hours[i+1][1])*60+Number(hours[i+1][2]||hours[i+1][3]||0);if(start>=open&&start+duration<=close)fits=true;}
         if(!hours.length&&day===6&&!/cerrado|closed/i.test(schedule))fits=start>=540&&start+duration<=1140;
-        if(day===0||!fits)return json({error:'La duración completa no cabe en el horario del Studio.'},422);
+        if(!fits)return json({error:'La duración completa no cabe en el horario del Studio.'},422);
         const { data: catRows,error:depositCatalogError } = await admin.from("studio_catalog").select("category");
         if(depositCatalogError)return json({error:'No se pudo comprobar el anticipo de los servicios. Reintenta.'},503);
         const catalogSubs = (catRows ?? []).flatMap((r: any) => r.category?.subservices ?? []);
@@ -2143,12 +2190,12 @@ Deno.serve(async (req: Request) => {
           if(body.dateKey<earliest.toISOString().slice(0,10)||body.dateKey>latest.toISOString().slice(0,10))return json({error:'La nueva fecha queda fuera del periodo de reservas del Studio.'},422);
           const duration=Number(own.duration_minutes)||45;
           const day=date.getUTCDay();
-          const schedule=String(day===1?cfg.scheduleMonday:day<=3?cfg.scheduleTueWed:day<=5?cfg.scheduleThuFri:cfg.scheduleSaturday);
+          const schedule=studioScheduleLabel(cfg,day);
           const matches=Array.from(schedule.matchAll(/(\d{1,2})(?::(\d{2})|h(?:\s*(\d{2}))?)/gi));
           const start=Number(body.time.slice(0,2))*60+Number(body.time.slice(3));let fits=false;
           for(let i=0;i+1<matches.length;i+=2){const opening=Number(matches[i][1])*60+Number(matches[i][2]||matches[i][3]||0);const closing=Number(matches[i+1][1])*60+Number(matches[i+1][2]||matches[i+1][3]||0);if(start>=opening&&start+duration<=closing)fits=true;}
           if(!matches.length&&day===6&&!/cerrado|closed/i.test(schedule))fits=start>=540&&start+duration<=1140;
-          if(day===0||!fits)return json({error:'La duración completa no cabe en el horario del Studio.'},422);
+          if(!fits)return json({error:'La duración completa no cabe en el horario del Studio.'},422);
           const {data:closures,error:closureError}=await admin.from('studio_closures').select('id').lte('start_date',body.dateKey).gte('end_date',body.dateKey).limit(1);
           if(closureError)return json({error:'No se pudo comprobar la disponibilidad.'},503);
           if(closures?.length)return json({error:'El Studio está cerrado en esa fecha.'},422);
@@ -2527,3 +2574,4 @@ Deno.serve(async (req: Request) => {
     return json(failed(error, "studio-api:unhandled"), 500);
   }
 });
+// lst-weekly-hours-installed-v1

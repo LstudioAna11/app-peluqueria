@@ -116,6 +116,8 @@ export const fetchPublicCatalog = <T = { catalog: { id: string; category: unknow
 export const pushCatalog = (token: string, catalog: unknown) =>
   call<{ ok: true }>("catalog", { method: "PUT", token, body: { catalog } });
 
+export const fetchSchedulingSupport = () => call<{weeklyHoursVersion?:number}>('health',{method:'GET'});
+
 export const pushSettings = (token: string, settings: unknown) =>
   call<{ ok: true }>("settings", { method: "PUT", token, body: { settings } });
 
@@ -378,3 +380,5 @@ export const quoteVoucher=(token:string,body:{voucherId:string;services:unknown;
 export const attachAppointmentVoucher=(token:string,appointmentId:string,voucherId:string|null)=>call<{ok:true}>('voucher-attach',{token,body:{appointmentId,voucherId}});
 
 export const deleteCancelledVoucher=(token:string,id:string)=>call<{ok:true;deleted:boolean}>('voucher-delete',{token,body:{id}});
+
+// lst-weekly-hours-installed-v1
