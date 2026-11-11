@@ -1020,7 +1020,7 @@ export default function AdminPanelView(props: Props) {
 :is(.studio-reservas-compact,.studio-avisos-compact) p { font-size:12px; line-height:1.5; }
 @media(max-width:640px) { :is(.studio-reservas-compact,.studio-avisos-compact) { grid-template-columns:minmax(0,1fr); padding:14px !important; } :is(.studio-reservas-compact,.studio-avisos-compact) input:not([type="checkbox"]) { font-size:16px; min-height:44px; } }
 `}</style>
-                {configSubTab !== 'holidays' && configSubTab !== 'maintenance' && <>
+                {configSubTab !== 'holidays' && configSubTab !== 'enlaces' && configSubTab !== 'maintenance' && <>
                 <div className="studio-settings-savebar">
                   <span role="status" aria-live="polite">{saveState === 'saving' ? 'Guardando…' : saveState === 'saved' && !configHasPendingChanges ? 'Cambios guardados' : saveState === 'error' ? 'No se pudo guardar. Reintenta.' : configHasPendingChanges ? 'Cambios sin guardar' : 'Todo guardado'}</span>
                   <button type="button" disabled={(!configHasPendingChanges && saveState !== 'error') || saveState === 'saving'} onClick={() => handleSaveSection('Ajustes del Studio')}>Guardar cambios</button>
@@ -2187,3 +2187,5 @@ export default function AdminPanelView(props: Props) {
 // lst-compact-closures-v1
 
 // lst-bizum-catalog-only-v1
+
+// lst-booking-links-compact-v1
