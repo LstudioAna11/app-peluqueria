@@ -872,9 +872,7 @@ export default function AdminPanelView(props: Props) {
                   </nav>
                   <details className="studio-agenda-help"><summary>Ayuda</summary><p>Pulsa un hueco disponible para crear una cita o un bloqueo. Pulsa una cita para abrir su detalle. Los cierres y horarios se gestionan en Configuración.</p></details>
                 </div>
-                <div className="studio-agenda-legend studio-desktop-agenda-heading" aria-label="Leyenda de disponibilidad">
-                  <span><i className="is-free"/>Disponible</span><span><i className="is-outside"/>Fuera de horario</span><span><i className="is-closed"/>Cierre / festivo</span><span><i className="is-blocked"/>Bloqueo</span>
-                </div>
+                
 
                 <section className="studio-mobile-daily-agenda" aria-label="Agenda diaria móvil">
                   <div className="studio-mobile-day-navigation">

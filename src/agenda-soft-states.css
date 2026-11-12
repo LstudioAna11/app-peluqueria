@@ -1,0 +1,15 @@
+.studio-agenda-grid { background:#3B322C; border-radius:8px; padding:3px; }
+.studio-agenda-grid .studio-agenda-day-heading:not(.studio-agenda-today) { background:#40362F!important; }
+.studio-agenda-grid button.studio-agenda-slot[data-studio-state] { opacity:1; }
+.studio-agenda-grid button.studio-agenda-slot[data-studio-state="available"] { background:#465446!important; border-color:#7E987B!important; color:#F4F7EE!important; }
+.studio-agenda-grid button.studio-agenda-slot[data-studio-state="off-hours"] { background:repeating-linear-gradient(135deg,#4B443E 0px,#4B443E 6px,#5A5047 6px,#5A5047 8px)!important; border-color:#84776A!important; color:#F3EADD!important; }
+.studio-agenda-grid button.studio-agenda-slot[data-studio-state="closed"] { background:#704E47!important; border-color:#C28F80!important; color:#FFF0EA!important; }
+.studio-agenda-grid button[data-studio-state="blocked"] { background:#715B38!important; border-color:#D0AC6A!important; color:#FFF2D4!important; }
+.studio-agenda-grid button[data-studio-state="blocked"] strong { color:#FFF2D4; }
+.asl-legend { display:flex; gap:10px 16px; flex-wrap:wrap; color:#E1D2BD; font-size:11px; line-height:1.5; margin:8px 0 12px; }
+.asl-legend > span { display:inline-flex; align-items:center; gap:6px; }
+.asl-legend i { display:inline-block; width:13px; height:13px; border-radius:3px; border:1px solid; box-sizing:border-box; flex-shrink:0; }
+.asl-legend [data-studio-state="available"] { background:#465446; border-color:#9AB493; }
+.asl-legend [data-studio-state="off-hours"] { background:repeating-linear-gradient(135deg,#4B443E 0px,#4B443E 3px,#84776A 3px,#84776A 4px); border-color:#A59988; }
+.asl-legend [data-studio-state="closed"] { background:#704E47; border-color:#DAA291; }
+.asl-legend [data-studio-state="blocked"] { background:#715B38; border-color:#D0AC6A; }

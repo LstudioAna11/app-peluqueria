@@ -1,3 +1,4 @@
+import AgendaStateLegend from './AgendaStateLegend';
 import AppointmentRepeatCard from './AppointmentRepeatCard';
 import SearchAnswers from './SearchAnswers';
 import {matchesSearchQuery,searchHelpTopics} from './portalSearchHelp';
@@ -4457,7 +4458,7 @@ function StudioApp() {
     const clock=(kind:string)=>clockParts.find(p=>p.type===kind)?.value||'';
     const nowKey=[clock('year'),clock('month'),clock('day')].join('-');
     const nowMinute=Number(clock('hour'))*60+Number(clock('minute'));
-    return <div className="studio-agenda-grid" style={{ display: 'grid', gridTemplateColumns: '52px repeat(' + days.length + ', minmax(105px, 1fr))',
+    return <><AgendaStateLegend/><div className="studio-agenda-grid" style={{ display: 'grid', gridTemplateColumns: '52px repeat(' + days.length + ', minmax(105px, 1fr))',
       gridTemplateRows: 'auto repeat(' + hoursList.length + ', ' + agendaRowHeight + 'px)', gap: '2px',
       minWidth: days.length > 1 ? '700px' : '280px' }}>
       <div style={{ gridRow: 1, gridColumn: 1, color: '#D8C29A', padding: '8px', fontSize: '12px' }}>Hora</div>
@@ -4482,7 +4483,7 @@ function StudioApp() {
             onDrop={event => handleDrop(event, day.dateObj, day.name, time)}
             style={{ gridRow: row + 2, gridColumn: column + 2, border: '1px solid rgba(234, 220, 199, 0.35)', borderRadius: '1px',
               background: holiday ? '#3D2C29' : !regularWorking ? '#27221E' : '#332B24', color: '#FFF8EE', cursor: working ? 'pointer' : 'default',
-              padding: '2px', fontSize: '10px' }}>{holiday && row===0 ? 'Cerrado' : ''}</button>;
+              padding: '2px', fontSize: '10px' }} data-studio-state={holiday?'closed':timeBlockConflict(key,time)?'blocked':isAgendaTimeWorking(day.dateObj,time)?'available':'off-hours'}>{holiday && row===0 ? 'Cerrado' : ''}</button>;
         })}
       </React.Fragment>)}
       {(() => {
@@ -4507,7 +4508,7 @@ function StudioApp() {
         }}
           title={block.pendingSync||block.invalidInterval?'Pulsa para revisar el bloqueo antiguo':'Pulsa para desbloquear'} style={{ gridRow: (row + 2) + ' / span ' + span, gridColumn: column + 2,
             zIndex: 3, background: '#3E342C', border: '1px dashed rgba(255, 248, 238, 0.35)', color: '#D6CBB8', padding: '6px', borderRadius: '5px',
-            textAlign: 'left', cursor: 'pointer', fontSize: '11px', overflow: 'hidden' }}>
+            textAlign: 'left', cursor: 'pointer', fontSize: '11px', overflow: 'hidden' }} data-studio-state="blocked">
           <strong>{block.time}–{minuteTime(start + block.durationMinutes)}</strong><div>{block.pendingSync||block.invalidInterval?'Revisar y sincronizar':'Bloqueado'} · {block.reason}</div>
         </button>;
       }))}
@@ -4547,7 +4548,7 @@ function StudioApp() {
           </button>;
         });
       })}
-    </div>;
+    </div></>;
   };
 
   const renderClientPushPanel = () => (<section style={{ padding: '12px', background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px' }}>
@@ -6377,3 +6378,5 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
 // lst-repeat-in-appointments-v1
 
 // lst-booking-initial-date-sync-v1
+
+// lst-agenda-soft-states-v1
