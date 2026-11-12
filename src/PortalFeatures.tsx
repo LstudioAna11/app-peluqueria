@@ -535,7 +535,7 @@ function resolveRepeatedServices(services:unknown,catalog:CatalogCategory[]):{it
   });
   return{items,warnings};
 }
-function RepeatLastAppointment({clientId,showPrices,onProceed,onCatalog}:{clientId?:string;showPrices:boolean;onProceed:(draft:RepeatPortalDraft)=>void;onCatalog:()=>void}){
+function RepeatLastAppointment({clientId,showPrices,onProceed,onCatalog,buttonLabel='Repetir mi última cita'}:{clientId?:string;showPrices:boolean;onProceed:(draft:RepeatPortalDraft)=>void;onCatalog:()=>void;buttonLabel?:string}){
   const [draft,setDraft]=useState<RepeatPortalDraft|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
   const lock=useRef(false),mounted=useRef(false);
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
@@ -564,7 +564,7 @@ function RepeatLastAppointment({clientId,showPrices,onProceed,onCatalog}:{client
     onProceed(draft);
   };
   return <section className="lp-repeat" aria-label="Repetir mi última cita" style={{border:'1px solid #846A45',borderRadius:9,padding:12,marginBottom:12,background:'#302820'}}>
-    <button type="button" disabled={busy} onClick={()=>void load()} style={{width:'100%',minHeight:44,padding:'10px 12px',border:0,borderRadius:6,background:'#D0AA71',color:'#2C2219',fontSize:13,fontWeight:600}}>{busy?'Recuperando tus servicios…':'Repetir mi última cita'}</button>
+    <button type="button" disabled={busy} onClick={()=>void load()} style={{width:'100%',minHeight:44,padding:'10px 12px',border:0,borderRadius:6,background:'#D0AA71',color:'#2C2219',fontSize:13,fontWeight:600}}>{busy?'Recuperando tus servicios…':buttonLabel}</button>
     <p style={{fontSize:11,color:'#C8B79E',marginTop:6,lineHeight:1.5}}>Recupera tus servicios y elige una nueva fecha.</p>
     {draft&&<div style={{marginTop:10,fontSize:12,lineHeight:1.6}}>
       <p style={{color:'#DCC7A4'}}>Servicios de tu cita del {draft.startsAt.slice(0,10).split('-').reverse().join('/')}</p>
@@ -623,7 +623,7 @@ export function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,
    @media(max-width:360px){.lp-header{gap:8px;padding-right:44px}.lp-header h2{font-size:19px}.lp-tabs button{font-size:10px}.lp-next{padding:12px}.lp-next .lp-book{padding:8px 10px}}
   `}</style>
   <header className="lp-header"><button className="lp-back" type="button" aria-label={t('backToPortal')} onClick={onBack}><ArrowLeft size={18}/></button><div><h2 title={t('passportTitle')}>{t('passportTitle')}</h2><p>{client?.nombre||'L’Studio Ana'}</p></div></header>
-  {hasRealVisit&&client?.serverId&&<RepeatLastAppointment clientId={client.serverId} showPrices={showPrices} onProceed={onRepeat} onCatalog={onBook}/>}
+  
   <nav role="tablist" aria-label="Apartados de tu perfil" className="lp-tabs">{tabs.map((item,index)=><button key={item.id} id={'lp-tab-'+item.id} type="button" role="tab" aria-selected={tab===item.id} aria-controls={'lp-panel-'+item.id} tabIndex={tab===item.id?0:-1} onClick={()=>select(item.id)} onKeyDown={event=>tabKey(event,index)}>{item.label}</button>)}</nav>
   <div className="lp-panel" id="lp-panel-hair" role="tabpanel" aria-labelledby="lp-tab-hair" hidden={tab!=='hair'}>
    <div className="lp-hair"><section className="lp-next" data-recommendation={hasRecommendation?'true':'false'}><small>{t('recommendedVisit')}</small><p>{hasRecommendation?recommendation:'Ana te indicará cuándo volver.'}</p>{hasRecommendation&&<><button className="lp-book" type="button" onClick={onBook}>Reservar</button><details className="lp-recommend-extra"><summary>Ver orientación de mantenimiento</summary><p>{t('maintenanceNote')}</p></details></>}</section>
@@ -645,3 +645,6 @@ export function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,
 // lst-portal-vouchers-compact-v1
 
 // lst-passport-clear-v1
+
+export {RepeatLastAppointment as RepeatBookingCard};
+// lst-repeat-booking-export-v1

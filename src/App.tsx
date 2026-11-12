@@ -1,3 +1,4 @@
+import AppointmentRepeatCard from './AppointmentRepeatCard';
 import SearchAnswers from './SearchAnswers';
 import {matchesSearchQuery,searchHelpTopics} from './portalSearchHelp';
 import StudioVisitLinks from './StudioVisitLinks';
@@ -3380,7 +3381,7 @@ function StudioApp() {
   useEffect(()=>{
     if(!repeatPortalDraft)return;
     const draft=repeatPortalDraft;setRepeatPortalDraft(null);
-    if(currentScreen!=='clientHistoryPage'||studioApi.currentToken()!==draft.token||studioApi.storedRole()!=='client'||currentClientRecord?.serverId!==draft.clientId)return;
+    if(!['clientHistoryPage','myAppointmentsPage'].includes(currentScreen)||studioApi.currentToken()!==draft.token||studioApi.storedRole()!=='client'||currentClientRecord?.serverId!==draft.clientId)return;
     const missing=draft.items.find(item=>item.sub.hasVariants&&item.sub.variants?.length&&!item.variant);
     const issue=missing?'Elige la opción de «'+bookingName(missing.sub)+'» antes de reservar.':getInactiveServiceError(draft.items)||getStylingError(draft.items)||getTonerError(draft.items);
     setSelectedServicesToBook(draft.items);setSelectedProfessionalId(null);
@@ -5023,11 +5024,15 @@ function StudioApp() {
               </div>
             </section>
           )}
-          <section aria-label="Reservar otra cita" style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '14px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <AppointmentRepeatCard client={currentClientRecord} showPrices={portalShowsPrices} onProceed={draft=>{
+            if(visualBookingBusy)return;
+            const config={...bizConfigRef.current,...draft.settings} as BusinessConfig;
+            setBizConfig(config);bizConfigRef.current=config;setCatalog(draft.catalog);setRepeatPortalDraft(draft);
+          }} onCatalog={() => { setViewServiceDetail(null); setPortalSearch(''); setPortalSearchExpanded({}); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}><section aria-label="Reservar otra cita" style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '14px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.03em', fontSize: '17px', fontWeight: 'normal', margin: 0 }}>Reserva tu cita</h3>
             <p style={{ color: '#E0E8D9', fontSize: '12px', margin: '2px 0 0', lineHeight: 1.5 }}>Elige tus servicios y tu momento en el Studio.</p>
             <button type="button" onClick={() => { setViewServiceDetail(null); setPortalSearch(''); setPortalSearchExpanded({}); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ width: '100%', minHeight: '52px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>{t('bookNext')} <ArrowRight size={17} strokeWidth={2} aria-hidden="true" /></button>
-          </section>
+          </section></AppointmentRepeatCard>
         </div>
       )}
 
@@ -6356,3 +6361,5 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
 // lst-visit-links-icons-v1
 
 // lst-unified-search-v1
+
+// lst-repeat-in-appointments-v1
