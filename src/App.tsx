@@ -1,3 +1,4 @@
+import StudioVisitLinks from './StudioVisitLinks';
 import StudioPortalNews from './StudioPortalNews';
 import StudioReviewsCard from './StudioReviewsCard';
 import './portal-bonos-nav.css';
@@ -4938,18 +4939,7 @@ function StudioApp() {
               window.setTimeout(() => document.getElementById('booking-selection-summary')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
               return true;
             }} promotionServiceOptions={catalog.flatMap(cat => cat.subservices.filter(sub => sub.active !== false).map(sub => ({ id: sub.id, label: bookingName(sub) })))} />
-          <div style={{ textAlign: 'center', padding: '10px 0', color: '#FFF8EE', fontSize: '13px', lineHeight: 1.7 }}>
-            <strong style={{ display: 'block', fontWeight: 500 }}>¿Prefieres hablar con Ana?</strong>
-            <p style={{ margin: '3px 0 8px', color: '#D6CBB8', fontSize: 12 }}>Resolvemos tus dudas antes de reservar.</p>
-            <a href={`tel:${bizConfig.phone}`} style={{ display: 'block', color: '#D6CBB8', marginTop: '4px' }}>{t('callStudio')} · {bizConfig.phone}</a>
-          </div>
-          <details style={{ backgroundColor: '#26201B', border: '1px solid rgba(212, 175, 55, 0.35)', borderRadius: '14px', padding: '20px 18px', boxShadow: '0 10px 26px rgba(0, 0, 0, 0.25)' }}>
-            <summary style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '19px', fontWeight: 'normal', cursor: 'pointer', minHeight: '24px', display: 'flex', alignItems: 'center', gap: '10px', listStyle: 'none' }}>
-              <Clock3 size={19} strokeWidth={1.7} aria-hidden="true" style={{ color: '#E4C687', flexShrink: 0 }} />
-              {t('studioHours')}
-              <span aria-hidden="true" style={{ marginLeft: 'auto', color: '#D8C29A', fontSize: '13px', transition: 'transform 0.3s ease' }}>⌄</span>
-            </summary>
-            <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column' }}>
+          <StudioVisitLinks phone={bizConfig.phone} whatsapp={bizConfig.studioWhatsapp||bizConfig.phone} mapsUrl={bizConfig.googleMapsUrl} address={bizConfig.location} hoursLabel={t('studioHours')} callLabel={t('callStudio')} heading={<h3 style={{ color: '#FFF8EE', fontSize: '19px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>Nos vemos en el Studio</h3>}><div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column' }}>
               {STUDIO_WEEK_DAYS.map(({key,label})=>({day:label,time:studioScheduleLabel(bizConfig,Number(key))})).map((row, index) => (
                 <div key={row.day} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '16px', padding: '13px 0', borderTop: index === 0 ? 'none' : '1px solid rgba(255, 248, 238, 0.08)' }}>
                   <span style={{ color: '#FFF8EE', fontSize: '14px', lineHeight: 1.5 }}>{row.day}</span>
@@ -4958,26 +4948,18 @@ function StudioApp() {
                   </span>
                 </div>
               ))}
-            </div>
-          </details>
-          <section aria-label="Visítanos" style={{ padding: '12px 0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <h3 style={{ color: '#FFF8EE', fontSize: '19px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>Nos vemos en el Studio</h3>
-            <p style={{ color: '#D8C29A', fontSize: '13px', margin: 0, lineHeight: 1.6 }}>Un espacio para ti y para el cuidado de tu cabello.</p>
-            <p style={{ color: '#FFF8EE', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{bizConfig.location}</p>
-          </section>
+            </div></StudioVisitLinks>
+          
+          
           <StudioReviewsCard googleUrl={bizConfig.googleReviewUrl||''} mapsUrl={bizConfig.googleMapsUrl||''} saving={feedbackSaving}><NpsFeedbackForm score={selectedRating} comment={feedbackComment} saving={feedbackSaving} error={feedbackError} submitted={feedbackSubmitted}
             googleUrl={bizConfig.googleReviewUrl||''} contactUrl={(()=>{const digits=String(bizConfig.studioWhatsapp||bizConfig.phone||'').replace(/\D/g,'');return /^\d{9,15}$/.test(digits)?'https://wa.me/'+(digits.length===9?'34':'')+digits+'?text='+encodeURIComponent('Hola Ana, me gustaría comentar mi experiencia en L’Studio Ana.'):null;})()}
             onScore={handleRatingSelect} onComment={setFeedbackComment} onSubmit={handleSendFeedback} onRestart={()=>{setSelectedRating(null);setFeedbackComment('');setFeedbackError('');setFeedbackSubmitted(false);feedbackRequestId.current=null;}}/></StudioReviewsCard>
           <footer aria-label="Contacto y redes sociales" style={{ borderTop: '1px solid #302f29', paddingTop: '22px', paddingBottom: '96px' }}>
-            <p style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1.5px', textAlign: 'center', margin: '0 0 14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif" }}>CONTACTO Y REDES</p>
+            <p style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1.5px', textAlign: 'center', margin: '0 0 14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif" }}>SÍGUENOS</p>
             <nav style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px' }}>
-              {[
-                { key: 'maps', href: bizConfig.googleMapsUrl, label: 'Cómo llegar', Icon: MapPin },
-                { key: 'wa', href: `https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`, label: 'WhatsApp', Icon: MessageCircle },
-                { key: 'ig', href: bizConfig.instagramUrl, label: 'Instagram', Icon: Instagram },
-                { key: 'fb', href: bizConfig.facebookUrl, label: 'Facebook', Icon: Facebook },
-                { key: 'tt', href: bizConfig.tiktokUrl, label: 'TikTok', Icon: Music2 }
-              ].filter(link => !!link.href).map(({ key, href, label, Icon }) => (
+              {[{ key: 'ig', href: bizConfig.instagramUrl, label: 'Instagram', Icon: Instagram },
+{ key: 'fb', href: bizConfig.facebookUrl, label: 'Facebook', Icon: Facebook },
+{ key: 'tt', href: bizConfig.tiktokUrl, label: 'TikTok', Icon: Music2 }].filter(link => !!link.href).map(({ key, href, label, Icon }) => (
                 <a key={key} href={href} target="_blank" rel="noreferrer" aria-label={label} style={{ minWidth: '86px', minHeight: '44px', padding: '8px 12px', borderRadius: '10px', background: 'rgba(234, 220, 199, 0.06)', border: '1px solid rgba(212, 175, 55, 0.28)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '5px', textDecoration: 'none' }}>
                   <Icon size={20} strokeWidth={1.5} style={{ color: '#E4C687' }} aria-hidden="true" />
                   <span style={{ color: '#FFF8EE', fontSize: '11px', lineHeight: 1.2 }}>{label}</span>
@@ -6397,3 +6379,5 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
 // lst-google-reviews-card-v1
 
 // lst-promos-in-news-v1
+
+// lst-visit-links-icons-v1
