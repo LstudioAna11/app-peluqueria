@@ -1,3 +1,4 @@
+import {useClientAppointmentRefresh} from './useClientAppointmentRefresh';
 import AgendaStateLegend from './AgendaStateLegend';
 import AppointmentRepeatCard from './AppointmentRepeatCard';
 import SearchAnswers from './SearchAnswers';
@@ -2968,6 +2969,10 @@ function StudioApp() {
     return appointment;
   };
 
+  const clientVisitsSync=useClientAppointmentRefresh(!consultationMode&&['clientPortal','myAppointmentsPage'].includes(currentScreen)&&!rescheduleSaving&&!cancellationBusy&&!visualBookingBusy&&!pendingBookingBusy,currentClientRecord?.serverId,rows=>{
+    const fresh=rows.map(mapServerAppointment);setAppointments(fresh);
+    setViewApptModal(previous=>previous?fresh.find(item=>item.serverId===previous.serverId||item.id===previous.id)||null:previous);
+  });
   const liveAgenda = useLiveAgenda(!consultationMode && currentScreen === 'adminPanel' && studioApi.storedRole() === 'admin', (rows,blocks) => {
     markOfflineData('agenda');
     if(Array.isArray(blocks))setTimeBlocks(previous=>mergeServerTimeBlocks(previous,blocks,true));
@@ -3262,7 +3267,8 @@ function StudioApp() {
     e.preventDefault();
   };
 
-  const handleDrop = (e: React.DragEvent, targetDate: Date, dayName: string, time: string) => {
+  const handleDrop = async (e: React.DragEvent, targetDate: Date, dayName: string, time: string) => {
+    if(!staffCanManageAppointments||rescheduleSavingRef.current||adminBookingSavingRef.current||timeBlockSavingRef.current||cancellationBusyRef.current||visualBookingBusyRef.current)return;
     e.preventDefault();
     const targetDateKey = formatDateKey(targetDate);
     if (isDateBlockedByHoliday(targetDateKey)) {
@@ -3282,8 +3288,16 @@ function StudioApp() {
       window.alert('Ese hueco horario ya está ocupado. Activa la "Doble reserva" en el panel lateral si deseas permitir solapes.');
       return;
     }
-    setAppointments(prev => prev.map(a => a.id === id ? { ...a, dateKey: targetDateKey, dayName, time } : a));
-    setDraggedApptId(null);
+    rescheduleSavingRef.current=true;setRescheduleSaving(true);
+    try{
+      const token=studioApi.currentToken();
+      if(!studioApi.serverConfigured||!token||studioApi.storedRole()!=='admin')throw new Error('Necesitas conexión y sesión de administración para mover la cita.');
+      const row=await persistVerifiedAppointmentMove(token,moving.serverId||moving.id,targetDateKey,time,dayName);
+      const saved=mapServerAppointment(row);
+      setAppointments(previous=>previous.map(item=>item.id===moving.id||item.serverId===saved.serverId?saved:item));
+      setViewApptModal(previous=>previous&&(previous.id===moving.id||previous.serverId===saved.serverId)?saved:previous);
+    }catch(error){window.alert(error instanceof Error?error.message:'No se ha podido confirmar el cambio. Actualiza la agenda antes de reintentar.');}
+    finally{rescheduleSavingRef.current=false;setRescheduleSaving(false);setDraggedApptId(null);}
   };
 
   const handleCellClick = (targetDate: Date, dayName: string, time: string) => {
@@ -4789,7 +4803,8 @@ function StudioApp() {
 
       {/* 1. ACCESO PIN CLIENTE */}
       {currentScreen === 'clientPin' && portalEntry.restoring && <div style={{width:'100%',maxWidth:420,padding:'70px 0 20px'}}>{renderEntryNotice()}</div>}
-      {['clientPortal','myAppointmentsPage','adminPanel'].includes(currentScreen)&&renderEntryNotice()}
+      {['clientPortal','myAppointmentsPage'].includes(currentScreen)&&clientVisitsSync.error&&<div role="status" style={{padding:12,color:'#E4C687',fontSize:13,lineHeight:1.6,maxWidth:520}}>{clientVisitsSync.error}<button type="button" onClick={clientVisitsSync.retry} style={{display:'block',minHeight:44,padding:8,border:'1px solid #947749',borderRadius:6,background:'transparent',color:'#E4C687'}}>Reintentar</button></div>}
+{['clientPortal','myAppointmentsPage','adminPanel'].includes(currentScreen)&&renderEntryNotice()}
       {languageError&&!['adminPanel','adminLogin'].includes(currentScreen)&&<p role="alert" style={{color:'#E4C687',padding:12,fontSize:13}}>No se pudo cargar el idioma seleccionado. <button type="button" onClick={retryLanguage} style={{minHeight:44,textDecoration:'underline'}}>Reintentar</button></p>}
       {currentScreen === 'clientPin' && !portalEntry.restoring && (
         <main style={{ width: '100%', maxWidth: '460px', boxSizing: 'border-box', padding: '60px 24px 30px', textAlign: 'center' }}>
@@ -6380,3 +6395,5 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
 // lst-booking-initial-date-sync-v1
 
 // lst-agenda-soft-states-v1
+
+// lst-appointment-move-refresh-v1
