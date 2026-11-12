@@ -1,3 +1,5 @@
+import './passport-refine.css';
+import {Fingerprint as PassportHairIcon,Home as PassportHomeIcon} from 'lucide-react';
 import './portal-vouchers-compact.css';
 import {Gift as VoucherGiftIcon,Ticket as VoucherTicketIcon,Plus as VoucherPlusIcon} from 'lucide-react';
 import React,{useEffect,useRef,useState} from 'react';
@@ -579,7 +581,7 @@ type PortalProfileTab='hair'|'history'|'photos'|'vouchers'|'memories';
 export function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,onBack,onBook,onReserve,onRepeat,showPrices}:{client?:ClientRecord|null;catalog:CatalogCategory[];logoSrc:string;t:(key:string)=>string;compactVisitText:(text:string)=>string;onBack:()=>void;onBook:()=>void;onReserve:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void;onRepeat:(draft:RepeatPortalDraft)=>void;showPrices:boolean}){
  const [tab,setTab]=useState<PortalProfileTab>('hair'),[historyPage,setHistoryPage]=useState(0);
  const [visited,setVisited]=useState<Record<PortalProfileTab,boolean>>({hair:true,history:false,photos:false,vouchers:false,memories:false});
- const tabs:{id:PortalProfileTab;label:string}[]=[{id:'hair',label:'Mi cabello'},{id:'history',label:'Historial'},{id:'photos',label:'Fotos'},{id:'vouchers',label:'Mis bonos'},{id:'memories',label:'Logros y recuerdos'}];
+ const tabs:{id:PortalProfileTab;label:string}[]=[{id:'hair',label:'Mi cabello'},{id:'history',label:'Historial'},{id:'photos',label:'Fotos'},{id:'memories',label:'Recuerdos'}];
  useEffect(()=>{window.scrollTo({top:0,behavior:'auto'});},[]);
  const select=(id:PortalProfileTab)=>{setTab(id);setVisited(previous=>({...previous,[id]:true}));window.scrollTo({top:0,behavior:'auto'});};
  const tabKey=(event:React.KeyboardEvent<HTMLButtonElement>,index:number)=>{
@@ -589,6 +591,10 @@ export function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,
  const stamp=(date:string)=>{const d=date.trim();const match=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(d);const iso=match?`${match[3]}-${match[2]}-${match[1]}`:d.slice(0,10);const value=Date.parse(iso+'T12:00:00Z');return Number.isFinite(value)?value:0;};
  const visits=[...(client?.pastVisits||[])].sort((a,b)=>stamp(b.date)-stamp(a.date));
  const pages=Math.max(1,Math.ceil(visits.length/4)),page=Math.min(historyPage,pages-1);
+ const hasRealVisit=visits.some(visit=>stamp(visit.date)>0&&stamp(visit.date)<=Date.now()&&String(visit.service||'').trim());
+ const recommendation=String(client?.proximaVisitaSugerida||'').trim();
+ const placeholder=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[.!]+$/,'').trim();
+ const hasRecommendation=!!recommendation&&placeholder(recommendation)!==placeholder(t('pendingRecommendation'))&&!['pendiente','pendiente de agendar','sin recomendacion','nuevo registro'].includes(placeholder(recommendation));
  return <section className="lst-profile-compact" aria-label="Perfil de cliente">
   <style>{`
    .lst-profile-compact{max-width:520px;width:100%;min-width:0;box-sizing:border-box;color:#F4EBDD;padding:0 0 90px;font-size:13px;line-height:1.6}
@@ -606,7 +612,7 @@ export function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,
    .lp-next .lp-book{min-height:44px;border:1px solid #C6A16C;border-radius:6px;background:#D0AA71;color:#2C2219;padding:9px 13px;font-size:12px;grid-column:2;grid-row:1/3}
    .lp-fold{border:1px solid #68533C;border-radius:9px;background:#302820;padding:0 14px}
    .lp-fold summary{display:flex;align-items:center;justify-content:space-between;gap:10px;list-style:none;min-height:59px;padding:10px 0;color:#E7D4B6;font-size:13px;cursor:pointer}
-   .lp-fold summary::-webkit-details-marker{display:none}.lp-fold summary svg{color:#B69A73;flex-shrink:0}.lp-fold[open] summary svg{transform:rotate(180deg)}
+   .lp-fold summary::-webkit-details-marker{display:none}.lp-fold summary svg{color:#B69A73;flex-shrink:0}.lp-fold[open] > summary > svg{transform:rotate(180deg)}
    .lp-fold .lp-fold-body{font-size:13px;line-height:1.8;color:#DED0BC;white-space:pre-wrap;overflow-wrap:anywhere;padding:1px 0 15px}
    .lp-quiet{font-size:11px;color:#BFAE95;line-height:1.65;padding:3px 2px}.lp-recommend-extra{grid-column:1/-1;font-size:11px;color:#CBB99E}.lp-recommend-extra summary{cursor:pointer;min-height:35px;padding:5px 0}.lp-recommend-extra p{font-size:12px;color:#CBB99E}
    .lp-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 12px}.lp-section-head h3{font-family:Georgia,serif;font-size:19px;font-weight:400;color:#E3C9A2}.lp-section-head small{color:#BFAE95;font-size:11px}
@@ -617,19 +623,19 @@ export function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,
    @media(max-width:360px){.lp-header{gap:8px;padding-right:44px}.lp-header h2{font-size:19px}.lp-tabs button{font-size:10px}.lp-next{padding:12px}.lp-next .lp-book{padding:8px 10px}}
   `}</style>
   <header className="lp-header"><button className="lp-back" type="button" aria-label={t('backToPortal')} onClick={onBack}><ArrowLeft size={18}/></button><div><h2 title={t('passportTitle')}>{t('passportTitle')}</h2><p>{client?.nombre||'L’Studio Ana'}</p></div></header>
-  <RepeatLastAppointment clientId={client?.serverId} showPrices={showPrices} onProceed={onRepeat} onCatalog={onBook}/>
+  {hasRealVisit&&client?.serverId&&<RepeatLastAppointment clientId={client.serverId} showPrices={showPrices} onProceed={onRepeat} onCatalog={onBook}/>}
   <nav role="tablist" aria-label="Apartados de tu perfil" className="lp-tabs">{tabs.map((item,index)=><button key={item.id} id={'lp-tab-'+item.id} type="button" role="tab" aria-selected={tab===item.id} aria-controls={'lp-panel-'+item.id} tabIndex={tab===item.id?0:-1} onClick={()=>select(item.id)} onKeyDown={event=>tabKey(event,index)}>{item.label}</button>)}</nav>
   <div className="lp-panel" id="lp-panel-hair" role="tabpanel" aria-labelledby="lp-tab-hair" hidden={tab!=='hair'}>
-   <div className="lp-hair"><section className="lp-next"><small>{t('recommendedVisit')}</small><p>{client?.proximaVisitaSugerida||t('pendingRecommendation')}</p><button className="lp-book" type="button" onClick={onBook}>Reservar</button><details className="lp-recommend-extra"><summary>Ver orientación de mantenimiento</summary><p>{t('maintenanceNote')}</p></details></section>
-   <details className="lp-fold"><summary>{t('hairDna')}<ChevronDown size={16}/></summary><div className="lp-fold-body">{client?.dniCapilar||t('emptyDna')}</div></details>
-   <details className="lp-fold"><summary>{t('homeRitual')}<ChevronDown size={16}/></summary><div className="lp-fold-body">{client?.prescripcionCasa||t('emptyCare')}</div></details>
-   {client?.ultimaVisita&&<p className="lp-quiet">Última visita registrada · {client.ultimaVisita}</p>}
+   <div className="lp-hair"><section className="lp-next" data-recommendation={hasRecommendation?'true':'false'}><small>{t('recommendedVisit')}</small><p>{hasRecommendation?recommendation:'Ana te indicará cuándo volver.'}</p>{hasRecommendation&&<><button className="lp-book" type="button" onClick={onBook}>Reservar</button><details className="lp-recommend-extra"><summary>Ver orientación de mantenimiento</summary><p>{t('maintenanceNote')}</p></details></>}</section>
+   <details className="lp-fold"><summary><span className="lp-fold-label"><PassportHairIcon size={19} strokeWidth={1.5} aria-hidden="true"/>{t('hairDna')}</span><ChevronDown size={16} aria-hidden="true"/></summary><div className="lp-fold-body">{client?.dniCapilar||t('emptyDna')}</div></details>
+   <details className="lp-fold"><summary><span className="lp-fold-label"><PassportHomeIcon size={19} strokeWidth={1.5} aria-hidden="true"/>{t('homeRitual')}</span><ChevronDown size={16} aria-hidden="true"/></summary><div className="lp-fold-body">{client?.prescripcionCasa||t('emptyCare')}</div></details>
+   {client?.ultimaVisita&&stamp(client.ultimaVisita)>0&&stamp(client.ultimaVisita)<=Date.now()&&<p className="lp-quiet">Última visita registrada · {client.ultimaVisita}</p>}
    </div>
   </div>
   <div className="lp-panel" id="lp-panel-history" role="tabpanel" aria-labelledby="lp-tab-history" hidden={tab!=='history'}>{visited.history&&<><header className="lp-section-head"><h3>{t('visitHistory')}</h3><small>{visits.length} {visits.length===1?'visita':'visitas'}</small></header><div className="lp-history-list">{visits.length?visits.slice(page*4,page*4+4).map((visit,index)=><details className="lp-fold lp-visit" key={page*4+index}><summary><span><time>{visit.date}</time><strong>{compactVisitText(visit.service)}</strong></span><ChevronDown size={16}/></summary><div className="lp-fold-body"><p>{compactVisitText(visit.service)}</p>{visit.stylist&&<p>Con {visit.stylist}</p>}{visit.notes&&<p className="lp-notes">{visit.notes}</p>}</div></details>):<p className="lp-quiet">{t('emptyVisits')}</p>}</div>{pages>1&&<div className="lp-pages"><button type="button" disabled={page===0} onClick={()=>setHistoryPage(page-1)}>Anterior</button><span>{page+1} / {pages}</span><button type="button" disabled={page+1>=pages} onClick={()=>setHistoryPage(page+1)}>Siguiente</button></div>}</>}</div>
   <div className="lp-panel" id="lp-panel-photos" role="tabpanel" aria-labelledby="lp-tab-photos" hidden={tab!=='photos'}>{visited.photos&&<ClientPhotoGallery key={client?.serverId||'own-gallery'} clientId={client?.serverId}/>}</div>
   <div className="lp-panel" id="lp-panel-memories" role="tabpanel" aria-labelledby="lp-tab-memories" hidden={tab!=='memories'}>{visited.memories&&<React.Suspense fallback={<p>Cargando recuerdos…</p>}><LazyMemoriesClient key={client?.serverId||'own-memories'}/></React.Suspense>}</div>
-  <div className="lp-panel" id="lp-panel-vouchers" role="tabpanel" aria-labelledby="lp-tab-vouchers" hidden={tab!=='vouchers'}>{visited.vouchers&&<VoucherPanel logoSrc={logoSrc} services={voucherServiceOptions(catalog)} onReserve={onReserve}/>}</div>
+  
  </section>;
 }
 
@@ -637,3 +643,5 @@ export function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,
 // lst-news-promotion-slot-v1
 
 // lst-portal-vouchers-compact-v1
+
+// lst-passport-clear-v1

@@ -1,0 +1,9 @@
+.lst-profile-compact .lp-tabs button { flex:1 1 0; min-width:0; }
+.lst-profile-compact .lp-hair > .lp-fold { background:transparent; border:0; border-bottom:1px solid #655039; border-radius:0; padding:0 2px; }
+.lst-profile-compact .lp-hair > .lp-fold > summary { min-height:52px; }
+.lst-profile-compact .lp-fold-label { display:flex; align-items:center; gap:10px; }
+.lst-profile-compact .lp-fold-label svg { color:#D0AA71; flex-shrink:0; }
+.lst-profile-compact .lp-next[data-recommendation="false"] { grid-template-columns:minmax(0,1fr); background:transparent; border-color:#655039; }
+.lst-profile-compact .lp-repeat { border:0!important; background:transparent!important; padding:0!important; margin-bottom:10px!important; }
+.lst-profile-compact .lp-repeat > button { width:auto!important; min-height:44px; padding:7px 0!important; background:transparent!important; color:#D9BF98!important; font-weight:400!important; text-decoration:underline; text-underline-offset:4px; }
+.lst-profile-compact .lp-repeat > p { display:none; }
