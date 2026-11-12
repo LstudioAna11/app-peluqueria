@@ -1,3 +1,4 @@
+import StudioReviewsCard from './StudioReviewsCard';
 import './portal-bonos-nav.css';
 import {useLostDemand} from './useLostDemand';
 import {depositMoney} from './serviceDeposits';
@@ -635,10 +636,10 @@ export function NpsSummary({period,onPeriodChange}:{period:NpsPeriod;onPeriodCha
 
 function NpsFeedbackForm({score,comment,saving,error,submitted,googleUrl,contactUrl,onScore,onComment,onSubmit,onRestart}:{score:number|null;comment:string;saving:boolean;error:string;submitted:boolean;googleUrl:string;contactUrl:string|null;onScore:(score:number)=>void;onComment:(comment:string)=>void;onSubmit:(event:React.FormEvent)=>void;onRestart?:()=>void}){
   const linkStyle:React.CSSProperties={display:'inline-flex',alignItems:'center',justifyContent:'center',minHeight:44,padding:'11px 15px',border:'1px solid #B9955F',borderRadius:7,color:'#E4C687',textDecoration:'none',fontSize:13};
-  return <details id="studio-nps-survey" style={{background:'linear-gradient(160deg,#221D19,#322A25)',border:'1px solid #846A45',borderRadius:12,padding:16}}>
+  return <details id="studio-nps-survey" style={{background:'linear-gradient(160deg,#221D19,#322A25)',border:'1px solid #846A45',borderRadius:12,padding:16}} open>
     <summary style={{color:'#E4C687',fontSize:15,cursor:'pointer',fontFamily:'Georgia,serif'}}>Tu experiencia en L’Studio Ana</summary>
     <div style={{paddingTop:14,display:'grid',gap:12}}>
-      <p style={{fontSize:11,color:'#C9B79D',margin:0}}>{submitted?'Paso 2 de 2 · Comparte tu experiencia':'Paso 1 de 2 · Tu opinión para el Studio'}</p>
+      <p style={{fontSize:11,color:'#C9B79D',margin:0}}>{'OPINIÓN PRIVADA · L’STUDIO ANA'}</p>
       {submitted?<section aria-label="Gracias por tu valoración" style={{display:'grid',gap:12}}>
         <h3 style={{color:'#E4C687',fontFamily:'Georgia,serif',fontWeight:400,fontSize:20,margin:0}}>Gracias por compartir tu opinión</h3>
         <p style={{color:'#FFF8EE',fontSize:13,lineHeight:1.7,margin:0}}>Tu valoración de {score}/10 está registrada. Ana podrá leerla para seguir cuidando tu experiencia.</p>
@@ -652,7 +653,7 @@ function NpsFeedbackForm({score,comment,saving,error,submitted,googleUrl,contact
           <div style={{display:'flex',justifyContent:'space-between',gap:12,fontSize:11,color:'#C9B79D'}}><span>0 · Nada probable</span><span>10 · Muy probable</span></div>
           <label style={{display:'grid',gap:7,color:'#E4C687',fontSize:13}}>¿Cuál es el motivo principal de tu puntuación? <span style={{fontSize:11,color:'#C9B79D'}}>Comentario opcional · Lo recibe el Studio de forma privada.</span><textarea maxLength={3000} disabled={saving} value={comment} onChange={event=>onComment(event.target.value)} rows={3} placeholder="Tu opinión nos ayuda a cuidar cada detalle…" style={{width:'100%',boxSizing:'border-box',resize:'vertical',padding:11,background:'#302820',color:'#FFF8EE',border:'1px solid #846A45',borderRadius:8,fontSize:13,lineHeight:1.6}}/></label>
           {error&&<p role="alert" style={{fontSize:12,color:'#FFC3B0',margin:0}}>{error}</p>}
-          <button type="submit" disabled={saving} style={{minHeight:46,padding:12,border:0,borderRadius:7,background:'#C99E52',color:'#29231F',fontSize:13,fontWeight:600}}>{saving?'Guardando tu opinión…':'Enviar valoración y continuar'}</button>
+          <button type="submit" disabled={saving} style={{minHeight:46,padding:12,border:0,borderRadius:7,background:'#C99E52',color:'#29231F',fontSize:13,fontWeight:600}}>{saving?'Guardando tu opinión…':'Enviar a Ana'}</button>
         </form>
         {googleUrl&&<a href={googleUrl} target="_blank" rel="noopener noreferrer" style={{color:'#D6CBB8',fontSize:12,minHeight:44,display:'flex',alignItems:'center'}}>También puedes opinar directamente en Google ↗</a>}
       </>}
@@ -1725,8 +1726,8 @@ function StudioApp() {
   const [feedbackLinkPending,setFeedbackLinkPending]=useState(()=>new URLSearchParams(window.location.search).get('opinion')==='1');
   useEffect(()=>{
     if(!feedbackLinkPending||currentScreen!=='clientPortal'||studioApi.storedRole()!=='client')return;
-    const survey=document.getElementById('studio-nps-survey') as HTMLDetailsElement|null;
-    if(!survey)return;survey.open=true;survey.scrollIntoView({behavior:'smooth',block:'center'});
+    const survey=document.getElementById('studio-google-reviews');
+    if(!survey)return;survey.focus({preventScroll:true});survey.scrollIntoView({behavior:'smooth',block:'center'});
     const url=new URL(window.location.href);url.searchParams.delete('opinion');window.history.replaceState(window.history.state,'',url.pathname+url.search+url.hash);setFeedbackLinkPending(false);
   },[feedbackLinkPending,currentScreen]);
 
@@ -4967,9 +4968,9 @@ function StudioApp() {
             <p style={{ color: '#D8C29A', fontSize: '13px', margin: 0, lineHeight: 1.6 }}>Un espacio para ti y para el cuidado de tu cabello.</p>
             <p style={{ color: '#FFF8EE', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{bizConfig.location}</p>
           </section>
-          <NpsFeedbackForm score={selectedRating} comment={feedbackComment} saving={feedbackSaving} error={feedbackError} submitted={feedbackSubmitted}
+          <StudioReviewsCard googleUrl={bizConfig.googleReviewUrl||''} mapsUrl={bizConfig.googleMapsUrl||''} saving={feedbackSaving}><NpsFeedbackForm score={selectedRating} comment={feedbackComment} saving={feedbackSaving} error={feedbackError} submitted={feedbackSubmitted}
             googleUrl={bizConfig.googleReviewUrl||''} contactUrl={(()=>{const digits=String(bizConfig.studioWhatsapp||bizConfig.phone||'').replace(/\D/g,'');return /^\d{9,15}$/.test(digits)?'https://wa.me/'+(digits.length===9?'34':'')+digits+'?text='+encodeURIComponent('Hola Ana, me gustaría comentar mi experiencia en L’Studio Ana.'):null;})()}
-            onScore={handleRatingSelect} onComment={setFeedbackComment} onSubmit={handleSendFeedback} onRestart={()=>{setSelectedRating(null);setFeedbackComment('');setFeedbackError('');setFeedbackSubmitted(false);feedbackRequestId.current=null;}}/>
+            onScore={handleRatingSelect} onComment={setFeedbackComment} onSubmit={handleSendFeedback} onRestart={()=>{setSelectedRating(null);setFeedbackComment('');setFeedbackError('');setFeedbackSubmitted(false);feedbackRequestId.current=null;}}/></StudioReviewsCard>
           <footer aria-label="Contacto y redes sociales" style={{ borderTop: '1px solid #302f29', paddingTop: '22px', paddingBottom: '96px' }}>
             <p style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1.5px', textAlign: 'center', margin: '0 0 14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif" }}>CONTACTO Y REDES</p>
             <nav style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '10px' }}>
@@ -6395,3 +6396,5 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
 // lst-lost-demand-v1
 
 // lst-bonos-bottom-nav-v1
+
+// lst-google-reviews-card-v1
