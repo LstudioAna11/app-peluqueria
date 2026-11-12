@@ -1,3 +1,5 @@
+import SearchAnswers from './SearchAnswers';
+import {matchesSearchQuery,searchHelpTopics} from './portalSearchHelp';
 import StudioVisitLinks from './StudioVisitLinks';
 import StudioPortalNews from './StudioPortalNews';
 import StudioReviewsCard from './StudioReviewsCard';
@@ -3481,7 +3483,7 @@ function StudioApp() {
     if (service.active === false) return false;
     if (!portalSearchQuery) return true;
     const text = normalizeServiceSearch([categoryText(category), category.title, category.slogan, bookingName(service), serviceText(service, 'name'), service.name, serviceText(service, 'slogan'), service.slogan, serviceText(service, 'description'), service.description, ...(service.variants || []).map(variant => variantText(variant, service))].filter(Boolean).join(' '));
-    return portalSearchQuery.split(' ').every(word => text.includes(word));
+    return currentLang==='es'?matchesSearchQuery(portalSearchQuery,text):portalSearchQuery.split(' ').every(word => text.includes(word));
   };
   const portalSearchCount = catalog.reduce((total, category) => total + category.subservices.filter(service => portalServiceMatches(category, service)).length, 0);
   const translationLanguagePicker = () => <label style={{ display: 'block', color: '#D6CBB8', fontSize: '13px', margin: '12px 0' }}>Idioma<select value={catalogTranslationLang} onChange={event => setCatalogTranslationLang(event.target.value)} style={{ display: 'block', width: '100%', padding: '12px', marginTop: '6px', background: '#3E342C', color: '#FFF8EE', border: '1px solid #C5A059', borderRadius: '7px' }}>{Object.keys(TRANSLATIONS).filter(language => language !== 'es').map(language => <option key={language} value={language}>{({en: 'English', fr: 'Français', it: 'Italiano', pt: 'Português', de: 'Deutsch', nl: 'Nederlands', pl: 'Polski', cs: 'Čeština', nb: 'Norsk', sv: 'Svenska', ar: 'العربية'} as Record<string, string>)[language]}</option>)}</select></label>;
@@ -5052,48 +5054,19 @@ function StudioApp() {
             <p style={{ color: '#F0E6D2', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('experienceIntro')}</p>
           </div>
           <section aria-label={t('searchServices')} style={{ background: '#322A25', border: '1px solid rgba(196,154,88,.3)', borderRadius: 12, padding: 14 }}>
-            <label htmlFor="portal-service-search" style={{ display: 'block', color: '#FFF8EE', fontSize: 14, marginBottom: 8 }}>{t('searchServices')}</label>
+            <label htmlFor="portal-service-search" style={{ display: 'block', color: '#FFF8EE', fontSize: 14, marginBottom: 8 }}>{currentLang==='es'?'Servicios y dudas':t('searchServices')}</label>
             <div style={{ display: 'flex', gap: 8 }}>
-              <input id="portal-service-search" type="search" value={portalSearch} maxLength={100} onChange={event => setPortalSearch(event.target.value)} placeholder={t('searchPlaceholder')} autoComplete="off" style={{ width: '100%', minWidth: 0, minHeight: 46, fontSize: 16, padding: '10px 12px', borderRadius: 8, background: '#221D19', color: '#FFF8EE', border: '1px solid rgba(196,154,88,.5)', boxSizing: 'border-box' }} />
+              <input id="portal-service-search" type="search" value={portalSearch} maxLength={100} onChange={event => setPortalSearch(event.target.value)} placeholder={currentLang==='es'?'Busca un servicio o una duda':t('searchPlaceholder')} autoComplete="off" style={{ width: '100%', minWidth: 0, minHeight: 46, fontSize: 16, padding: '10px 12px', borderRadius: 8, background: '#221D19', color: '#FFF8EE', border: '1px solid rgba(196,154,88,.5)', boxSizing: 'border-box' }} />
               {portalSearch && <button type="button" aria-label={t('clearSearch')} onClick={() => { setPortalSearch(''); document.getElementById('portal-service-search')?.focus(); }} style={{ minWidth: 44, minHeight: 46, borderRadius: 8, background: '#221D19', border: '1px solid rgba(196,154,88,.4)', color: '#E4C687', cursor: 'pointer' }}>×</button>}
             </div>
             {currentLang === 'es' && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>{['Corte', 'Color', 'Mechas', 'Peinado'].map(word => <button key={word} type="button" aria-pressed={portalSearchQuery === normalizeServiceSearch(word)} onClick={() => setPortalSearch(word)} style={{ border: '1px solid rgba(196,154,88,.35)', borderRadius: 20, padding: '8px 12px', minHeight: 40, background: portalSearchQuery === normalizeServiceSearch(word) ? '#C49A58' : 'transparent', color: portalSearchQuery === normalizeServiceSearch(word) ? '#221D19' : '#E4C687', fontSize: 12, cursor: 'pointer' }}>{word}</button>)}</div>}
           </section>
-          <details className="lst-advisor-panel" style={{ background: 'linear-gradient(135deg, #3E342C, #2B2520)', border: '1px solid #C49A58', borderRadius: 16, padding: 16, boxShadow: '0 5px 20px rgba(0,0,0,.16)' }}>
-            <summary style={{ cursor: 'pointer', listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <span style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                <span aria-hidden="true" style={{ width: 40, height: 40, flexShrink: 0, display: 'grid', placeItems: 'center', background: 'rgba(196,154,88,.15)', borderRadius: 12 }}><Sparkles size={22} color="#E4C687" strokeWidth={1.6} /></span>
-                <span style={{ minWidth: 0 }}>
-                  <strong style={{ display: 'block', color: '#FFF8EE', fontSize: 17, lineHeight: 1.4, fontWeight: 500 }}>{currentLang === 'es' ? 'Tu coach profesional' : t('advisorAccess')}</strong>
-                  <span style={{ display: 'block', color: '#D6CBB8', fontSize: 13, lineHeight: 1.5, marginTop: 5 }}>{currentLang === 'es' ? 'Pregúntale qué servicio encaja contigo.' : t('advisorIntro')}</span>
-                </span>
-              </span>
-              <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, alignSelf: 'stretch', minHeight: 44, padding: '8px 14px', boxSizing: 'border-box', background: '#C49A58', color: '#221D19', borderRadius: 9, fontSize: 14, fontWeight: 600 }}>
-                <span className="lst-advisor-open-label">{currentLang === 'es' ? 'Pregúntale' : t('advisorAccess')}</span>
-                <span className="lst-advisor-close-label">{currentLang === 'es' ? 'Cerrar ayuda' : t('advisorTitle')}</span>
-                <ChevronDown size={17} aria-hidden="true" />
-              </span>
-            </summary>
-            <p style={{ color: '#D6CBB8', fontSize: '11px', lineHeight: 1.4, margin: '8px 0' }}>{t('advisorIntro')}</p>
-            <form onSubmit={handleRunAiRecommendation} style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'stretch', margin: '12px 0' }}>
-              <textarea aria-label={t('advisorTitle')} value={clientWishText} onChange={event => updateAdvisorQuestion(event.target.value)} maxLength={800} placeholder={currentLang==='es'?'Ej.: Tengo canas y solo quiero retocar la raíz.':t('advisorPlaceholder')} rows={2} style={{ flex: '1 1 240px', minWidth: 0, width: '100%', boxSizing: 'border-box', background: '#3E342C', border: '1px solid rgba(255, 248, 238, 0.18)', color: '#FFF8EE', borderRadius: '8px', padding: '8px 10px', fontSize: '16px', lineHeight: 1.5, minHeight: '64px', resize: 'none' }} />
-              <button type="submit" disabled={advisorBusy||!clientWishText.trim()} style={{ minHeight: '44px', padding: '8px 14px', flex: '1 1 160px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '8px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap', opacity: clientWishText.trim() ? 1 : 0.5 }}>{advisorBusy?'Buscando opciones…':t('advisorButton')}</button>
-            </form>
-            {currentLang==='es'&&<p style={{color:'#D6CBB8',fontSize:11,lineHeight:1.5,margin:'0 0 10px'}}>Orientación automática basada en los nombres de nuestros servicios. Ana confirma qué opción es adecuada para ti.</p>}
-            {aiRecommendation !== null && <div role="status" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <p style={{color:'#FFF8EE',fontSize:13,lineHeight:1.6,margin:0}}>{currentLang==='es'?aiRecommendation.message:aiRecommendation.suggestions.length?t('advisorReason'):t('advisorNone')}</p>
-              {currentLang==='es'&&aiRecommendation.choices&&<div style={{display:'flex',flexWrap:'wrap',gap:8}}>{aiRecommendation.choices.map(choice=><button key={choice.query} type="button" onClick={()=>{setClientWishText(choice.query);void handleRunAiRecommendation(undefined,choice.query);}} style={{background:'#322A25',border:'1px solid #806340',borderRadius:8,color:'#E4C687',fontSize:12,padding:'8px 12px',minHeight:44,cursor:'pointer'}}>{choice.label}</button>)}</div>}
-              {aiRecommendation.suggestions.map(suggestion => { const category = catalog.find(item => item.id===suggestion.categoryId); const service = category?.subservices.find(item => item.id === suggestion.id && item.active !== false); if (!category || !service) return null; return <article key={category.id+':'+service.id} style={{ background: '#3E342C', border: '1px solid rgba(255, 248, 238, 0.16)', padding: '12px', borderRadius: '12px' }}>
-                <h4 style={{ color: '#FFF8EE', fontSize: '18px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: '0 0 10px' }}>{bookingName(service)}</h4>
-                <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.7 }}>{currentLang==='es'?suggestion.reason:t('advisorReason')}</p>
-                <button type="button" onClick={() => { setPortalSearch(''); setPortalSearchExpanded({}); setActiveCatalogTab(category.id); setViewServiceDetail({cat:category,sub:service}); setCurrentScreen('serviceDetail');window.scrollTo({top:0}); }} style={{ minHeight: '44px', padding: '12px 16px', background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.16)', borderRadius: '8px', cursor: 'pointer' }}>{t('advisorView')}</button>
-              </article>; })}
-              <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}`} target="_blank" rel="noreferrer" style={{ color: '#E4C687', padding: '12px 0' }}>WhatsApp · Ana</a>
-            </div>}
-          </details>
+          
           {portalSearchQuery && <section aria-label={t('searchResults')}>
+ {currentLang==='es'&&<SearchAnswers query={portalSearch} resultCount={portalSearchCount} showPrices={portalShowsPrices} whatsapp={bizConfig.studioWhatsapp||bizConfig.phone} onAppointments={()=>{setViewServiceDetail(null);setCurrentScreen('myAppointmentsPage');}} onHome={()=>{setViewServiceDetail(null);setCurrentScreen('clientPortal');}} services={catalog.flatMap(category=>category.subservices.filter(service=>portalServiceMatches(category,service)).map(service=>({id:category.id+':'+service.id,name:bookingName(service),duration:service.duration||'',price:clientPrice(service.price),includes:serviceText(service,'includesText'),hasVariants:!!service.hasVariants})))}/>}
+
             <p role="status" aria-live="polite" style={{ color: '#D6CBB8', fontSize: 13, margin: '0 0 12px' }}>{t('searchResults')}: {portalSearchCount}</p>
-            {!portalSearchCount && <p style={{ color: '#FFF8EE', lineHeight: 1.6 }}>{t('noSearchResults')}</p>}
+            {(!portalSearchCount&&!(currentLang==='es'&&searchHelpTopics(portalSearch).length)) && <p style={{ color: '#FFF8EE', lineHeight: 1.6 }}>{t('noSearchResults')}</p>}
             <div style={{ display: 'grid', gap: 10 }}>{catalog.flatMap(category => category.subservices.filter(service => portalServiceMatches(category, service)).map(service => <button key={category.id + ':' + service.id} type="button" onClick={() => { setActiveCatalogTab(category.id); setViewServiceDetail({ cat: category, sub: service }); setCurrentScreen('serviceDetail'); window.scrollTo({ top: 0 }); }} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: 14, textAlign: 'start', background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255,248,238,.12)', borderRadius: 12, cursor: 'pointer', minHeight: 70 }}>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <small style={{ display: 'block', color: '#D6CBB8', fontSize: 11, marginBottom: 5 }}>{categoryText(category)}</small>
@@ -6381,3 +6354,5 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
 // lst-promos-in-news-v1
 
 // lst-visit-links-icons-v1
+
+// lst-unified-search-v1

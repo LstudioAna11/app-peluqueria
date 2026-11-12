@@ -1,0 +1,6 @@
+.sa-answers { border-left:2px solid #B9955F; padding:0 0 0 14px; margin:0 0 20px; color:#FFF8EE; }
+.sa-answers h3 { color:#E4C687; font-family:Georgia,serif; font-size:18px; font-weight:400; margin:0 0 10px; }
+.sa-answers p { font-size:13px; line-height:1.65; margin:8px 0 12px; white-space:pre-wrap; overflow-wrap:anywhere; }
+.sa-answers a,.sa-answers button { display:inline-flex; align-items:center; min-height:44px; font:inherit; font-size:12px; padding:7px 0; color:#E4C687; background:none; border:0; text-underline-offset:4px; cursor:pointer; }
+.sa-answers a:focus-visible,.sa-answers button:focus-visible { outline:2px solid #E4C687; outline-offset:3px; }
+.sa-services { display:grid; gap:10px; }.sa-services article { border-top:1px solid #655039; padding-top:10px; }.sa-services strong { font-size:13px; }
