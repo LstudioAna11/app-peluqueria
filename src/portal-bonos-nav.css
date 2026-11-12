@@ -1,0 +1,4 @@
+.lst-bottom-nav.lst-with-bonos { padding-left: 4px; padding-right: 4px; box-sizing: border-box; }
+.lst-bottom-nav.lst-with-bonos > button { min-width: 44px; min-height: 44px; }
+.lst-bonos-page { width: 100%; max-width: 520px; box-sizing: border-box; }
+.lst-bonos-page > .lst-bonos { padding: 16px; box-sizing: border-box; }
