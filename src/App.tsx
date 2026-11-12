@@ -1,3 +1,4 @@
+import StudioPortalNews from './StudioPortalNews';
 import StudioReviewsCard from './StudioReviewsCard';
 import './portal-bonos-nav.css';
 import {useLostDemand} from './useLostDemand';
@@ -4702,35 +4703,9 @@ function StudioApp() {
           <button type="button" aria-label="Mis notificaciones" aria-expanded={pushPanelOpen} onClick={() => { setPushPanelOpen(true); setPushError(null); setPushTestResult(null); void refreshPushStatus(); }}>
             <Bell size={20} strokeWidth={1.7} aria-hidden="true" /><span>Avisos</span>
           </button>
-          <PromotionsPortalButton
-            promotions={bizConfig.promotions}
-            serviceOptions={catalog.flatMap(cat => cat.subservices.filter(sub => sub.active !== false).map(sub => ({ id: sub.id, label: bookingName(sub) })))}
-            onReserve={promotion => {
-              const currentPromotion = bizConfig.promotions?.find(item => item.id === promotion.id);
-              const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
-              if (!currentPromotion || !currentPromotion.active || (currentPromotion.startDate && currentPromotion.startDate > today) || (currentPromotion.endDate && currentPromotion.endDate < today)) {
-                alert('Esta promoción ya no está disponible.'); return false;
-              }
-              const ids = promotionServiceIds(currentPromotion);
-              const services = ids.map(id => catalog.flatMap(category => category.subservices).find(service => service.id === id && service.active !== false));
-              if (!ids.length || services.some(service => !service)) { alert('Uno de los servicios de esta promoción no está disponible. Contacta con el Studio.'); return false; }
-              const selection = services.map(service => ({ sub: service!, variant: null }));
-              if (selection.some(item => item.sub.isCutGoService) && selection.some(item => item.sub.isStylingService && !item.sub.isCutGoService)) {
-                alert('Esta promoción combina peinado y Cut & Go. Contacta con el Studio para revisar los servicios incluidos.'); return false;
-              }
-              setSelectedPromotionOrigin({ id: currentPromotion.id, title: currentPromotion.title });
-              setSelectedPromotionId(currentPromotion.discountPercent ? currentPromotion.id : null);
-              setSelectedServicesToBook(selection);
-              setViewServiceDetail(null);
-              setPortalSearch('');
-              setPortalSearchExpanded({});
-              setCurrentScreen('catalogBooking');
-              window.setTimeout(() => document.getElementById('booking-selection-summary')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-              return true;
-            }}
-          />
+          
           <button type="button" className={currentScreen === 'clientVouchersPage' ? 'lst-bottom-active' : ''} aria-current={currentScreen === 'clientVouchersPage' ? 'page' : undefined} onClick={() => { setViewServiceDetail(null); setCurrentScreen('clientVouchersPage'); window.scrollTo({top:0,behavior:'smooth'}); }}>
- <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v9h14v-9M12 8v13"/><path d="M12 8H7.5A2.5 2.5 0 1 1 10 5.5L12 8Zm0 0h4.5A2.5 2.5 0 1 0 14 5.5L12 8Z"/></svg><span>Bonos</span>
+ <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v9h14v-9M12 8v13"/><path d="M12 8H7.5A2.5 2.5 0 1 1 10 5.5L12 8Zm0 0h4.5A2.5 2.5 0 1 0 14 5.5L12 8Z"/></svg><span className="lst-voucher-label">Bonos y tarjetas</span>
  </button>
 <button type="button" className={currentScreen === 'clientHistoryPage' ? 'lst-bottom-active' : ''} onClick={() => setCurrentScreen('clientHistoryPage')}>
             <User size={20} strokeWidth={1.7} aria-hidden="true" /><span>Perfil</span>
@@ -4935,12 +4910,34 @@ function StudioApp() {
             <button type="button" onClick={() => { setViewServiceDetail(null); setPortalSearch(''); setPortalSearchExpanded({}); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ width: '100%', minHeight: '52px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>{t('bookNext')} <ArrowRight size={17} strokeWidth={2} aria-hidden="true" /></button>
           </section>
           
-          <StudioNews serviceOptions={catalog.flatMap(cat=>cat.subservices.filter(sub=>sub.active!==false).map(sub=>({id:sub.id,label:bookingName(sub)})))} onService={(id,action)=>{
+          <StudioPortalNews serviceOptions={catalog.flatMap(cat=>cat.subservices.filter(sub=>sub.active!==false).map(sub=>({id:sub.id,label:bookingName(sub)})))} onService={(id,action)=>{
             const cat=catalog.find(category=>category.subservices.some(sub=>sub.id===id&&sub.active!==false));
             const sub=cat?.subservices.find(service=>service.id===id&&service.active!==false);
             if(!cat||!sub)return;
             setViewServiceDetail({cat,sub});setCurrentScreen('serviceDetail');window.scrollTo({top:0,behavior:'smooth'});
-          }}/>
+          }} promotions={bizConfig.promotions} onReserve={promotion => {
+              const currentPromotion = bizConfig.promotions?.find(item => item.id === promotion.id);
+              const today = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+              if (!currentPromotion || !currentPromotion.active || (currentPromotion.startDate && currentPromotion.startDate > today) || (currentPromotion.endDate && currentPromotion.endDate < today)) {
+                alert('Esta promoción ya no está disponible.'); return false;
+              }
+              const ids = promotionServiceIds(currentPromotion);
+              const services = ids.map(id => catalog.flatMap(category => category.subservices).find(service => service.id === id && service.active !== false));
+              if (!ids.length || services.some(service => !service)) { alert('Uno de los servicios de esta promoción no está disponible. Contacta con el Studio.'); return false; }
+              const selection = services.map(service => ({ sub: service!, variant: null }));
+              if (selection.some(item => item.sub.isCutGoService) && selection.some(item => item.sub.isStylingService && !item.sub.isCutGoService)) {
+                alert('Esta promoción combina peinado y Cut & Go. Contacta con el Studio para revisar los servicios incluidos.'); return false;
+              }
+              setSelectedPromotionOrigin({ id: currentPromotion.id, title: currentPromotion.title });
+              setSelectedPromotionId(currentPromotion.discountPercent ? currentPromotion.id : null);
+              setSelectedServicesToBook(selection);
+              setViewServiceDetail(null);
+              setPortalSearch('');
+              setPortalSearchExpanded({});
+              setCurrentScreen('catalogBooking');
+              window.setTimeout(() => document.getElementById('booking-selection-summary')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+              return true;
+            }} promotionServiceOptions={catalog.flatMap(cat => cat.subservices.filter(sub => sub.active !== false).map(sub => ({ id: sub.id, label: bookingName(sub) })))} />
           <div style={{ textAlign: 'center', padding: '10px 0', color: '#FFF8EE', fontSize: '13px', lineHeight: 1.7 }}>
             <strong style={{ display: 'block', fontWeight: 500 }}>¿Prefieres hablar con Ana?</strong>
             <p style={{ margin: '3px 0 8px', color: '#D6CBB8', fontSize: 12 }}>Resolvemos tus dudas antes de reservar.</p>
@@ -6398,3 +6395,5 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
 // lst-bonos-bottom-nav-v1
 
 // lst-google-reviews-card-v1
+
+// lst-promos-in-news-v1

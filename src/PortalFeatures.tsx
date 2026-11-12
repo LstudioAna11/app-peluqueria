@@ -121,7 +121,7 @@ const newsToday=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',ye
 const newsDate=(date:string)=>new Intl.DateTimeFormat('es-ES',{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Madrid'}).format(new Date(date.slice(0,10)+'T12:00:00Z'));
 function newsState(item:studioApi.StudioNewsSummary){return item.status==='draft'?'Borrador':item.start_date&&item.start_date>newsToday()?'Programada':item.end_date&&item.end_date<newsToday()?'Finalizada':'Publicada';}
 const emptyNews=():studioApi.StudioNews=>({id:crypto.randomUUID(),title:'',summary:'',body:'',category:'studio',image_url:'',status:'draft',start_date:null,end_date:null,action:'none',service_id:null,created_at:'',updated_at:''});
-export function StudioNews({admin=false,serviceOptions=[],onService}:{admin?:boolean;serviceOptions?:NewsOption[];onService?:(id:string,action:'service'|'booking')=>void}){
+export function StudioNews({admin=false,serviceOptions=[],onService,promotionCards}:{admin?:boolean;serviceOptions?:NewsOption[];onService?:(id:string,action:'service'|'booking')=>void;promotionCards?:React.ReactNode}){
   const [view,setView]=useState<'latest'|'list'|'detail'>(admin?'list':'latest');
   const [page,setPage]=useState(0),[list,setList]=useState<studioApi.StudioNewsPage|null>(null),[detail,setDetail]=useState<studioApi.StudioNews|null>(null);
   const [draft,setDraft]=useState<studioApi.StudioNews|null>(null),[preview,setPreview]=useState(false),[deleting,setDeleting]=useState<string|null>(null);
@@ -170,7 +170,7 @@ export function StudioNews({admin=false,serviceOptions=[],onService}:{admin?:boo
       {item.action!=='none'&&item.service_id&&(forPreview||serviceOptions.some(s=>s.id===item.service_id))&&<button type="button" disabled={forPreview} className="lst-news-primary" onClick={()=>{if(!forPreview)onService?.(item.service_id!,item.action as 'service'|'booking');}}>{item.action==='booking'?'Elegir y reservar':'Ver servicio'} <ArrowRight size={15}/></button>}
     </div></article>;
   // No empty placeholder or loading flash on the portal home. Keep all hooks above this return.
-  if(!admin&&view==='latest'&&!error&&(!list||list.items.length===0))return null;
+  if(!admin&&view==='latest'&&!error&&!promotionCards&&(!list||list.items.length===0))return null;
   return <section className={`lst-news ${admin?'lst-news-admin':'lst-news-portal'}`} aria-label="El universo L’Studio">
     <style>{`
       .lst-news{color:#302822;min-width:0;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
@@ -207,11 +207,13 @@ export function StudioNews({admin=false,serviceOptions=[],onService}:{admin?:boo
       .lst-news-footer{display:flex;justify-content:flex-end;margin-top:3px}
       @media(max-width:420px){.lst-news-portal h2{font-size:20px}.lst-news-feature{min-height:245px}.lst-news-feature-content{padding:58px 18px 16px}.lst-news-feature-content>h3{font-size:23px}.lst-news-portal .lst-news-article .lst-news-inner{padding:18px}}
     `}</style>
-    <header className="lst-news-header"><div><h2>El universo L’Studio</h2><p className="lst-news-sub">{admin?'Novedades, inspiración y cuidados para tu cabello.':'Inspiración y novedades del estudio.'}</p></div><div className="lst-news-actions">
+    <header className="lst-news-header"><div><h2>{admin?'El universo L’Studio':'Novedades del Studio'}</h2><p className="lst-news-sub">{admin?'Novedades, inspiración y cuidados para tu cabello.':'Inspiración y novedades del estudio.'}</p></div><div className="lst-news-actions">
       {admin&&<button type="button" disabled={writing||uploading||busy} className="lst-news-primary" onClick={()=>{setDraft(emptyNews());setPreview(false);setError('');setMessage('');setDeleting(null);}}>+ Nueva publicación</button>}
       {!admin&&view!=='latest'&&<button type="button" onClick={()=>{setDetail(null);setView(view==='detail'?'list':'latest');setPage(0);setError('');}}> <ArrowLeft size={15}/> {view==='detail'?'Novedades':'Volver'}</button>}
       {admin&&view!=='detail'&&<button type="button" disabled={busy||writing||uploading} onClick={()=>void load()} aria-label="Actualizar novedades">Actualizar</button>}
     </div></header>
+    {!admin&&view!=='detail'&&promotionCards}
+
     {error&&<div className="lst-news-error"><p role="alert">{error}</p>{!admin&&<button type="button" disabled={busy} onClick={()=>void load()}>Reintentar</button>}</div>}{message&&<p role="status" className="lst-news-message">{message}</p>}
     {admin&&draft&&<form onSubmit={save} className="lst-news-editor"><h3>{draft.updated_at?'Editar publicación':'Nueva publicación'}</h3><fieldset disabled={writing||uploading}>
       <label>Título<input required maxLength={100} value={draft.title} onChange={e=>change({title:e.target.value})} placeholder="Una novedad para tu cabello"/></label>
@@ -628,3 +630,5 @@ export function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,
  </section>;
 }
 
+
+// lst-news-promotion-slot-v1
