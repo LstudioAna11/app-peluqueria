@@ -1344,7 +1344,19 @@ function StudioApp() {
   const [acceptedSaturdayPolicy, setAcceptedSaturdayPolicy] = useState('');
   const reservationPolicyDialog = useRef<HTMLDialogElement>(null);
   const portalDateInputRef = useRef<HTMLInputElement>(null);
-  const [bookingDate, setBookingDate] = useState<Date>(() => { const date = new Date(); date.setHours(12, 0, 0, 0); date.setDate(date.getDate() + bizConfig.minAdvanceDays); return date; });
+  const bookingDateTouchedRef=useRef(false);
+  const [bookingDate, setBookingDate] = useState<Date>(() => { const date = new Date(); date.setHours(12, 0, 0, 0); date.setDate(date.getDate() + Math.max(0,Math.floor(Number(bizConfig.minAdvanceDays)||0))); return date; });
+  // The server configuration can arrive after useState has used the fallback settings.
+  // Refresh automatic dates on entry too, but keep every date chosen by the client.
+  useEffect(()=>{
+    if(bookingDateTouchedRef.current)return;
+    const date=new Date();date.setHours(12,0,0,0);
+    date.setDate(date.getDate()+Math.max(0,Math.floor(Number(bizConfig.minAdvanceDays)||0)));
+    if(bookingDate.getFullYear()!==date.getFullYear()||bookingDate.getMonth()!==date.getMonth()||bookingDate.getDate()!==date.getDate()){
+      setBookingDate(date);setSelectedVisualTime('');
+    }
+  },[bizConfig.minAdvanceDays,currentScreen]);
+
   const [tempConfig, setTempConfigState] = useState<BusinessConfig>(() => structuredClone(bizConfig));
   const [employeePhotoBusy, setEmployeePhotoBusy] = useState<string | null>(null);
   const employeePhotoBusyRef = useRef(false);
@@ -3388,7 +3400,7 @@ function StudioApp() {
     setSelectedPromotionId(null);setSelectedPromotionOrigin(null);setSelectedVoucherId(null);
     setSelectedVisualTime('');setReservationPolicyChecked(false);setAcceptedSaturdayPolicy('');
     setVisualBookingError('');visualBookingAttemptRef.current=null;setIsModalOpen(false);
-    const date=new Date();date.setHours(12,0,0,0);date.setDate(date.getDate()+Math.max(0,Number(bizConfig.minAdvanceDays)||0));setBookingDate(date);
+    const date=new Date();date.setHours(12,0,0,0);date.setDate(date.getDate()+Math.max(0,Math.floor(Number(bizConfig.minAdvanceDays)||0)));bookingDateTouchedRef.current=false;setBookingDate(date);
     setRepeatPortalNotice(issue||'');setViewServiceDetail(null);
     if(missing){const cat=catalog.find(c=>c.subservices.some(sub=>sub.id===missing.sub.id));if(cat){setViewServiceDetail({cat,sub:missing.sub});setPreviewVariantId('');setCurrentScreen('serviceDetail');}else setCurrentScreen('catalogBooking');}
     else setCurrentScreen(issue?'catalogBooking':'visualAgenda');
@@ -4101,7 +4113,7 @@ function StudioApp() {
     return Array.from(new Set(times));
   };
   const [demandExplicitDate,setDemandExplicitDate]=useState('');
-  const choosePortalDate = (date: Date,explicit=true) => { setDemandExplicitDate(explicit?formatDateKey(date):'');setBookingDate(date); setSelectedVisualTime(''); };
+  const choosePortalDate = (date: Date,explicit=true) => { bookingDateTouchedRef.current=true; setDemandExplicitDate(explicit?formatDateKey(date):'');setBookingDate(date); setSelectedVisualTime(''); };
   const saturdayPolicyText = bizConfig.saturdayNoticeMessage?.trim() || INITIAL_BUSINESS_CONFIG.saturdayNoticeMessage;
   const saturdayPolicyKey = formatDateKey(bookingDate) + '|' + saturdayPolicyText;
   const saturdayNeedsAcceptance = bookingDate.getDay() === 6 && bizConfig.saturdayPolicyEnabled !== false;
@@ -6363,3 +6375,5 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
 // lst-unified-search-v1
 
 // lst-repeat-in-appointments-v1
+
+// lst-booking-initial-date-sync-v1
