@@ -33,7 +33,7 @@ export default function StudioReviewsCard({googleUrl,mapsUrl,saving=false,childr
  const dialog=useRef<HTMLDialogElement>(null),alive=useRef(true),lock=useRef(false);
  const [data,setData]=useState<PlaceData|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const apiKey=String(import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY||'').trim(),placeId=String(import.meta.env.VITE_GOOGLE_PLACE_ID||'').trim();
- const ready=!!apiKey&&!!placeId,writeUrl=safeLink(googleUrl),readUrl=safeLink(mapsUrl);
+ const ready=!!apiKey&&!!placeId,writeUrl=safeLink(googleUrl),readUrl=safeLink('https://www.google.com/maps/place//data=!4m4!3m3!1s0xd63b74c640bef21:0x1880a470fcd5f112!9m1!1b1')||safeLink(mapsUrl);
  useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
  const read=async()=>{
   if(lock.current||data)return;lock.current=true;setBusy(true);setError('');
