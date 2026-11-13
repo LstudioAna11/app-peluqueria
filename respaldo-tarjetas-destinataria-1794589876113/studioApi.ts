@@ -1,0 +1,384 @@
+import {offlineConsultation} from './offlineSession';
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON_KEY = (import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY) as string;
+
+const EDGE_FUNCTION_URL = `${SUPABASE_URL}/functions/v1/studio-api`;
+
+export const serverConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY);
+
+const TOKEN_KEY = "lst_api_token";
+const ROLE_KEY = "lst_api_role";
+const CLIENT_ID_KEY = "lst_client_id";
+const EXPIRES_KEY = "lst_api_expires";
+
+export const currentToken = (): string | null => {
+  try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+};
+
+export const storedRole = (): string | null => {
+  try { return localStorage.getItem(ROLE_KEY); } catch { return null; }
+};
+
+export const storedClientId = (): string | null => {
+  try { return localStorage.getItem(CLIENT_ID_KEY); } catch { return null; }
+};
+
+export const clearStoredToken = (): void => {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(ROLE_KEY);
+    localStorage.removeItem(CLIENT_ID_KEY);
+    localStorage.removeItem(EXPIRES_KEY);
+  } catch { /* ignore */ }
+};
+
+const storeSession = (result: { token: string; role: string; clientId?: string; expiresAt?: string }) => {
+  try {
+    localStorage.setItem(TOKEN_KEY, result.token);
+    localStorage.setItem(ROLE_KEY, result.role);
+    if (result.clientId) localStorage.setItem(CLIENT_ID_KEY, result.clientId);
+    else localStorage.removeItem(CLIENT_ID_KEY);
+    if (result.expiresAt) localStorage.setItem(EXPIRES_KEY, result.expiresAt);
+  } catch { /* ignore */ }
+};
+
+export interface AuthResult {
+  role: string;
+  token: string;
+  clientId?: string;
+  expiresAt?: string;
+  whatsappConsent?: boolean;
+}
+
+export const authenticate = async (pin: string): Promise<AuthResult> => {
+  const data = await call<AuthResult>("auth", { body: { pin } });
+  storeSession(data);
+  return data;
+};
+
+export class StudioApiError extends Error {
+  readonly status:number;
+  constructor(message:string,status:number){super(message);this.name='StudioApiError';this.status=status;}
+}
+
+const rawCall = async <T = Record<string, unknown>>(
+  action: string,
+  opts: { method?: string; token?: string; body?: unknown } = {}
+): Promise<T> => {
+  if (offlineConsultation()) throw new Error("Modo de consulta local. Reconecta para realizar operaciones.");
+  if (!serverConfigured) throw new Error("Servidor no configurado");
+  const headers: Record<string, string> = { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY };
+  if (opts.token) headers["Authorization"] = `Bearer ${opts.token}`;
+  const res = await fetch(`${EDGE_FUNCTION_URL}/${encodeURIComponent(action)}`, {
+    method: opts.method || "POST",
+    headers,
+    body: opts.method === "GET" || opts.method === "HEAD" || opts.body === undefined ? undefined : JSON.stringify(opts.body),
+  });
+  const data = await res.json();
+  if(!res.ok&&data.code==='PORTAL_MAINTENANCE'&&data.maintenance&&typeof window!=='undefined')window.dispatchEvent(new CustomEvent('lst-portal-maintenance',{detail:data.maintenance}));
+  if (!res.ok) throw new StudioApiError(data.error || "Error del servidor",res.status);
+  return data as T;
+};
+
+// Share only identical requests that are currently in flight; never cache appointment results.
+const pendingReads = new Map<string, Promise<unknown>>();
+let readGeneration = 0;
+const readActions = new Set(['voucher-list','voucher-quote','news-list','news-detail','client-photos', 'sync', 'public-catalog', 'public-professionals', 'branding', 'official-holidays', 'email-status', 'email-config', 'whatsapp-status', 'whatsapp-config', 'push-status', 'push-public-key']);
+const call = async <T = Record<string, unknown>>(
+  action: string,
+  opts: {method?: string; token?: string; body?: unknown} = {},
+): Promise<T> => {
+  if (!readActions.has(action)) {
+    // A read begun before a write cannot satisfy the verification after that write.
+    readGeneration++;
+    try { return await rawCall<T>(action, opts); }
+    finally { readGeneration++; }
+  }
+  const key = JSON.stringify([readGeneration, action, opts.method || 'POST', opts.token || '', opts.body ?? null]);
+  const pending = pendingReads.get(key);
+  if (pending) return pending as Promise<T>;
+  const request = rawCall<T>(action, opts);
+  pendingReads.set(key, request);
+  try { return await request; }
+  finally { if (pendingReads.get(key) === request) pendingReads.delete(key); }
+};
+
+export type SyncSection = 'catalog' | 'settings' | 'closures' | 'timeBlocks' | 'clients' | 'appointments' | 'feedback';
+export const syncAll = <T>(token: string, sections?: SyncSection[]) =>
+  call<T>('sync', {token, body: sections ? {sections: [...new Set(sections)].sort()} : undefined});
+
+export const fetchPublicProfessionals = <T = {employees: {id:string;name:string;role:string;photo:string;status:string}[]}>() =>
+  call<T>('public-professionals', {method:'GET'});
+
+export const fetchPublicCatalog = <T = { catalog: { id: string; category: unknown }[]; employees?: { id: string; name: string; role: string; photo: string; status: string }[] }>() =>
+  call<T>("public-catalog", { method: "GET" });
+
+export const pushCatalog = (token: string, catalog: unknown) =>
+  call<{ ok: true }>("catalog", { method: "PUT", token, body: { catalog } });
+
+export const fetchSchedulingSupport = () => call<{weeklyHoursVersion?:number}>('health',{method:'GET'});
+
+export const pushSettings = (token: string, settings: unknown) =>
+  call<{ ok: true }>("settings", { method: "PUT", token, body: { settings } });
+
+export const createClientOnServer = (token: string, client: Record<string, unknown>) =>
+  call<{ ok: true; id: string; legacyId: number; registrationId: string }>("client", { token, body: client });
+
+export const pushPassport = (token: string, passport: Record<string, unknown>) =>
+  call<{ ok: true }>("passport", { token, body: passport });
+
+export const createClosure = (token: string, closure: Record<string, unknown>) =>
+  call<{ ok: true; id: string }>("closure", { token, body: closure });
+
+export const deleteClosure = (token: string, id: string) =>
+  call<{ ok: true }>("closure", { method: "DELETE", token, body: { id } });
+
+export const createTimeBlock = (token: string, block: Record<string, unknown>) =>
+  call<{ ok: true; id: string }>("timeblock", { token, body: block });
+
+export const deleteTimeBlock = (token: string, id: string) =>
+  call<{ ok: true }>("timeblock", { method: "DELETE", token, body: { id } });
+
+export interface ServerAppointmentInput {
+  clientNote?: string;
+  waiveDeposit?: boolean;
+  voucherId?: string | null;
+  voucherExpectedCents?: number;
+  promotionId?: string;
+  promotionOriginId?: string;
+  id?: string;
+  clientId?: string | null;
+  dateKey: string;
+  time: string;
+  dayName?: string;
+  durationMinutes?: number;
+  bookingChannel?: 'portal' | 'admin';
+  lifecycleStatus?: string | null;
+  approval?: { status: string; reason?: string; reference?: string } | null;
+  advancePayment?: { status: string; amount?: number; reference?: string } | null;
+  services?: unknown;
+  clientName?: string;
+  phone?: string;
+  email?: string;
+  serviceCategory?: string;
+  serviceSubcategory?: string;
+  selectedVariant?: unknown;
+  remindersStatus?: unknown;
+  professionalId?: string | null;
+  professionalName?: string | null;
+}
+
+export const createAppointmentOnServer = (token: string, appointment: ServerAppointmentInput) =>
+  call<{ ok: true; id: string;clientNote?:string;depositWaived?:boolean;voucherSummary?:VoucherQuote|null;depositStatus?:string;depositAmount?:number|null;depositReference?:string|null }>("appointment", { token, body: appointment });
+
+export interface ServerAppointmentPatch {
+  waiveDeposit?: boolean;
+  id: string;
+  dateKey?: string;
+  time?: string;
+  dayName?: string;
+  durationMinutes?: number;
+  lifecycleStatus?: string | null;
+  approval?: { status: string; reason?: string; reference?: string } | null;
+  advancePayment?: { status: string; amount?: number; reference?: string } | null;
+  internalNotes?: string;
+  services?: unknown;
+  clientSnapshot?: unknown;
+  completedAt?: string | null;
+}
+
+export const updateAppointmentOnServer = (token: string, patch: ServerAppointmentPatch) =>
+  call<{ ok: true }>("appointment", { method: "PUT", token, body: patch });
+
+export const deleteAppointmentOnServer = (token: string, id: string) =>
+  call<{ ok: true }>("appointment", { method: "DELETE", token, body: { id } });
+
+export interface UploadedServiceImage {
+  ok: true;
+  url: string;
+  path: string;
+}
+
+export const uploadServiceImage = (token: string, dataUrl: string) =>
+  call<UploadedServiceImage>("service-image", { method: "POST", token, body: { dataUrl } });
+
+export const deleteServiceImage = (token: string, path: string) =>
+  call<{ ok: true }>("service-image", { method: "DELETE", token, body: { path } });
+
+export interface AppointmentEmailRow {
+  id: string;
+  kind: string;
+  to_email: string;
+  subject: string;
+  status: 'scheduled' | 'sending' | 'sent' | 'failed' | 'skipped';
+  scheduled_at: string;
+  sent_at: string | null;
+  provider: string | null;
+  provider_message_id: string | null;
+  last_error: string | null;
+  attempts: number;
+  created_at: string;
+}
+
+export const fetchAppointmentEmails = (token: string, appointmentId: string) =>
+  call<{ emails: AppointmentEmailRow[] }>("email-status", { token, body: { appointmentId } });
+
+export interface EmailConfigStatus {
+  providerConfigured: boolean;
+  portalUrl: string | null;
+  fromEmail: string | null;
+  provider: string | null;
+}
+
+export const fetchEmailConfigStatus = (token: string) =>
+  call<EmailConfigStatus>("email-config", { token, body: {} });
+
+export interface AppointmentWhatsAppRow {
+  id: string;
+  kind: string;
+  to_phone: string;
+  status: 'scheduled' | 'sending' | 'sent' | 'delivered' | 'read' | 'failed' | 'skipped';
+  scheduled_at: string;
+  sent_at: string | null;
+  delivered_at: string | null;
+  read_at: string | null;
+  provider: string | null;
+  provider_message_id: string | null;
+  body_text: string;
+  last_error: string | null;
+  attempts: number;
+  created_at: string;
+}
+
+export const fetchAppointmentWhatsApp = (token: string, appointmentId: string) =>
+  call<{ messages: AppointmentWhatsAppRow[] }>("whatsapp-status", { token, body: { appointmentId } });
+
+export interface WhatsAppConfigStatus {
+  providerConfigured: boolean;
+  missing: string[];
+  provider: string | null;
+  templateName: string | null;
+  studioPhone: string | null;
+  portalUrl: string | null;
+}
+
+export const fetchWhatsAppConfigStatus = (token: string) =>
+  call<WhatsAppConfigStatus>("whatsapp-config", { token, body: {} });
+
+export const saveWhatsAppConsent = (token: string, consent: boolean) =>
+  call<{ ok: true; whatsappConsent: boolean }>("whatsapp-consent", { method: "PUT", token, body: { consent } });
+
+export const retryWhatsAppConfirmation = (token: string, appointmentId: string) =>
+  call<{ ok: true; retried: number }>("whatsapp-retry", { token, body: { appointmentId } });
+
+export interface PushStatusRow {
+  id: string;
+  kind: string;
+  status: 'accepted' | 'delivered' | 'failed' | 'expired' | 'sending';
+  provider: string | null;
+  provider_message_id: string | null;
+  delivered_at: string | null;
+  last_error: string | null;
+  attempts: number;
+  created_at: string;
+  subscription_id: string | null;
+  studio_push_subscriptions: { user_agent: string } | null;
+}
+
+export const fetchPushPublicKey = (token: string) =>
+  call<{ publicKey: string }>("push-public-key", { token, body: {} });
+
+export const subscribePush = (token: string, subscription: { endpoint: string; keys: { p256dh: string; auth: string }; userAgent: string }) =>
+  call<{ ok: true; id: string }>("push-subscribe", { method: "POST", token, body: subscription });
+
+export const unsubscribePush = (token: string, endpoint: string) =>
+  call<{ ok: true }>("push-unsubscribe", { method: "POST", token, body: { endpoint } });
+
+export const sendTestPush = (token: string) =>
+  call<{ ok: true; sent: number; errors: string[] }>("push-test", { method: "POST", token, body: {} });
+
+export const fetchAppointmentPushes = (token: string, appointmentId: string) =>
+  call<{ pushes: PushStatusRow[] }>("push-status", { method: "POST", token, body: { appointmentId } });
+
+export const setClientArchived = (token: string, clientId: string, archived: boolean) =>
+  call<{ ok: true; archivedAt: string | null }>("client-status", {
+    method: "PUT", token, body: { clientId, archived },
+  });
+
+export interface SavedFeedback { id: string; rating: number; comment: string | null; created_at: string; }
+export const submitFeedback = (token: string, feedback: { id: string; rating: number; comment: string }) =>
+  call<{ ok: true; feedback: SavedFeedback }>('feedback', { token, body: feedback });
+export const updateFeedbackStatus = (token: string, id: string, resolved: boolean) =>
+  call<{ ok: true; resolvedAt: string | null }>('feedback-status', { method: 'PUT', token, body: { id, resolved } });
+
+export const fetchPublicBranding = () => call<{ brandLogoUrl: string | null; headerLogoUrl: string | null }>('branding', { method: 'GET' });
+
+export const fetchOfficialHolidays = (token: string, year: number) => call<{days:any[];state:any}>('official-holidays',{token,body:{year}});
+export const refreshOfficialHolidays = (token: string, year: number) => call<any>('official-holidays-refresh',{token,body:{year}});
+export const setOfficialHolidayOpen = (token: string, day: string, open: boolean) => call<any>('official-holidays-open',{method:'PUT',token,body:{day,open}});
+
+export interface ClientDeleteInfo {photoCleanupPending?:boolean;deleted:boolean; appointments:number;visits:number;feedback:number;}
+export const inspectClientDelete=(token:string,id:string)=>call<ClientDeleteInfo>('client-delete',{token,body:{id,inspect:true}});
+export const deleteClientPermanently=(token:string,id:string)=>call<ClientDeleteInfo>('client-delete',{method:'DELETE',token,body:{id}});
+
+export const saveClientDetailsOnServer=(token:string,id:string,details:unknown)=>call<{ok:true}>('client-details',{method:'PUT',token,body:{id,details}});
+
+export const fetchAgendaLive=(token:string)=>call<{topic:string}>('agenda-live',{token});
+
+export interface PortalRegistration extends AuthResult {clientId:string;registrationId:string;createdAt:string;}
+export const registerPortalClient=async(details:Record<string,string>,requestId:string):Promise<PortalRegistration>=>{
+  const result=await call<PortalRegistration>('register',{body:{details,requestId}});
+  if(result.role!=='client'||!result.token||!result.clientId)throw new Error('El servidor no confirmó el registro. Reintenta sin cerrar el formulario.');
+  storeSession(result);
+  if(currentToken()!==result.token)throw new Error('La ficha se ha creado, pero no se pudo guardar la sesión. Permite el almacenamiento del navegador y reintenta.');
+  return result;
+};
+
+// Public recovery never sends a saved session or stores the recovery secret.
+export const requestPinReset = (email:string) => call<{ok:true;message:string}>('pin-reset-request',{body:{email}});
+export const completePinReset = async(token:string,pin:string):Promise<void> => {
+  const result=await call<{ok:true}>('pin-reset-complete',{body:{token,pin}});
+  if(result.ok!==true)throw new Error('El servidor no confirmó el cambio de PIN.');
+};
+
+// Explicit administrator-only download; never part of background synchronization.
+export const fetchStudioBackup = <T>(token:string,includePhotos=false) => call<T>('backup',{token,body:{includePhotos}});
+
+export interface ClientPhoto {id:string;client_id:string;object_path:string;taken_on:string;label:'antes'|'despues'|'seguimiento';note:string;mime:string;byte_size:number;created_at:string;url:string;expiresAt:string;}
+export interface ClientPhotoPage {photos:ClientPhoto[];total:number;page:number;pageSize:number;}
+export const fetchClientPhotos=(token:string,clientId?:string,page=0)=>call<ClientPhotoPage>('client-photos',{token,body:{clientId,page}});
+export const uploadClientPhoto=(token:string,details:{clientId:string;takenOn:string;label:string;note:string;dataUrl:string;requestId:string})=>call<{ok:true;id:string}>('client-photo',{token,body:details});
+export const deleteClientPhoto=(token:string,clientId:string,id:string)=>call<{ok:true;cleanupPending:boolean}>('client-photo',{method:'DELETE',token,body:{clientId,id}});
+
+// Studio news: only summaries in lists; full text is requested on opening.
+export interface StudioNews {
+  id:string;title:string;summary:string;body:string;category:'servicios'|'cuidados'|'studio'|'avisos';
+  image_url:string;status:'draft'|'published';start_date:string|null;end_date:string|null;
+  action:'none'|'service'|'booking';service_id:string|null;created_at:string;updated_at:string;
+}
+export type StudioNewsSummary=Omit<StudioNews,'body'>;
+export interface StudioNewsPage {items:StudioNewsSummary[];total:number;page:number;pageSize:number;}
+export const fetchNews=(token:string,page=0,latest=false)=>call<StudioNewsPage>('news-list',{token,body:{page,latest}});
+export const fetchNewsDetail=(token:string,id:string)=>call<{item:StudioNews}>('news-detail',{token,body:{id}});
+export const saveNews=(token:string,item:StudioNews)=>call<{ok:true;item:StudioNews}>('news-save',{token,body:{id:item.id,expectedUpdatedAt:item.updated_at||null,item}});
+export const deleteNews=(token:string,id:string,expectedUpdatedAt:string)=>call<{ok:true}>('news-delete',{token,body:{id,expectedUpdatedAt}});
+
+export interface VoucherProduct {id:string;title:string;kind:'gift'|'sessions';price_cents:number;unit_cents:number;sessions:number;valid_months:number;service_ids:string[];enabled:boolean;}
+export interface VoucherQuote {voucherId:string;title:string;kind:'gift'|'sessions';code:string;amountCents:number;sessions:number;totalCents:number|null;dueCents:number|null;coveredServiceId:string|null;coveredServiceName:string|null;expiresOn:string;state?:'held'|'consumed'|'released';}
+export interface VoucherUse {voucher_id:string;appointment_id:string|null;amount_cents:number;sessions:number;state:'held'|'consumed'|'released';booked_for:string;service_text:string;updated_at:string;}
+export interface StudioVoucher {id:string;product_id:string;client_id:string;buyer_id:string;title:string;kind:'gift'|'sessions';price_cents:number;unit_cents:number;sessions:number;valid_months:number;code:string;payment_reference:string;status:'pending'|'active'|'cancelled';payment_reported_at:string|null;activated_at:string|null;expires_on:string|null;dedication:string;created_at:string;used_cents:number;held_cents:number;used_sessions:number;held_sessions:number;history:VoucherUse[];}
+export interface VoucherPage {products:VoucherProduct[];vouchers:StudioVoucher[];total:number;page:number;bizumNumber:string;}
+export const fetchVouchers=(token:string,clientId?:string,page=0,usableOnly=false)=>call<VoucherPage>('voucher-list',{token,body:{clientId,page,usableOnly}});
+export interface VoucherCheckout {id:string;title:string;kind:'gift'|'sessions';priceCents:number;paymentReference:string;status:'pending'|'active'|'cancelled';bizumNumber:string;dedication:string;paymentReported:boolean;existingRequest:boolean;}
+export const orderVoucher=(token:string,body:{id:string;productId:string;clientId?:string;dedication:string})=>call<{ok:true;id:string;checkout:VoucherCheckout}>('voucher-order',{token,body});
+export const activateVoucher=(token:string,id:string,amountCents:number)=>call<{ok:true}>('voucher-activate',{token,body:{id,amountCents}});
+export const reportVoucherPayment=(token:string,id:string)=>call<{ok:true}>('voucher-report',{token,body:{id}});
+export const cancelVoucherOrder=(token:string,id:string)=>call<{ok:true}>('voucher-cancel',{token,body:{id}});
+export const claimGiftVoucher=(token:string,code:string,clientId?:string)=>call<{ok:true}>('voucher-claim',{token,body:{code,clientId}});
+export const configureVoucher=(token:string,productId:string,serviceIds:string[],enabled=true)=>call<{ok:true}>('voucher-config',{token,body:{productId,serviceIds,enabled}});
+export const quoteVoucher=(token:string,body:{voucherId:string;services:unknown;dateKey:string;clientId?:string;promotionId?:string|null})=>call<{quote:VoucherQuote}>('voucher-quote',{token,body});
+export const attachAppointmentVoucher=(token:string,appointmentId:string,voucherId:string|null)=>call<{ok:true}>('voucher-attach',{token,body:{appointmentId,voucherId}});
+
+export const deleteCancelledVoucher=(token:string,id:string)=>call<{ok:true;deleted:boolean}>('voucher-delete',{token,body:{id}});
+
+// lst-weekly-hours-installed-v1

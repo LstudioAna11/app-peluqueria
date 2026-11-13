@@ -83,7 +83,7 @@ const rawCall = async <T = Record<string, unknown>>(
 // Share only identical requests that are currently in flight; never cache appointment results.
 const pendingReads = new Map<string, Promise<unknown>>();
 let readGeneration = 0;
-const readActions = new Set(['voucher-list','voucher-quote','news-list','news-detail','client-photos', 'sync', 'public-catalog', 'public-professionals', 'branding', 'official-holidays', 'email-status', 'email-config', 'whatsapp-status', 'whatsapp-config', 'push-status', 'push-public-key']);
+const readActions = new Set(['voucher-purchases','voucher-list','voucher-quote','news-list','news-detail','client-photos', 'sync', 'public-catalog', 'public-professionals', 'branding', 'official-holidays', 'email-status', 'email-config', 'whatsapp-status', 'whatsapp-config', 'push-status', 'push-public-key']);
 const call = async <T = Record<string, unknown>>(
   action: string,
   opts: {method?: string; token?: string; body?: unknown} = {},
@@ -382,3 +382,9 @@ export const attachAppointmentVoucher=(token:string,appointmentId:string,voucher
 export const deleteCancelledVoucher=(token:string,id:string)=>call<{ok:true;deleted:boolean}>('voucher-delete',{token,body:{id}});
 
 // lst-weekly-hours-installed-v1
+
+// lst-gift-recipient-v1
+export type GiftAssignment={requestId:string;voucherId:string;expectedOwner:string;recipientId:string;reason:string};
+export type GiftPurchaseReceipt={id:string;title:string;price_cents:number;payment_reference:string;activated_at:string;created_at:string;expires_on:string|null};
+export const assignGiftRecipient=(token:string,body:GiftAssignment)=>call<{ok:true;replayed?:boolean;codeRenewed?:boolean}>('voucher-assign-recipient',{token,body});
+export const fetchGiftPurchases=(token:string,page=0)=>call<{purchases:GiftPurchaseReceipt[];total:number;page:number}>('voucher-purchases',{token,body:{page}});
