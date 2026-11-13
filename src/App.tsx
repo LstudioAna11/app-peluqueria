@@ -2741,6 +2741,8 @@ function StudioApp() {
         setPushStatus('unsupported'); setPushError('Este navegador no admite notificaciones push. Prueba en Chrome, Edge o Safari actualizado.'); return;
       }
       if (!studioApi.currentToken()) { setPushNeedsLogin(true); throw new Error('Inicia sesión en el portal para activar las notificaciones.'); }
+      // lst-push-compact-v2
+      if(Notification.permission==='denied'){setPushStatus('denied');setPushError('El permiso sigue bloqueado. Abre la ayuda y sigue los pasos de tu dispositivo.');return;}
       const permission = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
       if (permission !== 'granted') { setPushStatus(permission === 'denied' ? 'denied' : 'default'); setPushError('Para recibir avisos debes conceder permiso en tu dispositivo.'); return; }
       const registration = await navigator.serviceWorker.register('/sw.js');
@@ -2801,7 +2803,7 @@ function StudioApp() {
   const pushStatusLabel = () => ({
     unsupported: 'No disponibles en este navegador',
     'config-pending': 'Pendiente de configuración del Studio',
-    denied: 'Permiso bloqueado · Actívalas en los ajustes del navegador',
+    denied: 'Permiso bloqueado en este dispositivo',
     subscribed: 'Activadas en este dispositivo',
     default: 'Desactivadas en este dispositivo',
   } as Record<string, string>)[pushStatus];
@@ -4575,9 +4577,9 @@ function StudioApp() {
                 <input id="push-login-pin" type="password" inputMode="numeric" maxLength={4} autoComplete="off" value={pushLoginPin} onChange={event => setPushLoginPin(event.target.value.replace(/[^0-9]/g, '').slice(0, 4))} style={{ display: 'block', margin: '8px 0', padding: '10px', color: '#2C2521', background: '#EADCC7' }} />
                 <button type="button" onClick={handlePushLogin} disabled={pushBusy || pushLoginPin.length !== 4}>Recuperar sesión sin perder mi reserva</button>
               </div>}
-              {(pushStatus === 'default' || pushStatus === 'subscribed') && !pushNeedsLogin && <button type="button" onClick={handleEnablePush} disabled={pushBusy} style={{ width: '100%', minHeight: '46px', padding: '12px', background: 'transparent', color: '#E4C687', border: '1px solid #C49A58', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: pushBusy ? 'wait' : 'pointer' }}>{pushBusy ? 'Comprobando…' : pushStatus === 'subscribed' ? 'Enviar notificación de prueba' : 'Activar notificaciones'}</button>}
+              {(pushStatus === 'default' || pushStatus === 'subscribed' || pushStatus === 'denied') && !pushNeedsLogin && <button type="button" onClick={handleEnablePush} disabled={pushBusy} style={{ width: '100%', minHeight: '46px', padding: '12px', background: 'transparent', color: '#E4C687', border: '1px solid #C49A58', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: pushBusy ? 'wait' : 'pointer' }}>{pushBusy ? 'Comprobando…' : pushStatus === 'subscribed' ? 'Enviar notificación de prueba' : pushStatus === 'denied' ? 'Comprobar permisos' : 'Activar notificaciones'}</button>}
               {pushStatus === 'config-pending' && <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>El Studio todavía no tiene activas las notificaciones. Prueba de nuevo más tarde.</p>}
-              {pushStatus === 'denied' && <p style={{ color: '#F2B8AC', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>Tienes las notificaciones bloqueadas para este sitio. Para recibirlas, toca el icono de información junto a la dirección en tu navegador y permite las notificaciones{showInstallBanner ? ', o instala primero la app del Studio desde el aviso de instalación' : ''}.</p>}
+              {pushStatus === 'denied' && <p style={{color:'#F2B8AC',fontSize:12,lineHeight:1.6,margin:'10px 0 0'}}>Permite los avisos en los ajustes de tu móvil o navegador. Después pulsa «Comprobar permisos».</p>}
               <PushSetupHelp/>
               {pushTestResult && <p role="status" style={{ color: '#8FC98F', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>{pushTestResult}</p>}
               {pushError && <p role="alert" style={{ color: '#F2B8AC', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>{pushError}</p>}
