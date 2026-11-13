@@ -1,3 +1,4 @@
+import PushSetupHelp from './PushSetupHelp'; // lst-push-help-all-v1
 import './detalle-cita-ordenado.css';
 import ParkingPanel from './ParkingPanel'; // lst-parking-admin-v1
 import {useClientAppointmentRefresh} from './useClientAppointmentRefresh';
@@ -4577,43 +4578,7 @@ function StudioApp() {
               {(pushStatus === 'default' || pushStatus === 'subscribed') && !pushNeedsLogin && <button type="button" onClick={handleEnablePush} disabled={pushBusy} style={{ width: '100%', minHeight: '46px', padding: '12px', background: 'transparent', color: '#E4C687', border: '1px solid #C49A58', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: pushBusy ? 'wait' : 'pointer' }}>{pushBusy ? 'Comprobando…' : pushStatus === 'subscribed' ? 'Enviar notificación de prueba' : 'Activar notificaciones'}</button>}
               {pushStatus === 'config-pending' && <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>El Studio todavía no tiene activas las notificaciones. Prueba de nuevo más tarde.</p>}
               {pushStatus === 'denied' && <p style={{ color: '#F2B8AC', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>Tienes las notificaciones bloqueadas para este sitio. Para recibirlas, toca el icono de información junto a la dirección en tu navegador y permite las notificaciones{showInstallBanner ? ', o instala primero la app del Studio desde el aviso de instalación' : ''}.</p>}
-              {(() => {
-                const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-                const isAndroid = /Android/.test(navigator.userAgent);
-                if (isIos) return (
-                  <details style={{ marginTop: '10px' }}>
-                    <summary style={{ color: '#D8C29A', fontSize: '12px', cursor: 'pointer' }}>Instrucciones para iPhone o iPad</summary>
-                    <ol style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0', paddingLeft: '18px' }}>
-                      <li>Abre esta página con Safari.</li>
-                      <li>Toca el botón Compartir (el cuadrado con una flecha hacia arriba).</li>
-                      <li>Elige «Añadir a pantalla de inicio» y confirma con «Añadir».</li>
-                      <li>Abre la app del Studio desde el icono nuevo de tu pantalla de inicio.</li>
-                      <li>Inicia sesión con tu PIN y vuelve a pulsar «Activar notificaciones».</li>
-                    </ol>
-                  </details>
-                );
-                if (isAndroid) return (
-                  <details style={{ marginTop: '10px' }}>
-                    <summary style={{ color: '#D8C29A', fontSize: '12px', cursor: 'pointer' }}>Instrucciones para Android</summary>
-                    <ol style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0', paddingLeft: '18px' }}>
-                      <li>Abre esta página con Chrome.</li>
-                      <li>Toca el aviso de instalación que aparece abajo, o el menú ⋮ y luego «Añadir a pantalla de inicio».</li>
-                      <li>Abre la app del Studio desde el icono nuevo de tu pantalla de inicio.</li>
-                      <li>Inicia sesión con tu PIN y vuelve a pulsar «Activar notificaciones».</li>
-                    </ol>
-                  </details>
-                );
-                return (
-                  <details style={{ marginTop: '10px' }}>
-                    <summary style={{ color: '#D8C29A', fontSize: '12px', cursor: 'pointer' }}>Instrucciones para ordenador</summary>
-                    <ol style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.7, margin: '8px 0 0', paddingLeft: '18px' }}>
-                      <li>Haz clic en el icono de la candado o de información junto a la dirección.</li>
-                      <li>Permite las notificaciones para este sitio.</li>
-                      <li>Vuelve a pulsar «Activar notificaciones».</li>
-                    </ol>
-                  </details>
-                );
-              })()}
+              <PushSetupHelp/>
               {pushTestResult && <p role="status" style={{ color: '#8FC98F', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>{pushTestResult}</p>}
               {pushError && <p role="alert" style={{ color: '#F2B8AC', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>{pushError}</p>}
             </section>);
