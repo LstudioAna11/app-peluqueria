@@ -39,7 +39,7 @@ export function AppointmentCountdown({visits,onView,serviceName}:{visits:Visit[]
    </div>
    {!arrived&&<button type="button" onClick={onView} style={{flexShrink:0,minHeight:44,padding:'7px 10px',borderRadius:7,border:'1px solid #806340',background:'transparent',color:'#E4C687',fontSize:12,cursor:'pointer'}}>Ver mi cita</button>}
   </div>
-  <p style={{margin:0,fontSize:12,lineHeight:1.4,color:'#D6CBB8'}}>{new Intl.DateTimeFormat('es-ES',{timeZone:'Europe/Madrid',day:'numeric',month:'short'}).format(new Date(start))} · {visit.time} <span style={{fontSize:11}}>(Madrid)</span></p>
+  <p style={{margin:0,fontSize:12,lineHeight:1.4,color:'#D6CBB8'}}>{new Intl.DateTimeFormat('es-ES',{timeZone:'Europe/Madrid',day:'numeric',month:'short'}).format(new Date(start))} · {visit.time} <span style={{fontSize:11}}>(Elche)</span></p>
   {services&&<p title={services} style={{margin:0,fontSize:12,lineHeight:1.4,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{services}</p>}
   {pending&&<span style={{fontSize:11,color:'#E4C687'}}>{pending}</span>}
  </section>;
