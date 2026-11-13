@@ -5462,7 +5462,7 @@ function StudioApp() {
       {registeredAppointment && <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'grid', placeItems: 'center', padding: '16px', zIndex: 3000 }}>
         <div role="dialog" aria-modal="true" aria-labelledby="appointment-registered-title" style={{ width: '100%', maxWidth: '440px', boxSizing: 'border-box',
           background: '#322A25', border: '1px solid rgba(228, 198, 135, 0.45)', borderRadius: '14px', padding: '26px', color: '#FFF8EE' }}>
-          <h3 id="appointment-registered-title" style={{ margin: '0 0 14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '26px', fontWeight: 'normal', color: '#E4C687' }}>Cita registrada</h3>
+          {/* lst-booking-confirmation-clear-v1 */}<h3 id="appointment-registered-title" style={{ margin: '0 0 14px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '26px', fontWeight: 'normal', color: '#E4C687' }}>{registeredAppointment.saturdayApproval?.status==='pending'?'Solicitud recibida':registeredAppointment.advancePayment?.status==='pending'?'Reserva pendiente de pago':'Cita confirmada'}</h3>
           <p style={{ lineHeight: 1.7 }}>{registeredAppointment.clientName}<br />
             {registeredAppointment.dateKey.split('-').reverse().join('/')} · {registeredAppointment.time}</p>
           <p style={{ color: '#D6CBB8', lineHeight: 1.6, fontSize: '13px' }}>{appointmentServiceNames(registeredAppointment)}</p>
@@ -5470,10 +5470,10 @@ function StudioApp() {
             ? 'Tu solicitud está registrada. La cita queda pendiente de la confirmación de Ana.'
             : registeredAppointment.advancePayment?.status === 'pending'
             ? 'Tu solicitud está registrada. La cita queda pendiente de comprobar la reserva anticipada por Bizum.'
-            : 'La cita ha quedado guardada en la agenda.'}</p>
-          <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6 }}>WhatsApp no se envía automáticamente. El botón abre un mensaje preparado; debes pulsar «Enviar» en WhatsApp.</p>
+            : 'Tu cita ya está en la agenda. Puedes consultarla en Mis citas.'}</p>
+          {currentScreen==='adminPanel'&&(<p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6 }}>WhatsApp no se envía automáticamente. El botón abre un mensaje preparado; debes pulsar «Enviar» en WhatsApp.</p>) }
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '18px' }}>
-            <button type="button" onClick={() => {
+            {currentScreen!=='adminPanel'&&<button type="button" onClick={()=>{setViewApptModal(registeredAppointment);setRegisteredAppointment(null);setCurrentScreen('myAppointmentsPage');}} style={{minHeight:44,padding:'12px 16px',background:'#C49A58',color:'#29231F',border:'1px solid #C49A58',borderRadius:7,fontWeight:600,cursor:'pointer'}}>Ver mi cita</button>}{currentScreen==='adminPanel'&&(<button type="button" onClick={() => {
               const admin = currentScreen === 'adminPanel';
               const rawPhone = admin ? registeredAppointment.phone : (bizConfig.studioWhatsapp || bizConfig.phone);
               let phone = rawPhone.replace(/[^0-9]/g, '');
@@ -5493,9 +5493,8 @@ function StudioApp() {
               window.open('https://wa.me/' + phone + '?text=' + encodeURIComponent(text), '_blank', 'noopener,noreferrer');
             }} style={{ padding: '12px', background: '#8FC98F', color: '#2C5538', border: '1px solid #3E6B47', borderRadius: '7px', cursor: 'pointer' }}>
               {currentScreen === 'adminPanel' ? 'Abrir WhatsApp de la clienta' : 'Enviar solicitud a Ana por WhatsApp'}
-            </button>
-            <button autoFocus type="button" onClick={() => setRegisteredAppointment(null)} style={{ padding: '12px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F',
-              border: 0, borderRadius: '7px', cursor: 'pointer' }}>Entendido</button>
+            </button>)}
+            <button autoFocus type="button" onClick={() => setRegisteredAppointment(null)} style={{minHeight:44,padding:'12px 16px',background:'transparent',color:'#E4C687',border:'1px solid #947749',borderRadius:7,cursor:'pointer'}}>Entendido</button>
           </div>
         </div>
       </div>}
