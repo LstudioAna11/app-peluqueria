@@ -1,3 +1,4 @@
+import './detalle-cita-ordenado.css';
 import ParkingPanel from './ParkingPanel'; // lst-parking-admin-v1
 import {useClientAppointmentRefresh} from './useClientAppointmentRefresh';
 import AgendaStateLegend from './AgendaStateLegend';
@@ -5910,34 +5911,19 @@ function StudioApp() {
 .lst-appt-more>summary {cursor:pointer;color:#D6CBB8;font-size:12px;min-height:44px;display:flex;align-items:center;padding:0 8px;}
 .lst-appt-more>div {position:absolute;bottom:100%;right:0;background:#221D19;border:1px solid #67543C;border-radius:9px;padding:8px;display:flex;flex-direction:column;gap:8px;width:190px;box-shadow:0 8px 24px #0008;z-index:5;}
 @media(max-width:620px){.lst-appt-dialog{max-height:calc(100dvh - 24px)}.lst-appt-body{grid-template-columns:1fr;padding:12px;gap:12px}.lst-appt-head{padding:12px}.lst-appt-head h3{font-size:20px!important}.lst-appt-footer{padding:8px 10px;max-height:28dvh;overflow-y:auto}.lst-appt-more>div{position:static;width:auto}}
-`}</style><div className="lst-appt-dialog" role="dialog" aria-modal="true" aria-label="Detalle de la cita"><header className="lst-appt-head"><div><p style={{ color: '#E4C687', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
+`}</style><div className="lst-appt-dialog lst-appt-organized-v1" role="dialog" aria-modal="true" aria-label="Detalle de la cita"><header className="lst-appt-head"><div><p style={{ color: '#E4C687', fontSize: '13px', letterSpacing: '2px', margin: 0 }}>360studio · DETALLE DE LA CITA</p>
 <h3 style={{ color: '#FFF8EE', fontSize: '26px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{viewApptModal.clientName}</h3>
-            {renderCourtesyAction(viewApptModal)}
-
-
 <p style={{ color: '#E4C687', fontSize: 14, margin: '7px 0 0' }}>{viewApptModal.dateKey.split('-').reverse().join('/')} · {viewApptModal.time} · {viewApptModal.durationMinutes || 45} min</p>
 <span style={{ display: 'inline-block', fontSize: 11, color: '#E4C687', marginTop: 7 }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada' : viewApptModal.completedAt ? 'Finalizada' : viewApptModal.saturdayApproval?.status === 'rejected' ? 'Solicitud rechazada' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Anticipo pendiente' : 'Confirmada'}</span>
-{renderPromotionBadge(viewApptModal)}
-<div className="lst-appt-quick"><div>            {currentScreen==='adminPanel'&&<AppointmentVoucherTools key={viewApptModal.serverId||viewApptModal.id} appointment={viewApptModal} onSaved={async()=>{
-              await syncFromServer();
-              const result=await studioApi.syncAll<{appointments?:Record<string,any>[]}>(voucherToken(),['appointments']);
-              const row=result.appointments?.find(item=>item.id===viewApptModal.serverId);
-              if(row)setViewApptModal(mapServerAppointment(row));
-            }}/>}</div>{currentScreen === 'adminPanel' && <AppointmentArrivalTools key={(viewApptModal.serverId||viewApptModal.id)+':'+viewApptModal.lifecycleStatus+':'+String(viewApptModal.completedAt||'')} id={viewApptModal.serverId||viewApptModal.id} onCancel={()=>changeAppointmentStatus(viewApptModal,'cancelled')} />}</div>
-{currentScreen==='adminPanel'&&<ParkingPanel key={'parking-'+(viewApptModal.serverId||viewApptModal.id)} reference={viewApptModal.serverId||viewApptModal.id} duration={viewApptModal.durationMinutes||0}/>}
-</div><button type="button" autoFocus onClick={() => setViewApptModal(null)} aria-label="Cerrar detalle de la cita" style={{background:'transparent',border:'1px solid #655039',borderRadius:8,color:'#FFF8EE',minWidth:40,minHeight:40,cursor:'pointer'}}>✕</button></header><div className="lst-appt-body"><div className="lst-appt-column">
-
-
-
-<section>
+{viewApptModal.professionalName && <span className="lst-appt-professional" style={{display:'block'}}>Profesional: {viewApptModal.professionalName}</span>}</div><button type="button" autoFocus onClick={() => setViewApptModal(null)} aria-label="Cerrar detalle de la cita" style={{background:'transparent',border:'1px solid #655039',borderRadius:8,color:'#FFF8EE',minWidth:40,minHeight:40,cursor:'pointer'}}>✕</button></header><div className="lst-appt-body"><div className="lst-appt-column"><section>
               <h4 style={{ color: '#E4C687', fontSize: '14px', margin: '0 0 12px' }}>Servicios reservados</h4>
               {viewApptModal.services?.length ? viewApptModal.services.map((item, index) => <div key={index} style={{ backgroundColor: '#322A25', padding: '14px', border: '1px solid #3A312A', borderRadius: '8px', marginBottom: '8px', fontSize: '14px', lineHeight: 1.6, color: '#FFF8EE' }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}><strong>{bookingName(item.sub)}</strong>{viewApptModal.promotion?.serviceId === item.sub.id && renderPromotionBadge(viewApptModal)}</div>{item.variant && <span style={{ display: 'block', color: '#D6CBB8' }}>{item.variant.name}</span>}{renderBookedServicePrice(viewApptModal, item)}</div>) : <p style={{ color: '#E4C687', fontSize: '14px', lineHeight: 1.6, overflowWrap: 'anywhere' }}>{appointmentServiceNames(viewApptModal)}</p>}
             </section>
-<div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', color: '#D6CBB8', fontSize: '13px', overflowWrap: 'anywhere' }}>
+<section className="lst-appt-contact"><h4 className="lst-appt-section-title">Contacto</h4><div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', color: '#D6CBB8', fontSize: '13px', overflowWrap: 'anywhere' }}>
               <a href={`tel:${viewApptModal.phone}`} style={{ color: '#E4C687', padding: '8px 0' }}>{viewApptModal.phone}</a>
               {validRecipientPhone(viewApptModal.phone) && <a href={'https://wa.me/' + (viewApptModal.phone.replace(/[^0-9]/g, '').length === 9 ? '34' : '') + viewApptModal.phone.replace(/[^0-9]/g, '')} target="_blank" rel="noopener noreferrer" style={{ color: '#E4C687', padding: '8px 0' }}>Abrir WhatsApp</a>}
               <span style={{ padding: '8px 0' }}>{viewApptModal.email}</span>
-            </div>
+            </div></section>
 {viewApptModal.clientNote&&<section aria-label="Nota de la clienta" style={{padding:12,border:'1px solid #B9955F',borderRadius:8,background:'#322A25',color:'#FFF8EE'}}><strong style={{color:'#E4C687',fontSize:13}}>Nota de la clienta</strong><p style={{margin:'8px 0 0',whiteSpace:'pre-wrap',overflowWrap:'anywhere',fontSize:14,lineHeight:1.6}}>{viewApptModal.clientNote}</p></section>}
 <details className="lst-appt-notices"><summary>Notas internas{viewApptModal.internalNotes ? ' · Con notas' : ''}</summary><section style={{ padding: '14px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px' }}>
               <label htmlFor="appointment-internal-notes" style={{ color: '#E4C687', fontSize: '13px' }}>Notas internas · Solo 360studio</label>
@@ -5948,15 +5934,7 @@ function StudioApp() {
               <button type="button" disabled={notesSaving} onClick={saveAppointmentNotes} style={{ padding: '10px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 0, borderRadius: '6px', cursor: 'pointer' }}>{notesSaving ? 'Guardando…' : 'Guardar notas'}</button>
               {notesFeedback && <p role="status" style={{ color: '#E4C687', fontSize: 12, lineHeight: 1.5 }}>{notesFeedback}</p>}
             </section></details>
-{!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && (() => {
-  const url = delayWhatsAppUrl(viewApptModal.phone);
-  return <details className="lst-appt-notices"><summary>Avisar de un retraso de la clienta</summary><section style={{ padding: '8px 0', background: '#29231F' }}>
-    <p style={{ margin: '0 0 8px', color: '#E4C687', fontSize: '13px', fontWeight: 600 }}>¿La clienta lleva 10 minutos de retraso?</p>
-    {url ? <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 14px', minHeight: '44px', boxSizing: 'border-box', background: '#8FC98F', color: '#193923', borderRadius: '8px', fontWeight: 600, fontSize: '13px', textDecoration: 'none' }}><MessageCircle size={17} />WhatsApp · Clienta con retraso</a> : <p style={{ color: '#E4C687', fontSize: '12px', margin: 0 }}>Añade un teléfono válido a la cita para preparar el aviso.</p>}
-    <p style={{ margin: '8px 0 0', color: '#D6CBB8', fontSize: '12px' }}>Envía este aviso solo si han pasado 10 minutos y la clienta no ha llegado. Revísalo y pulsa Enviar en WhatsApp.</p>
-  </section></details>;
-})()}
-<details className="lst-appt-notices lst-appt-manage"><summary>Gestionar cita · Ficha, repetir y editar</summary><div>{currentScreen === 'adminPanel' && <button type="button" onClick={() => {
+<details className="lst-appt-notices lst-appt-manage"><summary>Ficha, repetir o editar servicios</summary><div>{currentScreen === 'adminPanel' && <button type="button" onClick={() => {
               const email = normalizeEmail(viewApptModal.email);
               const matches = email ? listaClientes.filter(client => normalizeEmail(client.email) === email) : [];
               if (matches.length !== 1) {
@@ -6000,13 +5978,23 @@ function StudioApp() {
               setModalCatIndex(0); setModalSubIndex(0); setModalSelectedVariant(catalog[0]?.subservices[0]?.variants?.[0] || null);
               setViewApptModal(null); setIsModalOpen(true);
             }} style={{ background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059',
-              borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>Editar servicios y duración</button>}</div></details></div><aside className="lst-appt-column"><div style={{ backgroundColor: adminAppointmentColor(viewApptModal).background, border: `1px solid ${adminAppointmentColor(viewApptModal).border}`, borderRadius: '10px', padding: '18px', color: adminAppointmentText(viewApptModal) }}>
-              <strong style={{ fontSize: '14px', color: adminAppointmentText(viewApptModal) }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cancelada · Hueco liberado' : viewApptModal.lifecycleStatus === 'no_show' ? 'No presentada · Registro conservado' : viewApptModal.completedAt ? 'Realizada · Registrada en el pasaporte' : viewApptModal.saturdayApproval?.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.advancePayment?.status === 'pending' ? 'Pendiente de Bizum' : 'Cita confirmada'}</strong>
-              <p style={{ color: adminAppointmentText(viewApptModal), fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '21px', margin: '12px 0 8px' }}>{new Date(`${viewApptModal.dateKey}T12:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {viewApptModal.time}</p>
-              {viewApptModal.depositWaived&&<p style={{fontSize:12,color:adminAppointmentText(viewApptModal)}}>Anticipo exento por administración{!viewApptModal.completedAt&&' · Importe del servicio pendiente de cobro en el salón.'}</p>}
-              <span style={{ color: adminAppointmentText(viewApptModal), fontSize: '13px' }}>Duración total: {viewApptModal.durationMinutes || 45} min</span>
-              {viewApptModal.professionalName && <span style={{ color: adminAppointmentText(viewApptModal), fontSize: '13px', display: 'block', marginTop: '4px' }}>Profesional: {viewApptModal.professionalName}</span>}
-            </div>
+              borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>Editar servicios y duración</button>}</div></details></div><aside className="lst-appt-column"><section className="lst-appt-reception"><h4 className="lst-appt-section-title">Recepción</h4>{currentScreen === 'adminPanel' && <AppointmentArrivalTools key={(viewApptModal.serverId||viewApptModal.id)+':'+viewApptModal.lifecycleStatus+':'+String(viewApptModal.completedAt||'')} id={viewApptModal.serverId||viewApptModal.id} onCancel={()=>changeAppointmentStatus(viewApptModal,'cancelled')} />}
+{!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && (() => {
+  const url = delayWhatsAppUrl(viewApptModal.phone);
+  return <details className="lst-appt-notices"><summary>Avisar de un retraso de la clienta</summary><section style={{ padding: '8px 0', background: '#29231F' }}>
+    <p style={{ margin: '0 0 8px', color: '#E4C687', fontSize: '13px', fontWeight: 600 }}>¿La clienta lleva 10 minutos de retraso?</p>
+    {url ? <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '10px 14px', minHeight: '44px', boxSizing: 'border-box', background: '#8FC98F', color: '#193923', borderRadius: '8px', fontWeight: 600, fontSize: '13px', textDecoration: 'none' }}><MessageCircle size={17} />WhatsApp · Clienta con retraso</a> : <p style={{ color: '#E4C687', fontSize: '12px', margin: 0 }}>Añade un teléfono válido a la cita para preparar el aviso.</p>}
+    <p style={{ margin: '8px 0 0', color: '#D6CBB8', fontSize: '12px' }}>Envía este aviso solo si han pasado 10 minutos y la clienta no ha llegado. Revísalo y pulsa Enviar en WhatsApp.</p>
+  </section></details>;
+})()}
+{renderCourtesyAction(viewApptModal)}</section><section className="lst-appt-benefits"><h4 className="lst-appt-section-title">Bonos y ventajas</h4><div>            {currentScreen==='adminPanel'&&<AppointmentVoucherTools key={viewApptModal.serverId||viewApptModal.id} appointment={viewApptModal} onSaved={async()=>{
+              await syncFromServer();
+              const result=await studioApi.syncAll<{appointments?:Record<string,any>[]}>(voucherToken(),['appointments']);
+              const row=result.appointments?.find(item=>item.id===viewApptModal.serverId);
+              if(row)setViewApptModal(mapServerAppointment(row));
+            }}/>}</div>
+{currentScreen==='adminPanel'&&<ParkingPanel key={'parking-'+(viewApptModal.serverId||viewApptModal.id)} reference={viewApptModal.serverId||viewApptModal.id} duration={viewApptModal.durationMinutes||0}/>}</section>
+{viewApptModal.depositWaived&&<p style={{fontSize:12,color:adminAppointmentText(viewApptModal)}}>Anticipo exento por administración{!viewApptModal.completedAt&&' · Importe del servicio pendiente de cobro en el salón.'}</p>}
 {viewApptModal.saturdayApproval && ['pending', 'accepted', 'rejected'].includes(String(viewApptModal.saturdayApproval.status)) && isActiveAppointment(viewApptModal) && (
               <div style={{ border: '1px solid #C5A059', padding: '12px', borderRadius: '8px', color: '#FFF8EE' }}>
                 <strong>{approvalTitle(viewApptModal.saturdayApproval.reason)}: {viewApptModal.saturdayApproval.status === 'pending' ? 'Pendiente de aprobación' : viewApptModal.saturdayApproval.status === 'accepted' ? 'Aceptado por Ana' : 'Rechazado'}</strong>
@@ -6044,7 +6032,8 @@ function StudioApp() {
                 )}
               </div>
             )}
-{!isActiveAppointment(viewApptModal) && <p style={{ color: '#D6CBB8', fontSize: '12px' }}>El registro se conserva en «Citas del día» y en el buscador. No ocupa un hueco ni se añade como visita realizada al pasaporte.</p>}<details className="lst-appt-notices"><summary>Notificaciones · Email, WhatsApp y push</summary>
+{!isActiveAppointment(viewApptModal) && <p style={{ color: '#D6CBB8', fontSize: '12px' }}>El registro se conserva en «Citas del día» y en el buscador. No ocupa un hueco ni se añade como visita realizada al pasaporte.</p>}
+<details className="lst-appt-notices"><summary>Notificaciones · Email, WhatsApp y push</summary>
 {!viewApptModal.completedAt && currentScreen === 'adminPanel' && (
               <section style={{ padding: '14px', background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
@@ -6138,16 +6127,11 @@ function StudioApp() {
                 </button>
               </div>
             </div></details></aside></div><footer className="lst-appt-footer">{viewApptModal.completedAt ? <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6 }}>Servicio finalizado. Puedes gestionar el historial desde Clientes → Editar pasaporte e historial.</p> : <button type="button" disabled={completingAppointmentId!==null} onClick={() => markAppointmentCompleted(viewApptModal)} style={{ backgroundColor: '#8FC98F', border: '1px solid #3E6B47', color: '#2C5538', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>{completingAppointmentId?'Guardando visita…':'Finalizar servicio'}</button>}
-<button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(viewApptModal); setNewRescheduleDate(viewApptModal.dateKey); setNewRescheduleTime(viewApptModal.time); setViewApptModal(null); }} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Cambiar cita</button>
-{!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+<button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(viewApptModal); setNewRescheduleDate(viewApptModal.dateKey); setNewRescheduleTime(viewApptModal.time); setViewApptModal(null); }} style={{ backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', padding: '12px 16px', borderRadius: '8px', cursor: 'pointer', minHeight: '44px', fontSize: '14px' }}>Cambiar cita</button><details className="lst-appt-more"><summary>Más acciones</summary><div>{!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
               <button type="button" disabled={adminStatusBusy||viewApptModal.lifecycleStatus==='cancelled'} onClick={() => changeAppointmentStatus(viewApptModal, 'cancelled')} style={{ padding: '10px', border: '1px solid #3A312A', color: '#C0392B', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>{viewApptModal.lifecycleStatus === 'cancelled' ? 'Cita cancelada' : 'Cancelar cita'}</button>
 
-            </div>}
-<div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', justifyContent: 'space-between', marginTop: '10px' }}>
-
-              <details className="lst-appt-more"><summary>Más acciones</summary><div>{!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && (<button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'no_show')} style={{ padding: '10px', border: '1px solid #C5A059', color: '#D6CBB8', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>No presentada</button>)}<button disabled={deletingAppointmentId !== null} onClick={(e) => void handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#F2DCD8', border: '1px solid #C0392B', color: '#8A2F23', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>{deletingAppointmentId === viewApptModal.id ? 'Eliminando…' : 'Eliminar cita'}</button></div></details>
-              <button onClick={() => setViewApptModal(null)} style={{ background: '#322A25', border: '1px solid #3A312A', color: '#FFF8EE', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer' }}>Cerrar</button>
-            </div></footer></div></>) : (<ClientAppointmentDetail
+            </div>}{!viewApptModal.completedAt && isActiveAppointment(viewApptModal) && (<button type="button" onClick={() => changeAppointmentStatus(viewApptModal, 'no_show')} style={{ padding: '10px', border: '1px solid #C5A059', color: '#D6CBB8', background: '#322A25', borderRadius: '6px', cursor: 'pointer' }}>No presentada</button>)}
+<button disabled={deletingAppointmentId !== null} onClick={(e) => void handleDeleteAppointment(viewApptModal.id, e)} style={{ backgroundColor: '#F2DCD8', border: '1px solid #C0392B', color: '#8A2F23', padding: '8px 12px', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', fontWeight: 'bold' }}>{deletingAppointmentId === viewApptModal.id ? 'Eliminando…' : 'Eliminar cita'}</button></div></details></footer></div></>) : (<ClientAppointmentDetail
             title="Mi cita"
             date={viewApptModal.dateKey.split('-').reverse().join('/')}
             time={viewApptModal.time}

@@ -1,0 +1,39 @@
+/* lst-appt-organized-v1: estilos solo del detalle de cita de intranet */
+.lst-appt-dialog.lst-appt-organized-v1 {width:min(860px,100%);background:#342D27;}
+.lst-appt-organized-v1 .lst-appt-head {padding:14px 18px;background:#302821;}
+.lst-appt-organized-v1 .lst-appt-head h3 {font-size:22px!important;}
+.lst-appt-organized-v1 .lst-appt-professional {font-size:12px;color:#D6CBB8;margin:7px 0 0;border:0;padding:0;}
+.lst-appt-organized-v1 .lst-appt-body {grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:start;padding:14px 18px;gap:16px;}
+.lst-appt-organized-v1 .lst-appt-column {gap:12px;}
+.lst-appt-organized-v1 .lst-appt-section-title {color:#E4C687;font-size:13px;margin:0 0 9px!important;font-weight:600;}
+.lst-appt-organized-v1 .lst-appt-contact {border-top:1px solid #655039;padding-top:12px;}
+.lst-appt-organized-v1 .lst-appt-contact>div {gap:4px 14px!important;}
+.lst-appt-organized-v1 .lst-appt-contact>div>span {flex-basis:100%;padding:0!important;}
+.lst-appt-organized-v1 .lst-appt-contact a {min-height:36px;display:inline-flex;align-items:center;padding:0!important;}
+.lst-appt-organized-v1 .lst-appt-contact a:focus-visible,.lst-appt-organized-v1 summary:focus-visible {outline:2px solid #E4C687;outline-offset:3px;}
+.lst-appt-organized-v1 .lst-appt-reception,.lst-appt-organized-v1 .lst-appt-benefits {display:flex;flex-direction:column;gap:8px;min-width:0;}
+.lst-appt-organized-v1 .lst-appt-reception>.lst-appt-section-title,.lst-appt-organized-v1 .lst-appt-benefits>.lst-appt-section-title {margin:0!important;}
+.lst-appt-organized-v1 .lst-appt-reception .lst-arrival-options>summary {cursor:pointer;min-height:40px;align-content:center;font-size:12px;color:#E4C687;}
+.lst-appt-organized-v1 .lst-appt-reception .lst-arrival-options>div {padding:4px 0;}
+.lst-appt-organized-v1 .lst-appt-benefits .lst-bonos .vb-panel {margin:0;padding:0 11px;border-radius:8px;background:#30271F;}
+.lst-appt-organized-v1 .lst-appt-benefits .vb-panel>summary {min-height:46px;align-content:center;cursor:pointer;font-size:12px;line-height:1.5;padding:6px 0;box-sizing:border-box;}
+.lst-appt-organized-v1 .lst-appt-benefits .lst-bonos {font-size:12px;}
+.lst-appt-organized-v1 .lst-appt-benefits>div {padding:0!important;}
+.lst-appt-organized-v1 .lst-appt-benefits .pk-benefit {margin:0;}
+.lst-appt-organized-v1 .lst-appt-benefits .pk-benefit>summary {flex-wrap:wrap;}
+.lst-appt-organized-v1 .lst-appt-notices {padding:0 11px;}
+.lst-appt-organized-v1 .lst-appt-notices>summary {min-height:46px;padding:10px 0;box-sizing:border-box;align-content:center;font-size:12px;}
+.lst-appt-organized-v1 .lst-appt-notices[open] {display:block;}
+.lst-appt-organized-v1 .lst-appt-notices[open]>section {padding:8px 0!important;border:0!important;}
+.lst-appt-organized-v1 .lst-appt-footer {justify-content:flex-start;background:#2D2620;padding:10px 18px;}
+.lst-appt-organized-v1 .lst-appt-footer>.lst-appt-more {margin-left:auto;}
+.lst-appt-organized-v1 .lst-appt-more>div {width:210px;}
+.lst-appt-organized-v1 .lst-appt-more>div>div {display:contents;}
+.lst-appt-organized-v1 .lst-appt-more button {width:100%;text-align:left;}
+@media(max-width:620px){
+ .lst-appt-organized-v1 .lst-appt-head {padding:12px;}
+ .lst-appt-organized-v1 .lst-appt-body {grid-template-columns:1fr;padding:12px;gap:16px;}
+ .lst-appt-organized-v1 .lst-appt-footer {padding:8px 10px;}
+ .lst-appt-organized-v1 .lst-appt-more>div {position:static;width:auto;}
+ .lst-appt-organized-v1 .lst-appt-footer>.lst-appt-more {margin-left:0;}
+}
