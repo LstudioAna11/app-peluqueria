@@ -1,3 +1,4 @@
+import ParkingPanel from './ParkingPanel'; // lst-parking-admin-v1
 import WeeklyHoursEditor from './WeeklyHoursEditor';
 import {ClientPermissionStatus,PrivacyDocumentsPanel} from './ClientPermissions';
 import {BookingLinksPanel} from './BookingLinks';
@@ -815,7 +816,8 @@ export default function AdminPanelView(props: Props) {
 
                 {props.clientForAppointment && <div role="status" style={{padding:14,border:'1px solid #C49A58',borderRadius:10,color:'#FFF8EE',display:'flex',gap:12,alignItems:'center',flexWrap:'wrap'}}><span style={{flex:'1 1 220px'}}>Nueva cita para <strong>{props.clientForAppointment.nombre} {props.clientForAppointment.apellidos}</strong>. Elige el día y pulsa un hueco libre.</span><button type="button" className="studio-btn-ghost" onClick={props.onCancelClientAppointment}>Cancelar selección</button></div>}
                 <details className="studio-mobile-summary"><summary>Resumen de hoy · {todaySummary.length} citas · {approvalSummaryCount + paymentSummaryCount} gestiones pendientes</summary>{renderCompactDaySummary()}</details>
-                <div className="studio-agenda-toolbar" role="group" aria-label="Controles de agenda">
+                <ParkingPanel inventoryOnly/>
+<div className="studio-agenda-toolbar" role="group" aria-label="Controles de agenda">
                   <button type="button" onClick={() => setFechaSeleccionada(new Date())} style={{ padding: '9px 14px', border: '1px solid #C5A059', borderRadius: 8, cursor: 'pointer' }}>Hoy</button>
                   <div className="studio-agenda-view-switch" role="group" aria-label="Vista de agenda" style={{ display: 'flex', gap: 4 }}>
                     {(['day', 'week'] as const).map(view => <button type="button" key={view} aria-pressed={agendaViewMode === view} onClick={() => setAgendaViewMode(view)} style={{ padding: '9px 14px', border: '1px solid rgba(228,198,135,.35)', borderRadius: 8, cursor: 'pointer' }}>{view === 'day' ? 'Día' : 'Semana'}</button>)}

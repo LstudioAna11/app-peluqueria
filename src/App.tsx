@@ -1,3 +1,4 @@
+import ParkingPanel from './ParkingPanel'; // lst-parking-admin-v1
 import {useClientAppointmentRefresh} from './useClientAppointmentRefresh';
 import AgendaStateLegend from './AgendaStateLegend';
 import AppointmentRepeatCard from './AppointmentRepeatCard';
@@ -5923,6 +5924,7 @@ function StudioApp() {
               const row=result.appointments?.find(item=>item.id===viewApptModal.serverId);
               if(row)setViewApptModal(mapServerAppointment(row));
             }}/>}</div>{currentScreen === 'adminPanel' && <AppointmentArrivalTools key={(viewApptModal.serverId||viewApptModal.id)+':'+viewApptModal.lifecycleStatus+':'+String(viewApptModal.completedAt||'')} id={viewApptModal.serverId||viewApptModal.id} onCancel={()=>changeAppointmentStatus(viewApptModal,'cancelled')} />}</div>
+{currentScreen==='adminPanel'&&<ParkingPanel key={'parking-'+(viewApptModal.serverId||viewApptModal.id)} reference={viewApptModal.serverId||viewApptModal.id} duration={viewApptModal.durationMinutes||0}/>}
 </div><button type="button" autoFocus onClick={() => setViewApptModal(null)} aria-label="Cerrar detalle de la cita" style={{background:'transparent',border:'1px solid #655039',borderRadius:8,color:'#FFF8EE',minWidth:40,minHeight:40,cursor:'pointer'}}>✕</button></header><div className="lst-appt-body"><div className="lst-appt-column">
 
 
