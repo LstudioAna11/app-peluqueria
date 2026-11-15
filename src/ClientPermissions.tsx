@@ -1,3 +1,4 @@
+// lst-permissions-fold-v1
 // lst-scalp-health-v1
 import React,{useEffect,useRef,useState} from 'react';
 import * as studioApi from './studioApi';
@@ -95,10 +96,15 @@ export function ClientPermissions(){
   <p style={{fontSize:12,lineHeight:1.6,color:'#D6CBB8',margin:0}}>Retirar un permiso no borra automáticamente los datos, fotos ni publicaciones existentes. La retirada queda registrada para que el Studio revise su uso y atienda tu solicitud. Puedes contactar con el Studio mediante los datos de la información de privacidad.</p>
  </div>;
 }
-export function ClientPermissionStatus({clientId}:{clientId?:string}){return clientId?<PermissionStatusInner key={clientId} clientId={clientId}/>:<p style={{fontSize:13}}>Guarda primero la ficha en el servidor para consultar sus permisos.</p>;}
+export function ClientPermissionStatus({clientId}:{clientId?:string}){return clientId?<PermissionStatusFold key={clientId} clientId={clientId}/>:<p style={{fontSize:13}}>Guarda primero la ficha en el servidor para consultar sus permisos.</p>;}
+function PermissionStatusFold({clientId}:{clientId:string}){
+ const [expanded,setExpanded]=useState(false);
+ return <details open={expanded} onToggle={e=>setExpanded(e.currentTarget.open)} style={{border:'1px solid #806340',borderRadius:10,marginBottom:16,color:'#FFF8EE'}}><summary style={{display:'list-item',padding:'12px 14px',minHeight:46,boxSizing:'border-box',cursor:'pointer',color:'#E4C687',fontSize:14,lineHeight:1.6}}><strong>Privacidad y autorizaciones</strong></summary>{expanded&&<PermissionStatusInner key={clientId} clientId={clientId}/>}</details>;
+}
+
 function PermissionStatusInner({clientId}:{clientId:string}){
  const remote=usePermissionData<State>('client',{clientId}),state=remote.data;
- return <section style={{border:'1px solid #806340',borderRadius:10,padding:14,display:'grid',gap:10}} aria-label="Permisos de la clienta"><strong style={{color:'#E4C687'}}>Privacidad y autorizaciones</strong>
+ return <section style={{padding:'0 14px 14px',display:'grid',gap:10}} aria-label="Permisos de la clienta">
   <button type="button" style={{...button,justifySelf:'start'}} disabled={remote.busy} onClick={()=>void remote.load()}>Actualizar permisos</button>
   {remote.error&&<p role="alert">No se pudo comprobar el permiso. {remote.error}</p>}
   {!state&&<p style={{fontSize:13}}>Permisos sin comprobar. Consulta el estado antes de publicar.</p>}
