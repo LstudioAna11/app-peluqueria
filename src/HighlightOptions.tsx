@@ -1,3 +1,4 @@
+// lst-highlights-grouped-length-v2
 import React,{useState} from 'react';
 import type {SubService,ServiceVariant} from './App';
 import './highlight-options.css';
@@ -18,18 +19,19 @@ export function matrixReady(service:SubService):boolean{
  return lengths.every(length=>intensities.every(intensity=>service.variants!.filter(v=>{const axes=variantAxes(v);return axes?.length===length&&axes.intensity===intensity;}).length===1));
 }
 export function HighlightOptions({service,selected,onSelect,children}:{service:SubService;selected:ServiceVariant|null|undefined;onSelect:(variant:ServiceVariant)=>void;children:React.ReactNode}){
- const initial=selected?variantAxes(selected):null;
- const [chosenLength,setChosenLength]=useState<Length|null>(initial?.length||null);
  if(!matrixReady(service))return <>{children}</>;
- const axes=selected?variantAxes(selected):null,length=axes?.length||chosenLength,intensity=axes?.intensity;
- const choose=(nextLength:Length,nextIntensity:Intensity)=>{
-  const variant=service.variants!.find(v=>{const a=variantAxes(v);return a?.length===nextLength&&a.intensity===nextIntensity;});
-  if(variant)onSelect(variant);
- };
- return <div className="lst-highlights-options">
-  <fieldset><legend>Largo del cabello</legend><div className="lst-highlights-lengths">{lengths.map(value=><button key={value} type="button" aria-pressed={length===value} onClick={()=>{setChosenLength(value);if(intensity)choose(value,intensity);}}>{value}</button>)}</div></fieldset>
-  <fieldset><legend>Iluminación</legend><div className="lst-highlights-intensities">{intensities.map(value=><button key={value} type="button" disabled={!length} aria-pressed={intensity===value} onClick={()=>{if(length)choose(length,value);}}><strong>{value}</strong><span>{value==='SOFT'?'Sutil':'Completa'}</span></button>)}</div></fieldset>
-  <p aria-live="polite">{!length?'Elige el largo de tu cabello.':!intensity?'Elige la intensidad de la iluminación.':intensity==='SOFT'?'Luz suave en zonas seleccionadas.':'Más mechas y mayor iluminación.'}</p>
+ const axes=selected?variantAxes(selected):null;
+ const name=fold(service.name+' '+(service.bookingName||''));
+ const technique=/hybrid/.test(name)?'Hybrid':/babylight/.test(name)?'Babylights':'Balayage';
+ return <div className="lst-highlights-options lst-highlights-by-length">
+  <div className="lst-highlights-length-cards">{lengths.map(length=><fieldset key={length} data-selected={axes?.length===length}>
+   <legend>{technique} {length}</legend>
+   <div className="lst-highlights-pair">{intensities.map(intensity=>{
+    const variant=service.variants!.find(item=>{const a=variantAxes(item);return a?.length===length&&a.intensity===intensity;})!;
+    return <button key={variant.id} type="button" aria-label={technique+' '+length+' · '+intensity+' · '+(intensity==='SOFT'?'Iluminación sutil':'Iluminación completa')} aria-pressed={selected?.id===variant.id} onClick={()=>onSelect(variant)}><strong>{intensity}</strong><span>{intensity==='SOFT'?'Sutil':'Completa'}</span></button>;
+   })}</div>
+  </fieldset>)}</div>
+  <p aria-live="polite">{!axes?.intensity?'Elige SOFT o FULL dentro del largo de tu cabello.':axes.intensity==='SOFT'?'Luz suave en zonas seleccionadas.':'Más mechas y mayor iluminación.'}</p>
  </div>;
 }
 export function setupDraft(service:SubService):Cell[]|null{
@@ -56,11 +58,24 @@ export function applySetup(service:SubService,cells:Cell[]):SubService{
 }
 function Editor({service,onApply,initial}:{service:SubService;onApply:(service:SubService)=>void;initial:Cell[]}){
  const [cells,setCells]=useState(initial),[error,setError]=useState(''),[done,setDone]=useState(false);
+ const [tabs,setTabs]=useState<Record<Length,Intensity>>({Medio:'SOFT',Largo:'SOFT',Extralargo:'SOFT'});
  const change=(i:number,key:'price'|'minutes',value:string)=>{setDone(false);setCells(previous=>previous.map((cell,index)=>index===i?{...cell,[key]:value}:cell));};
- return <details className="lst-highlights-editor"><summary>SOFT / FULL por largo</summary>
-  <p>Dos filas en el portal: largo e iluminación. Completa los precios y los tiempos de las seis opciones antes de aplicarlas.</p>
+ const name=fold(service.name+' '+(service.bookingName||''));
+ const technique=/hybrid/.test(name)?'Hybrid':/babylight/.test(name)?'Babylights':'Balayage';
+ return <details className="lst-highlights-editor"><summary>SOFT / FULL dentro de cada largo</summary>
+  <p>Cada largo contiene dos opciones: SOFT y FULL. Pulsa cada botón para editar su precio y duración.</p>
   {!matrixReady(service)&&<p>Las opciones actuales se conservan como FULL, con sus identificadores, precios y tiempos. SOFT queda pendiente de completar. Revisa los importes antes de aplicar.</p>}
-  <div className="lst-highlights-editor-grid">{cells.map((cell,i)=><div key={cell.id}><strong>{cell.length} · {cell.intensity}</strong><label>Precio<input type="text" value={cell.price} onChange={event=>change(i,'price',event.target.value)} placeholder="Precio de esta opción"/></label><label>Duración · minutos<input type="number" min={5} max={1440} step={1} value={cell.minutes} onChange={event=>change(i,'minutes',event.target.value)} placeholder="Completar"/></label></div>)}</div>
+  <div className="lst-highlights-editor-grid lst-highlights-editor-by-length">{lengths.map(length=>{
+   const intensity=tabs[length],i=cells.findIndex(cell=>cell.length===length&&cell.intensity===intensity),cell=cells[i];
+   return <section key={length}>
+    <strong>{technique} {length}</strong>
+    <div className="lst-highlights-editor-tabs" role="group" aria-label={'Opciones de '+technique+' '+length}>{intensities.map(value=><button key={value} type="button" aria-pressed={intensity===value} onClick={()=>setTabs(previous=>({...previous,[length]:value}))}>{value}</button>)}</div>
+    <div className="lst-highlights-editor-fields" aria-label={length+' · '+intensity}>
+     <label>Precio · {intensity}<input type="text" value={cell.price} onChange={event=>change(i,'price',event.target.value)} placeholder="Precio de esta opción"/></label>
+     <label>Duración · {intensity} · minutos<input type="number" min={5} max={1440} step={1} value={cell.minutes} onChange={event=>change(i,'minutes',event.target.value)} placeholder="Completar"/></label>
+    </div>
+   </section>;
+  })}</div>
   {error&&<p role="alert">{error}</p>}{done&&<p role="status">Opciones preparadas. Pulsa «Guardar catálogo» para guardarlas en el servidor.</p>}
   <button type="button" onClick={()=>{try{onApply(applySetup(service,cells));setError('');setDone(true);}catch(value){setError(value instanceof Error?value.message:'Revisa los datos.');}}}>Aplicar opciones al catálogo</button>
  </details>;

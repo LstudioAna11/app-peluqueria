@@ -1,16 +1,18 @@
-.lst-highlights-options{display:grid;gap:10px;color:#FFF8EE}
-.lst-highlights-options fieldset{border:0;padding:0;margin:0;min-width:0}
-.lst-highlights-options legend{font-size:12px;color:#D6CBB8;margin-bottom:6px;padding:0}
-.lst-highlights-lengths,.lst-highlights-intensities{display:grid;gap:7px}
-.lst-highlights-lengths{grid-template-columns:repeat(3,minmax(0,1fr))}
-.lst-highlights-intensities{grid-template-columns:repeat(2,minmax(0,1fr))}
-.lst-highlights-options button{min-width:0;min-height:44px;padding:8px 6px;background:#322A25;border:1px solid #806340;border-radius:8px;color:#E4C687;font:inherit;font-size:13px;cursor:pointer}
-.lst-highlights-options button[aria-pressed=true]{background:#C49A58;color:#29231F;border-color:#C49A58}
-.lst-highlights-options button:disabled{opacity:.5;cursor:default}
-.lst-highlights-options button strong{font-size:12px}
-.lst-highlights-options button span{margin-left:7px;font-size:12px}
+/* lst-highlights-grouped-length-v2 */
+.lst-highlights-options{display:grid;gap:9px;color:#FFF8EE}
+.lst-highlights-length-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.lst-highlights-length-cards fieldset{border:1px solid #655039;border-radius:9px;padding:10px;margin:0;min-width:0;background:#30271F}
+.lst-highlights-length-cards fieldset[data-selected=true]{border-color:#C49A58}
+.lst-highlights-length-cards legend{font-size:13px;color:#E4C687;padding:0 4px;max-width:100%;box-sizing:border-box;line-height:1.5}
+.lst-highlights-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.lst-highlights-pair button{min-width:0;min-height:44px;padding:7px 4px;background:#322A25;border:1px solid #806340;border-radius:7px;color:#E4C687;font:inherit;cursor:pointer}
+.lst-highlights-pair button[aria-pressed=true]{background:#C49A58;color:#29231F;border-color:#C49A58}
+.lst-highlights-pair button strong{display:block;font-size:12px}
+.lst-highlights-pair button span{display:block;font-size:11px;margin-top:2px}
 .lst-highlights-options p{font-size:12px;color:#D6CBB8;line-height:1.5;margin:0}
-.lst-highlights-options button:focus-visible,.lst-highlights-editor input:focus-visible,.lst-highlights-editor button:focus-visible{outline:2px solid #E4C687;outline-offset:3px}
+.lst-highlights-pair button:focus-visible,.lst-highlights-editor input:focus-visible,.lst-highlights-editor button:focus-visible{outline:2px solid #E4C687;outline-offset:3px}
+@media(max-width:600px){.lst-highlights-length-cards{grid-template-columns:1fr}}
+
 .lst-highlights-editor{border:1px solid #806340;border-radius:8px;padding:10px;margin:7px 0;color:#FFF8EE}
 .lst-highlights-editor>summary{cursor:pointer;color:#E4C687;font-size:13px;min-height:32px;align-content:center}
 .lst-highlights-editor p,.lst-highlights-setup-note{font-size:12px;line-height:1.6;color:#D6CBB8}
@@ -20,3 +22,13 @@
 .lst-highlights-editor-grid label{font-size:12px;display:grid;gap:5px}
 .lst-highlights-editor-grid input{width:100%;box-sizing:border-box;min-height:44px;padding:8px;background:#29231F;color:#FFF8EE;border:1px solid #806340;border-radius:6px;font:inherit}
 .lst-highlights-editor>button{min-height:44px;margin-top:12px;padding:9px 12px;background:#C49A58;color:#29231F;border:0;border-radius:6px;cursor:pointer}
+
+.lst-highlights-editor-by-length>section{display:grid;gap:9px;padding:10px;border:1px solid #655039;border-radius:7px;min-width:0}
+.lst-highlights-editor-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.lst-highlights-editor-tabs button{min-height:44px;min-width:0;border:1px solid #806340;background:#29231F;color:#E4C687;border-radius:6px;cursor:pointer;font:inherit;font-size:12px}
+.lst-highlights-editor-tabs button[aria-pressed=true]{background:#C49A58;color:#29231F}
+.lst-highlights-editor-fields{display:grid;gap:8px}
+/* Use the grouped editor for configured highlight services, avoiding a second
+   list of the same six options below it. Other services keep their editor. */
+.studio-editor-options>.lst-highlights-editor+div{display:none!important}
+.studio-editor-options>.lst-highlights-editor~form.studio-new-form{display:none!important}
