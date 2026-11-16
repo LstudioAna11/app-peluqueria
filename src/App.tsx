@@ -1,3 +1,4 @@
+// lst-highlights-comparison-save-v1
 import {HighlightOptions} from './HighlightOptions'; // lst-soft-full-length-picker-v1
 // lst-opinion-experiencia-v1
 import {matchCatalogService} from './catalogServiceSearch'; // lst-catalog-search-identity-v1
@@ -485,6 +486,8 @@ const FINISH_COPY: Record<StylingPolicy, string> = {
 export type ServiceTranslation = Partial<Pick<SubService, 'name' | 'slogan' | 'description' | 'includesText' | 'achievedText' | 'forWhomText' | 'conditionsText' | 'alertText'>>;
 
 export interface SubService {
+  highlightComparison?: {soft?:string;full?:string};
+
   addonGroups?: AddonGroup[];
   bookingName?: string;
   consultationPhotoVersion?: number;
@@ -1619,7 +1622,7 @@ function StudioApp() {
         if(!stored){differences.push(category.title+': categoría no encontrada');continue;}
         if(stored.title!==category.title)differences.push(category.title+': nombre de categoría');
         for(const field of ['portalTitle','slogan','imageUrl'] as const)if((stored[field]||'')!==(category[field]||''))differences.push(category.title+': '+field);
-        const keys = ['name', 'bookingName', 'imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'conditionsText', 'cutAllowedIds', 'addonGroups', 'bufferMinutes', 'bizumPolicy', 'bizumAmount', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
+        const keys = ['highlightComparison', 'name', 'bookingName', 'imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'conditionsText', 'cutAllowedIds', 'addonGroups', 'bufferMinutes', 'bizumPolicy', 'bizumAmount', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
         for(const service of category.subservices){
           const saved=stored.subservices?.find(item=>item.id===service.id);
           if(!saved){differences.push(bookingName(service)+': servicio no encontrado');continue;}

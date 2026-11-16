@@ -1,3 +1,4 @@
+import {HighlightComparison,HighlightComparisonEditor} from './HighlightComparison'; // lst-highlights-comparison-v1
 // lst-highlights-grouped-length-v2
 import React,{useState} from 'react';
 import type {SubService,ServiceVariant} from './App';
@@ -19,7 +20,7 @@ export function matrixReady(service:SubService):boolean{
  return lengths.every(length=>intensities.every(intensity=>service.variants!.filter(v=>{const axes=variantAxes(v);return axes?.length===length&&axes.intensity===intensity;}).length===1));
 }
 export function HighlightOptions({service,selected,onSelect,children}:{service:SubService;selected:ServiceVariant|null|undefined;onSelect:(variant:ServiceVariant)=>void;children:React.ReactNode}){
- if(!matrixReady(service))return <>{children}</>;
+ if(!matrixReady(service))return <>{children}{isHighlights(service)&&<HighlightComparison key={service.id} service={service}/>}</>;
  const axes=selected?variantAxes(selected):null;
  const name=fold(service.name+' '+(service.bookingName||''));
  const technique=/hybrid/.test(name)?'Hybrid':/babylight/.test(name)?'Babylights':'Balayage';
@@ -31,7 +32,7 @@ export function HighlightOptions({service,selected,onSelect,children}:{service:S
     return <button key={variant.id} type="button" aria-label={technique+' '+length+' · '+intensity+' · '+(intensity==='SOFT'?'Iluminación sutil':'Iluminación completa')} aria-pressed={selected?.id===variant.id} onClick={()=>onSelect(variant)}><strong>{intensity}</strong><span>{intensity==='SOFT'?'Sutil':'Completa'}</span></button>;
    })}</div>
   </fieldset>)}</div>
-  <p aria-live="polite">{!axes?.intensity?'Elige SOFT o FULL dentro del largo de tu cabello.':axes.intensity==='SOFT'?'Luz suave en zonas seleccionadas.':'Más mechas y mayor iluminación.'}</p>
+  <HighlightComparison key={service.id} service={service}/>
  </div>;
 }
 export function setupDraft(service:SubService):Cell[]|null{
@@ -78,6 +79,7 @@ function Editor({service,onApply,initial}:{service:SubService;onApply:(service:S
   })}</div>
   {error&&<p role="alert">{error}</p>}{done&&<p role="status">Opciones preparadas. Pulsa «Guardar catálogo» para guardarlas en el servidor.</p>}
   <button type="button" onClick={()=>{try{onApply(applySetup(service,cells));setError('');setDone(true);}catch(value){setError(value instanceof Error?value.message:'Revisa los datos.');}}}>Aplicar opciones al catálogo</button>
+ <HighlightComparisonEditor key={service.id} service={service} onApply={onApply}/>
  </details>;
 }
 export function HighlightsVariantEditor({service,onApply}:{service:SubService;onApply:(service:SubService)=>void}){

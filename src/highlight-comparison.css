@@ -1,0 +1,23 @@
+.lst-highlight-comparison{display:grid;gap:8px;color:#D6CBB8}
+.lst-highlight-explanations p{font-size:12px;line-height:1.6;margin:0 0 4px}
+.lst-highlight-explanations strong{color:#E4C687}
+.lst-highlight-comparison>details{border:0;padding:0;margin:0}
+.lst-highlight-comparison summary{color:#E4C687;font-size:12px;min-height:44px;align-content:center;cursor:pointer}
+.lst-highlight-photo-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.lst-highlight-photo-pair figure{margin:0;min-width:0}
+.lst-highlight-photo-pair img{display:block;width:100%;height:auto;aspect-ratio:3/4;object-fit:contain;background:#221D19;border-radius:7px}
+.lst-highlight-photo-pair figcaption{padding:7px 0;font-size:12px;line-height:1.5;color:#E4C687}
+.lst-highlight-comparison .lst-highlight-image-note{font-size:11px;line-height:1.6;color:#D6CBB8;margin:4px 0 0}
+.lst-highlight-comparison-editor{margin-top:14px;border-top:1px solid #655039;padding-top:10px}
+.lst-highlight-comparison-editor>summary{font-size:13px;min-height:44px;align-content:center;color:#E4C687;cursor:pointer}
+.lst-highlight-comparison-editor p{font-size:12px;line-height:1.6;color:#D6CBB8}
+.lst-highlight-upload-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.lst-highlight-upload-pair>div{min-width:0;display:grid;align-content:start;gap:8px}
+.lst-highlight-upload-pair strong{color:#E4C687;font-size:13px}
+.lst-highlight-upload-pair img{width:100%;height:auto;max-height:180px;object-fit:contain;background:#221D19;border-radius:7px}
+.lst-highlight-upload-pair label{display:grid;gap:6px;font-size:12px;color:#D6CBB8}
+.lst-highlight-upload-pair input{max-width:100%;min-width:0;width:100%;font-size:12px;color:#FFF8EE;min-height:44px}
+.lst-highlight-upload-pair button{min-height:44px;border:1px solid #806340;color:#E4C687;background:transparent;border-radius:6px;padding:6px;font-size:12px;cursor:pointer}
+.lst-highlight-upload-pair button:disabled{opacity:.5;cursor:default}
+.lst-highlight-upload-pair input:focus-visible,.lst-highlight-upload-pair button:focus-visible{outline:2px solid #E4C687;outline-offset:3px}
+@media(max-width:380px){.lst-highlight-upload-pair{grid-template-columns:1fr}}
