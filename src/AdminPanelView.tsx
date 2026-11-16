@@ -1,3 +1,4 @@
+// lst-quick-open-direct-v1
 import ParkingPanel from './ParkingPanel'; // lst-parking-admin-v1
 import WeeklyHoursEditor from './WeeklyHoursEditor';
 import {ClientPermissionStatus,PrivacyDocumentsPanel} from './ClientPermissions';
@@ -78,7 +79,7 @@ interface Props {
   clientForAppointment: ClientRecord | null;
   onStartClientAppointment: (client: ClientRecord) => void;
   onCancelClientAppointment: () => void;
-  handleCellClick: (targetDate: Date, dayName: string, time: string) => void;
+  handleCellClick: (targetDate: Date, dayName: string, time: string, openFormOnly?: boolean) => void;
   diaSeleccionadoObj: { name: string; dateObj: Date; dateFormatted: string; };
   appointments: Appointment[];
   isActiveAppointment: (appointment: Appointment) => boolean;
@@ -564,15 +565,9 @@ export default function AdminPanelView(props: Props) {
  const mobileDayAppointments = appointments.filter(item => item.dateKey === selectedDayKey)
    .slice().sort((a, b) => a.time.localeCompare(b.time));
  const openMobileBooking = () => {
-   if (isDateBlockedByHoliday(selectedDayKey)) { alert('El día seleccionado está bloqueado. Elige otra fecha.'); return; }
-   const ranges=workingRanges(fechaSeleccionada);
-   const toMinutes=(value:string)=>Number(value.slice(0,2))*60+Number(value.slice(3));
-   const freeTime=quickBookingStart(ranges,enableOutOfHours?hoursList:[],Number(bizConfig.slotIntervalMinutes)||15,
-     time=>timeBlocks.some(block=>block.dateKey===selectedDayKey&&toMinutes(time)>=toMinutes(block.time)&&toMinutes(time)<toMinutes(block.time)+block.durationMinutes),
-     time=>isTimeSlotOccupied(selectedDayKey,time));
-   if (!freeTime) { alert(ranges.length||enableOutOfHours?'No hay huecos libres en el horario de este día. Elige otra fecha o revisa la agenda.':'Este día no tiene horario laboral configurado. Elige otra fecha o activa la reserva fuera de horario.'); return; }
-   setAgendaSummaryOpen(false); setAgendaExpanded(false);
-   handleCellClick(fechaSeleccionada, fechaSeleccionada.toLocaleDateString('es-ES',{weekday:'long'}), freeTime);
+   if(isDateBlockedByHoliday(formatDateKey(fechaSeleccionada))){alert('El día seleccionado está bloqueado. Elige otra fecha.');return;}
+   setAgendaSummaryOpen(false);setAgendaExpanded(false);
+   handleCellClick(fechaSeleccionada,fechaSeleccionada.toLocaleDateString('es-ES',{weekday:'long'}),'',true);
  };
  const mobileAppointmentStatus = (item: Appointment) => {
    if (item.lifecycleStatus === 'cancelled') return 'Cancelada';

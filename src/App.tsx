@@ -1,3 +1,4 @@
+// lst-quick-open-direct-v1
 import PushSetupHelp from './PushSetupHelp'; // lst-push-help-all-v1
 import './detalle-cita-ordenado.css';
 import ParkingPanel from './ParkingPanel'; // lst-parking-admin-v1
@@ -3306,7 +3307,7 @@ function StudioApp() {
     finally{rescheduleSavingRef.current=false;setRescheduleSaving(false);setDraggedApptId(null);}
   };
 
-  const handleCellClick = (targetDate: Date, dayName: string, time: string) => {
+  const handleCellClick = (targetDate: Date, dayName: string, time: string, openFormOnly = false) => {
     if (adminBookingSavingRef.current) return;
     adminBookingDraftId.current = '';
     const targetDateKey = formatDateKey(targetDate);
@@ -3314,17 +3315,17 @@ function StudioApp() {
       window.alert('Este día es festivo o de vacaciones. Está bloqueado en la agenda.');
       return;
     }
-    const existing = appointments.find(a => isActiveAppointment(a) && a.dateKey === targetDateKey && a.time === time);
+    const existing = openFormOnly ? undefined : appointments.find(a => isActiveAppointment(a) && a.dateKey === targetDateKey && a.time === time);
     if (existing && !enableDoubleBooking) {
       setViewApptModal(existing);
       return;
     }
-    if (!enableOutOfHours && !isAgendaTimeWorking(targetDate, time)) { alert('Este hueco está fuera del horario laboral.'); return; }
-    if (timeBlockConflict(targetDateKey, time)) { alert('Este periodo está bloqueado.'); return; }
+    if (!openFormOnly && !enableOutOfHours && !isAgendaTimeWorking(targetDate, time)) { alert('Este hueco está fuera del horario laboral.'); return; }
+    if (!openFormOnly && timeBlockConflict(targetDateKey, time)) { alert('Este periodo está bloqueado.'); return; }
     setEditingAppointment(null);
     setTargetDateObj(targetDate);
     setTargetDayName(dayName);
-    setTargetTime(time);
+    setTargetTime(openFormOnly ? "" : time);
     setModalClientSearch(''); setQuickClientMode(false); setQuickClientPin(''); setQuickClientSurname(''); setQuickClientMessage('');
     const client = clientForAppointment && listaClientes.find(item => item.idNum === clientForAppointment.idNum);
     if (client?.archivedAt) { setClientForAppointment(null); alert('La clienta está de baja. Reactívala antes de crear una cita.'); return; }
@@ -3585,6 +3586,7 @@ function StudioApp() {
     e.preventDefault();
     if (adminBookingSavingRef.current) return;
     if (!modalClientName.trim()) return;
+    if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(targetTime)) { alert('Selecciona una hora válida antes de guardar la cita.'); return; }
     if (quickClientMode) { alert('Crea primero la ficha con «Crear ficha y continuar» o cancela el alta.'); return; }
     if (editingAppointment && !modalServices.length) { alert('Añade al menos un servicio a la cita.'); return; }
     const current = modalServices.length ? null : getModalService();
@@ -5718,7 +5720,9 @@ function StudioApp() {
             <p style={{ color: '#E4C687', fontSize: '14px', margin: 0 }}>{targetDateObj.toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })} · {targetTime}</p>
             <form onSubmit={handleSaveModalAppointment} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <fieldset disabled={adminBookingSaving} style={{border:0,padding:0,margin:0,minWidth:0,display:'flex',flexDirection:'column',gap:'12px'}}>
-              <h4 style={{ color: '#FFF8EE', fontSize: '16px', margin: '8px 0' }}>1. Datos de la clienta</h4>
+              <label htmlFor="lst-quick-appointment-hour" style={{color:'#E4C687',fontSize:13}}>Hora de la cita
+    <input id="lst-quick-appointment-hour" type="time" step={60} required value={targetTime} onChange={event=>setTargetTime(event.target.value)} style={{display:'block',width:'100%',boxSizing:'border-box',padding:11,marginTop:6,background:'#322A25',color:'#FFF8EE',border:'1px solid #C5A059',borderRadius:6,fontSize:16}} />
+  </label><h4 style={{ color: '#FFF8EE', fontSize: '16px', margin: '8px 0' }}>1. Datos de la clienta</h4>
               {!editingAppointment && <section style={{ background: '#322A25', border: '1px solid #3A312A', borderRadius: '8px', padding: '12px' }}>
                 <label htmlFor="new-appointment-client-search" style={{ color: '#E4C687', fontSize: '13px' }}>Buscar clienta registrada</label>
                 <input id="new-appointment-client-search" type="search" value={modalClientSearch} onChange={event => setModalClientSearch(event.target.value)}
