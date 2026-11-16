@@ -19,3 +19,9 @@
 .sr-attribution { display:inline-block; white-space:nowrap; font-family:Roboto,sans-serif; font-style:normal; font-weight:400; font-size:12px; color:#FFF; padding:10px 10px 5px; }.sr-all { display:block; padding:12px 0; font-size:12px; }
 .sr-dialog { width:calc(100% - 24px); max-width:520px; max-height:85dvh; box-sizing:border-box; overflow:auto; padding:20px; border:1px solid #947749; border-radius:14px; background:#29231F; color:#FFF8EE; }.sr-dialog::backdrop { background:#000b; }.sr-dialog-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }.sr-dialog-head h2 { margin:0; font-family:Georgia,serif; font-weight:400; font-size:22px; }.sr-dialog-head button { min-width:44px; min-height:44px; display:grid; place-items:center; color:#E4C687; background:transparent; border:1px solid #655039; border-radius:8px; cursor:pointer; }.sr-dialog details { border:0!important; padding:0!important; background:transparent!important; }.sr-dialog details > summary { display:none; }
 @media(max-width:380px) { .sr-card { padding:16px; }.sr-heading h2 { font-size:19px; } }
+
+/* lst-opinion-experiencia-v1 */
+.sr-dialog .sr-score-grid { grid-template-columns:repeat(11,minmax(0,1fr)); }
+.sr-dialog .sr-score-grid button { min-width:0; }
+.sr-dialog #studio-nps-survey > div { padding-top:0!important; }
+@media(max-width:520px) { .sr-dialog .sr-score-grid { grid-template-columns:repeat(6,minmax(0,1fr)); } }

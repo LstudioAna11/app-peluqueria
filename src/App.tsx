@@ -1,3 +1,4 @@
+// lst-opinion-experiencia-v1
 import {matchCatalogService} from './catalogServiceSearch'; // lst-catalog-search-identity-v1
 // lst-quick-open-direct-v1
 import PushSetupHelp from './PushSetupHelp'; // lst-push-help-all-v1
@@ -650,23 +651,23 @@ export function NpsSummary({period,onPeriodChange}:{period:NpsPeriod;onPeriodCha
 function NpsFeedbackForm({score,comment,saving,error,submitted,googleUrl,contactUrl,onScore,onComment,onSubmit,onRestart}:{score:number|null;comment:string;saving:boolean;error:string;submitted:boolean;googleUrl:string;contactUrl:string|null;onScore:(score:number)=>void;onComment:(comment:string)=>void;onSubmit:(event:React.FormEvent)=>void;onRestart?:()=>void}){
   const linkStyle:React.CSSProperties={display:'inline-flex',alignItems:'center',justifyContent:'center',minHeight:44,padding:'11px 15px',border:'1px solid #B9955F',borderRadius:7,color:'#E4C687',textDecoration:'none',fontSize:13};
   return <details id="studio-nps-survey" style={{background:'linear-gradient(160deg,#221D19,#322A25)',border:'1px solid #846A45',borderRadius:12,padding:16}} open>
-    <summary style={{color:'#E4C687',fontSize:15,cursor:'pointer',fontFamily:'Georgia,serif'}}>Tu experiencia en L’Studio Ana</summary>
+    <summary style={{color:'#E4C687',fontSize:15,cursor:'pointer',fontFamily:'Georgia,serif'}}>Tu experiencia en L’Studio</summary>
     <div style={{paddingTop:14,display:'grid',gap:12}}>
-      <p style={{fontSize:11,color:'#C9B79D',margin:0}}>{'OPINIÓN PRIVADA · L’STUDIO ANA'}</p>
+
       {submitted?<section aria-label="Gracias por tu valoración" style={{display:'grid',gap:12}}>
         <h3 style={{color:'#E4C687',fontFamily:'Georgia,serif',fontWeight:400,fontSize:20,margin:0}}>Gracias por compartir tu opinión</h3>
-        <p style={{color:'#FFF8EE',fontSize:13,lineHeight:1.7,margin:0}}>Tu valoración de {score}/10 está registrada. Ana podrá leerla para seguir cuidando tu experiencia.</p>
+        <p style={{color:'#FFF8EE',fontSize:13,lineHeight:1.7,margin:0}}>Tu valoración de {score}/10 está registrada. El equipo de L’Studio podrá leerla para seguir cuidando tu experiencia.</p>
         <p style={{color:'#D6CBB8',fontSize:12,lineHeight:1.7,margin:0}}>Si lo deseas, también puedes compartir tu experiencia en Google o hablar directamente con el Studio.</p>
         <div style={{display:'flex',gap:9,flexWrap:'wrap'}}>{googleUrl&&<a href={googleUrl} target="_blank" rel="noopener noreferrer" style={linkStyle}>Opinar en Google ↗</a>}{contactUrl&&<a href={contactUrl} target="_blank" rel="noopener noreferrer" style={linkStyle}>Contactar con el Studio ↗</a>}</div>
       {onRestart&&<button type="button" disabled={saving} onClick={onRestart} style={{minHeight:44,padding:9,background:'transparent',color:'#D6CBB8',border:'1px solid #846A45',borderRadius:6,fontSize:12}}>Valorar otra visita</button>}
       </section>:<>
         <form onSubmit={onSubmit} style={{display:'grid',gap:13}}>
-          <p id="nps-question" style={{fontSize:15,lineHeight:1.6,color:'#FFF8EE',margin:0}}>Del 0 al 10, ¿qué probabilidad hay de que recomiendes L’Studio Ana a una amiga, un amigo o un familiar?</p>
-          <div role="group" aria-labelledby="nps-question" style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(44px,1fr))',gap:6}}>{Array.from({length:11},(_,value)=><button key={value} type="button" disabled={saving} aria-pressed={score===value} aria-label={value+' de 10'} onClick={()=>onScore(value)} style={{minHeight:44,padding:'8px 4px',border:'1px solid #9A7C50',borderRadius:6,background:score===value?'#D0AA71':'#302820',color:score===value?'#29231F':'#F4EADB',fontSize:14,fontWeight:score===value?600:400}}>{value}</button>)}</div>
+          <p id="nps-question" style={{fontSize:15,lineHeight:1.6,color:'#FFF8EE',margin:0}}>Del 0 al 10, ¿nos recomendarías?</p>
+          <div role="group" aria-labelledby="nps-question" className="sr-score-grid" style={{display:'grid',gap:6}}>{Array.from({length:11},(_,value)=><button key={value} type="button" disabled={saving} aria-pressed={score===value} aria-label={value+' de 10'} onClick={()=>onScore(value)} style={{minHeight:44,padding:'8px 4px',border:'1px solid #9A7C50',borderRadius:6,background:score===value?'#D0AA71':'#302820',color:score===value?'#29231F':'#F4EADB',fontSize:14,fontWeight:score===value?600:400}}>{value}</button>)}</div>
           <div style={{display:'flex',justifyContent:'space-between',gap:12,fontSize:11,color:'#C9B79D'}}><span>0 · Nada probable</span><span>10 · Muy probable</span></div>
-          <label style={{display:'grid',gap:7,color:'#E4C687',fontSize:13}}>¿Cuál es el motivo principal de tu puntuación? <span style={{fontSize:11,color:'#C9B79D'}}>Comentario opcional · Lo recibe el Studio de forma privada.</span><textarea maxLength={3000} disabled={saving} value={comment} onChange={event=>onComment(event.target.value)} rows={3} placeholder="Tu opinión nos ayuda a cuidar cada detalle…" style={{width:'100%',boxSizing:'border-box',resize:'vertical',padding:11,background:'#302820',color:'#FFF8EE',border:'1px solid #846A45',borderRadius:8,fontSize:13,lineHeight:1.6}}/></label>
+          <label style={{display:'grid',gap:7,color:'#E4C687',fontSize:13}}>Cuéntanos tu experiencia <span style={{fontSize:11,color:'#C9B79D'}}>Comentario opcional.</span><textarea maxLength={3000} disabled={saving} value={comment} onChange={event=>onComment(event.target.value)} rows={3} placeholder="Me he realizado… Mi experiencia ha sido…" style={{width:'100%',boxSizing:'border-box',resize:'vertical',padding:11,background:'#302820',color:'#FFF8EE',border:'1px solid #846A45',borderRadius:8,fontSize:13,lineHeight:1.6}}/></label>
           {error&&<p role="alert" style={{fontSize:12,color:'#FFC3B0',margin:0}}>{error}</p>}
-          <button type="submit" disabled={saving} style={{minHeight:46,padding:12,border:0,borderRadius:7,background:'#C99E52',color:'#29231F',fontSize:13,fontWeight:600}}>{saving?'Guardando tu opinión…':'Enviar a Ana'}</button>
+          <button type="submit" disabled={saving} style={{minHeight:46,padding:12,border:0,borderRadius:7,background:'#C99E52',color:'#29231F',fontSize:13,fontWeight:600}}>{saving?'Guardando tu opinión…':'Enviar mi opinión'}</button>
         </form>
         {googleUrl&&<a href={googleUrl} target="_blank" rel="noopener noreferrer" style={{color:'#D6CBB8',fontSize:12,minHeight:44,display:'flex',alignItems:'center'}}>También puedes opinar directamente en Google ↗</a>}
       </>}
