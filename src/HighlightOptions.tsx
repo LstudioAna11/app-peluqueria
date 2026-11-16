@@ -1,3 +1,4 @@
+// lst-traditional-three-lengths-v2
 import {highlightFamily,highlightTechniqueLabel} from './highlightFamily'; // lst-traditional-soft-full-v1
 import {HighlightComparison,HighlightComparisonEditor} from './HighlightComparison'; // lst-highlights-comparison-v1
 // lst-highlights-grouped-length-v2
@@ -9,7 +10,9 @@ export const intensities=['SOFT','FULL'] as const;
 type Length=typeof lengths[number];type Intensity=typeof intensities[number];
 type Cell={length:Length;intensity:Intensity;id:string;price:string;minutes:string;base?:ServiceVariant};
 const fold=(s:string)=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/extra[ -]?larg[oa]/g,'extralargo');
-export const isHighlights=(service:Pick<SubService,'name'|'bookingName'>)=>highlightFamily(service.name+' '+(service.bookingName||''))!==null;
+export const isHighlights=(service:Pick<SubService,'name'|'bookingName'>)=>(highlightFamily(service.name+' '+(service.bookingName||''))!==null) || isTraditionalHighlights(service);
+
+function isTraditionalHighlights(service:Pick<SubService,'name'|'bookingName'>):boolean { const name=fold(service.name+' '+(service.bookingName||'')); return /\bmechas?\b/.test(name)&&/\btradicional(?:es)?\b/.test(name); }
 export function variantAxes(variant:ServiceVariant):{length:Length;intensity:Intensity|null}|null{
  const name=fold(variant.name);
  const length:Length|null=/\bextralargo\b/.test(name)?'Extralargo':/\b(?:largo|larga|long|l)\b/.test(name)?'Largo':/\b(?:medio|media|medium|m)\b/.test(name)?'Medio':null;
@@ -24,7 +27,7 @@ export function HighlightOptions({service,selected,onSelect,children}:{service:S
  if(!matrixReady(service))return <>{children}{isHighlights(service)&&<HighlightComparison key={service.id} service={service}/>}</>;
  const axes=selected?variantAxes(selected):null;
  const name=fold(service.name+' '+(service.bookingName||''));
- const technique=highlightTechniqueLabel(name);
+ const technique=isTraditionalHighlights(service) ? 'Mechas tradicionales' : (highlightTechniqueLabel(name));
  return <div className="lst-highlights-options lst-highlights-by-length">
   <div className="lst-highlights-length-cards">{lengths.map(length=><fieldset key={length} data-selected={axes?.length===length}>
    <legend>{technique} {length}</legend>
@@ -38,12 +41,18 @@ export function HighlightOptions({service,selected,onSelect,children}:{service:S
 }
 export function setupDraft(service:SubService):Cell[]|null{
  if(!isHighlights(service))return null;
- if(matrixReady(service))return lengths.flatMap(length=>intensities.map(intensity=>{
-  const base=service.variants!.find(v=>{const a=variantAxes(v);return a?.length===length&&a.intensity===intensity;})!;
+ const traditional=isTraditionalHighlights(service);
+ const variants=traditional?(service.variants||[]).filter(v=>! /\b(?:corto|corta|short)\b/.test(fold(v.name))):(service.variants||[]);
+ const source={...service,variants};
+ if(matrixReady(source))return lengths.flatMap(length=>intensities.map(intensity=>{
+  const base=variants.find(v=>{const a=variantAxes(v);return a?.length===length&&a.intensity===intensity;})!;
   return {length,intensity,id:base.id,price:base.price,minutes:String(parseInt(base.duration.match(/\d+/)?.[0]||'',10)||''),base};
  }));
- if(service.variants?.length!==3)return null;
- const originals=lengths.map(length=>service.variants!.filter(v=>{const a=variantAxes(v);return a?.length===length&&!a.intensity;}));
+ if(variants.length!==3)return null;
+ const originals=lengths.map(length=>variants.filter(v=>{
+  const a=variantAxes(v);
+  return a?a.length===length&&!a.intensity:traditional&&length==='Extralargo'&&/\bextra\b/.test(fold(v.name))&&!/\b(?:soft|full)\b/.test(fold(v.name));
+ }));
  if(originals.some(items=>items.length!==1))return null;
  return lengths.flatMap((length,i)=>intensities.map(intensity=>{
   const base=originals[i][0];
@@ -63,8 +72,10 @@ function Editor({service,onApply,initial}:{service:SubService;onApply:(service:S
  const [tabs,setTabs]=useState<Record<Length,Intensity>>({Medio:'SOFT',Largo:'SOFT',Extralargo:'SOFT'});
  const change=(i:number,key:'price'|'minutes',value:string)=>{setDone(false);setCells(previous=>previous.map((cell,index)=>index===i?{...cell,[key]:value}:cell));};
  const name=fold(service.name+' '+(service.bookingName||''));
- const technique=highlightTechniqueLabel(name);
- return <details className="lst-highlights-editor"><summary>SOFT / FULL dentro de cada largo</summary>
+ const technique=isTraditionalHighlights(service) ? 'Mechas tradicionales' : (highlightTechniqueLabel(name));
+ return <details className="lst-highlights-editor" open={isTraditionalHighlights(service)}>
+  {isTraditionalHighlights(service)&&service.variants?.some(v=>/\b(?:corto|corta|short)\b/.test(fold(v.name)))&&<p>Corto quedará fuera de Mechas tradicionales al aplicar estas opciones. Puedes mantenerlo por separado en Parciales · Corto. Revisa precios y completa los tiempos de SOFT y FULL antes de aplicar y guardar.</p>}
+<summary>SOFT / FULL dentro de cada largo</summary>
   <p>Cada largo contiene dos opciones: SOFT y FULL. Pulsa cada botón para editar su precio y duración.</p>
   {!matrixReady(service)&&<p>Las opciones actuales se conservan como FULL, con sus identificadores, precios y tiempos. SOFT queda pendiente de completar. Revisa los importes antes de aplicar.</p>}
   <div className="lst-highlights-editor-grid lst-highlights-editor-by-length">{lengths.map(length=>{
