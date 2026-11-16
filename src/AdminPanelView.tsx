@@ -16,6 +16,19 @@ import * as studioApi from './studioApi';
 import OfficialHolidaysView from './OfficialHolidaysView';
 import PromotionsView from './PromotionsView';
 import type { StudioEmployee, BusinessConfig, ServiceVariant, Appointment, StylingPolicy, FinishKind, ServiceTranslation, SubService, CatalogCategory, ClientRecord, LostDemandRecord, FeedbackRecord, HolidayBlock } from './App';
+// lst-new-appointment-day-slot-v1
+export function quickBookingStart(ranges: {start:number;end:number}[], extraTimes: string[], stepValue: number, blocked: (time:string)=>boolean, occupied: (time:string)=>boolean): string | null {
+  const step = Number.isFinite(stepValue) ? Math.max(5,Math.round(stepValue)) : 15;
+  const times = new Set<string>();
+  const text = (minute:number) => String(Math.floor(minute/60)).padStart(2,'0')+':'+String(minute%60).padStart(2,'0');
+  for(const range of ranges){
+    if(!Number.isInteger(range.start)||!Number.isInteger(range.end)||range.start<0||range.end>1440||range.start>=range.end)continue;
+    for(let minute=range.start;minute<range.end;minute+=step)times.add(text(minute));
+  }
+  for(const time of extraTimes)if(/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(time))times.add(time);
+  return [...times].sort().find(time=>!blocked(time)&&!occupied(time)) || null;
+}
+
 function clientDisplayNumber(client: {registroId?: string} | null | undefined): string {
   const match = /^LSTUDIO-(\d+)$/.exec(client?.registroId || '');
   return match ? String(Number(match[1])) : 'Pendiente';
@@ -552,9 +565,14 @@ export default function AdminPanelView(props: Props) {
    .slice().sort((a, b) => a.time.localeCompare(b.time));
  const openMobileBooking = () => {
    if (isDateBlockedByHoliday(selectedDayKey)) { alert('El día seleccionado está bloqueado. Elige otra fecha.'); return; }
-   const freeTime = hoursList.find(time => !isTimeSlotOccupied(selectedDayKey, time));
-   if (!freeTime) { alert('No hay huecos libres en el día seleccionado.'); return; }
-   handleCellClick(fechaSeleccionada, diaSeleccionadoObj.name, freeTime);
+   const ranges=workingRanges(fechaSeleccionada);
+   const toMinutes=(value:string)=>Number(value.slice(0,2))*60+Number(value.slice(3));
+   const freeTime=quickBookingStart(ranges,enableOutOfHours?hoursList:[],Number(bizConfig.slotIntervalMinutes)||15,
+     time=>timeBlocks.some(block=>block.dateKey===selectedDayKey&&toMinutes(time)>=toMinutes(block.time)&&toMinutes(time)<toMinutes(block.time)+block.durationMinutes),
+     time=>isTimeSlotOccupied(selectedDayKey,time));
+   if (!freeTime) { alert(ranges.length||enableOutOfHours?'No hay huecos libres en el horario de este día. Elige otra fecha o revisa la agenda.':'Este día no tiene horario laboral configurado. Elige otra fecha o activa la reserva fuera de horario.'); return; }
+   setAgendaSummaryOpen(false); setAgendaExpanded(false);
+   handleCellClick(fechaSeleccionada, fechaSeleccionada.toLocaleDateString('es-ES',{weekday:'long'}), freeTime);
  };
  const mobileAppointmentStatus = (item: Appointment) => {
    if (item.lifecycleStatus === 'cancelled') return 'Cancelada';
@@ -825,12 +843,7 @@ export default function AdminPanelView(props: Props) {
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#D6CBB8', fontSize: 12 }}>Fecha
                     <input aria-label="Elegir fecha de la agenda" type="date" value={formatDateKey(fechaSeleccionada)} onChange={event => { if (event.target.value) setFechaSeleccionada(new Date(event.target.value + 'T12:00:00')); }} style={{ padding: 8, background: '#221D19', color: '#FFF8EE', border: '1px solid rgba(196,154,88,.4)', borderRadius: 8, minWidth: 140 }} />
                   </label>
-                  <button className="studio-new-appointment" type="button" onClick={() => {
-                    if (isDateBlockedByHoliday(formatDateKey(fechaSeleccionada))) { alert('El día seleccionado está bloqueado. Elige otra fecha.'); return; }
-                    const freeTime = hoursList.find(time => !isTimeSlotOccupied(formatDateKey(fechaSeleccionada), time));
-                    if (!freeTime) { alert('No hay huecos libres en el día seleccionado.'); return; }
-                    handleCellClick(fechaSeleccionada, diaSeleccionadoObj.name, freeTime);
-                  }} style={{ padding: '9px 16px', border: '1px solid #C5A059', borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap' }}>+ Nueva cita</button>
+                  <button className="studio-new-appointment" type="button" onClick={openMobileBooking} style={{ padding: '9px 16px', border: '1px solid #C5A059', borderRadius: 8, cursor: 'pointer', whiteSpace: 'nowrap' }}>+ Nueva cita</button>
                   <button ref={summaryToggle} className="studio-summary-toggle" type="button" aria-expanded={agendaSummaryOpen&&!agendaExpanded} aria-controls="studio-agenda-summary" onClick={()=>{if(agendaExpanded){setAgendaExpanded(false);setAgendaSummaryOpen(true);}else setAgendaSummaryOpen(v=>!v);}} style={{padding:'9px 12px',border:'1px solid #806340',borderRadius:8,cursor:'pointer'}}>Resumen{approvalSummaryCount+paymentSummaryCount>0?' · '+(approvalSummaryCount+paymentSummaryCount)+' pendientes':''}</button>
                   <button type="button" aria-pressed={agendaExpanded} aria-label={agendaExpanded ? 'Volver a vista normal' : 'Ampliar agenda'} title={agendaExpanded ? 'Volver a vista normal' : 'Ampliar agenda'} onClick={() => setAgendaExpanded(previous => !previous)} style={{ display: 'grid', placeItems: 'center', marginInlineStart: 'auto', padding: 9, minWidth: 40, border: '1px solid rgba(196,154,88,.3)', borderRadius: 8, cursor: 'pointer' }}>{agendaExpanded ? <Minimize2 size={18} aria-hidden="true" /> : <Maximize2 size={18} aria-hidden="true" />}</button>
                 </div>
