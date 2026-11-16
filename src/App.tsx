@@ -1,3 +1,4 @@
+// lst-service-order-controls-v1
 // lst-highlights-comparison-save-v1
 import {HighlightOptions} from './HighlightOptions'; // lst-soft-full-length-picker-v1
 // lst-opinion-experiencia-v1
@@ -1620,6 +1621,7 @@ function StudioApp() {
       for(const category of submitted){
         const stored=categories.find(item=>item.id===category.id);
         if(!stored){differences.push(category.title+': categoría no encontrada');continue;}
+        if(!catalogValuesMatch((stored.subservices||[]).map(item=>item.id),category.subservices.map(item=>item.id)))differences.push(category.title+': orden de servicios');
         if(stored.title!==category.title)differences.push(category.title+': nombre de categoría');
         for(const field of ['portalTitle','slogan','imageUrl'] as const)if((stored[field]||'')!==(category[field]||''))differences.push(category.title+': '+field);
         const keys = ['highlightComparison', 'name', 'bookingName', 'imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'conditionsText', 'cutAllowedIds', 'addonGroups', 'bufferMinutes', 'bizumPolicy', 'bizumAmount', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;

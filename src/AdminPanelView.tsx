@@ -1,3 +1,4 @@
+import CatalogServiceOrder,{moveCatalogService} from './CatalogServiceOrder'; // lst-service-order-controls-v1
 import {HighlightsVariantEditor} from './HighlightOptions'; // lst-soft-full-length-picker-v1
 // lst-quick-open-direct-v1
 import ParkingPanel from './ParkingPanel'; // lst-parking-admin-v1
@@ -1622,7 +1623,8 @@ export default function AdminPanelView(props: Props) {
                                   <div style={{ flex: '1 1 220px' }}><h4 style={{ color: '#FFF8EE', fontSize: '18px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', lineHeight: 1.4, margin: '0 0 8px' }}>{bookingName(sub)}</h4>{sub.name.trim() !== bookingName(sub).trim() && <p className="studio-catalog-creative-title">{sub.name}</p>}<span style={{ color: '#E4C687', fontSize: '14px' }}>{sub.price}</span><span style={{ color: '#D6CBB8', fontSize: '13px', marginLeft: '8px' }}>· {sub.duration}</span></div>
                                   <span style={{ color: sub.active === false ? '#F5C7B8' : '#BDE1B8', border: '1px solid #3A312A', borderRadius: '20px', padding: '6px 12px', fontSize: '12px' }}>{sub.active === false ? 'Desactivado' : 'Activo'}</span>
                                   <button type="button" onClick={() => { setPreviewServiceId(sub.id); setPreviewVariantId(sub.hasVariants ? sub.variants?.[0]?.id || '' : ''); }} style={{ background: 'none', color: '#E4C687', border: '1px solid #C5A059', borderRadius: '7px', padding: '10px 14px', minHeight: '44px', cursor: 'pointer' }}>Vista previa</button>
-                                </div>
+                                <CatalogServiceOrder serviceId={sub.id} name={bookingName(sub)} visibleIds={cat.subservices.filter(sub => matchesStatus(sub) && (!query || categoryMatches || normalizeCatalogSearch(sub.name + ' ' + bookingName(sub)).includes(query))).map(service=>service.id)} disabled={photoUploadBusy} onMove={(targetId,placement)=>setCatalog(previous=>moveCatalogService(previous,cat.id,sub.id,targetId,placement))}/>
+</div>
                                 <details open={catalogEditorId === sub.id} onToggle={event => {
                                   if (event.currentTarget.open) { if (catalogEditorId !== sub.id) { setCatalogEditorId(sub.id); setCatalogEditorTab('data'); } }
                                   else if (catalogEditorId === sub.id) setCatalogEditorId(null);
