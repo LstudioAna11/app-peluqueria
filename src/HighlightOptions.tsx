@@ -1,3 +1,4 @@
+import {highlightFamily,highlightTechniqueLabel} from './highlightFamily'; // lst-traditional-soft-full-v1
 import {HighlightComparison,HighlightComparisonEditor} from './HighlightComparison'; // lst-highlights-comparison-v1
 // lst-highlights-grouped-length-v2
 import React,{useState} from 'react';
@@ -8,7 +9,7 @@ export const intensities=['SOFT','FULL'] as const;
 type Length=typeof lengths[number];type Intensity=typeof intensities[number];
 type Cell={length:Length;intensity:Intensity;id:string;price:string;minutes:string;base?:ServiceVariant};
 const fold=(s:string)=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/extra[ -]?larg[oa]/g,'extralargo');
-export const isHighlights=(service:Pick<SubService,'name'|'bookingName'>)=>/balayage|babylights?|hybrid/.test(fold(service.name+' '+(service.bookingName||'')));
+export const isHighlights=(service:Pick<SubService,'name'|'bookingName'>)=>highlightFamily(service.name+' '+(service.bookingName||''))!==null;
 export function variantAxes(variant:ServiceVariant):{length:Length;intensity:Intensity|null}|null{
  const name=fold(variant.name);
  const length:Length|null=/\bextralargo\b/.test(name)?'Extralargo':/\b(?:largo|larga|long|l)\b/.test(name)?'Largo':/\b(?:medio|media|medium|m)\b/.test(name)?'Medio':null;
@@ -23,7 +24,7 @@ export function HighlightOptions({service,selected,onSelect,children}:{service:S
  if(!matrixReady(service))return <>{children}{isHighlights(service)&&<HighlightComparison key={service.id} service={service}/>}</>;
  const axes=selected?variantAxes(selected):null;
  const name=fold(service.name+' '+(service.bookingName||''));
- const technique=/hybrid/.test(name)?'Hybrid':/babylight/.test(name)?'Babylights':'Balayage';
+ const technique=highlightTechniqueLabel(name);
  return <div className="lst-highlights-options lst-highlights-by-length">
   <div className="lst-highlights-length-cards">{lengths.map(length=><fieldset key={length} data-selected={axes?.length===length}>
    <legend>{technique} {length}</legend>
@@ -62,7 +63,7 @@ function Editor({service,onApply,initial}:{service:SubService;onApply:(service:S
  const [tabs,setTabs]=useState<Record<Length,Intensity>>({Medio:'SOFT',Largo:'SOFT',Extralargo:'SOFT'});
  const change=(i:number,key:'price'|'minutes',value:string)=>{setDone(false);setCells(previous=>previous.map((cell,index)=>index===i?{...cell,[key]:value}:cell));};
  const name=fold(service.name+' '+(service.bookingName||''));
- const technique=/hybrid/.test(name)?'Hybrid':/babylight/.test(name)?'Babylights':'Balayage';
+ const technique=highlightTechniqueLabel(name);
  return <details className="lst-highlights-editor"><summary>SOFT / FULL dentro de cada largo</summary>
   <p>Cada largo contiene dos opciones: SOFT y FULL. Pulsa cada botón para editar su precio y duración.</p>
   {!matrixReady(service)&&<p>Las opciones actuales se conservan como FULL, con sus identificadores, precios y tiempos. SOFT queda pendiente de completar. Revisa los importes antes de aplicar.</p>}

@@ -1,3 +1,4 @@
+import {highlightTechniqueLabel} from './highlightFamily'; // lst-traditional-soft-full-v1
 import {useEffect,useRef,useState} from 'react';
 import type {SubService} from './App';
 import * as studioApi from './studioApi';
@@ -7,7 +8,7 @@ import './highlight-comparison.css';
 type Pair={soft?:string;full?:string};
 type ComparedService=SubService&{highlightComparison?:Pair};
 const photo=(value:unknown)=>{try{if(typeof value!=='string')return '';const url=new URL(value);return url.protocol==='https:'?url.href:'';}catch{return '';}};
-const label=(service:SubService)=>/hybrid/i.test(service.name+' '+(service.bookingName||''))?'Hybrid':/babylight/i.test(service.name+' '+(service.bookingName||''))?'Babylights':'Balayage';
+const label=(service:SubService)=>highlightTechniqueLabel(service.name+' '+(service.bookingName||''));
 export function HighlightComparison({service}:{service:ComparedService}){
  const [open,setOpen]=useState(false);
  const soft=photo(service.highlightComparison?.soft),full=photo(service.highlightComparison?.full);
