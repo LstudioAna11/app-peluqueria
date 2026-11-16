@@ -1,3 +1,4 @@
+import {StraighteningProductConfig,isStraighteningSupplement} from './StraighteningProduct'; // lst-straightening-product-v1
 import CatalogServiceOrder,{moveCatalogService} from './CatalogServiceOrder'; // lst-service-order-controls-v1
 import {HighlightsVariantEditor} from './HighlightOptions'; // lst-soft-full-length-picker-v1
 // lst-quick-open-direct-v1
@@ -1557,7 +1558,7 @@ export default function AdminPanelView(props: Props) {
                 {catalog.map((cat, catIdx) => {
                   const query = normalizeCatalogSearch(adminCatalogSearch);
                   const categoryMatches = normalizeCatalogSearch(cat.title + ' ' + (cat.portalTitle || '')).includes(query);
-                  const matchesStatus = (sub: SubService) => adminCatalogStatus === 'all' || (adminCatalogStatus === 'active' ? sub.active !== false : sub.active === false);
+                  const matchesStatus = (sub: SubService) => !isStraighteningSupplement(sub)&&(adminCatalogStatus === 'all' || (adminCatalogStatus === 'active' ? sub.active !== false : sub.active === false));
                   if (cat.subservices.length > 0 && !cat.subservices.some(sub => matchesStatus(sub) && (!query || categoryMatches || normalizeCatalogSearch(sub.name + ' ' + bookingName(sub)).includes(query)))) return null;
                   if (query && !categoryMatches && !cat.subservices.some(sub => normalizeCatalogSearch(sub.name + ' ' + bookingName(sub)).includes(query))) return null;
                   const isCategoryExpandedAdmin = !!query || (expandedCategories[`admin_cat_${cat.id}`] ?? false);
@@ -1648,6 +1649,8 @@ export default function AdminPanelView(props: Props) {
                                     <p style={{ color: '#D6CBB8', fontSize: '11px', marginBottom: 0 }}>Guardar conserva todos los cambios pendientes del catálogo.</p>
                                     {catalogSavedMsg && <p role="status" style={{ color: '#2E7D32', fontSize: '12px' }}>{catalogSavedMsg}</p>}
                                   </div>
+<StraighteningProductConfig catalog={catalog} service={sub} onChange={setCatalog} disabled={photoUploadBusy}/>
+
 
                                   
 

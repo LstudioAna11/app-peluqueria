@@ -1,3 +1,4 @@
+import {StraighteningProductPicker,isStraightening,isStraighteningSupplement,straighteningProductError} from './StraighteningProduct'; // lst-straightening-product-v1
 // lst-service-order-controls-v1
 // lst-highlights-comparison-save-v1
 import {HighlightOptions} from './HighlightOptions'; // lst-soft-full-length-picker-v1
@@ -487,6 +488,8 @@ const FINISH_COPY: Record<StylingPolicy, string> = {
 export type ServiceTranslation = Partial<Pick<SubService, 'name' | 'slogan' | 'description' | 'includesText' | 'achievedText' | 'forWhomText' | 'conditionsText' | 'alertText'>>;
 
 export interface SubService {
+  staffSupplementFor?: string;
+
   highlightComparison?: {soft?:string;full?:string};
 
   addonGroups?: AddonGroup[];
@@ -1624,7 +1627,7 @@ function StudioApp() {
         if(!catalogValuesMatch((stored.subservices||[]).map(item=>item.id),category.subservices.map(item=>item.id)))differences.push(category.title+': orden de servicios');
         if(stored.title!==category.title)differences.push(category.title+': nombre de categoría');
         for(const field of ['portalTitle','slogan','imageUrl'] as const)if((stored[field]||'')!==(category[field]||''))differences.push(category.title+': '+field);
-        const keys = ['highlightComparison', 'name', 'bookingName', 'imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'conditionsText', 'cutAllowedIds', 'addonGroups', 'bufferMinutes', 'bizumPolicy', 'bizumAmount', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment'] as const;
+        const keys = ['highlightComparison', 'name', 'bookingName', 'imageUrl', 'imageIsAiPlaceholder', 'includesText', 'achievedText', 'forWhomText', 'conditionsText', 'cutAllowedIds', 'addonGroups', 'bufferMinutes', 'bizumPolicy', 'bizumAmount', 'slogan', 'tonerPolicy', 'stylingPolicy', 'tonerAllowedIds', 'stylingAllowedIds', 'tonerMessage', 'stylingMessage', 'allowCutGo', 'isCutGoService', 'isStylingService', 'isTonerService', 'requiresAssessment',"staffSupplementFor","variants","active"] as const;
         for(const service of category.subservices){
           const saved=stored.subservices?.find(item=>item.id===service.id);
           if(!saved){differences.push(bookingName(service)+': servicio no encontrado');continue;}
@@ -3602,6 +3605,9 @@ function StudioApp() {
     const current = modalServices.length ? null : getModalService();
     const services = modalServices.length ? modalServices : current ? [current] : [];
     if (!services.length) return;
+    if(!staffCanManageAppointments)return;
+    const productError=straighteningProductError(services);if(productError){alert(productError);return;}
+
     // Staff choose all services directly; portal complement rules do not apply here.
     if (services.some(item=>item.sub.hasVariants&&item.sub.variants?.length&&!item.sub.variants.some(v=>v.id===item.variant?.id))) {alert('Selecciona una variante válida para cada servicio.');return;}
     const durationMin = getModalDuration(services);
@@ -5791,7 +5797,7 @@ function StudioApp() {
                 const sub = catalog[modalCatIndex]?.subservices[sIdx];
                 setModalSelectedVariant(sub?.variants?.[0] || null);
               }} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }}>
-                {catalog[modalCatIndex]?.subservices.map((sub, idx) => (<option key={sub.id} value={idx}>{bookingName(sub)}{sub.active === false ? " · Oculto en el portal" : ""}</option>))}
+                {catalog[modalCatIndex]?.subservices.map((sub, idx) => isStraighteningSupplement(sub)?null:(<option key={sub.id} value={idx}>{bookingName(sub)}{sub.active === false ? " · Oculto en el portal" : ""}</option>))}
               </select>
               {catalog[modalCatIndex]?.subservices[modalSubIndex]?.hasVariants && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -5823,6 +5829,8 @@ function StudioApp() {
                 </div>
               )}
               <small style={{ color: '#D6CBB8' }}>Selecciona cada servicio y pulsa «Añadir servicio». Si repites uno, se actualiza su variante. Se guardarán los servicios de la lista; sin lista, se guardará el servicio seleccionado.</small>
+{staffCanManageAppointments&&<StraighteningProductPicker catalog={catalog} items={modalServices} onChange={setModalServices} disabled={adminBookingSaving}/>}
+
               <section style={{padding:12,border:'1px solid #806340',borderRadius:8,color:'#FFF8EE'}}>
                 <label style={{display:'flex',alignItems:'center',gap:10,minHeight:44,cursor:'pointer'}}><input type="checkbox" checked={modalWaiveDeposit} disabled={!!editingAppointment?.completedAt||editingAppointment?.advancePayment?.status==='confirmed'} onChange={e=>setModalWaiveDeposit(e.target.checked)} style={{width:20,height:20,accentColor:'#C99E52'}}/>No solicitar anticipo en esta cita · Clienta de confianza</label>
                 <small style={{display:'block',color:'#D6CBB8',lineHeight:1.6}}>{editingAppointment?.advancePayment?.status==='confirmed'?'El anticipo ya está pagado y no se modifica desde aquí.':modalWaiveDeposit?'Se guardará «Anticipo exento por administración». El servicio se cobrará en el salón y la valoración previa, si corresponde, se mantiene.':'Si no la marcas, se aplica la regla habitual de Bizum para esta cita.'}</small>
@@ -5908,7 +5916,18 @@ function StudioApp() {
 {viewApptModal.professionalName && <span className="lst-appt-professional" style={{display:'block'}}>Profesional: {viewApptModal.professionalName}</span>}</div><button type="button" autoFocus onClick={() => setViewApptModal(null)} aria-label="Cerrar detalle de la cita" style={{background:'transparent',border:'1px solid #655039',borderRadius:8,color:'#FFF8EE',minWidth:40,minHeight:40,cursor:'pointer'}}>✕</button></header><div className="lst-appt-body"><div className="lst-appt-column"><section>
               <h4 style={{ color: '#E4C687', fontSize: '14px', margin: '0 0 12px' }}>Servicios reservados</h4>
               {viewApptModal.services?.length ? viewApptModal.services.map((item, index) => <div key={index} style={{ backgroundColor: '#322A25', padding: '14px', border: '1px solid #3A312A', borderRadius: '8px', marginBottom: '8px', fontSize: '14px', lineHeight: 1.6, color: '#FFF8EE' }}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}><strong>{bookingName(item.sub)}</strong>{viewApptModal.promotion?.serviceId === item.sub.id && renderPromotionBadge(viewApptModal)}</div>{item.variant && <span style={{ display: 'block', color: '#D6CBB8' }}>{item.variant.name}</span>}{renderBookedServicePrice(viewApptModal, item)}</div>) : <p style={{ color: '#E4C687', fontSize: '14px', lineHeight: 1.6, overflowWrap: 'anywhere' }}>{appointmentServiceNames(viewApptModal)}</p>}
-            </section>
+            
+{staffCanManageAppointments&&!viewApptModal.completedAt&&isActiveAppointment(viewApptModal)&&viewApptModal.services?.some(item=>isStraightening(item.sub))&&(<button type="button" onClick={() => {
+              setEditingAppointment(viewApptModal);
+              setTargetDateObj(new Date(viewApptModal.dateKey + 'T12:00:00'));
+              setTargetDayName(viewApptModal.dayName); setTargetTime(viewApptModal.time);
+              setModalClientName(viewApptModal.clientName); setModalPhone(viewApptModal.phone); setModalEmail(viewApptModal.email);
+              setModalServices(viewApptModal.services || []); setModalWaiveDeposit(!!viewApptModal.depositWaived);
+              setModalCatIndex(0); setModalSubIndex(0); setModalSelectedVariant(catalog[0]?.subservices[0]?.variants?.[0] || null);
+              setViewApptModal(null); setIsModalOpen(true);
+            }} style={{ background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059',
+              borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>Producto adicional · Alisado</button>)}
+</section>
 <section className="lst-appt-contact"><h4 className="lst-appt-section-title">Contacto</h4><div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', color: '#D6CBB8', fontSize: '13px', overflowWrap: 'anywhere' }}>
               <a href={`tel:${viewApptModal.phone}`} style={{ color: '#E4C687', padding: '8px 0' }}>{viewApptModal.phone}</a>
               {validRecipientPhone(viewApptModal.phone) && <a href={'https://wa.me/' + (viewApptModal.phone.replace(/[^0-9]/g, '').length === 9 ? '34' : '') + viewApptModal.phone.replace(/[^0-9]/g, '')} target="_blank" rel="noopener noreferrer" style={{ color: '#E4C687', padding: '8px 0' }}>Abrir WhatsApp</a>}
