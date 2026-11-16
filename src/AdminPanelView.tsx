@@ -1,3 +1,4 @@
+import {HighlightsVariantEditor} from './HighlightOptions'; // lst-soft-full-length-picker-v1
 // lst-quick-open-direct-v1
 import ParkingPanel from './ParkingPanel'; // lst-parking-admin-v1
 import WeeklyHoursEditor from './WeeklyHoursEditor';
@@ -1710,6 +1711,7 @@ export default function AdminPanelView(props: Props) {
                                 {sub.hasVariants && (
                                   <div className="studio-editor-options" style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
                                     <span style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold' }}>Opciones del servicio</span>
+  <HighlightsVariantEditor key={sub.id} service={sub} onApply={next=>setCatalog(previous=>previous.map(category=>category.id!==cat.id?category:{...category,subservices:category.subservices.map(service=>service.id===sub.id?next:service)}))}/>
                                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '12px' }}>
                                       {sub.variants?.map((v) => (
                                         <div key={v.id} style={{ backgroundColor: '#322A25', border: '1px solid #B98A3E', borderRadius: '4px', padding: '6px 10px', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '12px', fontSize: '14px', color: '#FFF8EE', width: '100%', boxSizing: 'border-box' }}>

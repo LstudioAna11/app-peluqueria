@@ -1,3 +1,4 @@
+import {HighlightOptions} from './HighlightOptions'; // lst-soft-full-length-picker-v1
 // lst-opinion-experiencia-v1
 import {matchCatalogService} from './catalogServiceSearch'; // lst-catalog-search-identity-v1
 // lst-quick-open-direct-v1
@@ -5314,7 +5315,7 @@ function StudioApp() {
           {detailSub.hasVariants && detailSub.variants && detailSub.variants.length > 0 && (
             <section className="studio-ficha-section">
               <h2>{t('serviceOptionsTitle')}</h2>
-              <div className="studio-service-variants-grid">
+              <HighlightOptions key={detailSub.id} service={detailSub} selected={detailSelection?.variant} onSelect={variant => setSelectedServicesToBook(previous => previous.some(item => item.sub.id === detailSub.id) ? previous.map(item => item.sub.id === detailSub.id ? { ...item, sub:detailSub, variant } : item) : [...previous, { sub: detailSub, variant }])}><div className="studio-service-variants-grid">
                 {detailSub.variants.map(variant => (
                   <button key={variant.id} type="button" aria-pressed={detailSelection?.variant?.id === variant.id}
                     onClick={() => setSelectedServicesToBook(previous => previous.some(item => item.sub.id === detailSub.id) ? previous.map(item => item.sub.id === detailSub.id ? { ...item, sub:detailSub, variant } : item) : [...previous, { sub: detailSub, variant }])}
@@ -5324,7 +5325,7 @@ function StudioApp() {
                     <span>{portalShowsPrices ? variant.price + ' · ' : ''}{variant.duration}</span>
                   </button>
                 ))}
-              </div>
+              </div></HighlightOptions>
             </section>
           )}
           {detailSelection && renderFinishChoices(selectedServicesToBook)}
@@ -5543,7 +5544,7 @@ function StudioApp() {
                 borderLeft: '2px solid #C99E52', background: '#3E342C', color: '#FFF8EE', margin: '18px 0', whiteSpace: 'pre-wrap' }}>{previewService.alertText}</p>}
               {previewService.hasVariants && !!previewService.variants?.length && <section style={{ margin: '25px 0' }}>
                 <h3 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontSize: '16px', fontWeight: 'normal', margin: '0 0 12px' }}>Elige tu opción</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '9px' }}>
+                <HighlightOptions key={previewService.id} service={previewService} selected={previewService.variants?.find(item=>item.id===previewVariantId)} onSelect={item=>setPreviewVariantId(item.id)}><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '9px' }}>
                   {previewService.variants.map(item => <button key={item.id} type="button" aria-pressed={item.id === previewVariantId}
                     onClick={() => setPreviewVariantId(item.id)} style={{ textAlign: 'left', padding: '14px', borderRadius: '9px', cursor: 'pointer',
                       background: item.id === previewVariantId ? '#3E342C' : '#322A25', color: '#FFF8EE',
@@ -5553,7 +5554,7 @@ function StudioApp() {
                     <span style={{ display: 'block', fontSize: '13px', marginTop: '13px' }}>{item.price}</span>
                     <span style={{ display: 'block', fontSize: '12px', color: '#D6CBB8', marginTop: '5px' }}>{item.duration}</span>
                   </button>)}
-                </div>
+                </div></HighlightOptions>
               </section>}
               {([{ title: '¿Qué incluye?', text: previewService.includesText }, { title: '¿Qué te llevas?', text: previewService.achievedText }, { title: '¿Es para ti?', text: previewService.forWhomText }, { title: 'Condiciones del servicio', text: previewService.conditionsText }]
                 .filter(section => !!section.text?.trim()).map(section => <section key={section.title} style={{ borderTop: '1px solid #C5A059', paddingTop: '20px', marginTop: '22px' }}>
