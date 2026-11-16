@@ -1,0 +1,25 @@
+    // Vista previa de cita rápida: solo lectura, sin reservar ni enviar.
+    if (action === 'email-preview') {
+      if (!isAdmin) return json({error:'Solo administración'},403);
+      if (req.method !== 'POST') return json({error:'Método no permitido'},405);
+      const draft=body.draft;
+      if (!draft || typeof draft !== 'object' || typeof draft.clientName !== 'string' || !draft.clientName.trim() || draft.clientName.length>200 || typeof draft.dateKey!=='string' || typeof draft.time!=='string' || !/^\d{4}-\d{2}-\d{2}$/.test(draft.dateKey) || !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(draft.time) || !Array.isArray(draft.services) || !draft.services.length || draft.services.length>30 || typeof draft.pending!=='boolean' || typeof draft.isUpdate!=='boolean') return json({error:'Completa nombre, fecha, hora y servicios.'},422);
+      const day=new Date(draft.dateKey+'T12:00:00Z');
+      if(!Number.isFinite(day.getTime())||day.toISOString().slice(0,10)!==draft.dateKey||draft.services.some((item:any)=>!item?.sub||typeof item.sub.name!=='string'||item.sub.name.length>500))return json({error:'Revisa la fecha y los servicios.'},422);
+      const {data:config,error:configError}=await admin.from('studio_email_config').select('from_email,portal_url').eq('id',true).maybeSingle();
+      if(configError)return json(failed(configError),500);
+      const pending=draft.pending;
+      const title=pending?(draft.isUpdate?'Cambio de cita recibido':'Solicitud recibida'):(draft.isUpdate?'Tu cita ha sido modificada':'Tu cita está confirmada');
+      const subject=pending?(draft.isUpdate?'Cambio de cita recibido · Pendiente de confirmación':"Hemos recibido tu solicitud en L'Studio Ana"):(draft.isUpdate?"Tu cita en L'Studio Ana ha sido modificada":"Tu cita en L'Studio Ana está confirmada");
+      const services=await appointmentNotificationServices(admin,draft.services,'');
+      const start=notificationInstant(draft.dateKey+'T'+draft.time+':00');
+      const priceHtml=await emailPricesVisible(admin)?appointmentPriceHtml({services:draft.services,client_snapshot:{promotion:draft.promotion||null},voucher_summary:draft.voucher||null}):'';
+      const portalUrl=String(config?.portal_url||DEFAULT_PORTAL_URL);
+      const html=emailLayout(title,`<p style="margin:0 0 12px;color:#FFF8EE;">Hola <strong>${escHtml(draft.clientName.trim())}</strong>,</p>
+        ${pending?'<p style="margin:0 0 12px;color:#FFF8EE;">Tu solicitud está en revisión. Te enviaremos la confirmación definitiva cuando se completen los pasos pendientes (aprobación de Ana o el anticipo de la reserva).</p>':''}
+        ${detailsTable(start,services)}${priceHtml}${viewButton(portalUrl,'')}`);
+      const response=json({html,subject,fromEmail:String(config?.from_email||''),toEmail:String(draft.toEmail||'').slice(0,320),pending});
+      response.headers.set('Cache-Control','no-store');
+      return response;
+    }
+

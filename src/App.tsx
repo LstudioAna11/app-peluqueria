@@ -32,6 +32,7 @@ import { rememberCatalogPhoto, restoreCatalogPhotos, clearCatalogPhotos, forgetC
 import { prepareCatalogImage, catalogImageSizeMessage } from './catalogImage';
 import type {createClient} from '@supabase/supabase-js';
 import { AddonChoices, addonError, type AddonGroup } from './ServiceAddons';
+import QuickEmailPreview from './QuickEmailPreview'; // lst-quick-email-preview-v1
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ChevronDown, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
 import './catalog.css';
@@ -5812,6 +5813,15 @@ function StudioApp() {
                 <label style={{display:'flex',alignItems:'center',gap:10,minHeight:44,cursor:'pointer'}}><input type="checkbox" checked={modalWaiveDeposit} disabled={!!editingAppointment?.completedAt||editingAppointment?.advancePayment?.status==='confirmed'} onChange={e=>setModalWaiveDeposit(e.target.checked)} style={{width:20,height:20,accentColor:'#C99E52'}}/>No solicitar anticipo en esta cita · Clienta de confianza</label>
                 <small style={{display:'block',color:'#D6CBB8',lineHeight:1.6}}>{editingAppointment?.advancePayment?.status==='confirmed'?'El anticipo ya está pagado y no se modifica desde aquí.':modalWaiveDeposit?'Se guardará «Anticipo exento por administración». El servicio se cobrará en el salón y la valoración previa, si corresponde, se mantiene.':'Si no la marcas, se aplica la regla habitual de Bizum para esta cita.'}</small>
               </section>
+              <QuickEmailPreview disabled={adminBookingSaving} getDraft={() => {
+                if(quickClientMode){alert('Termina primero el alta de la ficha.');return null;}
+                const selected = modalServices.length ? modalServices : (() => {const item=getModalService();return item?[item]:[];})();
+                const duration = getModalDuration(selected);
+                const needsAssessment = selected.some(item => item.sub.requiresAssessment) && !(editingAppointment?.services || []).some(item => item.sub.requiresAssessment);
+                const approvalPending = editingAppointment ? needsAssessment || editingAppointment.saturdayApproval?.status === 'pending' : Boolean(getApprovalReason(selected,formatDateKey(targetDateObj)));
+                const paymentPending = !modalWaiveDeposit && (editingAppointment ? editingAppointment.advancePayment ? editingAppointment.advancePayment.status === 'pending' : !approvalPending && serviceDepositAmount(selected,duration)>0 : serviceDepositAmount(selected,duration)>0);
+                return {clientName:modalClientName,toEmail:modalEmail,dateKey:formatDateKey(targetDateObj),time:targetTime,services:selected,pending:approvalPending||paymentPending,isUpdate:!!editingAppointment,promotion:editingAppointment?.promotion,voucher:editingAppointment?.voucher};
+              }} />
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
                 <button type="button" disabled={adminBookingSaving} onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
                 <button type="submit" disabled={adminBookingSaving} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{adminBookingSaving ? 'Guardando…' : editingAppointment ? 'Guardar cambios' : 'Guardar Cita'}</button>
