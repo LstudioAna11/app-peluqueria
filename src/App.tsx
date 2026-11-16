@@ -1,3 +1,4 @@
+import {matchCatalogService} from './catalogServiceSearch'; // lst-catalog-search-identity-v1
 // lst-quick-open-direct-v1
 import PushSetupHelp from './PushSetupHelp'; // lst-push-help-all-v1
 import './detalle-cita-ordenado.css';
@@ -6,7 +7,7 @@ import {useClientAppointmentRefresh} from './useClientAppointmentRefresh';
 import AgendaStateLegend from './AgendaStateLegend';
 import AppointmentRepeatCard from './AppointmentRepeatCard';
 import SearchAnswers from './SearchAnswers';
-import {matchesSearchQuery,searchHelpTopics} from './portalSearchHelp';
+import {searchHelpTopics} from './portalSearchHelp';
 import StudioVisitLinks from './StudioVisitLinks';
 import StudioPortalNews from './StudioPortalNews';
 import StudioReviewsCard from './StudioReviewsCard';
@@ -3517,8 +3518,10 @@ function StudioApp() {
   const portalServiceMatches = (category: CatalogCategory, service: SubService) => {
     if (service.active === false) return false;
     if (!portalSearchQuery) return true;
-    const text = normalizeServiceSearch([categoryText(category), category.title, category.slogan, bookingName(service), serviceText(service, 'name'), service.name, serviceText(service, 'slogan'), service.slogan, serviceText(service, 'description'), service.description, ...(service.variants || []).map(variant => variantText(variant, service))].filter(Boolean).join(' '));
-    return currentLang==='es'?matchesSearchQuery(portalSearchQuery,text):portalSearchQuery.split(' ').every(word => text.includes(word));
+    return matchCatalogService(portalSearch,
+      [categoryText(category), category.title],
+      [bookingName(service), serviceText(service, 'name'), service.name],
+      (service.variants || []).map(variant => variantText(variant, service)));
   };
   const portalSearchCount = catalog.reduce((total, category) => total + category.subservices.filter(service => portalServiceMatches(category, service)).length, 0);
   const translationLanguagePicker = () => <label style={{ display: 'block', color: '#D6CBB8', fontSize: '13px', margin: '12px 0' }}>Idioma<select value={catalogTranslationLang} onChange={event => setCatalogTranslationLang(event.target.value)} style={{ display: 'block', width: '100%', padding: '12px', marginTop: '6px', background: '#3E342C', color: '#FFF8EE', border: '1px solid #C5A059', borderRadius: '7px' }}>{Object.keys(TRANSLATIONS).filter(language => language !== 'es').map(language => <option key={language} value={language}>{({en: 'English', fr: 'Français', it: 'Italiano', pt: 'Português', de: 'Deutsch', nl: 'Nederlands', pl: 'Polski', cs: 'Čeština', nb: 'Norsk', sv: 'Svenska', ar: 'العربية'} as Record<string, string>)[language]}</option>)}</select></label>;
@@ -5059,12 +5062,12 @@ function StudioApp() {
             <p style={{ color: '#F0E6D2', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('experienceIntro')}</p>
           </div>
           <section aria-label={t('searchServices')} style={{ background: '#322A25', border: '1px solid rgba(196,154,88,.3)', borderRadius: 12, padding: 14 }}>
-            <label htmlFor="portal-service-search" style={{ display: 'block', color: '#FFF8EE', fontSize: 14, marginBottom: 8 }}>{currentLang==='es'?'Servicios y dudas':t('searchServices')}</label>
+            <label htmlFor="portal-service-search" style={{ display: 'block', color: '#FFF8EE', fontSize: 14, marginBottom: 8 }}>{currentLang==='es'?'Buscar servicios':t('searchServices')}</label>
             <div style={{ display: 'flex', gap: 8 }}>
-              <input id="portal-service-search" type="search" value={portalSearch} maxLength={100} onChange={event => setPortalSearch(event.target.value)} placeholder={currentLang==='es'?'Busca un servicio o una duda':t('searchPlaceholder')} autoComplete="off" style={{ width: '100%', minWidth: 0, minHeight: 46, fontSize: 16, padding: '10px 12px', borderRadius: 8, background: '#221D19', color: '#FFF8EE', border: '1px solid rgba(196,154,88,.5)', boxSizing: 'border-box' }} />
+              <input id="portal-service-search" type="search" value={portalSearch} maxLength={100} onChange={event => setPortalSearch(event.target.value)} placeholder={currentLang==='es'?'¿Qué servicio estás buscando?':t('searchPlaceholder')} autoComplete="off" style={{ width: '100%', minWidth: 0, minHeight: 46, fontSize: 16, padding: '10px 12px', borderRadius: 8, background: '#221D19', color: '#FFF8EE', border: '1px solid rgba(196,154,88,.5)', boxSizing: 'border-box' }} />
               {portalSearch && <button type="button" aria-label={t('clearSearch')} onClick={() => { setPortalSearch(''); document.getElementById('portal-service-search')?.focus(); }} style={{ minWidth: 44, minHeight: 46, borderRadius: 8, background: '#221D19', border: '1px solid rgba(196,154,88,.4)', color: '#E4C687', cursor: 'pointer' }}>×</button>}
             </div>
-            {currentLang === 'es' && <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>{['Corte', 'Color', 'Mechas', 'Peinado', 'Head Spa', 'Tratamientos', 'Hombre', 'Niños'].map(word => <button key={word} type="button" aria-pressed={portalSearchQuery === normalizeServiceSearch(word)} onClick={() => setPortalSearch(word)} style={{ border: '1px solid rgba(196,154,88,.35)', borderRadius: 20, padding: '8px 12px', minHeight: 40, background: portalSearchQuery === normalizeServiceSearch(word) ? '#C49A58' : 'transparent', color: portalSearchQuery === normalizeServiceSearch(word) ? '#221D19' : '#E4C687', fontSize: 12, cursor: 'pointer' }}>{word}</button>)}</div>}
+            
           </section>
           
           {portalSearchQuery && <section aria-label={t('searchResults')}>
