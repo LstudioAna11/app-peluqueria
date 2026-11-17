@@ -1,3 +1,4 @@
+// lst-hide-two-consultation-reference-lines-v1
 import {StraighteningProductPicker,isStraightening,isStraighteningSupplement,straighteningProductError} from './StraighteningProduct'; // lst-straightening-product-v1
 // lst-service-order-controls-v1
 // lst-highlights-comparison-save-v1
@@ -5298,7 +5299,7 @@ function StudioApp() {
             <h1 className="lst-detail-title">{bookingName(detailSub)}</h1>
             {(serviceText(detailSub, 'name') || detailSub.name).trim() !== bookingName(detailSub).trim() && <p style={{ color: '#F0E6D2', fontSize: 14, lineHeight: 1.5, margin: '8px 0' }}>{serviceText(detailSub, 'name') || detailSub.name}</p>}
             {!!serviceText(detailSub, 'description') && <p className="lst-detail-desc">{serviceText(detailSub, 'description')}</p>}
-            {detailSub.imageCredit && <p style={{ fontSize: 10, color: '#D6CBB8', lineHeight: 1.5 }}>{detailSub.imageCredit}</p>}
+            {detailSub.imageCredit && !(/(?:test.*viabilidad|viabilidad.*resistencia|estudio.*visagismo)/.test(String(detailSub.name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()) && /^imagen de referencia\b/i.test(detailSub.imageCredit.trim())) && <p style={{ fontSize: 10, color: '#D6CBB8', lineHeight: 1.5 }}>{detailSub.imageCredit}</p>}
           </header>
           {([
             { field: 'includesText', title: '¿Qué incluye?', icon: Scissors },
