@@ -1948,6 +1948,23 @@ export default function AdminPanelView(props: Props) {
                 }
                 .lst-client-directory .lst-directory-row:hover {background:#3B3128}
                 .lst-client-directory .lst-directory-row button {min-height:36px}
+                 .lst-client-directory .lst-profile-hero {display:flex;align-items:center;gap:13px;flex-wrap:wrap}
+                .lst-client-directory .lst-profile-avatar {width:52px;height:52px;flex-shrink:0;display:grid;place-items:center;border-radius:14px;background:#4A3B2B;border:1px solid #94734D;color:#E4C687;font-family:Georgia,serif;font-size:21px}
+                .lst-client-directory .lst-profile-main-action {background:#C49A58;border:0;border-radius:8;padding:11px 16px;min-height:42px;color:#29231F;font-size:12px;font-weight:700;cursor:pointer}
+                .lst-client-directory .lst-profile-stats {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+                .lst-client-directory .lst-profile-stats > div {border:1px solid #514333;border-radius:10px;background:#322A25;padding:12px;display:grid;align-content:start;gap:7px;min-width:0}
+                .lst-client-directory .lst-profile-stats small {color:#C5AE92;font-size:10px;text-transform:uppercase;letter-spacing:.07em}
+                .lst-client-directory .lst-profile-stats strong {font-size:13px;font-weight:500;color:#FFF8EE;line-height:1.35;overflow-wrap:anywhere}
+                .lst-client-directory .lst-profile-shortcuts {display:flex;flex-wrap:wrap;gap:8px}
+                .lst-client-directory .lst-profile-shortcuts button,.lst-client-directory .lst-profile-shortcuts a {display:inline-flex;align-items:center;justify-content:center;min-height:39px;padding:9px 12px;box-sizing:border-box;background:#3A3027;border:1px solid #8A6C45;border-radius:7px;color:#E4C687;font-size:12px;text-decoration:none;cursor:pointer}
+                .lst-client-directory .lst-profile-shortcuts :is(button,a):hover {background:#4A3929}
+                .lst-client-directory .lst-profile-section {border:1px solid #655039;border-radius:10px;background:#322A25;overflow:hidden}
+                .lst-client-directory .lst-profile-section > summary {list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;color:#E4C687;font-size:13px;font-weight:600}
+                .lst-client-directory .lst-profile-section > summary::-webkit-details-marker {display:none}
+                .lst-client-directory .lst-profile-section[open] > summary {border-bottom:1px solid #514333}
+                .lst-client-directory .lst-profile-section[open] .lst-profile-chevron {transform:rotate(180deg)}
+                .lst-client-directory .lst-profile-section-content {padding:13px;display:grid;gap:12px}
+                @media(max-width:700px){.lst-client-directory .lst-profile-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.lst-client-directory .lst-profile-shortcuts button,.lst-client-directory .lst-profile-shortcuts a{flex:1 1 43%}.lst-client-directory .lst-profile-main-action{width:100%}}
                 .lst-client-directory .lst-client-drawer {
                   position:fixed;right:0;top:0;bottom:0;z-index:151;
                   width:min(510px,100vw);overflow-y:auto;box-sizing:border-box;
@@ -2060,9 +2077,39 @@ export default function AdminPanelView(props: Props) {
   <span className="lst-client-status" style={{fontSize:12,whiteSpace:'nowrap',color:c.archivedAt?'#F5C7B8':'#BDE1B8'}}>{c.archivedAt?'De baja':'● Activa'}</span>
   <button type="button" className="studio-btn-ghost lst-client-action" aria-label={`${expandedClientId === c.idNum?'Cerrar':'Ver'} ficha de ${c.nombre} ${c.apellidos}`} aria-expanded={expandedClientId === c.idNum} aria-controls={`client-details-${c.idNum}`} onClick={() => { setExpandedClientId(previous => previous === c.idNum ? null : c.idNum); setEditingClientId(null); }} style={{minHeight:36,padding:'6px 8px',fontSize:12,color:'#E4C687',whiteSpace:'nowrap'}}>{expandedClientId === c.idNum ? 'Cerrar' : 'Ver ficha'}</button>
 </div>
-{expandedClientId === c.idNum && <div id={`client-details-${c.idNum}`} style={{display:'flex',flexDirection:'column',gap:10,padding:14,borderTop:'1px solid #655039'}}><div style={{display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:10,paddingBottom:10,borderBottom:'1px solid #655039'}}><div style={{flex:'1 1 180px',fontSize:14,color:'#D6CBB8',lineHeight:1.8}}><div>Última visita: <span style={{color:'#FFF8EE'}}>{visits.last || 'Sin visitas registradas'}</span></div><div>Próxima cita: <span style={{color:'#E4C687'}}>{visits.next || 'Sin cita reservada'}</span></div></div>{!c.archivedAt && <button type="button" className="studio-btn-ghost" aria-label={`Nueva cita para ${c.nombre} ${c.apellidos}`} onClick={() => props.onStartClientAppointment(c)}>+ Nueva cita</button>}</div>
-<React.Suspense fallback={null}><LazyClubProfile clientId={c.serverId}/></React.Suspense>
-<React.Suspense fallback={null}><LazyMemoriesAdmin key={c.serverId||c.idNum} clientId={c.serverId} clientName={[c.nombre,c.apellidos].filter(Boolean).join(' ')}/></React.Suspense>
+{expandedClientId === c.idNum && <div id={`client-details-${c.idNum}`} className="lst-profile-detail" style={{display:'flex',flexDirection:'column',gap:14,padding:16,borderTop:'1px solid #655039',background:'#29231F'}}>
+  <header className="lst-profile-hero">
+    <div className="lst-profile-avatar" aria-hidden="true">{(c.nombre.trim()[0]||'C').toUpperCase()}{(c.apellidos.trim()[0]||'').toUpperCase()}</div>
+    <div style={{minWidth:0,flex:1}}>
+      <p style={{margin:'0 0 3px',fontSize:10,letterSpacing:'0.13em',textTransform:'uppercase',color:'#C9A96F'}}>Ficha #{clientDisplayNumber(c)} · L’Studio Ana</p>
+      <h3 style={{margin:0,fontSize:'clamp(17px,2.2vw,23px)',fontFamily:'Georgia,serif',fontWeight:400,color:'#FFF8EE',overflowWrap:'anywhere'}}>{c.nombre} {c.apellidos}</h3>
+      <span style={{fontSize:11,color:c.archivedAt?'#F5C7B8':'#BDE1B8'}}>{c.archivedAt?'● De baja':'● Clienta activa'}</span>
+      {c.emailHolderId && <span style={{marginLeft:10,fontSize:11,color:'#D7B980'}}>✦ Email familiar</span>}
+    </div>
+    {!c.archivedAt && <button type="button" className="lst-profile-main-action" aria-label={`Nueva cita para ${c.nombre} ${c.apellidos}`} onClick={() => props.onStartClientAppointment(c)}>+ Nueva cita</button>}
+  </header>
+  <div className="lst-profile-stats">
+    <div><small>Última visita</small><strong>{visits.last || 'Sin visitas registradas'}</strong></div>
+    <div><small>Próxima cita</small><strong>{visits.next || 'Sin cita reservada'}</strong></div>
+    <div><small>Historial</small><strong>{c.pastVisits?.length || 0} visitas</strong></div>
+  </div>
+  <div className="lst-profile-shortcuts" role="group" aria-label="Acciones rápidas de la clienta">
+    <button type="button" onClick={()=>openPassportEditor(c)}>✦ Pasaporte capilar</button>
+    <button type="button" onClick={()=>setClientDetailsDraft({...c})}>♙ Datos y acceso</button>
+    <button type="button" onClick={()=>{
+      setEditingClientId(c.idNum);
+      setEditAdminUltimaVisita(c.ultimaVisita);
+      setEditAdminProxima(c.proximaVisitaSugerida);
+      setEditAdminFormulas(c.formulasAplicadas);
+      setEditAdminDniCapilar(c.dniCapilar||'');
+      setEditAdminPrescripcionCasa(c.prescripcionCasa||'');
+    }}>✎ Notas y fórmulas</button>
+    {c.telefono && /\d{9,}/.test(c.telefono.replace(/\D/g,'')) && <a href={'tel:'+c.telefono.replace(/[^+\d]/g,'')}>☎ Llamar</a>}
+  </div>
+  <details className="lst-profile-section">
+    <summary><span>Datos personales y herramientas</span><span className="lst-profile-chevron">⌄</span></summary>
+    <div className="lst-profile-section-content">
+      <p style={{margin:'0 0 10px',color:'#D6CBB8',fontSize:12}}>Consulta los datos de contacto, permisos, galería, pasaporte y herramientas de gestión de esta ficha.</p>
 {c.archivedAt && <p style={{margin:0,fontSize:12,color:'#F5C7B8'}}>De baja desde {new Date(c.archivedAt).toLocaleDateString('es-ES')}. Su historial se conserva.</p>}
 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
                           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -2150,6 +2197,15 @@ export default function AdminPanelView(props: Props) {
                             </details>
                           </div>
                         )}
+    </div>
+  </details>
+  <details className="lst-profile-section">
+    <summary><span>L’Studio Club y recuerdos</span><span className="lst-profile-chevron">⌄</span></summary>
+    <div className="lst-profile-section-content" style={{display:'grid',gap:12}}>
+      <React.Suspense fallback={<p style={{color:'#D6CBB8'}}>Abriendo Club…</p>}><LazyClubProfile clientId={c.serverId}/></React.Suspense>
+      <React.Suspense fallback={<p style={{color:'#D6CBB8'}}>Abriendo recuerdos…</p>}><LazyMemoriesAdmin key={c.serverId||c.idNum} clientId={c.serverId} clientName={[c.nombre,c.apellidos].filter(Boolean).join(' ')}/></React.Suspense>
+    </div>
+  </details>
 </div>}
 </article>
                     );
