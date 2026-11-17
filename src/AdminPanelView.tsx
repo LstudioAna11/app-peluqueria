@@ -1931,7 +1931,50 @@ export default function AdminPanelView(props: Props) {
 
           {/* TAB 4: CLIENTES & ADN CAPILAR */}
           {adminTab === 'clients' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div className="lst-client-directory" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <style>{`
+                .lst-client-directory .lst-directory-head,
+                .lst-client-directory .lst-directory-row {
+                  display:grid;grid-template-columns:100px minmax(0,1fr) 110px 96px;
+                  align-items:center;gap:12px;
+                }
+                .lst-client-directory .lst-directory-head {
+                  padding:8px 14px;font-size:11px;color:#D6CBB8;
+                  letter-spacing:.06em;text-transform:uppercase;
+                  background:#27211D;border-bottom:1px solid #655039;
+                }
+                .lst-client-directory .lst-directory-row {
+                  min-height:43px;padding:3px 14px;background:#322A25;
+                }
+                .lst-client-directory .lst-directory-row:hover {background:#3B3128}
+                .lst-client-directory .lst-directory-row button {min-height:36px}
+                .lst-client-directory .lst-client-drawer {
+                  position:fixed;right:0;top:0;bottom:0;z-index:151;
+                  width:min(510px,100vw);overflow-y:auto;box-sizing:border-box;
+                  background:#29231F;border-left:1px solid #C49A58;
+                  box-shadow:-12px 0 45px #0008;padding:20px;
+                }
+                .lst-client-directory .lst-client-backdrop {
+                  position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.65);
+                  border:0;cursor:pointer;
+                }
+                @media(max-width:700px) {
+                  .lst-client-directory .lst-directory-head,
+                  .lst-client-directory .lst-directory-row {
+                    grid-template-columns:55px minmax(0,1fr) 65px 48px;gap:6px;
+                  }
+                  .lst-client-directory .lst-directory-head {padding:8px;font-size:10px}
+                  .lst-client-directory .lst-directory-row {padding:3px 8px}
+                  .lst-client-directory .lst-directory-row .lst-client-status {font-size:10px}
+                  .lst-client-directory .lst-directory-row .lst-client-action {
+                    min-width:40px;padding:4px 2px;font-size:0 !important;
+                  }
+                  .lst-client-directory .lst-directory-row .lst-client-action::after {
+                    content:'›';font-size:23px;line-height:1;
+                  }
+                  .lst-client-directory .lst-client-drawer {padding:16px}
+                }
+              `}</style>
               {returnToAppointmentId && <button type="button" onClick={() => {
                 const appointment = appointments.find(item => item.id === returnToAppointmentId);
                 setAdminTab('agenda'); setReturnToAppointmentId(null);
@@ -1945,7 +1988,7 @@ export default function AdminPanelView(props: Props) {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div>
                   <h3 style={{ color: '#E4C687', fontSize: '28px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: '0 0 4px 0' }}>Clientas</h3>
-                  <p style={{ color: '#D6CBB8', fontSize: '14px', margin: 0 }}>Sus datos, próximas citas y seguimiento, en un mismo lugar.</p>
+                  <p style={{ color: '#D6CBB8', fontSize: '12px', margin: 0 }}>Directorio, citas y seguimiento en un solo lugar.</p>
                 </div>
                 <div style={{display:'flex',alignItems:'flex-start',gap:10,flexWrap:'wrap'}}>
                 <button type="button" onClick={() => setIsAddingClient(!isAddingClient)} style={{background:'#C49A58',color:'#29231F',border:0,padding:'11px 16px',borderRadius:8,fontSize:14,fontWeight:700,cursor:'pointer'}}>
@@ -1954,9 +1997,14 @@ export default function AdminPanelView(props: Props) {
                 <ClientExcelExport />
                 </div>
               </div>
-              {isAddingClient && (
+              {isAddingClient && <>
+                <button type="button" className="lst-client-backdrop" aria-label="Cerrar alta de clienta" onClick={()=>setIsAddingClient(false)}/>
+                <div className="lst-client-drawer" role="dialog" aria-modal="true" aria-label="Nueva ficha de clienta" onKeyDown={e=>{if(e.key==='Escape'){e.stopPropagation();setIsAddingClient(false);}}}>
                 <form onSubmit={handleGuardarNuevoCliente} style={{ backgroundColor: '#322A25', border: '1px solid #B98A3E', borderRadius: '8px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <h4 style={{ color: '#E4C687', fontSize: '13px', margin: 0 }}>Nueva Ficha de Clienta</h4>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:10}}>
+                    <h4 style={{color:'#E4C687',fontSize:18,margin:0}}>Nueva ficha de clienta</h4>
+                    <button type="button" aria-label="Cerrar formulario" onClick={()=>setIsAddingClient(false)} style={{minWidth:36,minHeight:36,border:'1px solid #655039',background:'transparent',color:'#E4C687',borderRadius:7,cursor:'pointer'}}>✕</button>
+                  </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px' }}>
                     <input type="text" placeholder="Nombre *" value={novoNombre} onChange={(e) => setNovoNombre(e.target.value)} onFocus={(e) => e.target.select()} required style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
                     <input type="text" placeholder="Apellidos" value={novoApellidos} onChange={(e) => setNovoApellidos(e.target.value)} onFocus={(e) => e.target.select()} style={{ padding: '12px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px' }} />
@@ -1986,24 +2034,32 @@ export default function AdminPanelView(props: Props) {
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                     <button type="submit" style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '8px 16px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Guardar Clienta</button>
                   </div>
-                </form>
-              )}
+                </form></div>
+              </>}
               <div>
-                <input type="text" aria-label="Buscar clientas" placeholder="Buscar por nombre, teléfono o email" value={busquedaCliente} onChange={(e) => setBusquedaCliente(e.target.value)} onFocus={(e) => e.target.select()} style={{ width: '100%', maxWidth: 'none', boxSizing: 'border-box', padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px', outline: 'none' }} />
+                <input type="text" aria-label="Buscar clientas" placeholder="Buscar nombre, teléfono, email o nº de ficha" value={busquedaCliente} onChange={(e) => setBusquedaCliente(e.target.value)} onFocus={(e) => e.target.select()} style={{ width: '100%', maxWidth: 'none', boxSizing: 'border-box', padding: '12px', backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', color: '#FFF8EE', borderRadius: '6px', fontSize: '14px', outline: 'none' }} />
               </div>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
                 {([{ value: 'active', label: 'Activas' }, { value: 'archived', label: 'De baja' }, { value: 'all', label: 'Todas' }] as const).map(option => <button key={option.value} type="button" aria-pressed={clientStatusFilter === option.value} onClick={() => setClientStatusFilter(option.value)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid #655039', background: clientStatusFilter === option.value ? '#C49A58' : '#322A25', color: clientStatusFilter === option.value ? '#29231F' : '#FFF8EE', cursor: 'pointer', fontSize: 13 }}>{option.label} · {listaClientes.filter(client => option.value === 'all' || (option.value === 'archived' ? !!client.archivedAt : !client.archivedAt)).length}</button>)}
                 <span style={{ color: '#D6CBB8', fontSize: 12, marginLeft: 'auto' }}>{filteredClientRows.length} {filteredClientRows.length === 1 ? 'clienta' : 'clientas'}{busquedaCliente.trim() ? ' encontradas' : ''}</span>
               </div>
               {clientStatusError && <p role="alert" style={{ color: '#F5C7B8', margin: 0 }}>{clientStatusError}</p>}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{border:'1px solid #4B4035',borderRadius:10,overflow:'hidden',background:'#322A25'}}>
+                <div className="lst-directory-head" aria-hidden="true"><span>Nº ficha</span><span>Clienta</span><span>Estado</span><span>Acceso</span></div>
                 {visibleClientRows
                   .map((c) => {
                     const isEditing = editingClientId === c.idNum;
                     const visits = clientVisitSummary(c, appointments, summaryNow);
                     return (
-                      <article key={c.idNum} style={{background:'#322A25',border:'1px solid #4B4035',borderRadius:12,overflow:'hidden'}}>
-<div className="lst-clients-compact-rows-v1" style={{display:'grid',gridTemplateColumns:'minmax(0,1fr) auto auto',alignItems:'center',gap:8,padding:'4px 10px'}}><strong title={c.nombre+' '+c.apellidos} style={{fontSize:14,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{c.nombre} {c.apellidos}</strong><span style={{fontSize:12,whiteSpace:'nowrap',color:c.archivedAt?'#F5C7B8':'#BDE1B8'}}>{c.archivedAt?'De baja':'Activa'}</span><button type="button" className="studio-btn-ghost" aria-expanded={expandedClientId === c.idNum} aria-controls={`client-details-${c.idNum}`} onClick={() => { setExpandedClientId(previous => previous === c.idNum ? null : c.idNum); setEditingClientId(null); }} style={{minHeight:44,padding:'6px 10px',fontSize:12,color:'#E4C687',whiteSpace:'nowrap'}}>{expandedClientId === c.idNum ? 'Cerrar ficha' : 'Ver ficha'}</button></div>
+                      <article key={c.serverId||c.idNum} style={{background:'#322A25',borderTop:'1px solid #4B4035',overflow:'hidden'}}>
+<div className="lst-directory-row">
+  <span style={{fontSize:12,color:'#C9A96F',fontVariantNumeric:'tabular-nums'}}>#{clientDisplayNumber(c)}</span>
+  <strong title={c.nombre+' '+c.apellidos} style={{fontSize:13,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',color:'#FFF8EE'}}>
+    {c.nombre} {c.apellidos}{c.emailHolderId && <span title="Email familiar vinculado" style={{color:'#C9A96F',marginLeft:7}}>♧</span>}
+  </strong>
+  <span className="lst-client-status" style={{fontSize:12,whiteSpace:'nowrap',color:c.archivedAt?'#F5C7B8':'#BDE1B8'}}>{c.archivedAt?'De baja':'● Activa'}</span>
+  <button type="button" className="studio-btn-ghost lst-client-action" aria-label={`${expandedClientId === c.idNum?'Cerrar':'Ver'} ficha de ${c.nombre} ${c.apellidos}`} aria-expanded={expandedClientId === c.idNum} aria-controls={`client-details-${c.idNum}`} onClick={() => { setExpandedClientId(previous => previous === c.idNum ? null : c.idNum); setEditingClientId(null); }} style={{minHeight:36,padding:'6px 8px',fontSize:12,color:'#E4C687',whiteSpace:'nowrap'}}>{expandedClientId === c.idNum ? 'Cerrar' : 'Ver ficha'}</button>
+</div>
 {expandedClientId === c.idNum && <div id={`client-details-${c.idNum}`} style={{display:'flex',flexDirection:'column',gap:10,padding:14,borderTop:'1px solid #655039'}}><div style={{display:'flex',flexWrap:'wrap',alignItems:'center',justifyContent:'space-between',gap:10,paddingBottom:10,borderBottom:'1px solid #655039'}}><div style={{flex:'1 1 180px',fontSize:14,color:'#D6CBB8',lineHeight:1.8}}><div>Última visita: <span style={{color:'#FFF8EE'}}>{visits.last || 'Sin visitas registradas'}</span></div><div>Próxima cita: <span style={{color:'#E4C687'}}>{visits.next || 'Sin cita reservada'}</span></div></div>{!c.archivedAt && <button type="button" className="studio-btn-ghost" aria-label={`Nueva cita para ${c.nombre} ${c.apellidos}`} onClick={() => props.onStartClientAppointment(c)}>+ Nueva cita</button>}</div>
 <React.Suspense fallback={null}><LazyClubProfile clientId={c.serverId}/></React.Suspense>
 <React.Suspense fallback={null}><LazyMemoriesAdmin key={c.serverId||c.idNum} clientId={c.serverId} clientName={[c.nombre,c.apellidos].filter(Boolean).join(' ')}/></React.Suspense>
