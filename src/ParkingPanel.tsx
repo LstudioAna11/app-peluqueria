@@ -1,4 +1,4 @@
-mport React,{useEffect,useId,useRef,useState} from 'react';
+import React,{useEffect,useId,useRef,useState} from 'react';
 import {CarFront,X,PackagePlus,Check} from 'lucide-react';
 import {parkingCall,mutateParking,readParkingPending,discardParkingPendingLocally,type ParkingState,type ParkingOperation} from './parkingApi';
 import './parking-studio.css';
