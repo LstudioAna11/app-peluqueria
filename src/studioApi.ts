@@ -125,7 +125,7 @@ export const createClientOnServer = (token: string, client: Record<string, unkno
   call<{ ok: true; id: string; legacyId: number; registrationId: string }>("client", { token, body: client });
 
 export const pushPassport = (token: string, passport: Record<string, unknown>) =>
-  call<{ ok: true }>("passport", { token, body: passport });
+  call<{ ok: true }>("passport", { method: "PUT", token, body: passport });
 
 export const createClosure = (token: string, closure: Record<string, unknown>) =>
   call<{ ok: true; id: string }>("closure", { token, body: closure });
