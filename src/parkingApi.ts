@@ -1,9 +1,17 @@
 import * as studioApi from './studioApi';
 export type ParkingState={initialized:boolean;minMinutes:number;courtesyMinutes:number;stock:number|null;lowStock:boolean;alertAt:number;eligible:boolean;delivered:boolean;deliveredAt:string|null;added:number;deliveredTotal:number;history:{action:string;delta:number;at:string;appointment_id:string|null;reason:string|null}[]};
-export type ParkingOperation={action:'initialize'|'restock'|'issue'|'return'|'settings';requestId:string;reference?:string;amount?:number;minimum?:number;reason?:string};
+export type ParkingOperation={action:'initialize'|'restock'|'issue'|'return'|'settings'|'reset';requestId:string;reference?:string;amount?:number;minimum?:number;reason?:string};
 const pendingKey='lst_parking_pending_v1';
 export const parkingChanged=()=>window.dispatchEvent(new Event('lst-parking-change'));
-export function readParkingPending():ParkingOperation|null{const value=localStorage.getItem(pendingKey);if(!value)return null;const op=JSON.parse(value);if(!op?.requestId||!['initialize','restock','issue','return','settings'].includes(op.action))throw Error('Hay una operación de parking pendiente que necesita revisión.');return op;}
+/** Quita exclusivamente la marca LOCAL de operación pendiente.
+ * No ejecuta ni revierte operaciones en Supabase. Usar tras comprobar
+ * el stock real en el servidor y obtener confirmación explícita. */
+export function discardParkingPendingLocally():void{
+ if(studioApi.storedRole()!=='admin'||!studioApi.currentToken())throw Error('Accede como administradora para revisar el parking.');
+ localStorage.removeItem(pendingKey);
+ parkingChanged();
+}
+export function readParkingPending():ParkingOperation|null{const value=localStorage.getItem(pendingKey);if(!value)return null;const op=JSON.parse(value);if(!op?.requestId||!['initialize','restock','issue','return','settings','reset'].includes(op.action))throw Error('Hay una operación de parking pendiente que necesita revisión.');return op;}
 class ParkingError extends Error{constructor(message:string,public status:number){super(message);}}
 export async function parkingCall(body:Record<string,unknown>):Promise<ParkingState>{
  const token=studioApi.currentToken();if(!token||studioApi.storedRole()!=='admin')throw Error('Accede como administradora para gestionar el parking.');
@@ -16,5 +24,5 @@ export async function mutateParking(body:Omit<ParkingOperation,'requestId'>,retr
  let operation=readParkingPending();if(!retry){if(operation)throw Error('Comprueba primero la operación de parking pendiente.');operation={...body,requestId:crypto.randomUUID()};localStorage.setItem(pendingKey,JSON.stringify(operation));parkingChanged();}
  if(!operation)throw Error('No hay ninguna operación pendiente.');
  try{const result=await parkingCall(operation);if(readParkingPending()?.requestId===operation.requestId)localStorage.removeItem(pendingKey);parkingChanged();return result;}
- catch(error){if(error instanceof ParkingError&&[400,403,409,413,422].includes(error.status)){if(readParkingPending()?.requestId===operation.requestId)localStorage.removeItem(pendingKey);parkingChanged();}throw error;}
+ catch(error){if(error instanceof ParkingError&&[400,403,404,405,409,413,422].includes(error.status)){if(readParkingPending()?.requestId===operation.requestId)localStorage.removeItem(pendingKey);parkingChanged();}throw error;}
 }
