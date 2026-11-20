@@ -410,8 +410,13 @@
 
 .cash-receipt-settings summary { min-height: 36px; display: flex; align-items: center; color: var(--cash-text); cursor: pointer; font-weight: 650; }
 .cash-receipt-settings[open] summary { margin-bottom: 8px; }
-.cash-ticket-search summary { min-height: 36px; display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 650; }
-.cash-ticket-search[open] > :not(summary) { margin-top: 10px; }
+:is(.cash-ticket-search, .cash-closing-report) summary { min-height: 36px; display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 650; }
+:is(.cash-ticket-search, .cash-closing-report)[open] > :not(summary) { margin-top: 10px; }
+.cash-closing-table { overflow-x: auto; }
+.cash-closing-table table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.cash-closing-table :is(th, td) { padding: 8px 10px; border-bottom: 1px solid var(--cash-border); text-align: right; white-space: nowrap; }
+.cash-closing-table th:first-child { text-align: left; }
+.cash-closing-table tfoot { color: var(--cash-accent); font-weight: 700; }
 .cash-practice-banner { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; border-color: var(--cash-accent); }
 .cash-practice-banner h2 { color: var(--cash-accent); margin-bottom: 4px; }
 .cash-receipt-settings-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 10px; align-items: end; }
