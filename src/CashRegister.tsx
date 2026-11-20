@@ -7,8 +7,8 @@ import {
 import { attachAppointmentVoucher, currentToken, fetchVouchers, StudioApiError, studioCashRegister } from './studioApi';
 import './cash-register.css';
 
-type Method = 'cash' | 'card' | 'bizum' | 'transfer';
-type Kind = 'sale' | 'refund' | 'cash_in' | 'cash_out';
+type Method = 'cash' | 'card' | 'bizum' | 'transfer' | 'courtesy';
+type Kind = 'sale' | 'refund' | 'cash_in' | 'cash_out' | 'courtesy';
 type Shift = {
   id: string; opened_at: string; closed_at: string | null; opening_cents: number;
   counted_cents: number | null; terminal_cents: number | null;
@@ -27,7 +27,7 @@ type Movement = {
   discount_cents?: number | null;
   amount_cents: number; appointment_id: string | null; bank_reference: string | null; invoice_reference: string | null; refunded: boolean;
 };
-type Totals = Record<Method, number> & { cashIn: number; cashOut: number; count: number };
+type Totals = Record<Exclude<Method, 'courtesy'>, number> & { cashIn: number; cashOut: number; count: number };
 type CashState = {
   openShift: Shift | null; shift?: Shift | null; movements: Movement[]; totals?: Totals | null;
   history?: Shift[];
@@ -39,10 +39,10 @@ type AppointmentSale = {
   giftCard?: { clientId: string; saved: () => Promise<void> };
   giftApplied?: boolean;
 };
-type Command = { operation: 'open' | 'close' | 'record' | 'record-discount' | 'invoice'; id?: string; [key: string]: unknown };
+type Command = { operation: 'open' | 'close' | 'record' | 'record-discount' | 'record-courtesy' | 'invoice'; id?: string; [key: string]: unknown };
 
-const methods: Record<Method, string> = { cash: 'Efectivo', card: 'Tarjeta', bizum: 'Bizum', transfer: 'Transferencia' };
-const kinds: Record<Kind, string> = { sale: 'Cobro', refund: 'Devolución', cash_in: 'Entrada de efectivo', cash_out: 'Salida de efectivo' };
+const methods: Record<Method, string> = { cash: 'Efectivo', card: 'Tarjeta', bizum: 'Bizum', transfer: 'Transferencia', courtesy: 'Cortesía' };
+const kinds: Record<Kind, string> = { sale: 'Cobro', refund: 'Devolución', cash_in: 'Entrada de efectivo', cash_out: 'Salida de efectivo', courtesy: 'Cortesía' };
 const methodButtons = [
   { value: 'card', Icon: CreditCard },
   { value: 'cash', Icon: Banknote },
@@ -268,7 +268,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   const [opening, setOpening] = useState('');
   const [counted, setCounted] = useState('');
   const [terminal, setTerminal] = useState('');
-  const [kind, setKind] = useState<Exclude<Kind, 'refund'>>('sale');
+  const [kind, setKind] = useState<(typeof movementButtons)[number]['value']>('sale');
   const [giftMode, setGiftMode] = useState(false);
   const [giftBusy, setGiftBusy] = useState(false);
   useEffect(() => {
@@ -314,7 +314,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     if (lock.current) return;
     lock.current = true;
     const payload = { ...command, id: command.id || crypto.randomUUID() };
-    const isRecord = payload.operation === 'record' || payload.operation === 'record-discount';
+    const isRecord = payload.operation === 'record' || payload.operation === 'record-discount' || payload.operation === 'record-courtesy';
     setBusy(true);
     setError('');
     setNotice('');
@@ -322,11 +322,12 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     try {
       const result = await request<{ ok: boolean; shiftId?: string; movement?: Omit<Movement, 'refunded'> }>(payload);
       if (!result.ok) throw new Error('La caja no ha confirmado el guardado.');
-      if (payload.operation === 'record-discount' && result.movement?.discount_cents !== command.discountCents) {
+      if ((payload.operation === 'record-discount' || payload.operation === 'record-courtesy') &&
+        result.movement?.discount_cents !== command.discountCents) {
         throw new Error('La caja no ha confirmado el descuento.');
       }
       setRetry(undefined);
-      const sale = isRecord && result.movement?.kind === 'sale' && result.movement.id === payload.id
+      const sale = isRecord && result.movement && (result.movement.kind === 'sale' || result.movement.kind === 'courtesy') && result.movement.id === payload.id
         ? { ...result.movement, refunded: false }
         : undefined;
       if (sale) setConfirmedSale({
@@ -348,7 +349,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         setInvoiceReference('');
       }
       if (payload.operation === 'invoice') setInvoiceEdit(undefined);
-      if (!sale) setNotice({ open: 'Caja abierta.', close: 'Cierre guardado.', record: 'Movimiento registrado.', 'record-discount': 'Cobro registrado.', invoice: 'Número de factura actualizado.' }[payload.operation]);
+      if (!sale) setNotice({ open: 'Caja abierta.', close: 'Cierre guardado.', record: 'Movimiento registrado.', 'record-discount': 'Cobro registrado.', 'record-courtesy': 'Cortesía registrada.', invoice: 'Número de factura actualizado.' }[payload.operation]);
       setLoading(true);
       setReload(value => value + 1);
     } catch (reason) {
@@ -370,23 +371,26 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   const totals = state?.totals;
   const blocked = busy || giftBusy || loading || !!retry;
   const expected = shift && totals ? shift.opening_cents + totals.cash + totals.cashIn - totals.cashOut : 0;
-  const appointmentPaid = state?.movements.some(movement => movement.kind === 'sale' && !movement.refunded);
+  const appointmentCourtesy = state?.movements.some(movement => movement.kind === 'courtesy');
+  const appointmentPaid = appointmentCourtesy || state?.movements.some(movement => movement.kind === 'sale' && !movement.refunded);
   const final = cents(finalAmount);
   const dueBeforeDiscount = appointment && final !== null ? final - appointment.depositCents - appointment.voucherCents : null;
   const parsedDiscount = cents(discountInput);
   const discountCents = appointment && final !== null && parsedDiscount !== null
     ? (discountType === 'percent' ? Math.round(final * parsedDiscount / 10000) : parsedDiscount)
     : 0;
+  const isCourtesy = !!appointment && appointment.depositCents === 0 && appointment.voucherCents === 0 &&
+    final !== null && final > 0 && discountCents === final;
   const discountError = !discountInput.trim() ? ''
     : parsedDiscount === null || (discountType === 'percent' && parsedDiscount > 10000)
       ? (discountType === 'percent' ? 'Introduce un porcentaje de hasta el 100 %.' : 'Introduce un importe válido.')
-      : dueBeforeDiscount === null || discountCents >= dueBeforeDiscount
+      : dueBeforeDiscount === null || (!isCourtesy && discountCents >= dueBeforeDiscount)
         ? 'El descuento debe dejar un saldo mayor que cero después del anticipo o bono.'
         : parsedDiscount > 0 && discountCents === 0 ? 'El descuento debe ser de al menos 0,01 €.' : '';
   const finalAfterDiscount = final === null ? null : final - discountCents;
   const due = dueBeforeDiscount === null ? null : dueBeforeDiscount - discountCents;
   const activeSale = appointment ? due : cents(movementAmount);
-  const cashSale = kind === 'sale' && method === 'cash' && !giftMode;
+  const cashSale = kind === 'sale' && method === 'cash' && !giftMode && !isCourtesy;
   const receivedCents = cents(cashReceived);
   const changeCents = activeSale !== null && receivedCents !== null ? receivedCents - activeSale : null;
   const receivedInvalid = cashSale && !!cashReceived.trim() && (receivedCents === null || (changeCents !== null && changeCents < 0));
@@ -415,6 +419,15 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   function record(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!activeShift || blocked || discountError || (kind === 'sale' && giftMode)) return;
+    if (isCourtesy && appointment) {
+      if (window.confirm(`¿Registrar la cita como cortesía con un descuento de ${money(discountCents)} y un saldo de 0 €?`)) {
+        void send({
+          operation: 'record-courtesy', shiftId: activeShift.id, appointmentId: appointment.id,
+          description: appointment.description, discountCents,
+        });
+      }
+      return;
+    }
     const amountCents = activeSale;
     if (amountCents === null || amountCents <= 0) {
       setError('Introduce un importe pendiente mayor que cero.');
@@ -564,8 +577,8 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
       tabIndex={-1} aria-labelledby={confirmationTitleId}>
       <div className="cash-sale-confirmation-summary" role="status">
         <span className="cash-sale-confirmation-icon"><Check size={24} aria-hidden="true" /></span>
-        <div><h3 id={confirmationTitleId}>Cobro registrado</h3>
-          <p><strong>{money(receipt.amount_cents)}</strong> · {methods[receipt.method]}</p>
+        <div><h3 id={confirmationTitleId}>{receipt.kind === 'courtesy' ? 'Cortesía registrada' : 'Cobro registrado'}</h3>
+          <p><strong>{money(receipt.amount_cents)}</strong>{receipt.kind !== 'courtesy' && ' · ' + methods[receipt.method]}</p>
           {!!receipt.discount_cents && <p>Descuento aplicado {money(receipt.discount_cents)}</p>}
           {confirmedReceived !== null && <p>Recibido {money(confirmedReceived)} · Cambio {money(confirmedReceived - receipt.amount_cents)}</p>}
         </div>
@@ -626,7 +639,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         <span>Abre caja para registrar un cobro.</span>
         {onOpenCash && <button type="button" onClick={onOpenCash}>Ir a caja</button>}
       </div>}
-      {appointment && appointmentPaid && !receipt && <p className="cash-message cash-success"><Check size={16} aria-hidden="true" />El saldo de esta cita ya tiene un cobro registrado.</p>}
+      {appointment && appointmentPaid && !receipt && <p className="cash-message cash-success"><Check size={16} aria-hidden="true" />{appointmentCourtesy ? 'Esta cita ya está registrada como cortesía.' : 'El saldo de esta cita ya tiene un cobro registrado.'}</p>}
       {appointment?.hasUnknownVoucher && !appointmentPaid && <p className="cash-message">Actualiza la cita y comprueba el saldo del bono antes de cobrar.</p>}
       {appointment?.unavailable && !appointmentPaid && <p className="cash-message">Comprueba el estado de la cita, su aprobación y el anticipo antes de cobrar.</p>}
 
@@ -652,7 +665,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
               <div><span>{appointment.giftApplied ? 'Tarjeta regalo aplicada' : 'Bono aplicado'}</span><strong>{money(appointment.voucherCents)}</strong></div>
             </div>}
             {kind === 'sale' && <>
-              <fieldset className="cash-choice-group" disabled={blocked}>
+              <fieldset className="cash-choice-group" disabled={blocked || isCourtesy}>
                 <legend>Método de pago</legend>
                 <div className="cash-method-buttons">
                   {methodButtons.map(({ value, Icon }) => <label key={value} className="cash-choice cash-method">
@@ -676,8 +689,8 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
                 {giftBusy && <p role="status">Aplicando tarjeta regalo…</p>}
                 {giftError && <p role="alert">{giftError}</p>}
               </div>}
-              {!giftMode && method === 'card' && <p className="cash-pos-note">Cuando el datáfono apruebe el pago, registra el cobro aquí.</p>}
-              {!giftMode && <details className="cash-optional">
+              {!giftMode && !isCourtesy && method === 'card' && <p className="cash-pos-note">Cuando el datáfono apruebe el pago, registra el cobro aquí.</p>}
+              {!giftMode && !isCourtesy && <details className="cash-optional">
                 <summary>Referencia y factura <span>Opcional</span><ChevronDown size={16} aria-hidden="true" /></summary>
                 <div className="cash-optional-fields">
                   <label className="cash-field">Referencia de operación (opcional)<input maxLength={80} value={bankReference} disabled={blocked}
@@ -700,7 +713,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
                   <option value="amount">Euros (€)</option><option value="percent">Porcentaje (%)</option>
                 </select></label>
                 <Amount label={discountType === 'percent' ? 'Descuento (%)' : 'Descuento (€)'} required={false}
-                  value={discountInput} onChange={event => setDiscountInput(event.target.value)} disabled={blocked}
+                  value={discountInput} onChange={event => { setDiscountInput(event.target.value); setGiftMode(false); }} disabled={blocked}
                   placeholder="0,00" aria-invalid={!!discountError || undefined} />
                 {discountInput && <button type="button" className="cash-quiet" disabled={blocked}
                   onClick={() => setDiscountInput('')}>Quitar descuento</button>}
@@ -708,7 +721,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
             </details>}
             {discountError && <p className="cash-pos-note cash-discount-error" role="status">{discountError}</p>}
             {appointment && <div className="cash-due"><span>Saldo</span><strong>{due === null || discountError ? '—' : money(Math.max(0, due))}</strong></div>}
-            {!discountError && due !== null && due <= 0 && <p className="cash-pos-note">{due === 0 ? 'La cita está cubierta.' : 'Revisa el precio final y los importes ya aplicados.'}</p>}
+            {!discountError && due !== null && due <= 0 && <p className="cash-pos-note">{isCourtesy ? 'Se anotará como cortesía por 0 €.' : due === 0 ? 'La cita está cubierta.' : 'Revisa el precio final y los importes ya aplicados.'}</p>}
             {cashSale && !discountError && activeSale !== null && activeSale > 0 && <div className="cash-tender">
               <div className="cash-tender-input">
                 <Amount label="Efectivo recibido (€)" required={false} value={cashReceived} disabled={blocked}
@@ -722,9 +735,9 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
               </div>
               {cashReceived.trim() && receivedCents === null && <p className="cash-pos-note">Introduce un importe válido, con hasta dos decimales.</p>}
             </div>}
-            <button className="cash-primary" disabled={blocked || (kind === 'sale' && giftMode) || activeSale === null || activeSale <= 0 || receivedInvalid || !!discountError}>
+            <button className="cash-primary" disabled={blocked || (kind === 'sale' && giftMode) || activeSale === null || (activeSale <= 0 && !isCourtesy) || receivedInvalid || !!discountError}>
               <Check size={17} aria-hidden="true" />
-              <span>{kind === 'sale' ? 'Registrar cobro' : `Registrar ${movementLabel?.toLowerCase()}`}</span>
+              <span>{isCourtesy ? 'Registrar cortesía' : kind === 'sale' ? 'Registrar cobro' : `Registrar ${movementLabel?.toLowerCase()}`}</span>
               {!appointment && activeSale !== null && activeSale > 0 && <strong>{money(activeSale)}</strong>}
             </button>
           </div>
@@ -745,10 +758,11 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
               </div>
               <strong className="cash-movement-amount">{money(movement.kind === 'refund' || movement.kind === 'cash_out' ? -movement.amount_cents : movement.amount_cents)}</strong>
             </div>
-            {(movement.kind === 'sale' || movement.kind === 'refund') && <div className="cash-actions">
+            {(movement.kind === 'sale' || movement.kind === 'refund' || movement.kind === 'courtesy') && <div className="cash-actions">
               {!appointment && openAppointment && movement.appointment_id && <button type="button" onClick={() => openAppointment(movement.appointment_id!)}>Ver cita</button>}
               <button type="button" onClick={() => printMovement(movement)}><Printer size={15} aria-hidden="true" />Imprimir justificante</button>
-              <button type="button" disabled={blocked} onClick={() => setInvoiceEdit({ id: movement.id, value: movement.invoice_reference || '' })}>Número de factura</button>
+              {movement.kind !== 'courtesy' && <button type="button" disabled={blocked}
+                onClick={() => setInvoiceEdit({ id: movement.id, value: movement.invoice_reference || '' })}>Número de factura</button>}
               {movement.kind === 'sale' && !movement.refunded && activeShift && <button type="button" disabled={blocked} onClick={() => {
                 if (window.confirm(`¿Registrar una devolución completa de ${money(movement.amount_cents)} ya realizada por ${methods[movement.method]}?`)) {
                   void send({ operation: 'record', kind: 'refund', shiftId: activeShift.id, originalId: movement.id });
