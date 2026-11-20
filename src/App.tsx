@@ -6064,7 +6064,7 @@ function StudioApp() {
 {viewApptModal.serverId && <section className="lst-appt-reception" aria-label="Caja de la cita">
   <button type="button" aria-haspopup="dialog"
     style={{minHeight:42, padding:'8px 14px', border:'1px solid #C5A059', borderRadius:8, background:'#322A25', color:'#FFF8EE'}}
-    onClick={() => openSavedAppointmentCash(viewApptModal)}>Cobrar saldo</button>
+    onClick={() => openSavedAppointmentCash(viewApptModal)}>Cobrar tickets</button>
 </section>}
 <section className="lst-appt-contact"><h4 className="lst-appt-section-title">Contacto</h4><div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', color: '#D6CBB8', fontSize: '13px', overflowWrap: 'anywhere' }}>
               <a href={`tel:${viewApptModal.phone}`} style={{ color: '#E4C687', padding: '8px 0' }}>{viewApptModal.phone}</a>
