@@ -24,6 +24,7 @@ type CashState = {
 };
 type AppointmentSale = {
   id: string; description: string; finalCents: number | null; depositCents: number;
+  services?: { label: string; amountCents: number | null }[];
   voucherCents: number; unavailable: boolean; hasUnknownVoucher: boolean;
   giftCard?: { clientId: string; saved: () => Promise<void> };
   giftApplied?: boolean;
@@ -210,7 +211,11 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   const [invoiceReference, setInvoiceReference] = useState('');
   const [invoiceEdit, setInvoiceEdit] = useState<{ id: string; value: string }>();
   const [finalAmountDraft, setFinalAmount] = useState<string>();
-  const finalAmount = finalAmountDraft ?? (appointment?.finalCents == null ? '' : decimal(appointment.finalCents));
+  const hasServiceTotal = Boolean(appointment?.services?.length && appointment.finalCents != null &&
+    appointment.services.every(item => item.amountCents !== null));
+  const finalAmount = hasServiceTotal || finalAmountDraft === undefined
+    ? (appointment?.finalCents == null ? '' : decimal(appointment.finalCents))
+    : finalAmountDraft;
   const [movementAmount, setMovementAmount] = useState('');
 
   useEffect(() => {
@@ -424,6 +429,18 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         </div>)}
       </section>}
 
+      {!!appointment?.services?.length && <section className="cash-card cash-service-breakdown" aria-label="Desglose de servicios">
+        <h3>Servicios de la cita</h3>
+        <dl>
+          {appointment.services.map((service, index) => <div key={index}>
+            <dt>{service.label}</dt><dd>{service.amountCents === null ? 'Por confirmar' : money(service.amountCents)}</dd>
+          </div>)}
+          {appointment.finalCents !== null && <div className="cash-service-total">
+            <dt>Total servicios</dt><dd>{money(appointment.finalCents)}</dd>
+          </div>}
+        </dl>
+      </section>}
+
       {appointment && !activeShift && <div className="cash-message">
         <span>Abre caja para registrar un cobro.</span>
         {onOpenCash && <button type="button" onClick={onOpenCash}>Ir a caja</button>}
@@ -491,8 +508,8 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
             </>}
           </div>
           <div className="cash-pos-amount">
-            <Keypad label={appointment ? 'Precio final tras descuentos' : 'Importe'} value={appointment ? finalAmount : movementAmount}
-              onChange={appointment ? setFinalAmount : setMovementAmount} disabled={blocked} />
+            {!hasServiceTotal && <Keypad label={appointment ? 'Precio final tras descuentos' : 'Importe'} value={appointment ? finalAmount : movementAmount}
+              onChange={appointment ? setFinalAmount : setMovementAmount} disabled={blocked} />}
             {appointment && <div className="cash-due"><span>Saldo</span><strong>{due === null ? '—' : money(Math.max(0, due))}</strong></div>}
             {due !== null && due <= 0 && <p className="cash-pos-note">{due === 0 ? 'La cita está cubierta.' : 'Revisa el precio final y los importes ya aplicados.'}</p>}
             <button className="cash-primary" disabled={blocked || (kind === 'sale' && giftMode) || activeSale === null || activeSale <= 0}>
