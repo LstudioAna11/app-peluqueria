@@ -24,6 +24,7 @@ type ReceiptLine = string | { label: string; value: string; total?: boolean };
 type Movement = {
   id: string; recorded_at: string; description: string; kind: Kind; method: Method;
   service_receipt?: ServiceReceipt | null;
+  discount_cents?: number | null;
   amount_cents: number; appointment_id: string | null; bank_reference: string | null; invoice_reference: string | null; refunded: boolean;
 };
 type Totals = Record<Method, number> & { cashIn: number; cashOut: number; count: number };
@@ -38,7 +39,7 @@ type AppointmentSale = {
   giftCard?: { clientId: string; saved: () => Promise<void> };
   giftApplied?: boolean;
 };
-type Command = { operation: 'open' | 'close' | 'record' | 'invoice'; id?: string; [key: string]: unknown };
+type Command = { operation: 'open' | 'close' | 'record' | 'record-discount' | 'invoice'; id?: string; [key: string]: unknown };
 
 const methods: Record<Method, string> = { cash: 'Efectivo', card: 'Tarjeta', bizum: 'Bizum', transfer: 'Transferencia' };
 const kinds: Record<Kind, string> = { sale: 'Cobro', refund: 'Devolución', cash_in: 'Entrada de efectivo', cash_out: 'Salida de efectivo' };
@@ -287,6 +288,8 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     : finalAmountDraft;
   const [movementAmount, setMovementAmount] = useState('');
   const [cashReceived, setCashReceived] = useState('');
+  const [discountType, setDiscountType] = useState<'amount' | 'percent'>('amount');
+  const [discountInput, setDiscountInput] = useState('');
 
   useEffect(() => {
     let active = true;
@@ -311,15 +314,19 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     if (lock.current) return;
     lock.current = true;
     const payload = { ...command, id: command.id || crypto.randomUUID() };
+    const isRecord = payload.operation === 'record' || payload.operation === 'record-discount';
     setBusy(true);
     setError('');
     setNotice('');
-    if (payload.operation === 'record' || payload.operation === 'close') setConfirmedSale(undefined);
+    if (isRecord || payload.operation === 'close') setConfirmedSale(undefined);
     try {
       const result = await request<{ ok: boolean; shiftId?: string; movement?: Omit<Movement, 'refunded'> }>(payload);
       if (!result.ok) throw new Error('La caja no ha confirmado el guardado.');
+      if (payload.operation === 'record-discount' && result.movement?.discount_cents !== command.discountCents) {
+        throw new Error('La caja no ha confirmado el descuento.');
+      }
       setRetry(undefined);
-      const sale = payload.operation === 'record' && result.movement?.kind === 'sale' && result.movement.id === payload.id
+      const sale = isRecord && result.movement?.kind === 'sale' && result.movement.id === payload.id
         ? { ...result.movement, refunded: false }
         : undefined;
       if (sale) setConfirmedSale({
@@ -332,7 +339,8 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         setTerminal('');
       }
       if (payload.operation === 'open') setOpening('');
-      if (payload.operation === 'record') {
+      if (isRecord) {
+        setDiscountInput('');
         setMovementAmount('');
         setCashReceived('');
         setDescription('');
@@ -340,7 +348,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         setInvoiceReference('');
       }
       if (payload.operation === 'invoice') setInvoiceEdit(undefined);
-      if (!sale) setNotice({ open: 'Caja abierta.', close: 'Cierre guardado.', record: 'Movimiento registrado.', invoice: 'Número de factura actualizado.' }[payload.operation]);
+      if (!sale) setNotice({ open: 'Caja abierta.', close: 'Cierre guardado.', record: 'Movimiento registrado.', 'record-discount': 'Cobro registrado.', invoice: 'Número de factura actualizado.' }[payload.operation]);
       setLoading(true);
       setReload(value => value + 1);
     } catch (reason) {
@@ -364,7 +372,19 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   const expected = shift && totals ? shift.opening_cents + totals.cash + totals.cashIn - totals.cashOut : 0;
   const appointmentPaid = state?.movements.some(movement => movement.kind === 'sale' && !movement.refunded);
   const final = cents(finalAmount);
-  const due = appointment && final !== null ? final - appointment.depositCents - appointment.voucherCents : null;
+  const dueBeforeDiscount = appointment && final !== null ? final - appointment.depositCents - appointment.voucherCents : null;
+  const parsedDiscount = cents(discountInput);
+  const discountCents = appointment && final !== null && parsedDiscount !== null
+    ? (discountType === 'percent' ? Math.round(final * parsedDiscount / 10000) : parsedDiscount)
+    : 0;
+  const discountError = !discountInput.trim() ? ''
+    : parsedDiscount === null || (discountType === 'percent' && parsedDiscount > 10000)
+      ? (discountType === 'percent' ? 'Introduce un porcentaje de hasta el 100 %.' : 'Introduce un importe válido.')
+      : dueBeforeDiscount === null || discountCents >= dueBeforeDiscount
+        ? 'El descuento debe dejar un saldo mayor que cero después del anticipo o bono.'
+        : parsedDiscount > 0 && discountCents === 0 ? 'El descuento debe ser de al menos 0,01 €.' : '';
+  const finalAfterDiscount = final === null ? null : final - discountCents;
+  const due = dueBeforeDiscount === null ? null : dueBeforeDiscount - discountCents;
   const activeSale = appointment ? due : cents(movementAmount);
   const cashSale = kind === 'sale' && method === 'cash' && !giftMode;
   const receivedCents = cents(cashReceived);
@@ -394,7 +414,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
 
   function record(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!activeShift || blocked || (kind === 'sale' && giftMode)) return;
+    if (!activeShift || blocked || discountError || (kind === 'sale' && giftMode)) return;
     const amountCents = activeSale;
     if (amountCents === null || amountCents <= 0) {
       setError('Introduce un importe pendiente mayor que cero.');
@@ -407,8 +427,10 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     const selectedMethod = kind === 'sale' ? method : 'cash';
     if (kind === 'sale' && !window.confirm(`¿Registrar ${money(amountCents)} ya cobrados por ${methods[selectedMethod]}?`)) return;
     void send({
-      operation: 'record', kind, method: selectedMethod, shiftId: activeShift.id, amountCents,
-      appointmentId, finalCents: appointment ? final : undefined, description: appointment?.description || description.trim(),
+      operation: discountCents > 0 ? 'record-discount' : 'record',
+      kind, method: selectedMethod, shiftId: activeShift.id, amountCents,
+      appointmentId, finalCents: appointment ? finalAfterDiscount : undefined,
+      ...(discountCents > 0 ? { discountCents } : {}), description: appointment?.description || description.trim(),
       ...(kind === 'sale' ? { bankReference, invoiceReference } : {}),
     });
   }
@@ -433,22 +455,28 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
 
   function printMovement(movement: Movement) {
     const snapshot = movement.service_receipt;
+    const discount = movement.discount_cents ?? 0;
     const lines: ReceiptLine[] = ['Sin validez como factura', `${kinds[movement.kind]} · ${date(movement.recorded_at)}`];
 
     if (snapshot) {
+      const subtotal = snapshot.total_cents + discount;
       if (snapshot.items.length) {
         lines.push('Servicios', ...snapshot.items.map(([label, amount]) => ({
           label, value: amount === null ? 'Incluido' : money(amount),
         })));
         if (snapshot.items.every(([, amount]) => amount !== null)) {
           const listed = snapshot.items.reduce((sum, [, amount]) => sum + (amount ?? 0), 0);
-          if (listed !== snapshot.total_cents) lines.push({
-            label: 'Ajuste de precio', value: money(snapshot.total_cents - listed),
+          if (listed !== subtotal) lines.push({
+            label: 'Ajuste de precio', value: money(subtotal - listed),
           });
         }
       } else {
         lines.push(movement.description);
       }
+      if (discount > 0) lines.push(
+        { label: 'Subtotal servicios', value: money(subtotal) },
+        { label: 'Descuento aplicado', value: money(-discount) },
+      );
       lines.push({ label: 'Total servicios', value: money(snapshot.total_cents), total: true });
       if (snapshot.deposit_cents) lines.push({ label: 'Anticipo aplicado', value: money(-snapshot.deposit_cents) });
       if (snapshot.voucher_cents) lines.push({
@@ -457,6 +485,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
       });
     } else {
       lines.push(movement.description);
+      if (discount > 0) lines.push({ label: 'Descuento aplicado', value: money(-discount) });
     }
 
     lines.push(
@@ -537,6 +566,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         <span className="cash-sale-confirmation-icon"><Check size={24} aria-hidden="true" /></span>
         <div><h3 id={confirmationTitleId}>Cobro registrado</h3>
           <p><strong>{money(receipt.amount_cents)}</strong> · {methods[receipt.method]}</p>
+          {!!receipt.discount_cents && <p>Descuento aplicado {money(receipt.discount_cents)}</p>}
           {confirmedReceived !== null && <p>Recibido {money(confirmedReceived)} · Cambio {money(confirmedReceived - receipt.amount_cents)}</p>}
         </div>
       </div>
@@ -659,11 +689,27 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
             </>}
           </div>
           <div className="cash-pos-amount">
-            {!hasServiceTotal && <Keypad label={appointment ? 'Precio final tras descuentos' : 'Importe'} value={appointment ? finalAmount : movementAmount}
+            {!hasServiceTotal && <Keypad label={appointment ? 'Precio total antes del descuento de caja' : 'Importe'} value={appointment ? finalAmount : movementAmount}
               onChange={appointment ? setFinalAmount : setMovementAmount} disabled={blocked} />}
-            {appointment && <div className="cash-due"><span>Saldo</span><strong>{due === null ? '—' : money(Math.max(0, due))}</strong></div>}
-            {due !== null && due <= 0 && <p className="cash-pos-note">{due === 0 ? 'La cita está cubierta.' : 'Revisa el precio final y los importes ya aplicados.'}</p>}
-            {cashSale && activeSale !== null && activeSale > 0 && <div className="cash-tender">
+            {appointment && dueBeforeDiscount !== null && (dueBeforeDiscount > 0 || discountInput) && <details className="cash-checkout-discount">
+              <summary><span>{discountCents > 0 && !discountError ? 'Descuento aplicado · ' + money(discountCents) : 'Aplicar descuento'}</span>
+                <ChevronDown size={16} aria-hidden="true" /></summary>
+              <div className="cash-checkout-discount-fields">
+                <label className="cash-field">Tipo de descuento<select value={discountType} disabled={blocked}
+                  onChange={event => { setDiscountType(event.target.value === 'percent' ? 'percent' : 'amount'); setDiscountInput(''); }}>
+                  <option value="amount">Euros (€)</option><option value="percent">Porcentaje (%)</option>
+                </select></label>
+                <Amount label={discountType === 'percent' ? 'Descuento (%)' : 'Descuento (€)'} required={false}
+                  value={discountInput} onChange={event => setDiscountInput(event.target.value)} disabled={blocked}
+                  placeholder="0,00" aria-invalid={!!discountError || undefined} />
+                {discountInput && <button type="button" className="cash-quiet" disabled={blocked}
+                  onClick={() => setDiscountInput('')}>Quitar descuento</button>}
+              </div>
+            </details>}
+            {discountError && <p className="cash-pos-note cash-discount-error" role="status">{discountError}</p>}
+            {appointment && <div className="cash-due"><span>Saldo</span><strong>{due === null || discountError ? '—' : money(Math.max(0, due))}</strong></div>}
+            {!discountError && due !== null && due <= 0 && <p className="cash-pos-note">{due === 0 ? 'La cita está cubierta.' : 'Revisa el precio final y los importes ya aplicados.'}</p>}
+            {cashSale && !discountError && activeSale !== null && activeSale > 0 && <div className="cash-tender">
               <div className="cash-tender-input">
                 <Amount label="Efectivo recibido (€)" required={false} value={cashReceived} disabled={blocked}
                   aria-invalid={receivedInvalid || undefined} placeholder="Opcional"
@@ -676,7 +722,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
               </div>
               {cashReceived.trim() && receivedCents === null && <p className="cash-pos-note">Introduce un importe válido, con hasta dos decimales.</p>}
             </div>}
-            <button className="cash-primary" disabled={blocked || (kind === 'sale' && giftMode) || activeSale === null || activeSale <= 0 || receivedInvalid}>
+            <button className="cash-primary" disabled={blocked || (kind === 'sale' && giftMode) || activeSale === null || activeSale <= 0 || receivedInvalid || !!discountError}>
               <Check size={17} aria-hidden="true" />
               <span>{kind === 'sale' ? 'Registrar cobro' : `Registrar ${movementLabel?.toLowerCase()}`}</span>
               {!appointment && activeSale !== null && activeSale > 0 && <strong>{money(activeSale)}</strong>}
