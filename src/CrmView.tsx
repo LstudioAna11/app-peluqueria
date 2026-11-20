@@ -4,15 +4,9 @@ import * as studioApi from './studioApi';
 import type { StudioEmployee, BusinessConfig, ServiceVariant, Appointment, StylingPolicy, FinishKind, ServiceTranslation, SubService, CatalogCategory, ClientRecord, LostDemandRecord, FeedbackRecord, HolidayBlock } from './App';
 
 type CashClient = { id: string; name: string; salesCount: number; salesCents: number };
-type CashPeriod = {
-  salesCount: number; salesCents: number; refundCount: number; refundCents: number;
-  clientCount: number; clientSalesCents: number; unlinkedSalesCount: number;
-};
-type CashStatistics = { current: CashPeriod; previous: CashPeriod; clients: CashClient[]; nextOffset: number | null };
+type CashStatistics = { current: { clientCount: number }; clients: CashClient[]; nextOffset: number | null };
 const euro = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 const averageTicket = (client: CashClient) => Math.round(client.salesCents / client.salesCount);
-const averageSpending = (period: CashPeriod) => period.clientCount ? Math.round(period.clientSalesCents / period.clientCount) : null;
-const returnsAdjustedAmount = (period: CashPeriod) => period.salesCents - period.refundCents;
 
 interface Props {
   appointments: Appointment[];
@@ -66,14 +60,6 @@ export default function CrmView(props: Props) {
 
  const cashResult = valid && cashReport?.key === cashKey ? cashReport : undefined;
  const cashStats = cashResult?.data;
- const cashMetrics = cashStats ? [
-   { label: 'Gasto medio por cliente', current: averageSpending(cashStats.current), previous: averageSpending(cashStats.previous), currency: true, note: `Importe cobrado de ${cashStats.current.clientCount} clientes con ficha, dividido entre esos clientes.` },
-   { label: 'Cobros registrados', current: cashStats.current.salesCount, previous: cashStats.previous.salesCount, currency: false, note: 'Cada pago combinado cuenta como un cobro.' },
-   { label: 'Total cobrado', current: cashStats.current.salesCents, previous: cashStats.previous.salesCents, currency: true, note: 'Importe de los cobros antes de restar las devoluciones.' },
-   { label: 'Devoluciones', current: cashStats.current.refundCents, previous: cashStats.previous.refundCents, currency: true, note: `${cashStats.current.refundCount} registradas en el periodo.` },
-   { label: 'Cobrado tras devoluciones', current: returnsAdjustedAmount(cashStats.current), previous: returnsAdjustedAmount(cashStats.previous), currency: true, note: 'Total cobrado menos lo devuelto en el periodo.' },
- ] : [];
- const formatCashMetric = (value: number | null, currency: boolean) => value === null ? '—' : currency ? euro.format(value / 100) : String(value);
 
  return ((() => {
             const inPeriod = appointments.filter(item => valid && item.dateKey >= dashboardStart && item.dateKey <= dashboardEnd);
@@ -182,13 +168,9 @@ export default function CrmView(props: Props) {
                 .crm-card{border:1px solid #655039;border-radius:13px;background:linear-gradient(140deg,#382F28,#2D2621);padding:18px;min-width:0;box-sizing:border-box}
                 .crm-label{color:#E5D8C4;font-size:12px;line-height:1.5;display:block}
                 .crm-metric strong{display:block;font-size:35px;font-weight:500;line-height:1.2;margin:10px 0 7px}
-                .crm-cash-statistics{display:grid;gap:14px}.crm-cash-metrics{grid-template-columns:repeat(auto-fit,minmax(min(100%,158px),1fr))}
-                .crm-cash-metrics .crm-card{background:#29231F;padding:12px}
-                .crm-cash-metrics article:first-child{border-color:#B58C54}
-                .crm-cash-metrics strong{display:block;margin:7px 0;color:#E4C687;font-size:clamp(20px,3vw,28px);line-height:1.2;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
-                .crm-cash-previous{margin-top:5px}
+                .crm-cash-statistics{display:grid;gap:14px}
                 .crm-cash-client-table{overflow-x:auto}
-                .crm-cash-client-table th,.crm-cash-client-table td{white-space:nowrap}
+                .crm-cash-client-table :is(th,td):last-child{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
                 .crm-track{height:9px;border-radius:20px;background:#181512;overflow:hidden}.crm-track>div{height:100%;border-radius:20px}
                 .crm-ranking{display:flex;flex-direction:column;gap:16px;margin-top:18px}.crm-ranking-row{display:grid;grid-template-columns:25px minmax(0,1fr) 35px;align-items:start;gap:10px}.crm-ranking-row>span{color:#CBB79B;font-size:12px}.crm-ranking-row strong{font-size:13px;color:#E4C687;text-align:right}.crm-ranking-row p{font-size:13px;margin-bottom:8px;line-height:1.5}
                 .crm-actions{display:flex;flex-direction:column;gap:9px;margin-top:16px}.crm-actions button{width:100%;justify-content:space-between!important;text-align:left}
@@ -207,7 +189,7 @@ export default function CrmView(props: Props) {
               {crmView === 'informes' && <>
                 <nav className="crm-shortcuts crm-report-index" aria-label="Ir a una sección del informe">
                   {([
-                    ['Caja', 'crm-cash-title'], ['Citas', 'crm-report-citas'], ['Clientas', 'crm-report-clientas'],
+                    ['Ticket medio', 'crm-cash-title'], ['Citas', 'crm-report-citas'], ['Clientas', 'crm-report-clientas'],
                     ['Servicios', 'crm-report-servicios'], ['Ocupación', 'crm-report-ocupacion'],
                   ] as const).map(([label, id]) => <button type="button" key={id} className="crm-button"
                     onClick={() => {
@@ -217,32 +199,19 @@ export default function CrmView(props: Props) {
                     }}>{label}</button>)}
                 </nav>
                 <section className="crm-card crm-cash-statistics" aria-labelledby="crm-cash-title">
-                  <div className="crm-section-title"><h3 id="crm-cash-title" tabIndex={-1}>Estadísticas de Caja</h3><Wallet size={18} color="#E4C687" aria-hidden="true" /></div>
-                  <small>Según la fecha del cobro o de la devolución. Las cortesías y los movimientos internos de efectivo quedan fuera.</small>
+                  <div className="crm-section-title"><h3 id="crm-cash-title" tabIndex={-1}>Ticket medio por cliente</h3><Wallet size={18} color="#E4C687" aria-hidden="true" /></div>
+                  <small>Media de los cobros del periodo vinculados a la ficha de cada cliente.</small>
                   {valid && !cashStats && !cashResult?.error && <p className="crm-note" role="status">Consultando Caja…</p>}
                   {cashResult?.error && <div className="crm-section-title">
                     <p className="crm-note" role="alert">{cashResult.error}</p>
                     <button type="button" className="crm-button" onClick={() => setCashReload(value => value + 1)}>Reintentar consulta de Caja</button>
                   </div>}
                   {cashStats && <>
-                    <div className="crm-grid crm-cash-metrics">
-                      {cashMetrics.map(metric => <article className="crm-card" key={metric.label}>
-                        <span className="crm-label">{metric.label}</span>
-                        <strong>{formatCashMetric(metric.current, metric.currency)}</strong>
-                        <small>{metric.note}</small>
-                        <small className="crm-cash-previous">Antes · {formatCashMetric(metric.previous, metric.currency)}</small>
-                      </article>)}
-                    </div>
-                    <small>Periodo anterior · {previousFrom.split('-').reverse().join('/')} – {previousTo.split('-').reverse().join('/')}</small>
-                    <h4>Ticket medio por cliente</h4>
-                    <small>Total cobrado dividido entre los tickets de cada cliente, antes de devoluciones. Solo entran cobros de citas vinculadas a una ficha.</small>
-                    {cashStats.current.unlinkedSalesCount > 0 && <small>Cobros sin ficha en el periodo: {cashStats.current.unlinkedSalesCount}. Se incluyen en los totales de Caja.</small>}
                     {cashStats.clients.length > 0 ? <div className="crm-cash-client-table">
                       <table className="crm-table" aria-label="Ticket medio por cliente">
-                        <thead><tr><th scope="col">Cliente</th><th scope="col">Tickets</th><th scope="col">Total cobrado</th><th scope="col">Ticket medio</th></tr></thead>
+                        <thead><tr><th scope="col">Cliente</th><th scope="col">Ticket medio</th></tr></thead>
                         <tbody>{cashStats.clients.map(client => <tr key={client.id}>
-                          <th scope="row">{client.name}</th><td>{client.salesCount}</td>
-                          <td>{euro.format(client.salesCents / 100)}</td><td>{euro.format(averageTicket(client) / 100)}</td>
+                          <th scope="row">{client.name}</th><td>{euro.format(averageTicket(client) / 100)}</td>
                         </tr>)}</tbody>
                       </table>
                     </div> : <p className="crm-note">No hay cobros vinculados a una ficha en estas fechas.</p>}
@@ -281,7 +250,7 @@ export default function CrmView(props: Props) {
                 {crmView === 'informes' && <h3 id="crm-report-servicios" tabIndex={-1}>Servicios y reservas</h3>}
                 <div className="crm-grid crm-two"><section className="crm-card"><h3>Ranking de servicios</h3><small style={{marginTop:7}}>Un servicio cuenta una vez por cita, agrupando variantes.</small><div className="crm-ranking">{ranking.map((item,i)=><div className="crm-ranking-row" key={item.key}><span>{i+1}</span><div><p>{item.name}</p><div className="crm-track"><div style={{width:`${item.count/top*100}%`,background:'#C49A58'}}/></div></div><strong>{item.count}</strong></div>)}</div>{!ranking.length && <p className="crm-empty">No hay servicios desglosados en estas fechas.</p>}{booked.some(item=>!item.services?.length) && <small style={{marginTop:15}}>Las citas antiguas sin desglose no entran en este ranking.</small>}</section><section className="crm-card"><h3>¿De dónde llegan las reservas?</h3><small style={{marginTop:7}}>Incluye todas las citas del periodo, también pendientes y canceladas.</small><div className="crm-ranking">{channelRows.map(row=><div key={row.name}><div style={{display:'flex',justifyContent:'space-between',gap:12,marginBottom:8}}><span>{row.name}</span><strong style={{color:'#E4C687'}}>{row.count}</strong></div><div className="crm-track"><div style={{width:`${row.count/Math.max(1,inPeriod.length)*100}%`,background:row.name === 'Sin canal registrado' ? '#AFA394' : '#C49A58'}}/></div></div>)}</div>{!inPeriod.length && <p className="crm-empty">No hay citas en este periodo.</p>}</section></div></>}
               {crmView === 'informes' && <>
-                <section className="crm-card"><div className="crm-section-title"><h3>Exporta tu resumen</h3><BookOpen size={18} color="#E4C687"/></div><small style={{margin:'8px 0 14px'}}>El CSV incluye comparación, servicios, ocupación diaria y las estadísticas de Caja cuando están disponibles. El PDF imprime la vista que tienes abierta.</small>
+                <section className="crm-card"><div className="crm-section-title"><h3>Exporta tu resumen</h3><BookOpen size={18} color="#E4C687"/></div><small style={{margin:'8px 0 14px'}}>El CSV incluye comparación, servicios y ocupación diaria del periodo. El PDF imprime la vista que tienes abierta.</small>
                             <div className="studio-crm-export" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
               <button type="button" disabled={!valid} onClick={() => {
                 const rows: (string | number)[][] = [
@@ -292,13 +261,6 @@ export default function CrmView(props: Props) {
                   ['Ocupación diaria', 'Minutos reservados', 'Minutos disponibles', 'Porcentaje'], ...days.map(day => [day.date, day.occupied, day.available, day.available ? (day.occupied / day.available * 100).toFixed(1) : 'Sin horario']),
                   ['Nota', 'Datos locales; ocupación histórica calculada con el horario actual. Actividad web acumulada excluida de este informe por fechas.']
                 ];
-                if (cashStats) {
-                  const csvValue = (value: number | null, currency: boolean) => value === null ? 'Sin datos' : currency ? value / 100 : value;
-                  rows.push([], ['Estadísticas de Caja', 'Actual', 'Anterior', 'Unidad'],
-                    ...cashMetrics.map(metric => [metric.label, csvValue(metric.current, metric.currency),
-                      csvValue(metric.previous, metric.currency), metric.currency ? 'EUR' : 'Cobros']),
-                    ['Número de devoluciones', cashStats.current.refundCount, cashStats.previous.refundCount, 'Devoluciones']);
-                }
                 const cell = (value: string | number) => {
                   let text = typeof value === 'number' ? String(value).replace('.', ',') : value;
                   if (typeof value === 'string' && /^[=+@-]/.test(text)) text = "'" + text;
