@@ -5,6 +5,7 @@ import {
   Delete, Gift, History, Printer, Receipt, RefreshCw, Smartphone, Wallet,
 } from 'lucide-react';
 import { attachAppointmentVoucher, currentToken, fetchVouchers, StudioApiError, studioCashRegister } from './studioApi';
+import { createSalonQrModules, SALON_QR_LINK } from './ReservationQr';
 import './cash-register.css';
 
 type Method = 'cash' | 'card' | 'bizum' | 'transfer' | 'courtesy';
@@ -20,8 +21,12 @@ type ServiceReceipt = {
   voucher_cents?: number;
   voucher_kind?: string;
 };
-type ReceiptLine = string | { label: string; value: string; total?: boolean };
-type TicketVatRate = '' | '21' | '10' | '4';
+type ReceiptServiceTable = {
+  services: { label: string; base: number | null; vat: number | null; total: number | null }[];
+  vatRate: string;
+};
+type ReceiptLine = string | { label: string; value: string; total?: boolean } | ReceiptServiceTable;
+type TicketVatRate = 'none' | '21' | '10' | '4';
 type ReceiptHeader = {
   fiscalName: string; taxId: string; address: string; phone: string; logo: string; vatRate: TicketVatRate;
 };
@@ -89,7 +94,7 @@ function cleanReceiptHeader(value: Partial<ReceiptHeader> | null): ReceiptHeader
     address: typeof value?.address === 'string' ? value.address.trim().slice(0, 180) : '',
     phone: typeof value?.phone === 'string' ? value.phone.trim().slice(0, 30) : '',
     logo: cleanReceiptLogo(value?.logo),
-    vatRate: value?.vatRate === '21' || value?.vatRate === '10' || value?.vatRate === '4' ? value.vatRate : '',
+    vatRate: value?.vatRate === 'none' || value?.vatRate === '10' || value?.vatRate === '4' ? value.vatRate : '21',
   };
 }
 
@@ -157,7 +162,7 @@ function ReceiptHeaderSettings() {
           setDraft(current => ({ ...current, vatRate }));
           setSaved(false);
         }}>
-          <option value="">Sin desglose</option>
+          <option value="none">Sin desglose</option>
           <option value="21">21 %</option>
           <option value="10">10 %</option>
           <option value="4">4 %</option>
@@ -202,6 +207,93 @@ async function request<T>(body: unknown) {
   return studioCashRegister<T>(token, body);
 }
 
+function splitTicketCents(total: number, weights: number[]): number[] {
+  if (total === 0) return weights.map(() => 0);
+  const sum = weights.reduce((a, b) => a + b, 0);
+  if (sum === 0) return weights;
+  const divisor = BigInt(sum);
+  let cumulative = 0;
+  let allocated = 0;
+  return weights.map(weight => {
+    cumulative += weight;
+    const share = Number((BigInt(total) * BigInt(cumulative) + divisor / 2n) / divisor);
+    const amount = share - allocated;
+    allocated = share;
+    return amount;
+  });
+}
+
+function makeReceiptServiceTable(snapshot: ServiceReceipt, vatRate: string, base: number | null): ReceiptServiceTable {
+  const prices = snapshot.items.map(([, amount]) => amount);
+  const knownPrices = prices.every((price): price is number => price !== null);
+  const canAllocate = knownPrices && (snapshot.total_cents === 0 || prices.some(price => price > 0));
+  const allocatedTotals = canAllocate ? splitTicketCents(snapshot.total_cents, prices) : null;
+  const totals = allocatedTotals ?? prices;
+  const bases = allocatedTotals && base !== null ? splitTicketCents(base, allocatedTotals) : null;
+  return {
+    vatRate,
+    services: snapshot.items.map(([label], index) => ({
+      label,
+      base: bases?.[index] ?? null,
+      vat: bases && allocatedTotals ? allocatedTotals[index] - bases[index] : null,
+      total: totals[index],
+    })),
+  };
+}
+
+function printServiceTable(page: Document, details: ReceiptServiceTable): HTMLTableElement {
+  const table = page.createElement('table');
+  table.className = 'ticket-services';
+  const caption = table.createCaption();
+  caption.textContent = 'Servicios';
+  const header = table.createTHead().insertRow();
+  for (const label of ['Base', details.vatRate ? 'IVA ' + details.vatRate + ' %' : 'IVA', 'Total']) {
+    const cell = page.createElement('th');
+    cell.scope = 'col';
+    cell.textContent = label;
+    header.append(cell);
+  }
+  details.services.forEach((service, index) => {
+    const group = table.createTBody();
+    const label = group.insertRow().insertCell();
+    label.colSpan = 3;
+    label.className = 'ticket-service-name';
+    label.textContent = `${index + 1}. ${service.label}`;
+    const amounts = group.insertRow();
+    for (const amount of [service.base, service.vat, service.total]) {
+      amounts.insertCell().textContent = amount === null ? '—' : money(amount);
+    }
+  });
+  return table;
+}
+
+function printTicketFooter(page: Document) {
+  const footer = page.createElement('footer');
+  footer.className = 'ticket-footer';
+  const thanks = page.createElement('p');
+  thanks.textContent = 'Gracias por tu visita';
+  const { side, modules } = createSalonQrModules();
+  const namespace = 'http://www.w3.org/2000/svg';
+  const qr = page.createElementNS(namespace, 'svg');
+  qr.setAttribute('viewBox', `0 0 ${side} ${side}`);
+  qr.setAttribute('role', 'img');
+  qr.setAttribute('aria-label', 'QR para reservar en L’Studio Ana');
+  const back = page.createElementNS(namespace, 'rect');
+  back.setAttribute('width', String(side));
+  back.setAttribute('height', String(side));
+  back.setAttribute('fill', '#fff');
+  const pattern = page.createElementNS(namespace, 'path');
+  pattern.setAttribute('d', modules);
+  pattern.setAttribute('fill', '#000');
+  pattern.setAttribute('shape-rendering', 'crispEdges');
+  qr.append(back, pattern);
+  const link = page.createElement('a');
+  link.href = SALON_QR_LINK;
+  link.textContent = 'Reserva en ' + new URL(SALON_QR_LINK).hostname;
+  footer.append(thanks, qr, link);
+  page.body.append(footer);
+}
+
 async function printSlip(title: string, lines: ReceiptLine[], header?: ReceiptHeader) {
   const frame = document.createElement('iframe');
   frame.className = 'cash-print-frame';
@@ -240,6 +332,16 @@ async function printSlip(title: string, lines: ReceiptLine[], header?: ReceiptHe
       .ticket-document p { font-size: 8pt }
       .amount-row { gap: 4px }
       .amount-row span:first-child { min-width: 0 }
+      .ticket-services { width: 100%; table-layout: fixed; border-collapse: collapse; margin: 7px 0; font-variant-numeric: tabular-nums }
+      .ticket-services caption { text-align: left; font-weight: 700; margin-bottom: 4px }
+      .ticket-services th, .ticket-services td { text-align: right; padding: 2px 1px }
+      .ticket-services thead { border-bottom: 1px solid #111 }
+      .ticket-services tbody { break-inside: avoid; border-bottom: 1px dotted #777 }
+      .ticket-services td.ticket-service-name { text-align: left; padding-top: 5px; overflow-wrap: anywhere }
+      .ticket-footer { margin-top: 8px; padding-top: 4px; border-top: 1px solid #111; text-align: center; break-inside: avoid }
+      .ticket-footer p { font-weight: 700 }
+      .ticket-footer svg { display: block; width: 27mm; height: 27mm; margin: 2px auto }
+      .ticket-footer a { color: #000; text-decoration: none; font-size: 8pt }
     `;
     page.head.append(css);
     const heading = page.createElement('h1');
@@ -277,6 +379,10 @@ async function printSlip(title: string, lines: ReceiptLine[], header?: ReceiptHe
       page.body.append(heading);
     }
     for (const line of lines) {
+      if (typeof line !== 'string' && 'services' in line) {
+        page.body.append(printServiceTable(page, line));
+        continue;
+      }
       const row = page.createElement('p');
       if (typeof line === 'string') {
         row.textContent = line;
@@ -290,6 +396,7 @@ async function printSlip(title: string, lines: ReceiptLine[], header?: ReceiptHe
       }
       page.body.append(row);
     }
+    if (header) printTicketFooter(page);
     if (logo) {
       const ready = logo.complete ? logo.naturalWidth > 0 : await new Promise<boolean>(resolve => {
         const image = logo;
@@ -678,29 +785,25 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
 
     if (snapshot) {
       const subtotal = snapshot.total_cents + discount;
+      const vatRate = header.vatRate !== 'none' && movement.kind === 'sale' && snapshot.items.length > 0
+        && !snapshot.deposit_cents && !snapshot.voucher_cents && snapshot.total_cents === movement.amount_cents
+        ? header.vatRate : '';
+      const base = vatRate ? Math.round(snapshot.total_cents * 100 / (100 + Number(vatRate))) : null;
       if (snapshot.items.length) {
-        lines.push('Servicios', ...snapshot.items.map(([label, amount]) => ({
-          label, value: amount === null ? 'Incluido' : money(amount),
-        })));
-        if (snapshot.items.every(([, amount]) => amount !== null)) {
-          const listed = snapshot.items.reduce((sum, [, amount]) => sum + (amount ?? 0), 0);
-          if (listed !== subtotal) lines.push({
-            label: 'Ajuste de precio', value: money(subtotal - listed),
-          });
-        }
+        lines.push(makeReceiptServiceTable(snapshot, vatRate, base));
       } else {
-        lines.push(movement.description);
+        lines.push({ vatRate: '', services: [{
+          label: movement.description, base: null, vat: null, total: snapshot.total_cents,
+        }] });
       }
       if (discount > 0) lines.push(
-        { label: 'Subtotal servicios', value: money(subtotal) },
+        { label: 'Subtotal antes del descuento', value: money(subtotal) },
         { label: 'Descuento aplicado', value: money(-discount) },
       );
-      if (header.vatRate && movement.kind === 'sale' && snapshot.items.length > 0
-        && !snapshot.deposit_cents && !snapshot.voucher_cents && snapshot.total_cents === movement.amount_cents) {
-        const base = Math.round(snapshot.total_cents * 100 / (100 + Number(header.vatRate)));
+      if (base !== null) {
         lines.push(
           { label: 'Base sin IVA', value: money(base) },
-          { label: 'IVA ' + header.vatRate + ' %', value: money(snapshot.total_cents - base) },
+          { label: 'IVA ' + vatRate + ' %', value: money(snapshot.total_cents - base) },
           { label: 'Total con IVA incluido', value: money(snapshot.total_cents), total: true },
         );
       } else {
@@ -712,7 +815,9 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         value: money(-snapshot.voucher_cents),
       });
     } else {
-      lines.push(movement.description);
+      lines.push({ vatRate: '', services: [{
+        label: movement.description, base: null, vat: null, total: movement.appointment_id ? null : movement.amount_cents,
+      }] });
       if (discount > 0) lines.push({ label: 'Descuento aplicado', value: money(-discount) });
     }
 
