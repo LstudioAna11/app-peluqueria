@@ -391,3 +391,10 @@
 .cash-sale-confirmation-summary p { margin-top: 3px; color: #c7dec4; }
 .cash-sale-confirmation-summary strong { color: #fff8ee; font-size: 1.2rem; font-variant-numeric: tabular-nums; }
 .cash-sale-confirmation .cash-actions button { min-height: 44px; }
+
+.cash-tender { display: grid; gap: 8px; }
+.cash-tender-input { display: flex; align-items: end; gap: 8px; flex-wrap: wrap; }
+.cash-tender-input label { display: grid; gap: 5px; flex: 1 1 130px; color: var(--cash-muted); font-size: .84rem; }
+.cash-tender-input input { font-variant-numeric: tabular-nums; }
+.cash-tender-input button { font-size: .8rem; white-space: nowrap; }
+.cash-change-short strong { color: #ffc5b6; }
