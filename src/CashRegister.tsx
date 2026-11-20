@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
-  ArrowDownLeft, ArrowUpRight, Banknote, Building2, Check, ChevronDown, CreditCard,
-  Delete, History, Printer, Receipt, RefreshCw, Smartphone, Wallet,
+  ArrowDownLeft, ArrowUpRight, Banknote, Check, ChevronDown, CreditCard,
+  Delete, Gift, History, Printer, Receipt, RefreshCw, Smartphone, Wallet,
 } from 'lucide-react';
-import { currentToken, StudioApiError, studioCashRegister } from './studioApi';
+import { attachAppointmentVoucher, currentToken, fetchVouchers, StudioApiError, studioCashRegister } from './studioApi';
 import './cash-register.css';
 
 type Method = 'cash' | 'card' | 'bizum' | 'transfer';
@@ -25,6 +25,8 @@ type CashState = {
 type AppointmentSale = {
   id: string; description: string; finalCents: number | null; depositCents: number;
   voucherCents: number; unavailable: boolean; hasUnknownVoucher: boolean;
+  giftCard?: { clientId: string; saved: () => Promise<void> };
+  giftApplied?: boolean;
 };
 type Command = { operation: 'open' | 'close' | 'record' | 'invoice'; id?: string; [key: string]: unknown };
 
@@ -34,7 +36,6 @@ const methodButtons = [
   { value: 'card', Icon: CreditCard },
   { value: 'cash', Icon: Banknote },
   { value: 'bizum', Icon: Smartphone },
-  { value: 'transfer', Icon: Building2 },
 ] as const;
 const movementButtons = [
   { value: 'sale', label: 'Cobro sin cita', Icon: Receipt },
@@ -129,10 +130,61 @@ function Keypad({ label, value, onChange, disabled }: {
   </div>;
 }
 
-export default function CashRegister({ appointment, onOpenCash, openAppointment }: {
+function GiftCardPicker({ clientId, disabled, onApply }: {
+  clientId: string;
+  disabled: boolean;
+  onApply: (voucherId: string) => void;
+}) {
+  const [options, setOptions] = useState<{ id: string; label: string }[]>([]);
+  const [selected, setSelected] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [reload, setReload] = useState(0);
+
+  useEffect(() => {
+    let alive = true;
+    const token = currentToken();
+    if (!token) { setError('Vuelve a iniciar sesión.'); setLoading(false); return; }
+    async function load(token: string) {
+      const first = await fetchVouchers(token, clientId, 0, true);
+      const pages = [first];
+      for (let page = 1; page * 12 < first.total && alive; page++) {
+        pages.push(await fetchVouchers(token, clientId, page, true));
+      }
+      return pages.flatMap(page => page.vouchers.filter(voucher => voucher.kind === 'gift').map(voucher => ({
+        id: voucher.id,
+        label: `${voucher.title} · ${money(voucher.price_cents - voucher.used_cents - voucher.held_cents)} disponibles`,
+      })));
+    }
+    setLoading(true);
+    setError('');
+    setSelected('');
+    void load(token)
+      .then(items => { if (alive) setOptions(items); })
+      .catch(reason => { if (alive) setError(reason instanceof Error ? reason.message : 'No se pudieron consultar las tarjetas regalo.'); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [clientId, reload]);
+
+  if (loading) return <p role="status">Consultando tarjetas regalo…</p>;
+  if (error) return <><p role="alert">{error}</p>
+    <button type="button" disabled={disabled} onClick={() => setReload(value => value + 1)}>Volver a consultar</button></>;
+  if (!options.length) return <p>Esta clienta no tiene tarjetas regalo con saldo disponible.</p>;
+
+  return <>
+    <label className="cash-field">Tarjeta regalo de la clienta<select value={selected} disabled={disabled} onChange={event => setSelected(event.target.value)}>
+      <option value="">Elige una tarjeta regalo</option>
+      {options.map(option => <option key={option.id} value={option.id}>{option.label}</option>)}
+    </select></label>
+    <button type="button" disabled={disabled || !selected} onClick={() => onApply(selected)}>Aplicar al saldo</button>
+  </>;
+}
+
+export default function CashRegister({ appointment, onOpenCash, openAppointment, openAgenda }: {
   appointment?: AppointmentSale;
   onOpenCash?: () => void;
   openAppointment?: (id: string) => void;
+  openAgenda?: () => void;
 }) {
   const appointmentId = appointment?.id;
   const [state, setState] = useState<CashState>();
@@ -149,12 +201,16 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment 
   const [counted, setCounted] = useState('');
   const [terminal, setTerminal] = useState('');
   const [kind, setKind] = useState<Exclude<Kind, 'refund'>>('sale');
-  const [method, setMethod] = useState<Method>('card');
+  const [giftMode, setGiftMode] = useState(false);
+  const [giftBusy, setGiftBusy] = useState(false);
+  const [giftError, setGiftError] = useState('');
+  const [method, setMethod] = useState<(typeof methodButtons)[number]['value']>('card');
   const [description, setDescription] = useState('');
   const [bankReference, setBankReference] = useState('');
   const [invoiceReference, setInvoiceReference] = useState('');
   const [invoiceEdit, setInvoiceEdit] = useState<{ id: string; value: string }>();
-  const [finalAmount, setFinalAmount] = useState(appointment?.finalCents == null ? '' : decimal(appointment.finalCents));
+  const [finalAmountDraft, setFinalAmount] = useState<string>();
+  const finalAmount = finalAmountDraft ?? (appointment?.finalCents == null ? '' : decimal(appointment.finalCents));
   const [movementAmount, setMovementAmount] = useState('');
 
   useEffect(() => {
@@ -216,15 +272,35 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment 
   const shift = state?.shift;
   const activeShift = state?.openShift;
   const totals = state?.totals;
-  const blocked = busy || loading || !!retry;
+  const blocked = busy || giftBusy || loading || !!retry;
   const expected = shift && totals ? shift.opening_cents + totals.cash + totals.cashIn - totals.cashOut : 0;
   const appointmentPaid = state?.movements.some(movement => movement.kind === 'sale' && !movement.refunded);
   const final = cents(finalAmount);
   const due = appointment && final !== null ? final - appointment.depositCents - appointment.voucherCents : null;
 
+  async function applyGiftCard(voucherId: string) {
+    const token = currentToken();
+    if (!token || !appointment?.giftCard || blocked || lock.current) return;
+    lock.current = true;
+    setGiftBusy(true);
+    setGiftError('');
+    setNotice('');
+    try {
+      await attachAppointmentVoucher(token, appointment.id, voucherId);
+      await appointment.giftCard.saved();
+      setGiftMode(false);
+      setNotice('Tarjeta regalo aplicada. Comprueba el saldo pendiente.');
+    } catch (reason) {
+      setGiftError(reason instanceof Error ? reason.message : 'No se pudo comprobar la tarjeta regalo.');
+    } finally {
+      setGiftBusy(false);
+      lock.current = false;
+    }
+  }
+
   function record(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!activeShift || blocked) return;
+    if (!activeShift || blocked || (kind === 'sale' && giftMode)) return;
     const amountCents = appointment ? due : cents(movementAmount);
     if (amountCents === null || amountCents <= 0) {
       setError('Introduce un importe pendiente mayor que cero.');
@@ -260,8 +336,9 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment 
   function cashSummary() {
     if (!shift || !totals) return [];
     const rows: [string, number][] = [
-      ['Fondo inicial', shift.opening_cents], ['Efectivo neto', totals.cash],
-      ['Tarjeta neta', totals.card], ['Bizum neto', totals.bizum], ['Transferencias netas', totals.transfer],
+      ['Fondo inicial', shift.opening_cents], ['Efectivo', totals.cash],
+      ['Tarjeta', totals.card], ['Bizum', totals.bizum],
+      ...(totals.transfer === 0 ? [] : [['Transferencias', totals.transfer] as [string, number]]),
       ['Entradas de efectivo', totals.cashIn], ['Salidas de efectivo', totals.cashOut], ['Efectivo esperado', expected],
     ];
     if (shift.counted_cents !== null) rows.push(['Efectivo contado', shift.counted_cents], ['Diferencia de efectivo', shift.counted_cents - expected]);
@@ -276,7 +353,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment 
   const dashboard = !appointment && shift && totals;
 
   return <section className={`cash-register${appointment ? ' cash-register-appointment' : ''}`}
-    aria-label={appointment ? 'Cobro de cita' : 'Caja'} aria-busy={loading || busy}>
+    aria-label={appointment ? 'Cobro de cita' : 'Caja'} aria-busy={loading || busy || giftBusy}>
     <header className="cash-heading">
       <div className="cash-title">
         <div className="cash-title-icon"><Wallet size={23} aria-hidden="true" /></div>
@@ -339,8 +416,8 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment 
       {dashboard && <section className="cash-overview" aria-label="Resumen de caja">
         {([
           [Banknote, 'Efectivo esperado', expected],
-          [CreditCard, 'Tarjeta neta', totals.card],
-          [Receipt, 'Cobros netos', totals.cash + totals.card + totals.bizum + totals.transfer],
+          [CreditCard, 'Tarjeta', totals.card],
+          [Receipt, 'Cobros del turno', totals.cash + totals.card + totals.bizum + totals.transfer],
         ] as const).map(([Icon, label, amount]) => <div className="cash-metric" key={label}>
           <div><span>{label}</span><Icon size={19} aria-hidden="true" /></div>
           <strong>{money(amount)}</strong>
@@ -364,7 +441,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment 
                 <legend>Operación</legend>
                 <div className="cash-operation-buttons">
                   {movementButtons.map(({ value, label, Icon }) => <label key={value} className="cash-choice">
-                    <input type="radio" name="cash-movement-kind" value={value} checked={kind === value} onChange={() => setKind(value)} />
+                    <input type="radio" name="cash-movement-kind" value={value} checked={kind === value} onChange={() => { setKind(value); setGiftMode(false); }} />
                     <span><Icon size={17} aria-hidden="true" />{label}</span>
                   </label>)}
                 </div>
@@ -374,7 +451,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment 
             </>}
             {appointment && <div className="cash-appointment-breakdown">
               <div><span>Anticipo confirmado</span><strong>{money(appointment.depositCents)}</strong></div>
-              <div><span>Bono aplicado</span><strong>{money(appointment.voucherCents)}</strong></div>
+              <div><span>{appointment.giftApplied ? 'Tarjeta regalo aplicada' : 'Bono aplicado'}</span><strong>{money(appointment.voucherCents)}</strong></div>
             </div>}
             {kind === 'sale' && <>
               <fieldset className="cash-choice-group" disabled={blocked}>
@@ -382,13 +459,27 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment 
                 <div className="cash-method-buttons">
                   {methodButtons.map(({ value, Icon }) => <label key={value} className="cash-choice cash-method">
                     <input type="radio" name={appointment ? 'appointment-payment-method' : 'cash-payment-method'} value={value}
-                      checked={method === value} onChange={() => setMethod(value)} />
+                      checked={method === value && !giftMode} onChange={() => { setGiftMode(false); setMethod(value); }} />
                     <span><Icon size={23} aria-hidden="true" />{methods[value]}</span>
                   </label>)}
+                  <button type="button" className="cash-gift-button" aria-pressed={giftMode}
+                    onClick={() => { setGiftMode(value => !value); setGiftError(''); }}>
+                    <Gift size={23} aria-hidden="true" />Tarjeta regalo
+                  </button>
                 </div>
               </fieldset>
-              {method === 'card' && <p className="cash-pos-note">Cuando el datáfono apruebe el pago, registra el cobro aquí.</p>}
-              <details className="cash-optional">
+              {giftMode && <div className="cash-gift-panel">
+                {appointment?.giftApplied && <p>Esta cita ya tiene una tarjeta regalo aplicada por {money(appointment.voucherCents)}.</p>}
+                {appointment?.giftCard ? <GiftCardPicker key={appointment.giftCard.clientId} clientId={appointment.giftCard.clientId}
+                  disabled={blocked} onApply={id => void applyGiftCard(id)} /> : appointment
+                  ? <p>{appointment.giftApplied ? 'Elige otro método si queda un saldo pendiente.' : 'La cita debe estar activa, sin finalizar y vinculada a una clienta.'}</p>
+                  : <><p>Aplica la tarjeta regalo desde la cita de la clienta.</p>
+                    {openAgenda && <button type="button" onClick={openAgenda}>Ir a la agenda</button>}</>}
+                {giftBusy && <p role="status">Aplicando tarjeta regalo…</p>}
+                {giftError && <p role="alert">{giftError}</p>}
+              </div>}
+              {!giftMode && method === 'card' && <p className="cash-pos-note">Cuando el datáfono apruebe el pago, registra el cobro aquí.</p>}
+              {!giftMode && <details className="cash-optional">
                 <summary>Referencia y factura <span>Opcional</span><ChevronDown size={16} aria-hidden="true" /></summary>
                 <div className="cash-optional-fields">
                   <label className="cash-field">Referencia de operación (opcional)<input maxLength={80} value={bankReference} disabled={blocked}
@@ -396,7 +487,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment 
                   <label className="cash-field">Número de factura (opcional)<input maxLength={80} value={invoiceReference} disabled={blocked}
                     onChange={event => setInvoiceReference(event.target.value)} /></label>
                 </div>
-              </details>
+              </details>}
             </>}
           </div>
           <div className="cash-pos-amount">
@@ -404,7 +495,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment 
               onChange={appointment ? setFinalAmount : setMovementAmount} disabled={blocked} />
             {appointment && <div className="cash-due"><span>Saldo</span><strong>{due === null ? '—' : money(Math.max(0, due))}</strong></div>}
             {due !== null && due <= 0 && <p className="cash-pos-note">{due === 0 ? 'La cita está cubierta.' : 'Revisa el precio final y los importes ya aplicados.'}</p>}
-            <button className="cash-primary" disabled={blocked || activeSale === null || activeSale <= 0}>
+            <button className="cash-primary" disabled={blocked || (kind === 'sale' && giftMode) || activeSale === null || activeSale <= 0}>
               <Check size={17} aria-hidden="true" />
               <span>{kind === 'sale' ? 'Registrar cobro' : `Registrar ${movementLabel?.toLowerCase()}`}</span>
               {!appointment && activeSale !== null && activeSale > 0 && <strong>{money(activeSale)}</strong>}
