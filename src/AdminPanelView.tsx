@@ -1,4 +1,5 @@
 import {StraighteningProductConfig,isStraighteningSupplement} from './StraighteningProduct'; // lst-straightening-product-v1
+import { cashQuickServices } from './cashQuickServices';
 import CatalogServiceOrder,{moveCatalogService} from './CatalogServiceOrder'; // lst-service-order-controls-v1
 import {HighlightsVariantEditor} from './HighlightOptions'; // lst-soft-full-length-picker-v1
 // lst-quick-open-direct-v1
@@ -828,7 +829,9 @@ export default function AdminPanelView(props: Props) {
               No hay profesionales configurados. Ve a Configuración → Empleados y añade al menos una persona en activo para que las clientas puedan elegir profesional al reservar.
             </div>
           )}
-          {adminTab === 'cash' && <React.Suspense fallback={<p role="status">Abriendo caja…</p>}><LazyCashRegister openAgenda={() => { setAgendaExpanded(false); setAdminTab('agenda'); }} openAppointment={id => {
+          {adminTab === 'cash' && <React.Suspense fallback={<p role="status">Abriendo caja…</p>}><LazyCashRegister
+            quickServices={cashQuickServices(catalog, appointments, bookingName, formatDateKey(new Date()))}
+            openAgenda={() => { setAgendaExpanded(false); setAdminTab('agenda'); }} openAppointment={id => {
             const appointment = appointments.find(item => item.serverId === id);
             if (appointment) setViewApptModal(appointment);
             else window.alert('La cita no está disponible en la agenda actual.');
