@@ -155,7 +155,6 @@
 .cash-choice-group { border: 0; padding: 0; min-width: 0; }
 .cash-choice-group legend { margin-bottom: 6px; padding: 0; font-size: .84rem; font-weight: 580; color: var(--cash-muted); }
 .cash-operation-buttons, .cash-method-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.cash-method-buttons { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 .cash-choice { position: relative; cursor: pointer; min-width: 0; }
 .cash-choice input {
   position: absolute;
@@ -268,8 +267,6 @@
 }
 
 @container cash-register (max-width: 390px) {
-  .cash-method-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .cash-method span { flex-direction: row; justify-content: flex-start; min-height: 48px; gap: 6px; padding-inline: 8px; }
   .cash-operation-buttons { grid-template-columns: minmax(0, 1fr); }
   .cash-operation-buttons .cash-choice span { justify-content: flex-start; min-height: 40px; padding-inline: 8px; }
   .cash-overview { gap: 6px; }
@@ -277,4 +274,39 @@
   .cash-metric strong { font-size: .98rem; }
   .cash-refresh { padding-inline: 8px; }
   .cash-form > button { margin-top: 0; }
+}
+
+.cash-method-buttons { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.cash-register button.cash-gift-button {
+  flex-direction: column;
+  gap: 8px;
+  min-height: 70px;
+  padding: 8px 5px;
+  font-size: .78rem;
+  line-height: 1.2;
+}
+.cash-register button.cash-gift-button[aria-pressed="true"] {
+  background: #4b3824;
+  border-color: var(--cash-accent);
+  box-shadow: inset 0 0 0 1px var(--cash-accent);
+  color: #ffe1a8;
+}
+.cash-gift-panel {
+  display: grid;
+  gap: 9px;
+  padding: 12px;
+  border: 1px solid var(--cash-border);
+  border-radius: 9px;
+  background: var(--cash-inset);
+  font-size: .86rem;
+}
+.cash-gift-panel > button { justify-self: start; }
+@container cash-register (max-width: 390px) {
+  .cash-method-buttons { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cash-register button.cash-gift-button, .cash-method span {
+    flex-direction: row;
+    justify-content: flex-start;
+    min-height: 48px;
+    padding-inline: 8px;
+  }
 }
