@@ -316,3 +316,52 @@
 .cash-service-breakdown dt { min-width: 0; overflow-wrap: anywhere; }
 .cash-service-breakdown dd { flex: none; color: var(--cash-accent); font-variant-numeric: tabular-nums; }
 .cash-service-breakdown .cash-service-total { padding-top: 9px; border-top: 1px solid var(--cash-border); font-weight: 700; }
+
+.appointment-cash-dialog {
+  box-sizing: border-box;
+  width: min(860px, calc(100% - 24px));
+  max-width: none;
+  max-height: calc(100dvh - 24px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid #896c4b;
+  border-radius: 16px;
+  background: #29231f;
+  color: #fff8ee;
+  overflow: hidden;
+}
+
+.appointment-cash-dialog[open] { display: flex; flex-direction: column; }
+.appointment-cash-dialog::backdrop { background: rgb(21 15 11 / 75%); }
+.appointment-cash-dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: clamp(12px, 3vw, 20px);
+  border-bottom: 1px solid #65503c;
+  background: #302721;
+}
+.appointment-cash-dialog-header h2 { margin: 0; color: #e5c58c; font-size: clamp(1.25rem, 3vw, 1.7rem); }
+.appointment-cash-dialog-header p { margin: 3px 0 0; overflow-wrap: anywhere; }
+.appointment-cash-dialog-header button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 1px solid #896c4b;
+  border-radius: 8px;
+  background: #241e1a;
+  color: #fff8ee;
+  font: inherit;
+  cursor: pointer;
+}
+.appointment-cash-dialog-header button:disabled { opacity: .6; cursor: default; }
+.appointment-cash-dialog-header button:focus-visible { outline: 2px solid #e5c58c; outline-offset: 2px; }
+.appointment-cash-dialog-body { min-height: 0; overflow: auto; overscroll-behavior: contain; padding: clamp(12px, 3vw, 20px); }
+.appointment-cash-dialog-body .cash-heading { padding-block: 0; }
+
+@media (max-width: 520px) {
+  .appointment-cash-dialog { width: calc(100% - 12px); max-height: calc(100dvh - 12px); }
+}
