@@ -13,7 +13,7 @@ interface Props {
   isDateBlockedByHoliday: (dateKey: string) => boolean;
   listaClientes: ClientRecord[];
   lostDemandsList: LostDemandRecord[];
-  setAdminTab: React.Dispatch<React.SetStateAction<"agenda" | "clients" | "catalog" | "config" | "detractors" | "crm" | "demands" | "holidays">>;
+  setAdminTab: (tab: "agenda" | "clients" | "demands" | "detractors") => void;
   setAgendaSidePanel: React.Dispatch<React.SetStateAction<"pending" | "day" | null>>;
   setClientStatusFilter: React.Dispatch<React.SetStateAction<"active" | "all" | "archived">>;
   setCrmView: React.Dispatch<React.SetStateAction<"resumen" | "clientas" | "servicios" | "informes">>;
