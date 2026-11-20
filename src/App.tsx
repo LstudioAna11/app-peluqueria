@@ -283,7 +283,9 @@ function usePortalEntry(options:{screen:string;recoveryOpen:boolean;syncSession:
 const LazyAppointmentDiscountEditor=React.lazy(()=>import('./AppointmentDiscountEditor'));
 const LazyClubClient=React.lazy(()=>import('./ClubClient'));
 const LazyAdminPanelView = React.lazy(() => import('./AdminPanelView'));
-const LazyCashRegister = React.lazy(() => import('./CashRegister'));
+const LazyAppointmentCashDialog = React.lazy(() =>
+  import('./CashRegister').then(module => ({ default: module.AppointmentCashDialog })),
+);
 // Optimized copies of bundled photos only; custom uploads remain unchanged.
 const FAST_PHOTO_URLS: Readonly<Record<string,string>> = {
   "/s1.webp": "/s1-fast.webp",
@@ -2305,13 +2307,14 @@ function StudioApp() {
     pendingBookingBusyRef.current = true; setPendingBookingBusy(true); setPendingBookingError('');
     try {
       demandTracker.submit();
+      const openCash = saturdayRequestModal.id === quickChargeDraftId.current;
       const saved = await persistPendingAppointment(saturdayRequestModal);
       setAppointments(previous => [...previous.filter(item => item.id !== saved.id && item.serverId !== saved.serverId), saved]);
-      setRegisteredAppointment(saved);
+      if (!openCash) setRegisteredAppointment(saved);
       demandTracker.complete(saved.serverId||saved.id);setDemandExplicitDate('');
       setBookingSuccessMsg('Solicitud enviada al Studio · Pendiente de confirmación de Ana.');
       setSelectedServicesToBook([]); setBookingClientNote(''); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setSelectedVoucherId(null); setIsModalOpen(false); setSaturdayRequestModal(null);
-      if (saturdayRequestModal.id === quickChargeDraftId.current) openSavedAppointmentCash(saved);
+      if (openCash) openSavedAppointmentCash(saved);
       else setCurrentScreen('catalogBooking');
     } catch (error) {
       demandTracker.failed(error instanceof Error&&/hueco.*ocup/i.test(error.message),saturdayRequestModal?.id);
@@ -2394,13 +2397,14 @@ function StudioApp() {
     pendingBookingBusyRef.current = true; setPendingBookingBusy(true); setPendingBookingError('');
     try {
       demandTracker.submit();
+      const openCash = advancePaymentModal.id === quickChargeDraftId.current;
       const saved = await persistPendingAppointment(advancePaymentModal);
       setAppointments(previous => [...previous.filter(item => item.id !== saved.id && item.serverId !== saved.serverId), saved]);
-      setRegisteredAppointment(saved);
+      if (!openCash) setRegisteredAppointment(saved);
       demandTracker.complete(saved.serverId||saved.id);setDemandExplicitDate('');
       setBookingSuccessMsg(saved.saturdayApproval?.status === 'pending' ? 'Solicitud enviada al Studio · Pendiente de confirmación de Ana.' : 'Solicitud enviada al Studio · Pendiente de comprobar el anticipo.');
       setSelectedServicesToBook([]); setBookingClientNote(''); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setSelectedVoucherId(null); setIsModalOpen(false); setAdvancePaymentModal(null);
-      if (advancePaymentModal.id === quickChargeDraftId.current) openSavedAppointmentCash(saved);
+      if (openCash) openSavedAppointmentCash(saved);
       else setCurrentScreen('catalogBooking');
     } catch (error) {
       demandTracker.failed(error instanceof Error&&/hueco.*ocup/i.test(error.message),advancePaymentModal?.id);
@@ -2472,22 +2476,15 @@ function StudioApp() {
   };
 
   const [viewApptModal, setViewApptModal] = useState<Appointment | null>(null);
-  const [openAppointmentCashId, setOpenAppointmentCashId] = useState<string | null>(null);
-  const appointmentCashSection = useRef<HTMLElement>(null);
+  const [appointmentToCharge, setAppointmentToCharge] = useState<Appointment | null>(null);
   useEffect(() => {
-    setOpenAppointmentCashId(current => current === viewApptModal?.serverId ? current : null);
-  }, [viewApptModal?.serverId]);
-  useEffect(() => {
-    if (openAppointmentCashId && openAppointmentCashId === viewApptModal?.serverId) {
-      appointmentCashSection.current?.scrollIntoView({ block: 'nearest' });
-    }
-  }, [openAppointmentCashId, viewApptModal?.serverId]);
+    if (currentScreen !== 'adminPanel') setAppointmentToCharge(null);
+  }, [currentScreen]);
   function openSavedAppointmentCash(saved: Appointment) {
     if (!saved.serverId) return;
     quickChargeDraftId.current = undefined;
     setCurrentScreen('adminPanel');
-    setViewApptModal(saved);
-    setOpenAppointmentCashId(saved.serverId);
+    setAppointmentToCharge(saved);
   }
   const [bizumSavingId, setBizumSavingId] = useState<string | null>(null);
   const [bizumSaveError, setBizumSaveError] = useState<{ id: string; message: string } | null>(null);
@@ -3227,6 +3224,7 @@ function StudioApp() {
     if (!row) throw new Error('Actualiza la agenda para comprobar el saldo del bono.');
     const updated = mapServerAppointment(row);
     setViewApptModal(current => current?.serverId === id ? updated : current);
+    setAppointmentToCharge(current => current?.serverId === id ? updated : current);
   };
 
   const portalEntry=usePortalEntry({screen:currentScreen,recoveryOpen,syncSession:syncFromServer,
@@ -5572,6 +5570,41 @@ function StudioApp() {
       </div>}
       {currentScreen === 'adminPanel' && <React.Suspense fallback={<div role="status" style={{padding:32,color:'#E4C687',textAlign:'center'}}>Cargando la intranet…</div>}><LazyAdminPanelView clientForAppointment={clientForAppointment} onStartClientAppointment={startClientAppointment} onCancelClientAppointment={() => setClientForAppointment(null)} onLogout={handleLogout} onPromotionsSaved={syncFromServer} bookingName={bookingName} appointmentServiceNames={appointmentServiceNames} compactVisitText={compactVisitText} AGENDA_SWATCHES={AGENDA_SWATCHES} DEFAULT_BRAND_LOGO={DEFAULT_BRAND_LOGO} DEFAULT_HEADER_LOGO={DEFAULT_HEADER_LOGO} FINISH_COPY={FINISH_COPY} TRANSLATIONS={TRANSLATIONS} activeEmployees={activeEmployees} adminCatalogSearch={adminCatalogSearch} adminCatalogStatus={adminCatalogStatus} adminTab={adminTab} agendaExpanded={agendaExpanded} agendaLayoutRef={agendaLayoutRef} agendaSwatch={agendaSwatch} agendaViewMode={agendaViewMode} anioMini={anioMini} appointmentSearch={appointmentSearch} appointmentSearchQuery={appointmentSearchQuery} appointmentSearchResults={appointmentSearchResults} appointments={appointments} attemptClock={attemptClock} bizConfig={bizConfig} bookingAttempts={bookingAttempts} busquedaCliente={busquedaCliente} cambiarMesMiniCal={cambiarMesMiniCal} catalog={catalog} catalogEditorId={catalogEditorId} catalogEditorTab={catalogEditorTab} catalogHasChanges={catalogHasChanges} catalogSavedMsg={catalogSavedMsg} catalogTranslationLang={catalogTranslationLang} clientStatusBusy={clientStatusBusy} clientStatusError={clientStatusError} clientStatusFilter={clientStatusFilter} clientsPageCount={clientsPageCount} configHasPendingChanges={configHasPendingChanges} configSubTab={configSubTab} crmPeriod={crmPeriod} crmView={crmView} dashboardEnd={dashboardEnd} dashboardStart={dashboardStart} demandEnd={demandEnd} demandFilter={demandFilter} demandStart={demandStart} detractorReplies={detractorReplies} diaSeleccionadoObj={diaSeleccionadoObj} diasRejillaMini={diasRejillaMini} editAdminDniCapilar={editAdminDniCapilar} editAdminFormulas={editAdminFormulas} editAdminPrescripcionCasa={editAdminPrescripcionCasa} editAdminProxima={editAdminProxima} editAdminUltimaVisita={editAdminUltimaVisita} editingClientId={editingClientId} effectiveClientsPage={effectiveClientsPage} emailConfigStatus={emailConfigStatus} employeePhotoBusy={employeePhotoBusy} enableDoubleBooking={enableDoubleBooking} enableOutOfHours={enableOutOfHours} expandedCategories={expandedCategories} expandedClientId={expandedClientId} fallbackHeaderLogo={fallbackHeaderLogo} fechaSeleccionada={fechaSeleccionada} feedbackList={feedbackList} feedbackRatingFilter={feedbackRatingFilter} feedbackStatusBusy={feedbackStatusBusy} filteredClientRows={filteredClientRows} formatDateKey={formatDateKey} googleCalendarConnected={googleCalendarConnected} googleCalendarSyncActive={googleCalendarSyncActive} handleAddCategorySubmit={handleAddCategorySubmit} handleAddSubserviceSubmit={handleAddSubserviceSubmit} handleAddVariant={handleAddVariant} handleCategoryPhotoDelete={handleCategoryPhotoDelete} handleCategoryPhotoSelect={handleCategoryPhotoSelect} handleCellClick={handleCellClick} handleClientStatus={handleClientStatus} handleDeleteClient={handleDeleteClient} handleDeleteCategory={handleDeleteCategory} handleDeleteSubservice={handleDeleteSubservice} handleDeleteVariant={handleDeleteVariant} handleFeedbackResolution={handleFeedbackResolution} handleGuardarEdicionAdminCliente={handleGuardarEdicionAdminCliente} handleGuardarNuevoCliente={handleGuardarNuevoCliente} handleMoveCategory={handleMoveCategory} handleSaveCatalogMaster={handleSaveCatalogMaster} handleSaveSection={handleSaveSection} handleServicePhotoDelete={handleServicePhotoDelete} handleServicePhotoSelect={handleServicePhotoSelect} handleToggleVariants={handleToggleVariants} handleUpdateCategoryCode={handleUpdateCategoryCode} handleUpdateCategoryTitle={handleUpdateCategoryTitle} headerLogoSrc={headerLogoSrc} holidaysList={holidaysList} hoursList={hoursList} isActiveAppointment={isActiveAppointment} isAddingCategory={isAddingCategory} isAddingClient={isAddingClient} isAddingSub={isAddingSub} isDateBlockedByHoliday={isDateBlockedByHoliday} isFinish={isFinish} isTimeSlotOccupied={isTimeSlotOccupied} listaClientes={listaClientes} logoUploadBusy={logoUploadBusy} logoUploadMessage={logoUploadMessage} lostDemandsList={lostDemandsList} mailboxError={mailboxError} mailboxFilter={mailboxFilter} mesMini={mesMini} newCatCode={newCatCode} newCatTitle={newCatTitle} newHolidayEnd={newHolidayEnd} newHolidayReason={newHolidayReason} newHolidayStart={newHolidayStart} newHolidayType={newHolidayType} newSubAchieved={newSubAchieved} newSubAlertBadge={newSubAlertBadge} newSubAlertText={newSubAlertText} newSubDesc={newSubDesc} newSubDur={newSubDur} newSubIncludes={newSubIncludes} newSubName={newSubName} newSubPrice={newSubPrice} newSubPriceType={newSubPriceType} newVariantDuration={newVariantDuration} newVariantName={newVariantName} newVariantPrice={newVariantPrice} nombresMeses={nombresMeses} normalizeCatalogSearch={normalizeCatalogSearch} normalizeEmail={normalizeEmail} novoApellidos={novoApellidos} novoDiagnostico={novoDiagnostico} novoEmail={novoEmail} novoEmailMode={novoEmailMode} novoTitularId={novoTitularId} novoParentesco={novoParentesco} novoNacimiento={novoNacimiento} novoNombre={novoNombre} novoPin={novoPin} novoTelefono={novoTelefono} openPassportEditor={openPassportEditor} opportunityPage={opportunityPage} opportunitySearch={opportunitySearch} opportunityStatus={opportunityStatus} photoUploadBusy={photoUploadBusy} renderAgendaLinks={renderAgendaLinks} renderDurationAgenda={renderDurationAgenda} returnToAppointmentId={returnToAppointmentId} saveErrorMsg={saveErrorMsg} saveState={saveState} savedMsg={savedMsg} semanaActual={semanaActual} setAdminCatalogSearch={setAdminCatalogSearch} setAdminCatalogStatus={setAdminCatalogStatus} setAdminTab={setAdminTab} setAgendaExpanded={setAgendaExpanded} setAgendaSidePanel={setAgendaSidePanel} setAgendaSwatch={setAgendaSwatch} setAgendaViewMode={setAgendaViewMode} setAppointmentSearch={setAppointmentSearch} setBookingAttempts={setBookingAttempts} setBusquedaCliente={setBusquedaCliente} setCatalog={setCatalog} setCatalogEditorId={setCatalogEditorId} setCatalogEditorTab={setCatalogEditorTab} setCatalogTranslationLang={setCatalogTranslationLang} setClientDetailsDraft={setClientDetailsDraft} setClientStatusFilter={setClientStatusFilter} setClientsPage={setClientsPage} setConfigSubTab={setConfigSubTab} setCrmPeriod={setCrmPeriod} setCrmView={setCrmView} setCurrentScreen={next => setCurrentScreen(previous => typeof next === 'function' ? next(previous === 'clientVouchersPage' ? 'clientPortal' : previous) : next)} setDashboardEnd={setDashboardEnd} setDashboardStart={setDashboardStart} setDemandEnd={setDemandEnd} setDemandFilter={setDemandFilter} setDemandStart={setDemandStart} setDetractorReplies={setDetractorReplies} setEditAdminDniCapilar={setEditAdminDniCapilar} setEditAdminFormulas={setEditAdminFormulas} setEditAdminPrescripcionCasa={setEditAdminPrescripcionCasa} setEditAdminProxima={setEditAdminProxima} setEditAdminUltimaVisita={setEditAdminUltimaVisita} setEditingClientId={setEditingClientId} setEnableDoubleBooking={setEnableDoubleBooking} setEnableOutOfHours={setEnableOutOfHours} setExpandedCategories={setExpandedCategories} setExpandedClientId={setExpandedClientId} setFechaSeleccionada={setFechaSeleccionada} setFeedbackRatingFilter={setFeedbackRatingFilter} setGoogleCalendarConnected={setGoogleCalendarConnected} setGoogleCalendarSyncActive={setGoogleCalendarSyncActive} setHolidaysList={setHolidaysList} setIsAddingCategory={setIsAddingCategory} setIsAddingClient={setIsAddingClient} setIsAddingSub={setIsAddingSub} setLogoUploadMessage={setLogoUploadMessage} setLostDemandsList={setLostDemandsList} setMailboxFilter={setMailboxFilter} setMesNavegacion={setMesNavegacion} setModalServices={setModalServices} setNewCatCode={setNewCatCode} setNewCatTitle={setNewCatTitle} setNewHolidayEnd={setNewHolidayEnd} setNewHolidayReason={setNewHolidayReason} setNewHolidayStart={setNewHolidayStart} setNewHolidayType={setNewHolidayType} setNewSubAchieved={setNewSubAchieved} setNewSubAlertBadge={setNewSubAlertBadge} setNewSubAlertText={setNewSubAlertText} setNewSubDesc={setNewSubDesc} setNewSubDur={setNewSubDur} setNewSubIncludes={setNewSubIncludes} setNewSubName={setNewSubName} setNewSubPrice={setNewSubPrice} setNewSubPriceType={setNewSubPriceType} setNewVariantDuration={setNewVariantDuration} setNewVariantName={setNewVariantName} setNewVariantPrice={setNewVariantPrice} setNovoApellidos={setNovoApellidos} setNovoDiagnostico={setNovoDiagnostico} setNovoEmail={setNovoEmail} setNovoEmailMode={setNovoEmailMode} setNovoTitularId={setNovoTitularId} setNovoParentesco={setNovoParentesco} setNovoNacimiento={setNovoNacimiento} setNovoNombre={setNovoNombre} setNovoPin={setNovoPin} setNovoTelefono={setNovoTelefono} setOpportunityPage={setOpportunityPage} setOpportunitySearch={setOpportunitySearch} setOpportunityStatus={setOpportunityStatus} setPendingPanelFilter={setPendingPanelFilter} setPreviewServiceId={setPreviewServiceId} setPreviewVariantId={setPreviewVariantId} setReturnToAppointmentId={setReturnToAppointmentId} setSelectedServicesToBook={setSelectedServicesToBook} setTempConfig={setTempConfig} setViewApptModal={setViewApptModal} t={t} tempConfig={tempConfig} timeBlocks={timeBlocks} trafficEvents={trafficEvents} translationLanguagePicker={translationLanguagePicker} updateEmployee={updateEmployee} updateServiceTranslation={updateServiceTranslation} updateSubserviceField={updateSubserviceField} uploadEmployeePhoto={uploadEmployeePhoto} uploadStudioLogo={uploadStudioLogo} visibleClientRows={visibleClientRows} whatsappConfigStatus={whatsappConfigStatus} workingRanges={workingRanges} /></React.Suspense>}
 
+      {staffCanManageAppointments && appointmentToCharge?.serverId && <React.Suspense fallback={<p role="status">Abriendo caja…</p>}>
+        <LazyAppointmentCashDialog key={appointmentToCharge.serverId}
+          clientName={appointmentToCharge.clientName}
+          onClose={() => setAppointmentToCharge(null)}
+          onOpenCash={() => {
+            setAppointmentToCharge(null);
+            setViewApptModal(null);
+            setAgendaExpanded(false);
+            setAdminTab('cash');
+          }}
+          appointment={{
+            id: appointmentToCharge.serverId,
+            description: (appointmentServiceNames(appointmentToCharge) || 'Servicio de salón').slice(0, 200),
+            finalCents: appointmentCashPrice(appointmentToCharge),
+            services: (appointmentToCharge.services || []).map(item => {
+              const promotion = appointmentToCharge.promotion?.serviceId === item.sub.id ? appointmentToCharge.promotion : null;
+              const amount = promotion ? promotion.finalAmount : exactPrice(item.variant?.price ?? item.sub.price);
+              return {
+                label: bookingName(item.sub) + (item.variant?.name ? ' · ' + item.variant.name : ''),
+                amountCents: amount === null || (!promotion && item.sub.priceType && item.sub.priceType !== 'fijo') ? null : Math.round(amount * 100),
+              };
+            }),
+            depositCents: appointmentToCharge.advancePayment?.status === 'confirmed' ? Math.round(appointmentToCharge.advancePayment.amount * 100) : 0,
+            giftApplied: appointmentToCharge.voucher?.kind === 'gift' &&
+              (appointmentToCharge.voucher.state === 'held' || appointmentToCharge.voucher.state === 'consumed'),
+            giftCard: !appointmentToCharge.completedAt && isActiveAppointment(appointmentToCharge) && appointmentToCharge.clientId
+              ? { clientId: appointmentToCharge.clientId, saved: () => refreshAppointmentAfterVoucher(appointmentToCharge.serverId!) }
+              : undefined,
+            voucherCents: appointmentToCharge.voucher?.state === 'held' || appointmentToCharge.voucher?.state === 'consumed' ? appointmentToCharge.voucher.amountCents : 0,
+            hasUnknownVoucher: !!appointmentToCharge.voucherId && ((!appointmentToCharge.voucher?.state ||
+              (appointmentToCharge.voucher.state !== 'released' && !Number.isSafeInteger(appointmentToCharge.voucher.amountCents)))),
+            unavailable: !isActiveAppointment(appointmentToCharge) || appointmentToCharge.advancePayment?.status === 'pending' ||
+              appointmentToCharge.saturdayApproval?.status === 'pending' || appointmentToCharge.saturdayApproval?.status === 'rejected',
+          }} />
+      </React.Suspense>}
       {catalogEditorId && currentScreen === 'adminPanel' && adminTab === 'catalog' && <div onClick={() => setCatalogEditorId(null)}
         style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 1700 }} />}
       {registeredAppointment && <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'grid', placeItems: 'center', padding: '16px', zIndex: 3000 }}>
@@ -6028,38 +6061,10 @@ function StudioApp() {
             }} style={{ background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059',
               borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>Producto adicional · Alisado</button>)}
 </section>
-{viewApptModal.serverId && <section ref={appointmentCashSection} className="lst-appt-reception" aria-label="Caja de la cita">
-  <button type="button" aria-expanded={openAppointmentCashId === viewApptModal.serverId}
+{viewApptModal.serverId && <section className="lst-appt-reception" aria-label="Caja de la cita">
+  <button type="button" aria-haspopup="dialog"
     style={{minHeight:42, padding:'8px 14px', border:'1px solid #C5A059', borderRadius:8, background:'#322A25', color:'#FFF8EE'}}
-    onClick={() => setOpenAppointmentCashId(openAppointmentCashId === viewApptModal.serverId ? null : viewApptModal.serverId!)}>
-    {openAppointmentCashId === viewApptModal.serverId ? 'Ocultar cobro' : 'Cobrar saldo'}
-  </button>
-  {openAppointmentCashId === viewApptModal.serverId && <React.Suspense fallback={<p role="status">Abriendo caja…</p>}>
-    <LazyCashRegister key={viewApptModal.serverId} appointment={{
-      id: viewApptModal.serverId,
-      description: (appointmentServiceNames(viewApptModal) || 'Servicio de salón').slice(0, 200),
-      finalCents: appointmentCashPrice(viewApptModal),
-      services: (viewApptModal.services || []).map(item => {
-        const promotion = viewApptModal.promotion?.serviceId === item.sub.id ? viewApptModal.promotion : null;
-        const amount = promotion ? promotion.finalAmount : exactPrice(item.variant?.price ?? item.sub.price);
-        return {
-          label: bookingName(item.sub) + (item.variant?.name ? ' · ' + item.variant.name : ''),
-          amountCents: amount === null || (!promotion && item.sub.priceType && item.sub.priceType !== 'fijo') ? null : Math.round(amount * 100),
-        };
-      }),
-      depositCents: viewApptModal.advancePayment?.status === 'confirmed' ? Math.round(viewApptModal.advancePayment.amount * 100) : 0,
-      giftApplied: viewApptModal.voucher?.kind === 'gift' &&
-        (viewApptModal.voucher.state === 'held' || viewApptModal.voucher.state === 'consumed'),
-      giftCard: !viewApptModal.completedAt && isActiveAppointment(viewApptModal) && viewApptModal.clientId
-        ? { clientId: viewApptModal.clientId, saved: () => refreshAppointmentAfterVoucher(viewApptModal.serverId!) }
-        : undefined,
-      voucherCents: viewApptModal.voucher?.state === 'held' || viewApptModal.voucher?.state === 'consumed' ? viewApptModal.voucher.amountCents : 0,
-      hasUnknownVoucher: !!viewApptModal.voucherId && ((!viewApptModal.voucher?.state ||
-        (viewApptModal.voucher.state !== 'released' && !Number.isSafeInteger(viewApptModal.voucher.amountCents)))),
-      unavailable: !isActiveAppointment(viewApptModal) || viewApptModal.advancePayment?.status === 'pending' ||
-        viewApptModal.saturdayApproval?.status === 'pending' || viewApptModal.saturdayApproval?.status === 'rejected',
-    }} onOpenCash={() => { setViewApptModal(null); setAgendaExpanded(false); setAdminTab('cash'); }} />
-  </React.Suspense>}
+    onClick={() => openSavedAppointmentCash(viewApptModal)}>Cobrar saldo</button>
 </section>}
 <section className="lst-appt-contact"><h4 className="lst-appt-section-title">Contacto</h4><div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', color: '#D6CBB8', fontSize: '13px', overflowWrap: 'anywhere' }}>
               <a href={`tel:${viewApptModal.phone}`} style={{ color: '#E4C687', padding: '8px 0' }}>{viewApptModal.phone}</a>
