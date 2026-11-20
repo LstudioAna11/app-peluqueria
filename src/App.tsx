@@ -3190,6 +3190,14 @@ function StudioApp() {
     return data;
   };
 
+  const refreshAppointmentAfterVoucher = async (id: string) => {
+    const data = await syncFromServer();
+    const row = data?.appointments?.find((item: Record<string, any>) => item.id === id);
+    if (!row) throw new Error('Actualiza la agenda para comprobar el saldo del bono.');
+    const updated = mapServerAppointment(row);
+    setViewApptModal(current => current?.serverId === id ? updated : current);
+  };
+
   const portalEntry=usePortalEntry({screen:currentScreen,recoveryOpen,syncSession:syncFromServer,
     onClient:()=>{setPin('');setPinError(false);setCurrentScreen('clientPortal');},
     onAdmin:()=>{setAdminPin('');setAdminError(false);setCurrentScreen('adminPanel');},
@@ -5989,6 +5997,11 @@ function StudioApp() {
       description: (appointmentServiceNames(viewApptModal) || 'Servicio de salón').slice(0, 200),
       finalCents: appointmentCashPrice(viewApptModal),
       depositCents: viewApptModal.advancePayment?.status === 'confirmed' ? Math.round(viewApptModal.advancePayment.amount * 100) : 0,
+      giftApplied: viewApptModal.voucher?.kind === 'gift' &&
+        (viewApptModal.voucher.state === 'held' || viewApptModal.voucher.state === 'consumed'),
+      giftCard: !viewApptModal.completedAt && isActiveAppointment(viewApptModal) && viewApptModal.clientId
+        ? { clientId: viewApptModal.clientId, saved: () => refreshAppointmentAfterVoucher(viewApptModal.serverId!) }
+        : undefined,
       voucherCents: viewApptModal.voucher?.state === 'held' || viewApptModal.voucher?.state === 'consumed' ? viewApptModal.voucher.amountCents : 0,
       hasUnknownVoucher: !!viewApptModal.voucherId && ((!viewApptModal.voucher?.state ||
         (viewApptModal.voucher.state !== 'released' && !Number.isSafeInteger(viewApptModal.voucher.amountCents)))),
@@ -6065,12 +6078,7 @@ function StudioApp() {
     <p style={{ margin: '8px 0 0', color: '#D6CBB8', fontSize: '12px' }}>Envía este aviso solo si han pasado 10 minutos y la clienta no ha llegado. Revísalo y pulsa Enviar en WhatsApp.</p>
   </section></details>;
 })()}
-{renderCourtesyAction(viewApptModal)}</section><section className="lst-appt-benefits"><h4 className="lst-appt-section-title">Bonos y ventajas</h4><div>            {currentScreen==='adminPanel'&&<AppointmentVoucherTools key={viewApptModal.serverId||viewApptModal.id} appointment={viewApptModal} onSaved={async()=>{
-              await syncFromServer();
-              const result=await studioApi.syncAll<{appointments?:Record<string,any>[]}>(voucherToken(),['appointments']);
-              const row=result.appointments?.find(item=>item.id===viewApptModal.serverId);
-              if(row)setViewApptModal(mapServerAppointment(row));
-            }}/>}</div>
+{renderCourtesyAction(viewApptModal)}</section><section className="lst-appt-benefits"><h4 className="lst-appt-section-title">Bonos y ventajas</h4><div>            {currentScreen==='adminPanel'&&<AppointmentVoucherTools key={viewApptModal.serverId||viewApptModal.id} appointment={viewApptModal} onSaved={() => refreshAppointmentAfterVoucher(viewApptModal.serverId!)}/>}</div>
 {currentScreen==='adminPanel'&&<ParkingPanel key={'parking-'+(viewApptModal.serverId||viewApptModal.id)} reference={viewApptModal.serverId||viewApptModal.id} duration={viewApptModal.durationMinutes||0}/>}</section>
 {viewApptModal.depositWaived&&<p style={{fontSize:12,color:adminAppointmentText(viewApptModal)}}>Anticipo exento por administración{!viewApptModal.completedAt&&' · Importe del servicio pendiente de cobro en el salón.'}</p>}
 {viewApptModal.saturdayApproval && ['pending', 'accepted', 'rejected'].includes(String(viewApptModal.saturdayApproval.status)) && isActiveAppointment(viewApptModal) && (
