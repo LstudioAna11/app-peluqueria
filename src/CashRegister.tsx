@@ -29,6 +29,8 @@ type Movement = {
   id: string; recorded_at: string; description: string; kind: Kind; method: Method;
   service_receipt?: ServiceReceipt | null;
   discount_cents?: number | null;
+  ticket_number?: number | null;
+  ticket_client_name?: string | null;
   amount_cents: number; appointment_id: string | null; bank_reference: string | null; invoice_reference: string | null; refunded: boolean;
 };
 type Totals = Record<Exclude<Method, 'courtesy'>, number> & { cashIn: number; cashOut: number; count: number };
@@ -43,7 +45,7 @@ type AppointmentSale = {
   giftCard?: { clientId: string; saved: () => Promise<void> };
   giftApplied?: boolean;
 };
-type Command = { operation: 'open' | 'close' | 'record' | 'record-discount' | 'record-courtesy' | 'invoice'; id?: string; [key: string]: unknown };
+type Command = { operation: 'open' | 'close' | 'record' | 'record-discount' | 'record-courtesy' | 'record-named' | 'invoice'; id?: string; [key: string]: unknown };
 
 const methods: Record<Method, string> = { cash: 'Efectivo', card: 'Tarjeta', bizum: 'Bizum', transfer: 'Transferencia', courtesy: 'Cortesía' };
 const kinds: Record<Kind, string> = { sale: 'Cobro', refund: 'Devolución', cash_in: 'Entrada de efectivo', cash_out: 'Salida de efectivo', courtesy: 'Cortesía' };
@@ -63,6 +65,7 @@ const dateTime = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', d
 const money = (cents: number) => euro.format(cents / 100);
 const date = (timestamp: string) => dateTime.format(new Date(timestamp));
 const decimal = (cents: number) => (cents / 100).toFixed(2).replace('.', ',');
+const ticketNumber = (number: number) => 'T-' + String(number).padStart(6, '0');
 
 const receiptHeaderKey = 'lst_cash_receipt_header';
 const receiptLogoLimit = 600 * 1024;
@@ -463,6 +466,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   const [giftError, setGiftError] = useState('');
   const [method, setMethod] = useState<(typeof methodButtons)[number]['value']>('card');
   const [description, setDescription] = useState('');
+  const [ticketClientName, setTicketClientName] = useState('');
   const [bankReference, setBankReference] = useState('');
   const [invoiceReference, setInvoiceReference] = useState('');
   const [invoiceEdit, setInvoiceEdit] = useState<{ id: string; value: string }>();
@@ -500,7 +504,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     if (lock.current) return;
     lock.current = true;
     const payload = { ...command, id: command.id || crypto.randomUUID() };
-    const isRecord = payload.operation === 'record' || payload.operation === 'record-discount' || payload.operation === 'record-courtesy';
+    const isRecord = payload.operation === 'record' || payload.operation === 'record-discount' || payload.operation === 'record-courtesy' || payload.operation === 'record-named';
     setBusy(true);
     setError('');
     setNotice('');
@@ -511,6 +515,9 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
       if ((payload.operation === 'record-discount' || payload.operation === 'record-courtesy') &&
         result.movement?.discount_cents !== command.discountCents) {
         throw new Error('La caja no ha confirmado el descuento.');
+      }
+      if (payload.operation === 'record-named' && result.movement?.ticket_client_name !== command.ticketClientName) {
+        throw new Error('La caja no ha confirmado el nombre del ticket.');
       }
       setRetry(undefined);
       const sale = isRecord && result.movement && (result.movement.kind === 'sale' || result.movement.kind === 'courtesy') && result.movement.id === payload.id
@@ -531,11 +538,12 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         setMovementAmount('');
         setCashReceived('');
         setDescription('');
+        setTicketClientName('');
         setBankReference('');
         setInvoiceReference('');
       }
       if (payload.operation === 'invoice') setInvoiceEdit(undefined);
-      if (!sale) setNotice({ open: 'Caja abierta.', close: 'Cierre guardado.', record: 'Movimiento registrado.', 'record-discount': 'Cobro registrado.', 'record-courtesy': 'Cortesía registrada.', invoice: 'Número de factura actualizado.' }[payload.operation]);
+      if (!sale) setNotice({ open: 'Caja abierta.', close: 'Cierre guardado.', record: 'Movimiento registrado.', 'record-discount': 'Cobro registrado.', 'record-courtesy': 'Cortesía registrada.', 'record-named': 'Cobro registrado.', invoice: 'Número de factura actualizado.' }[payload.operation]);
       setLoading(true);
       setReload(value => value + 1);
     } catch (reason) {
@@ -625,8 +633,10 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     }
     const selectedMethod = kind === 'sale' ? method : 'cash';
     if (kind === 'sale' && !window.confirm(`¿Registrar ${money(amountCents)} ya cobrados por ${methods[selectedMethod]}?`)) return;
+    const name = !appointment && kind === 'sale' ? ticketClientName.trim() : '';
     void send({
-      operation: discountCents > 0 ? 'record-discount' : 'record',
+      operation: discountCents > 0 ? 'record-discount' : name ? 'record-named' : 'record',
+      ...(name ? { ticketClientName: name } : {}),
       kind, method: selectedMethod, shiftId: activeShift.id, amountCents,
       appointmentId, finalCents: appointment ? finalAfterDiscount : undefined,
       ...(discountCents > 0 ? { discountCents } : {}), description: appointment?.description || description.trim(),
@@ -658,7 +668,10 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     const discount = movement.discount_cents ?? 0;
     const lines: ReceiptLine[] = [
       { label: 'Fecha', value: date(movement.recorded_at) },
-      { label: 'Movimiento', value: movement.id.slice(0, 8).toUpperCase() },
+      movement.ticket_number
+        ? { label: 'N.º de ticket', value: ticketNumber(movement.ticket_number) }
+        : { label: 'Movimiento', value: movement.id.slice(0, 8).toUpperCase() },
+      ...(movement.ticket_client_name ? ['Cliente · ' + movement.ticket_client_name] : []),
       ...(movement.invoice_reference ? ['Factura asociada ' + movement.invoice_reference] : []),
       kinds[movement.kind],
     ];
@@ -779,6 +792,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         <span className="cash-sale-confirmation-icon"><Check size={24} aria-hidden="true" /></span>
         <div><h3 id={confirmationTitleId}>{receipt.kind === 'courtesy' ? 'Cortesía registrada' : 'Cobro registrado'}</h3>
           <p><strong>{money(receipt.amount_cents)}</strong>{receipt.kind !== 'courtesy' && ' · ' + methods[receipt.method]}</p>
+          {receipt.ticket_number && <p>Ticket {ticketNumber(receipt.ticket_number)}</p>}
           {!!receipt.discount_cents && <p>Descuento aplicado {money(receipt.discount_cents)}</p>}
           {confirmedReceived !== null && <p>Recibido {money(confirmedReceived)} · Cambio {money(confirmedReceived - receipt.amount_cents)}</p>}
         </div>
@@ -861,6 +875,10 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
               </fieldset>
               <label className="cash-field">Concepto<input required maxLength={200} value={description} placeholder={kind === 'sale' ? 'Ej. Champú' : 'Motivo del movimiento'}
                 disabled={blocked} onChange={event => setDescription(event.target.value)} /></label>
+              {kind === 'sale' && <label className="cash-field">Nombre del cliente (opcional)
+                <input type="text" maxLength={160} value={ticketClientName} disabled={blocked}
+                  onChange={event => setTicketClientName(event.target.value)} />
+              </label>}
             </>}
             {appointment && <div className="cash-appointment-breakdown">
               <div><span>Anticipo confirmado</span><strong>{money(appointment.depositCents)}</strong></div>
@@ -955,6 +973,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
               <div className="cash-movement-info">
                 <strong>{movement.description}</strong>
                 <small>{kinds[movement.kind]} · {date(movement.recorded_at)} · {methods[movement.method]}{movement.refunded ? ' · Devuelto' : ''}</small>
+                {movement.ticket_number && <p>Ticket {ticketNumber(movement.ticket_number)}</p>}
                 {movement.bank_reference && <p>Referencia {movement.bank_reference}</p>}
                 {movement.invoice_reference && <p>Factura {movement.invoice_reference}</p>}
               </div>
