@@ -475,6 +475,13 @@ export interface Appointment {
   professionalName?: string | null;
 }
 
+function quickAppointmentPricesMatch(draft: Appointment, saved: Appointment): boolean {
+  const prices = (appointment: Appointment) => (appointment.services || [])
+    .filter(item => item.appointmentDiscount?.kind === 'price')
+    .map(item => [item.sub.id, item.variant?.id || null, exactPrice(item.variant?.price ?? item.sub.price)]);
+  return JSON.stringify(prices(draft)) === JSON.stringify(prices(saved));
+}
+
 function appointmentCashPrice(appointment: Appointment): number | null {
   const voucher = appointment.voucher;
   if (voucher && (voucher.state === 'held' || voucher.state === 'consumed') && Number.isSafeInteger(voucher.totalCents)) {
@@ -2257,6 +2264,7 @@ function StudioApp() {
   const [adminBookingSaving, setAdminBookingSaving] = useState(false);
   const adminBookingSavingRef = useRef(false);
   const adminBookingDraftId = useRef('');
+  const quickChargeDraftId = useRef<string>();
   const [quickClientMode, setQuickClientMode] = useState(false);
   const [quickClientPin, setQuickClientPin] = useState('');
   const [quickClientSurname, setQuickClientSurname] = useState('');
@@ -2303,7 +2311,8 @@ function StudioApp() {
       demandTracker.complete(saved.serverId||saved.id);setDemandExplicitDate('');
       setBookingSuccessMsg('Solicitud enviada al Studio · Pendiente de confirmación de Ana.');
       setSelectedServicesToBook([]); setBookingClientNote(''); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setSelectedVoucherId(null); setIsModalOpen(false); setSaturdayRequestModal(null);
-      setCurrentScreen('catalogBooking');
+      if (saturdayRequestModal.id === quickChargeDraftId.current) openSavedAppointmentCash(saved);
+      else setCurrentScreen('catalogBooking');
     } catch (error) {
       demandTracker.failed(error instanceof Error&&/hueco.*ocup/i.test(error.message),saturdayRequestModal?.id);
       setPendingBookingError(error instanceof Error ? error.message : 'No se ha podido enviar la solicitud. Conservamos tus datos para reintentar.');
@@ -2322,6 +2331,7 @@ function StudioApp() {
     const existing = before.appointments?.find(row => row.id === draft.serverId || String(row.source_legacy_id || '') === draft.id);
     if (existing) {
       const saved = mapServerAppointment(existing);
+      if (!quickAppointmentPricesMatch(draft, saved)) throw new Error('La cita ya está guardada con otros precios. Compruébala en la agenda antes de cobrar.');
       if(String(saved.clientNote||'')!==String(draft.clientNote||'').trim())throw new Error('La cita ya se guardó con otra nota. Revisa la reserva antes de volver a enviarla.');
       if(studioApi.storedRole()==='admin'&&!!saved.depositWaived!==!!draft.depositWaived)throw new Error('La cita ya se guardó con otra condición de anticipo. Abre la cita para revisarla antes de cambiarla.');
       if (saved.dateKey !== draft.dateKey || saved.time !== draft.time || saved.email.trim().toLowerCase() !== draft.email.trim().toLowerCase()) throw new Error('Hay una reserva con esta referencia y otros datos. Revisa Mis citas o consulta con Ana antes de reintentar.');
@@ -2357,7 +2367,7 @@ function StudioApp() {
       try{
         const check=await studioApi.syncAll<{appointments?:Record<string,any>[]}>(token,['appointments']);
         const row=check.appointments?.find(item=>String(item.source_legacy_id||'')===draft.id);
-        if(row){const saved=mapServerAppointment(row);if(saved.dateKey===draft.dateKey&&saved.time===draft.time&&saved.email.trim().toLowerCase()===draft.email.trim().toLowerCase()&&(saved.voucherId||null)===(draft.voucherId||null)&&(studioApi.storedRole()!=='admin'||!!saved.depositWaived===!!draft.depositWaived)&&String(saved.clientNote||'')===String(draft.clientNote||'').trim())return saved;}
+        if(row){const saved=mapServerAppointment(row);if(quickAppointmentPricesMatch(draft,saved)&&saved.dateKey===draft.dateKey&&saved.time===draft.time&&saved.email.trim().toLowerCase()===draft.email.trim().toLowerCase()&&(saved.voucherId||null)===(draft.voucherId||null)&&(studioApi.storedRole()!=='admin'||!!saved.depositWaived===!!draft.depositWaived)&&String(saved.clientNote||'')===String(draft.clientNote||'').trim())return saved;}
       }catch{/* Retain the original reference when persistence remains uncertain. */}
       throw error;
     }
@@ -2369,13 +2379,14 @@ function StudioApp() {
     }catch{/* The successful POST can confirm persistence when readback is unavailable. */}
     if(confirmedRow){
       const saved=mapServerAppointment(confirmedRow);
+      if (!quickAppointmentPricesMatch(draft, saved)) throw new Error('No se pudieron verificar los precios de la cita guardada. Compruébalos en la agenda antes de cobrar.');
       if(String(saved.clientNote||'')!==String(draft.clientNote||'').trim())throw new Error('No se pudo verificar la nota de la cita. Conservamos el texto para comprobarlo antes de reintentar.');
       if(studioApi.storedRole()==='admin'&&(!!saved.depositWaived!==!!draft.depositWaived||draft.depositWaived&&saved.advancePayment))throw new Error('No se confirmó la condición de anticipo. Revisa la cita guardada antes de reintentar.');
       return saved;
     }
     if(studioApi.storedRole()==='admin'&&(!!result.depositWaived!==!!draft.depositWaived||draft.depositWaived&&result.depositStatus!=='not_required'))throw new Error('No se confirmó la exención del anticipo. Revisa la cita antes de reintentar.');
     if(String(result.clientNote||'')!==String(draft.clientNote||'').trim())throw new Error('El servidor no confirmó la nota de la reserva. Comprueba que studio-api esté actualizado y reintenta sin cerrar el formulario.');
-    return { ...draft, clientNote:result.clientNote||'', depositWaived:result.depositWaived===true, serverId: result.id, voucher:result.voucherSummary||draft.voucher,
+    return { ...draft, clientId:bookingClientId, clientNote:result.clientNote||'', depositWaived:result.depositWaived===true, serverId: result.id, voucher:result.voucherSummary||draft.voucher,
       advancePayment:result.depositStatus===undefined?draft.advancePayment:['pending','confirmed','received','paid'].includes(result.depositStatus)?{amount:Number(result.depositAmount)||0,reference:result.depositReference||'',status:result.depositStatus==='pending'?'pending':'confirmed'}:undefined };
   };
   const savePendingAdvanceAppointment = async () => {
@@ -2388,7 +2399,9 @@ function StudioApp() {
       setRegisteredAppointment(saved);
       demandTracker.complete(saved.serverId||saved.id);setDemandExplicitDate('');
       setBookingSuccessMsg(saved.saturdayApproval?.status === 'pending' ? 'Solicitud enviada al Studio · Pendiente de confirmación de Ana.' : 'Solicitud enviada al Studio · Pendiente de comprobar el anticipo.');
-      setSelectedServicesToBook([]); setBookingClientNote(''); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setSelectedVoucherId(null); setIsModalOpen(false); setCurrentScreen('catalogBooking'); setAdvancePaymentModal(null);
+      setSelectedServicesToBook([]); setBookingClientNote(''); setSelectedPromotionId(null); setSelectedPromotionOrigin(null); setSelectedVoucherId(null); setIsModalOpen(false); setAdvancePaymentModal(null);
+      if (advancePaymentModal.id === quickChargeDraftId.current) openSavedAppointmentCash(saved);
+      else setCurrentScreen('catalogBooking');
     } catch (error) {
       demandTracker.failed(error instanceof Error&&/hueco.*ocup/i.test(error.message),advancePaymentModal?.id);
       setPendingBookingError(error instanceof Error ? error.message : 'No se ha podido enviar la solicitud. Conservamos tus datos para reintentar.');
@@ -2396,13 +2409,13 @@ function StudioApp() {
   };
   const [modalWaiveDeposit,setModalWaiveDeposit]=useState(false);
   const [modalServices, setModalServices] = useState<NonNullable<Appointment['services']>>([]);
-  const getModalService = () => {
+  const getModalService = (showWarning = true) => {
     const category = catalog[modalCatIndex];
     const sub = category?.subservices[modalSubIndex];
     if (!category || !sub) return null;
 
     if (sub.hasVariants && sub.variants?.length && !modalSelectedVariant) {
-      alert('Por favor, selecciona una variante.');
+      if (showWarning) alert('Por favor, selecciona una variante.');
       return null;
     }
     return { categoryId: category.id, categoryName: `${category.code} < ${category.title}`, sub, variant: sub.hasVariants ? modalSelectedVariant : null };
@@ -2412,7 +2425,10 @@ function StudioApp() {
     if (!item) return;
     setModalServices(previous => {
       const existing = previous.findIndex(entry => entry.sub.id === item.sub.id);
-      return existing < 0 ? [...previous, item] : previous.map((entry, index) => index === existing ? item : entry);
+      if (existing < 0) return [...previous, item];
+      const saved = previous[existing];
+      if (saved.appointmentDiscount?.kind === 'price' && saved.variant?.id === item.variant?.id) return previous;
+      return previous.map((entry, index) => index === existing ? item : entry);
     });
   };
   const getServiceDuration = (items: { sub: SubService; variant: ServiceVariant | null }[]) =>
@@ -2457,7 +2473,22 @@ function StudioApp() {
 
   const [viewApptModal, setViewApptModal] = useState<Appointment | null>(null);
   const [openAppointmentCashId, setOpenAppointmentCashId] = useState<string | null>(null);
-  useEffect(() => { setOpenAppointmentCashId(null); }, [viewApptModal?.serverId]);
+  const appointmentCashSection = useRef<HTMLElement>(null);
+  useEffect(() => {
+    setOpenAppointmentCashId(current => current === viewApptModal?.serverId ? current : null);
+  }, [viewApptModal?.serverId]);
+  useEffect(() => {
+    if (openAppointmentCashId && openAppointmentCashId === viewApptModal?.serverId) {
+      appointmentCashSection.current?.scrollIntoView({ block: 'nearest' });
+    }
+  }, [openAppointmentCashId, viewApptModal?.serverId]);
+  function openSavedAppointmentCash(saved: Appointment) {
+    if (!saved.serverId) return;
+    quickChargeDraftId.current = undefined;
+    setCurrentScreen('adminPanel');
+    setViewApptModal(saved);
+    setOpenAppointmentCashId(saved.serverId);
+  }
   const [bizumSavingId, setBizumSavingId] = useState<string | null>(null);
   const [bizumSaveError, setBizumSaveError] = useState<{ id: string; message: string } | null>(null);
   const bizumSavingRef = useRef(false);
@@ -3376,6 +3407,7 @@ function StudioApp() {
   const handleCellClick = (targetDate: Date, dayName: string, time: string, openFormOnly = false) => {
     if (adminBookingSavingRef.current) return;
     adminBookingDraftId.current = '';
+    quickChargeDraftId.current = undefined;
     const targetDateKey = formatDateKey(targetDate);
     if (isDateBlockedByHoliday(targetDateKey)) {
       window.alert('Este día es festivo o de vacaciones. Está bloqueado en la agenda.');
@@ -3651,8 +3683,9 @@ function StudioApp() {
     );
   };
 
-  const handleSaveModalAppointment = async (e: React.FormEvent) => {
+  const handleSaveModalAppointment = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const openCash = (e.nativeEvent as SubmitEvent).submitter?.getAttribute('value') === 'cash';
     if (adminBookingSavingRef.current) return;
     if (!modalClientName.trim()) return;
     if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(targetTime)) { alert('Selecciona una hora válida antes de guardar la cita.'); return; }
@@ -3729,12 +3762,15 @@ function StudioApp() {
         });
         const saved = mapServerAppointment(row);
         setAppointments(previous => previous.map(item => item.id === editingAppointment.id || item.serverId === saved.serverId ? saved : item));
-        setIsModalOpen(false); setEditingAppointment(null); setViewApptModal(saved);
+        setIsModalOpen(false); setEditingAppointment(null);
+        if (openCash) openSavedAppointmentCash(saved);
+        else setViewApptModal(saved);
       } catch (error) {
         alert((error instanceof Error ? error.message : 'No se pudo guardar la edición.') + ' Tus cambios siguen en el formulario.');
       } finally { adminBookingSavingRef.current = false; setAdminBookingSaving(false); }
       return;
     }
+    quickChargeDraftId.current = openCash ? newApp.id : undefined;
     const approvalReason = getApprovalReason(services, newApp.dateKey);
     if (approvalReason) {
       newApp.saturdayApproval = { status: 'pending', reason: approvalReason, reference: `REV-${crypto.randomUUID().slice(0, 8).toUpperCase()}` };
@@ -3758,6 +3794,7 @@ function StudioApp() {
         : [...previous, saved]);
       adminBookingDraftId.current = '';
       setIsModalOpen(false);
+      if (openCash) openSavedAppointmentCash(saved);
     } catch (error) {
       alert(error instanceof Error ? error.message : 'No se ha podido guardar la cita. Tus datos siguen en el formulario.');
     } finally { adminBookingSavingRef.current = false; setAdminBookingSaving(false); }
@@ -4522,7 +4559,7 @@ function StudioApp() {
   };
 
   const renderBookedServicePrice = (appointment: Appointment, item: { sub: SubService; variant: ServiceVariant | null;appointmentDiscount?:AppointmentDiscount }) => {
-    if(item.appointmentDiscount){const adjustment=item.appointmentDiscount;return <span style={{display:'flex',flexWrap:'wrap',gap:7,color:'#E4C687',fontSize:13}}><del style={{color:'#D6CBB8'}}>{adjustment.originalPrice}</del><strong>{item.variant?.price??item.sub.price}</strong><span>· {adjustment.kind==='gift'?'Obsequio':'Descuento'} · {item.variant?.duration||item.sub.duration}</span></span>;} 
+    if(item.appointmentDiscount){const adjustment=item.appointmentDiscount;return <span style={{display:'flex',flexWrap:'wrap',gap:7,color:'#E4C687',fontSize:13}}><del style={{color:'#D6CBB8'}}>{adjustment.originalPrice}</del><strong>{item.variant?.price??item.sub.price}</strong><span>· {adjustment.kind==='gift'?'Obsequio':adjustment.kind==='price'?'Precio de esta cita':'Descuento'} · {item.variant?.duration||item.sub.duration}</span></span>;} 
     const discount = appointment.promotion;
     const duration = item.variant?.duration || item.sub.duration;
     if (discount?.serviceId === item.sub.id) {
@@ -5870,21 +5907,25 @@ function StudioApp() {
                 </div>
               )}
               <button type="button" onClick={handleAddModalService} style={{ background: 'none', border: '1px solid #C5A059', color: '#E4C687', padding: '10px', borderRadius: '6px', cursor: 'pointer' }}>+ Añadir servicio a la cita</button>
-              {modalServices.length > 0 && (
-                <div aria-live="polite" style={{ border: '1px solid #3A312A', borderRadius: '6px', padding: '10px', color: '#FFF8EE', fontSize: '14px' }}>
+              {(() => {
+                const selected = modalServices.length ? null : getModalService(false);
+                const displayed = selected ? [selected] : modalServices;
+                if (!displayed.length) return null;
+                const totals = getSelectionTotal(displayed);
+                return <div aria-live="polite" style={{ border: '1px solid #3A312A', borderRadius: '6px', padding: '10px', color: '#FFF8EE', fontSize: '14px' }}>
                   <strong>Servicios de esta cita</strong>
-                  {modalServices.map(item => (
+                  {displayed.map(item => (
                     <div key={item.sub.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginTop: '8px' }}>
                       <div style={{flex:1,minWidth:0}}><span>{bookingName(item.sub)}{item.variant ? ` (${item.variant.name})` : ''} · {item.variant?.duration || item.sub.duration}</span>
-                        <React.Suspense fallback={<span>{item.variant?.price??item.sub.price}</span>}><LazyAppointmentDiscountEditor item={item} name={bookingName(item.sub)} locked={!!(editingAppointment?.promotion||editingAppointment?.voucherId||editingAppointment?.completedAt||editingAppointment?.advancePayment)} onChange={next=>setModalServices(previous=>previous.map(entry=>entry.sub.id===item.sub.id?next:entry))}/></React.Suspense>
+                        <React.Suspense fallback={<span>{item.variant?.price??item.sub.price}</span>}><LazyAppointmentDiscountEditor item={item} name={bookingName(item.sub)} allowPriceEdit={!editingAppointment} locked={!!(editingAppointment?.promotion||editingAppointment?.voucherId||editingAppointment?.completedAt||editingAppointment?.advancePayment)} onChange={next=>setModalServices(previous=>previous.length?previous.map(entry=>entry.sub.id===item.sub.id?next:entry):[next])}/></React.Suspense>
                       </div>
-                      <button type="button" aria-label={`Quitar ${bookingName(item.sub)}`} onClick={() => setModalServices(previous => previous.filter(entry => entry.sub.id !== item.sub.id))} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '6px', borderRadius: '4px', cursor: 'pointer' }}>Quitar</button>
+                      {modalServices.length>0&&<button type="button" aria-label={`Quitar ${bookingName(item.sub)}`} onClick={() => setModalServices(previous => previous.filter(entry => entry.sub.id !== item.sub.id))} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '6px', borderRadius: '4px', cursor: 'pointer' }}>Quitar</button>}
                     </div>
                   ))}
-                  <p style={{color:'#E4C687'}}>Total de servicios: {getSelectionTotal(modalServices).total.toFixed(2).replace('.',',')} €{getSelectionTotal(modalServices).orientative?' · Orientativo':''}</p>
-                  <p style={{ color: '#E4C687', marginBottom: 0 }}>Tiempo de servicio: {getServiceDuration(modalServices)} min · Buffer: {getBufferDuration(modalServices)} min · Agenda: {getModalDuration(modalServices)} min</p>
-                </div>
-              )}
+                  <p style={{color:'#E4C687'}}>Total de servicios: {totals.total.toFixed(2).replace('.',',')} €{totals.orientative?' · Orientativo':''}</p>
+                  <p style={{ color: '#E4C687', marginBottom: 0 }}>Tiempo de servicio: {getServiceDuration(displayed)} min · Buffer: {getBufferDuration(displayed)} min · Agenda: {getModalDuration(displayed)} min</p>
+                </div>;
+              })()}
               <small style={{ color: '#D6CBB8' }}>Selecciona cada servicio y pulsa «Añadir servicio». Si repites uno, se actualiza su variante. Se guardarán los servicios de la lista; sin lista, se guardará el servicio seleccionado.</small>
 {staffCanManageAppointments&&<StraighteningProductPicker catalog={catalog} items={modalServices} onChange={setModalServices} disabled={adminBookingSaving}/>}
 
@@ -5901,9 +5942,11 @@ function StudioApp() {
                 const paymentPending = !modalWaiveDeposit && (editingAppointment ? editingAppointment.advancePayment ? editingAppointment.advancePayment.status === 'pending' : !approvalPending && serviceDepositAmount(selected,duration)>0 : serviceDepositAmount(selected,duration)>0);
                 return {clientName:modalClientName,toEmail:modalEmail,dateKey:formatDateKey(targetDateObj),time:targetTime,services:selected,pending:approvalPending||paymentPending,isUpdate:!!editingAppointment,promotion:editingAppointment?.promotion,voucher:editingAppointment?.voucher};
               }} />
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'flex-end', marginTop: '10px' }}>
                 <button type="button" disabled={adminBookingSaving} onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: '1px solid #3A312A', color: '#D6CBB8', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
                 <button type="submit" disabled={adminBookingSaving} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '8px 14px', borderRadius: '6px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>{adminBookingSaving ? 'Guardando…' : editingAppointment ? 'Guardar cambios' : 'Guardar Cita'}</button>
+                <button type="submit" value="cash" disabled={adminBookingSaving}
+                  style={{ background:'#322A25',color:'#FFF8EE',border:'1px solid #C5A059',padding:'8px 14px',borderRadius:6,minHeight:44,fontWeight:650,cursor:'pointer' }}>Guardar y cobrar</button>
               </div>
             </fieldset>
             </form>
@@ -5985,7 +6028,7 @@ function StudioApp() {
             }} style={{ background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059',
               borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>Producto adicional · Alisado</button>)}
 </section>
-{viewApptModal.serverId && <section className="lst-appt-reception" aria-label="Caja de la cita">
+{viewApptModal.serverId && <section ref={appointmentCashSection} className="lst-appt-reception" aria-label="Caja de la cita">
   <button type="button" aria-expanded={openAppointmentCashId === viewApptModal.serverId}
     style={{minHeight:42, padding:'8px 14px', border:'1px solid #C5A059', borderRadius:8, background:'#322A25', color:'#FFF8EE'}}
     onClick={() => setOpenAppointmentCashId(openAppointmentCashId === viewApptModal.serverId ? null : viewApptModal.serverId!)}>
@@ -5996,6 +6039,14 @@ function StudioApp() {
       id: viewApptModal.serverId,
       description: (appointmentServiceNames(viewApptModal) || 'Servicio de salón').slice(0, 200),
       finalCents: appointmentCashPrice(viewApptModal),
+      services: (viewApptModal.services || []).map(item => {
+        const promotion = viewApptModal.promotion?.serviceId === item.sub.id ? viewApptModal.promotion : null;
+        const amount = promotion ? promotion.finalAmount : exactPrice(item.variant?.price ?? item.sub.price);
+        return {
+          label: bookingName(item.sub) + (item.variant?.name ? ' · ' + item.variant.name : ''),
+          amountCents: amount === null || (!promotion && item.sub.priceType && item.sub.priceType !== 'fijo') ? null : Math.round(amount * 100),
+        };
+      }),
       depositCents: viewApptModal.advancePayment?.status === 'confirmed' ? Math.round(viewApptModal.advancePayment.amount * 100) : 0,
       giftApplied: viewApptModal.voucher?.kind === 'gift' &&
         (viewApptModal.voucher.state === 'held' || viewApptModal.voucher.state === 'consumed'),
