@@ -30,6 +30,7 @@ type TicketVatRate = 'none' | '21' | '10' | '4';
 type ReceiptHeader = {
   fiscalName: string; taxId: string; address: string; phone: string; logo: string; vatRate: TicketVatRate;
 };
+type PrintableTicket = { title: string; lines: ReceiptLine[]; header: ReceiptHeader };
 type Movement = {
   id: string; recorded_at: string; description: string; kind: Kind; method: Method;
   service_receipt?: ServiceReceipt | null;
@@ -299,118 +300,126 @@ function printTicketFooter(page: Document) {
   page.body.append(footer);
 }
 
+function writeCashDocument(page: Document, title: string, lines: ReceiptLine[], header?: ReceiptHeader) {
+  page.head.replaceChildren();
+  page.body.replaceChildren();
+  page.title = title;
+  const css = page.createElement('style');
+  css.textContent = `
+    @page { margin: 4mm }
+    body { font: 11pt system-ui; color: #000; width: 100%; max-width: 70mm; margin: 0 auto; overflow-wrap: anywhere }
+    h1 { font-size: 14pt }
+    p { margin: 5px 0; break-inside: avoid }
+    .amount-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px }
+    .amount-row span:last-child { flex: none; white-space: nowrap; font-variant-numeric: tabular-nums }
+    .amount-total { margin-block: 7px; padding-top: 4px; border-top: 1px solid #111; font-weight: 700 }
+    .ticket-brand { margin: 0 0 7px; text-align: center; font: bold 18pt Georgia, serif }
+    .ticket-brand img { display: block; max-width: min(100%, 38mm); max-height: 22mm; width: auto; height: auto; margin: 0 auto }
+    .ticket-issuer { margin-block: 6px; break-inside: avoid }
+    .ticket-issuer p { margin-block: 2px }
+    .ticket-document { border-block: 1px solid #111; margin-block: 9px; padding: 4px 0; break-inside: avoid }
+    .ticket-document h2 { margin: 0; font-size: 11pt }
+    .ticket-document p { margin: 2px 0 0; font-size: 9pt }
+  `;
+  // The driver supplies the roll length; the printable ticket fits the 58 mm roll with 3 mm margins.
+  if (header) css.textContent += `
+    @page { size: portrait; margin: 3mm }
+    body { max-width: 52mm; font-size: 9pt }
+    .ticket-brand { font-size: 15pt }
+    .ticket-brand img { max-width: min(100%, 38mm) }
+    .ticket-document h2 { font-size: 9pt }
+    .ticket-document p { font-size: 8pt }
+    .amount-row { gap: 4px }
+    .amount-row span:first-child { min-width: 0 }
+    p { margin: 2px 0 }
+    .ticket-brand { margin-bottom: 4px }
+    .ticket-brand img { max-height: 17mm }
+    .ticket-issuer { margin-block: 3px }
+    .ticket-issuer p { margin-block: 1px }
+    .ticket-document { margin-block: 5px; padding-block: 3px }
+    .amount-total { margin-block: 4px; padding-top: 3px }
+    .ticket-services { margin-block: 4px; border-top: 1px solid #111 }
+    .ticket-service { padding-block: 3px; break-inside: avoid }
+    .ticket-service + .ticket-service { border-top: 1px dotted #777 }
+    .ticket-service-name { margin: 0 0 2px; font-weight: 700 }
+    .ticket-service dl, .ticket-service dd { margin: 0 }
+    .ticket-service dl { font-size: 8pt; line-height: 1.15; font-variant-numeric: tabular-nums }
+    .ticket-service dl div { display: flex; justify-content: space-between; gap: 4px }
+    .ticket-service dl div:last-child { font-weight: 700 }
+    .ticket-footer { margin-top: 4px; padding-top: 6mm; border-top: 1px solid #111; text-align: center; break-inside: avoid }
+    .ticket-footer p { font-weight: 700; margin: 1px 0 0 }
+    .ticket-footer svg { display: block; width: 27mm; height: 27mm; margin: 0 auto }
+    .ticket-footer a { display: block; color: #000; text-decoration: none }
+  `;
+  page.head.append(css);
+  const heading = page.createElement('h1');
+  let logo: HTMLImageElement | undefined;
+  if (header) {
+    heading.className = 'ticket-brand';
+    if (header.logo) {
+      logo = page.createElement('img');
+      logo.alt = 'L’Studio Ana';
+      logo.src = header.logo;
+      heading.append(logo);
+    } else {
+      heading.textContent = 'L’Studio Ana';
+    }
+    page.body.append(heading);
+    const issuer = page.createElement('div');
+    issuer.className = 'ticket-issuer';
+    for (const text of [header.fiscalName, header.taxId && 'NIF ' + header.taxId, header.address, header.phone && 'Tel. ' + header.phone]) {
+      if (!text) continue;
+      const row = page.createElement('p');
+      row.textContent = text;
+      issuer.append(row);
+    }
+    page.body.append(issuer);
+    const documentType = page.createElement('div');
+    documentType.className = 'ticket-document';
+    const subtitle = page.createElement('h2');
+    subtitle.textContent = 'Justificante de caja';
+    const qualifier = page.createElement('p');
+    qualifier.textContent = 'Sin validez como factura';
+    documentType.append(subtitle, qualifier);
+    page.body.append(documentType);
+  } else {
+    heading.textContent = title;
+    page.body.append(heading);
+  }
+  for (const line of lines) {
+    if (typeof line !== 'string' && 'services' in line) {
+      page.body.append(printServiceDetails(page, line));
+      continue;
+    }
+    const row = page.createElement('p');
+    if (typeof line === 'string') {
+      row.textContent = line;
+    } else {
+      row.className = line.total ? 'amount-row amount-total' : 'amount-row';
+      for (const text of [line.label, line.value]) {
+        const span = page.createElement('span');
+        span.textContent = text;
+        row.append(span);
+      }
+    }
+    page.body.append(row);
+  }
+  if (header) printTicketFooter(page);
+  return { heading, logo };
+}
+
 async function printSlip(title: string, lines: ReceiptLine[], header?: ReceiptHeader) {
   const frame = document.createElement('iframe');
   frame.className = 'cash-print-frame';
   frame.title = title;
-  const host = document.querySelector('dialog.appointment-cash-dialog[open]') ?? document.body;
+  const host = document.querySelector('dialog.cash-ticket-preview[open]')
+    ?? document.querySelector('dialog.appointment-cash-dialog[open]') ?? document.body;
   host.append(frame);
   try {
     const page = frame.contentDocument;
     const printer = frame.contentWindow;
     if (!page || !printer) throw new Error('No se pudo abrir la impresión.');
-    page.title = title;
-    const css = page.createElement('style');
-    css.textContent = `
-      @page { margin: 4mm }
-      body { font: 11pt system-ui; color: #000; width: 100%; max-width: 70mm; margin: 0 auto; overflow-wrap: anywhere }
-      h1 { font-size: 14pt }
-      p { margin: 5px 0; break-inside: avoid }
-      .amount-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px }
-      .amount-row span:last-child { flex: none; white-space: nowrap; font-variant-numeric: tabular-nums }
-      .amount-total { margin-block: 7px; padding-top: 4px; border-top: 1px solid #111; font-weight: 700 }
-      .ticket-brand { margin: 0 0 7px; text-align: center; font: bold 18pt Georgia, serif }
-      .ticket-brand img { display: block; max-width: min(100%, 38mm); max-height: 22mm; width: auto; height: auto; margin: 0 auto }
-      .ticket-issuer { margin-block: 6px; break-inside: avoid }
-      .ticket-issuer p { margin-block: 2px }
-      .ticket-document { border-block: 1px solid #111; margin-block: 9px; padding: 4px 0; break-inside: avoid }
-      .ticket-document h2 { margin: 0; font-size: 11pt }
-      .ticket-document p { margin: 2px 0 0; font-size: 9pt }
-    `;
-    // The driver supplies the roll length; the printable ticket fits the 58 mm roll with 3 mm margins.
-    if (header) css.textContent += `
-      @page { size: portrait; margin: 3mm }
-      body { max-width: 52mm; font-size: 9pt }
-      .ticket-brand { font-size: 15pt }
-      .ticket-brand img { max-width: min(100%, 38mm) }
-      .ticket-document h2 { font-size: 9pt }
-      .ticket-document p { font-size: 8pt }
-      .amount-row { gap: 4px }
-      .amount-row span:first-child { min-width: 0 }
-      p { margin: 2px 0 }
-      .ticket-brand { margin-bottom: 4px }
-      .ticket-brand img { max-height: 17mm }
-      .ticket-issuer { margin-block: 3px }
-      .ticket-issuer p { margin-block: 1px }
-      .ticket-document { margin-block: 5px; padding-block: 3px }
-      .amount-total { margin-block: 4px; padding-top: 3px }
-      .ticket-services { margin-block: 4px; border-top: 1px solid #111 }
-      .ticket-service { padding-block: 3px; break-inside: avoid }
-      .ticket-service + .ticket-service { border-top: 1px dotted #777 }
-      .ticket-service-name { margin: 0 0 2px; font-weight: 700 }
-      .ticket-service dl, .ticket-service dd { margin: 0 }
-      .ticket-service dl { font-size: 8pt; line-height: 1.15; font-variant-numeric: tabular-nums }
-      .ticket-service dl div { display: flex; justify-content: space-between; gap: 4px }
-      .ticket-service dl div:last-child { font-weight: 700 }
-      .ticket-footer { margin-top: 4px; padding-top: 2px; border-top: 1px solid #111; text-align: center; break-inside: avoid }
-      .ticket-footer p { font-weight: 700; margin: 1px 0 0 }
-      .ticket-footer svg { display: block; width: 27mm; height: 27mm; margin: 0 auto }
-      .ticket-footer a { display: block; color: #000; text-decoration: none }
-    `;
-    page.head.append(css);
-    const heading = page.createElement('h1');
-    let logo: HTMLImageElement | undefined;
-    if (header) {
-      heading.className = 'ticket-brand';
-      if (header.logo) {
-        logo = page.createElement('img');
-        logo.alt = 'L’Studio Ana';
-        logo.src = header.logo;
-        heading.append(logo);
-      } else {
-        heading.textContent = 'L’Studio Ana';
-      }
-      page.body.append(heading);
-      const issuer = page.createElement('div');
-      issuer.className = 'ticket-issuer';
-      for (const text of [header.fiscalName, header.taxId && 'NIF ' + header.taxId, header.address, header.phone && 'Tel. ' + header.phone]) {
-        if (!text) continue;
-        const row = page.createElement('p');
-        row.textContent = text;
-        issuer.append(row);
-      }
-      page.body.append(issuer);
-      const documentType = page.createElement('div');
-      documentType.className = 'ticket-document';
-      const subtitle = page.createElement('h2');
-      subtitle.textContent = 'Justificante de caja';
-      const qualifier = page.createElement('p');
-      qualifier.textContent = 'Sin validez como factura';
-      documentType.append(subtitle, qualifier);
-      page.body.append(documentType);
-    } else {
-      heading.textContent = title;
-      page.body.append(heading);
-    }
-    for (const line of lines) {
-      if (typeof line !== 'string' && 'services' in line) {
-        page.body.append(printServiceDetails(page, line));
-        continue;
-      }
-      const row = page.createElement('p');
-      if (typeof line === 'string') {
-        row.textContent = line;
-      } else {
-        row.className = line.total ? 'amount-row amount-total' : 'amount-row';
-        for (const text of [line.label, line.value]) {
-          const span = page.createElement('span');
-          span.textContent = text;
-          row.append(span);
-        }
-      }
-      page.body.append(row);
-    }
-    if (header) printTicketFooter(page);
+    const { heading, logo } = writeCashDocument(page, title, lines, header);
     if (logo) {
       const ready = logo.complete ? logo.naturalWidth > 0 : await new Promise<boolean>(resolve => {
         const image = logo;
@@ -430,6 +439,71 @@ async function printSlip(title: string, lines: ReceiptLine[], header?: ReceiptHe
     frame.remove();
     throw error;
   }
+}
+
+function TicketPreview({ ticket, onClose }: { ticket: PrintableTicket; onClose: () => void }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const frame = useRef<HTMLIFrameElement>(null);
+  const close = useRef<HTMLButtonElement>(null);
+  const titleId = useId();
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const modal = dialog.current;
+    const iframe = frame.current;
+    if (!modal || !iframe) return;
+    if (!modal.open) modal.showModal();
+    close.current?.focus();
+    try {
+      const page = iframe.contentDocument;
+      if (!page) throw new Error('No se pudo abrir la vista previa.');
+      const { heading, logo } = writeCashDocument(page, ticket.title, ticket.lines, ticket.header);
+      function fit() {
+        if (iframe && page) iframe.style.height = Math.max(170, page.body.scrollHeight + 20) + 'px';
+      }
+      function fallbackLogo() {
+        heading.textContent = 'L’Studio Ana';
+        fit();
+      }
+      if (logo) {
+        if (logo.complete && logo.naturalWidth === 0) fallbackLogo();
+        else {
+          logo.addEventListener('load', fit, { once: true });
+          logo.addEventListener('error', fallbackLogo, { once: true });
+        }
+      }
+      fit();
+      return () => {
+        logo?.removeEventListener('load', fit);
+        logo?.removeEventListener('error', fallbackLogo);
+      };
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'No se pudo abrir la vista previa.');
+    }
+  }, [ticket]);
+
+  async function printPreview() {
+    setError('');
+    try { await printSlip(ticket.title, ticket.lines, ticket.header); }
+    catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo abrir la impresión.'); }
+  }
+
+  return <dialog ref={dialog} className="appointment-cash-dialog cash-ticket-preview"
+    aria-labelledby={titleId}
+    onCancel={event => event.stopPropagation()}
+    onClose={event => { event.stopPropagation(); onClose(); }}>
+    <header className="appointment-cash-dialog-header">
+      <h2 id={titleId}>Vista previa del ticket</h2>
+      <button type="button" ref={close} onClick={() => dialog.current?.close()}>Cerrar</button>
+    </header>
+    <div className="cash-ticket-preview-body">
+      <iframe ref={frame} title="Ticket de 58 mm" />
+      {error && <p className="cash-message cash-error" role="alert">{error}</p>}
+    </div>
+    <footer><button type="button" className="cash-primary" onClick={() => void printPreview()}>
+      <Printer size={17} aria-hidden="true" />Imprimir ticket
+    </button></footer>
+  </dialog>;
 }
 
 function Amount({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
@@ -569,6 +643,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [ticketPreview, setTicketPreview] = useState<PrintableTicket>();
   const [confirmedSale, setConfirmedSale] = useState<{ movement: Movement; receivedCents: number | null }>();
   const confirmedSaleSection = useRef<HTMLElement>(null);
   const confirmationTitleId = useId();
@@ -783,7 +858,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo abrir la impresión.'); }
   }
 
-  function printMovement(movement: Movement) {
+  function movementTicket(movement: Movement): PrintableTicket {
     const header = readReceiptHeader();
     const snapshot = movement.service_receipt;
     const discount = movement.discount_cents ?? 0;
@@ -831,7 +906,12 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
       ...(movement.refunded ? ['Cobro devuelto'] : []),
       { label: 'Método de pago', value: methods[movement.method] },
     );
-    print('L’Studio Ana · Justificante de caja', lines, header);
+    return { title: 'L’Studio Ana · Justificante de caja', lines, header };
+  }
+
+  function printMovement(movement: Movement) {
+    const ticket = movementTicket(movement);
+    void print(ticket.title, ticket.lines, ticket.header);
   }
 
   function cashSummary() {
@@ -853,6 +933,9 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   const dashboard = !appointment && shift && totals;
   const receipt = confirmedSale && (state?.movements.find(movement => movement.id === confirmedSale.movement.id) || confirmedSale.movement);
   const confirmedReceived = confirmedSale?.receivedCents ?? null;
+  const latestTicket = !appointment && !loading && state?.movements.find(movement =>
+    movement.kind === 'sale' || movement.kind === 'refund' || movement.kind === 'courtesy');
+
 
   return <section className={`cash-register${appointment ? ' cash-register-appointment' : ''}`}
     aria-label={appointment ? 'Cobro de cita' : 'Caja'} aria-busy={loading || busy || giftBusy}>
@@ -867,6 +950,8 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         </div>
       </div>
       <div className="cash-heading-actions">
+        {latestTicket && <button type="button" aria-haspopup="dialog"
+          onClick={() => setTicketPreview(movementTicket(latestTicket))}>Vista previa del último ticket</button>}
         {!appointment && state && <label className="cash-history">
           <History size={17} aria-hidden="true" />
           <span className="cash-sr-only">Turno de caja</span>
@@ -895,6 +980,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         </button>
       </div>
     </header>
+    {ticketPreview && <TicketPreview ticket={ticketPreview} onClose={() => setTicketPreview(undefined)} />}
     {receipt && !receipt.refunded && <section className="cash-card cash-sale-confirmation" ref={confirmedSaleSection}
       tabIndex={-1} aria-labelledby={confirmationTitleId}>
       <div className="cash-sale-confirmation-summary" role="status">
@@ -910,6 +996,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         <button type="button" className="cash-primary" onClick={() => printMovement(receipt)}>
           <Printer size={17} aria-hidden="true" />Imprimir ticket
         </button>
+        <button type="button" aria-haspopup="dialog" onClick={() => setTicketPreview(movementTicket(receipt))}>Vista previa</button>
         {openAgenda && <button type="button" onClick={openAgenda}>Volver a la agenda</button>}
       </div>
     </section>}
@@ -1090,6 +1177,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
             </div>
             {(movement.kind === 'sale' || movement.kind === 'refund' || movement.kind === 'courtesy') && <div className="cash-actions">
               {!appointment && openAppointment && movement.appointment_id && <button type="button" onClick={() => openAppointment(movement.appointment_id!)}>Ver cita</button>}
+              <button type="button" aria-haspopup="dialog" onClick={() => setTicketPreview(movementTicket(movement))}>Vista previa</button>
               <button type="button" onClick={() => printMovement(movement)}><Printer size={15} aria-hidden="true" />Imprimir justificante</button>
               {movement.kind !== 'courtesy' && <button type="button" disabled={blocked}
                 onClick={() => setInvoiceEdit({ id: movement.id, value: movement.invoice_reference || '' })}>Número de factura</button>}
