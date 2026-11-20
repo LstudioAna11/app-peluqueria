@@ -30,7 +30,7 @@ type TicketVatRate = '21' | '10' | '4';
 type ReceiptHeader = {
   fiscalName: string; taxId: string; address: string; phone: string; logo: string; vatRate: TicketVatRate;
 };
-type PrintableTicket = { title: string; lines: ReceiptLine[]; header: ReceiptHeader; kind: 'receipt' | 'closing' };
+type PrintableTicket = { title: string; lines: ReceiptLine[]; header: ReceiptHeader; kind: 'receipt' | 'closing'; practice?: boolean };
 type Movement = {
   id: string; recorded_at: string; description: string; kind: Kind; method: Method;
   service_receipt?: ServiceReceipt | null;
@@ -61,6 +61,7 @@ const methodButtons = [
   { value: 'cash', Icon: Banknote },
   { value: 'bizum', Icon: Smartphone },
 ] as const;
+type TenderMethod = (typeof methodButtons)[number]['value'];
 const movementButtons = [
   { value: 'sale', label: 'Cobro sin cita', Icon: Receipt },
   { value: 'cash_in', label: 'Entrada de efectivo', Icon: ArrowDownLeft },
@@ -310,7 +311,65 @@ function printTicketFooter(page: Document) {
   page.body.append(footer);
 }
 
-function writeCashDocument(page: Document, { title, lines, header, kind }: PrintableTicket) {
+function movementTicket(movement: Movement, header: ReceiptHeader, practice = false): PrintableTicket {
+  const snapshot = movement.service_receipt;
+  const discount = movement.discount_cents ?? 0;
+  const lines: ReceiptLine[] = [
+    { label: 'Fecha', value: date(movement.recorded_at) },
+    practice ? { label: 'N.º de prueba', value: 'PRUEBA-' + movement.ticket_number } : movement.ticket_number
+      ? { label: 'N.º de ticket', value: ticketNumber(movement.ticket_number) }
+      : { label: 'Movimiento', value: movement.id.slice(0, 8).toUpperCase() },
+    ...(movement.ticket_client_name ? ['Cliente · ' + movement.ticket_client_name] : []),
+    ...(movement.invoice_reference ? ['Factura asociada ' + movement.invoice_reference] : []),
+  ];
+
+  const totalCents = snapshot?.total_cents ?? movement.amount_cents;
+  const baseCents = Math.round(totalCents * 100 / (100 + Number(header.vatRate)));
+
+  if (snapshot && snapshot.items.length > 1) {
+    lines.push(makeReceiptServiceDetails(snapshot, header.vatRate, baseCents));
+  } else {
+    lines.push(snapshot?.items[0]?.[0] || movement.description);
+  }
+
+  if (discount > 0) lines.push({ label: 'Descuento aplicado', value: money(-discount) });
+  if (snapshot?.deposit_cents) lines.push({ label: 'Anticipo aplicado', value: money(-snapshot.deposit_cents) });
+  if (snapshot?.voucher_cents) lines.push({
+    label: snapshot.voucher_kind === 'gift' ? 'Tarjeta regalo aplicada' : 'Bono aplicado',
+    value: money(-snapshot.voucher_cents),
+  });
+  if (snapshot && totalCents !== movement.amount_cents) lines.push({
+    label: 'Saldo cobrado', value: money(movement.amount_cents),
+  });
+
+  lines.push(
+    ...(movement.bank_reference ? [`Referencia ${movement.bank_reference}`] : []),
+    ...(movement.refunded ? ['Cobro devuelto'] : []),
+    { label: 'Base sin IVA', value: money(baseCents), startsBreakdown: true },
+    { label: 'IVA ' + header.vatRate + ' %', value: money(totalCents - baseCents) },
+    { label: 'Total con IVA', value: money(totalCents), total: true },
+    { label: 'Método de pago', value: methods[movement.method] },
+  );
+  return { title: 'L’Studio Ana · Justificante de caja', lines, header, kind: 'receipt', practice };
+}
+
+function closingTicket(header: ReceiptHeader, opening: number, totals: Record<TenderMethod, number>, practice = false): PrintableTicket {
+  return {
+    title: 'L’Studio Ana · Cierre de caja',
+    kind: 'closing',
+    header,
+    practice,
+    lines: [
+      { label: 'Fondo inicial', value: money(opening) },
+      { label: 'Efectivo', value: money(totals.cash) },
+      { label: 'Tarjeta', value: money(totals.card) },
+      { label: 'Bizum', value: money(totals.bizum) },
+      { label: 'Total', value: money(totals.cash + totals.card + totals.bizum), total: true },
+    ],
+  };
+}
+
+function writeCashDocument(page: Document, { title, lines, header, kind, practice }: PrintableTicket) {
   page.head.replaceChildren();
   page.body.replaceChildren();
   page.title = title;
@@ -339,6 +398,7 @@ function writeCashDocument(page: Document, { title, lines, header, kind }: Print
     .ticket-brand img { max-width: min(100%, 38mm) }
     .ticket-document h2 { font-size: 9pt }
     .ticket-document p { font-size: 8pt }
+    .ticket-practice { margin-block: 4px; padding: 3px; border: 1px solid #000; text-align: center; font-weight: 700 }
     .amount-row { gap: 4px }
     .amount-row span:first-child { min-width: 0 }
     p { margin: 2px 0 }
@@ -375,6 +435,12 @@ function writeCashDocument(page: Document, { title, lines, header, kind }: Print
     heading.textContent = 'L’Studio Ana';
   }
   page.body.append(heading);
+  if (practice) {
+    const mark = page.createElement('p');
+    mark.className = 'ticket-practice';
+    mark.textContent = 'PRUEBA · SIN COBRO REAL';
+    page.body.append(mark);
+  }
   const issuer = page.createElement('div');
   issuer.className = 'ticket-issuer';
   for (const text of [header.fiscalName, header.taxId && 'NIF ' + header.taxId, header.address, header.phone && 'Tel. ' + header.phone]) {
@@ -503,7 +569,7 @@ function TicketPreview({ ticket, onClose }: { ticket: PrintableTicket; onClose: 
     onCancel={event => event.stopPropagation()}
     onClose={event => { event.stopPropagation(); onClose(); }}>
     <header className="appointment-cash-dialog-header">
-      <h2 id={titleId}>Vista previa del ticket</h2>
+      <h2 id={titleId}>{ticket.kind === 'closing' ? 'Vista previa del cierre' : 'Vista previa del ticket'}</h2>
       <button type="button" ref={close} onClick={() => dialog.current?.close()}>Cerrar</button>
     </header>
     <div className="cash-ticket-preview-body">
@@ -628,6 +694,128 @@ function Keypad({ label, value, onChange, disabled }: {
   </div>;
 }
 
+function CashPractice({ header, onExit }: { header: ReceiptHeader; onExit: () => void }) {
+  const [opening, setOpening] = useState('0');
+  const [openingCents, setOpeningCents] = useState<number>();
+  const [sales, setSales] = useState<(Movement & { method: TenderMethod })[]>([]);
+  const [amount, setAmount] = useState('');
+  const [description, setDescription] = useState('');
+  const [method, setMethod] = useState<TenderMethod>('card');
+  const [counted, setCounted] = useState('');
+  const [terminal, setTerminal] = useState('');
+  const [closing, setClosing] = useState<{ counted: number; terminal: number | null }>();
+  const [preview, setPreview] = useState<PrintableTicket>();
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => { heading.current?.focus(); }, []);
+
+  const totals = { cash: 0, card: 0, bizum: 0 };
+  for (const sale of sales) totals[sale.method] += sale.amount_cents;
+  const amountCents = cents(amount);
+  const countedCents = cents(counted);
+  const terminalCents = terminal.trim() ? cents(terminal) : null;
+  const expected = (openingCents ?? 0) + totals.cash;
+  const summary: [string, number][] = [
+    ['Fondo inicial', openingCents ?? 0], ['Efectivo', totals.cash], ['Tarjeta', totals.card], ['Bizum', totals.bizum],
+    ['Efectivo esperado', expected],
+  ];
+  if (closing) {
+    summary.push(['Efectivo contado', closing.counted], ['Diferencia de efectivo', closing.counted - expected]);
+    if (closing.terminal !== null) summary.push(['Diferencia de tarjeta', closing.terminal - totals.card]);
+  }
+
+  return <section className="cash-register" aria-label="Caja de prueba">
+    <section className="cash-card cash-practice-banner">
+      <div>
+        <h2 ref={heading} tabIndex={-1}>Modo de prueba</h2>
+        <p>Simula aquí los cobros sin usar dinero ni el datáfono. Al salir se descarta la prueba.</p>
+      </div>
+      <button type="button" onClick={onExit}>Salir del modo de prueba</button>
+    </section>
+    {openingCents === undefined ? <form className="cash-card cash-opening" onSubmit={event => {
+      event.preventDefault();
+      const value = cents(opening);
+      if (value !== null) setOpeningCents(value);
+    }}>
+      <div><h3>Abrir turno de prueba</h3></div>
+      <Amount label="Fondo inicial de prueba (€)" value={opening} onChange={event => setOpening(event.target.value)} />
+      <button className="cash-primary" disabled={cents(opening) === null}>Abrir caja de prueba</button>
+    </form> : <>
+      {!closing && <form className="cash-card" onSubmit={event => {
+        event.preventDefault();
+        if (amountCents === null || amountCents < 1) return;
+        const sale = {
+          id: crypto.randomUUID(), recorded_at: new Date().toISOString(), kind: 'sale' as const, method,
+          amount_cents: amountCents, description: description.trim() || 'Servicio de prueba',
+          appointment_id: null, bank_reference: null, invoice_reference: null, refunded: false,
+        };
+        setSales(current => [...current, { ...sale, ticket_number: current.length + 1 }]);
+        setAmount('');
+        setDescription('');
+      }}>
+        <h3>Simular un cobro</h3>
+        <div className="cash-pos">
+          <div className="cash-pos-main">
+            <label className="cash-field">Concepto de prueba
+              <input maxLength={200} placeholder="Servicio de prueba" value={description} onChange={event => setDescription(event.target.value)} />
+            </label>
+            <fieldset className="cash-choice-group">
+              <legend>Método de pago simulado</legend>
+              <div className="cash-method-buttons">
+                {methodButtons.map(({ value, Icon }) => <label key={value} className="cash-choice cash-method">
+                  <input type="radio" name="practice-payment-method" value={value} checked={method === value} onChange={() => setMethod(value)} />
+                  <Icon size={19} aria-hidden="true" />{methods[value]}
+                </label>)}
+              </div>
+            </fieldset>
+          </div>
+          <div className="cash-pos-amount">
+            <Keypad label="Importe de prueba" value={amount} onChange={setAmount} disabled={false} />
+            <button className="cash-primary" disabled={amountCents === null || amountCents < 1}>Registrar cobro de prueba</button>
+          </div>
+        </div>
+      </form>}
+      {!!sales.length && <section className="cash-card">
+        <h3>Tickets de prueba</h3>
+        <ul className="cash-movements">
+          {[...sales].reverse().map(sale => <li key={sale.id}>
+            <div className="cash-movement-line">
+              <div className="cash-movement-info">
+                <strong>{sale.description}</strong>
+                <small>PRUEBA-{sale.ticket_number} · {methods[sale.method]}</small>
+              </div>
+              <strong className="cash-movement-amount">{money(sale.amount_cents)}</strong>
+            </div>
+            <div className="cash-actions">
+              <button type="button" aria-haspopup="dialog" onClick={() => setPreview(movementTicket(sale, header, true))}>Vista previa</button>
+            </div>
+          </li>)}
+        </ul>
+      </section>}
+      <section className="cash-card">
+        <h3>{closing ? 'Cierre de prueba realizado' : 'Cierre de prueba'}</h3>
+        <dl className="cash-summary">{summary.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{money(value)}</dd></div>)}</dl>
+        {closing ? <button type="button" aria-haspopup="dialog" onClick={() => setPreview(closingTicket(header, openingCents, totals, true))}>
+          Vista previa del cierre de prueba
+        </button> : <form className="cash-form" onSubmit={event => {
+          event.preventDefault();
+          if (countedCents !== null && (!terminal.trim() || terminalCents !== null)) setClosing({ counted: countedCents, terminal: terminalCents });
+        }}>
+          <div>
+            <Amount label="Efectivo contado de prueba (€)" value={counted} onChange={event => setCounted(event.target.value)} />
+            {countedCents !== null && <p className="cash-pos-note">Diferencia de efectivo {money(countedCents - expected)}</p>}
+          </div>
+          <div>
+            <Amount label="Total simulado del datáfono (€)" required={false} value={terminal} onChange={event => setTerminal(event.target.value)} />
+            {terminalCents !== null && <p className="cash-pos-note">Diferencia de tarjeta {money(terminalCents - totals.card)}</p>}
+          </div>
+          <button className="cash-primary" disabled={countedCents === null || (!!terminal.trim() && terminalCents === null)}>Cerrar caja de prueba</button>
+        </form>}
+      </section>
+    </>}
+    {preview && <TicketPreview ticket={preview} onClose={() => setPreview(undefined)} />}
+  </section>;
+}
+
 function GiftCardPicker({ clientId, disabled, onApply }: {
   clientId: string;
   disabled: boolean;
@@ -729,6 +917,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [ticketPreview, setTicketPreview] = useState<PrintableTicket>();
+  const [practice, setPractice] = useState(false);
   const [receiptHeader, setReceiptHeader] = useState(readReceiptHeader);
   const [receiptHeaderLoading, setReceiptHeaderLoading] = useState(true);
   const [receiptHeaderShared, setReceiptHeaderShared] = useState(false);
@@ -964,51 +1153,8 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo abrir la impresión.'); }
   }
 
-  function movementTicket(movement: Movement): PrintableTicket {
-    const header = receiptHeader;
-    const snapshot = movement.service_receipt;
-    const discount = movement.discount_cents ?? 0;
-    const lines: ReceiptLine[] = [
-      { label: 'Fecha', value: date(movement.recorded_at) },
-      movement.ticket_number
-        ? { label: 'N.º de ticket', value: ticketNumber(movement.ticket_number) }
-        : { label: 'Movimiento', value: movement.id.slice(0, 8).toUpperCase() },
-      ...(movement.ticket_client_name ? ['Cliente · ' + movement.ticket_client_name] : []),
-      ...(movement.invoice_reference ? ['Factura asociada ' + movement.invoice_reference] : []),
-    ];
-
-    const totalCents = snapshot?.total_cents ?? movement.amount_cents;
-    const baseCents = Math.round(totalCents * 100 / (100 + Number(header.vatRate)));
-
-    if (snapshot && snapshot.items.length > 1) {
-      lines.push(makeReceiptServiceDetails(snapshot, header.vatRate, baseCents));
-    } else {
-      lines.push(snapshot?.items[0]?.[0] || movement.description);
-    }
-
-    if (discount > 0) lines.push({ label: 'Descuento aplicado', value: money(-discount) });
-    if (snapshot?.deposit_cents) lines.push({ label: 'Anticipo aplicado', value: money(-snapshot.deposit_cents) });
-    if (snapshot?.voucher_cents) lines.push({
-      label: snapshot.voucher_kind === 'gift' ? 'Tarjeta regalo aplicada' : 'Bono aplicado',
-      value: money(-snapshot.voucher_cents),
-    });
-    if (snapshot && totalCents !== movement.amount_cents) lines.push({
-      label: 'Saldo cobrado', value: money(movement.amount_cents),
-    });
-
-    lines.push(
-      ...(movement.bank_reference ? [`Referencia ${movement.bank_reference}`] : []),
-      ...(movement.refunded ? ['Cobro devuelto'] : []),
-      { label: 'Base sin IVA', value: money(baseCents), startsBreakdown: true },
-      { label: 'IVA ' + header.vatRate + ' %', value: money(totalCents - baseCents) },
-      { label: 'Total con IVA', value: money(totalCents), total: true },
-      { label: 'Método de pago', value: methods[movement.method] },
-    );
-    return { title: 'L’Studio Ana · Justificante de caja', lines, header, kind: 'receipt' };
-  }
-
   function printMovement(movement: Movement) {
-    void print(movementTicket(movement));
+    void print(movementTicket(movement, receiptHeader));
   }
 
   function cashSummary() {
@@ -1033,6 +1179,10 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   const latestTicket = !appointment && !loading && state?.movements.find(movement =>
     movement.kind === 'sale' || movement.kind === 'refund' || movement.kind === 'courtesy');
 
+  if (!appointment && practice) return <CashPractice header={receiptHeader} onExit={() => {
+    setPractice(false);
+    setReload(value => value + 1);
+  }} />;
 
   return <section className={`cash-register${appointment ? ' cash-register-appointment' : ''}`}
     aria-label={appointment ? 'Cobro de cita' : 'Caja'} aria-busy={loading || busy || giftBusy}>
@@ -1047,8 +1197,10 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         </div>
       </div>
       <div className="cash-heading-actions">
+        {!appointment && <button type="button" disabled={blocked || receiptHeaderLoading}
+          onClick={() => setPractice(true)}>Modo de prueba</button>}
         {latestTicket && <button type="button" aria-haspopup="dialog" disabled={receiptHeaderLoading}
-          onClick={() => setTicketPreview(movementTicket(latestTicket))}>Vista previa del último ticket</button>}
+          onClick={() => setTicketPreview(movementTicket(latestTicket, receiptHeader))}>Vista previa del último ticket</button>}
         {!appointment && state && <label className="cash-history">
           <History size={17} aria-hidden="true" />
           <span className="cash-sr-only">Turno de caja</span>
@@ -1093,7 +1245,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         <button type="button" className="cash-primary" disabled={receiptHeaderLoading} onClick={() => printMovement(receipt)}>
           <Printer size={17} aria-hidden="true" />Imprimir ticket
         </button>
-        <button type="button" aria-haspopup="dialog" disabled={receiptHeaderLoading} onClick={() => setTicketPreview(movementTicket(receipt))}>Vista previa</button>
+        <button type="button" aria-haspopup="dialog" disabled={receiptHeaderLoading} onClick={() => setTicketPreview(movementTicket(receipt, receiptHeader))}>Vista previa</button>
         {openAgenda && <button type="button" onClick={openAgenda}>Volver a la agenda</button>}
       </div>
     </section>}
@@ -1102,7 +1254,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     {notice && <p className="cash-message cash-success" role="status"><Check size={16} aria-hidden="true" />{notice}</p>}
     {retry && <button type="button" disabled={busy} onClick={() => void send(retry)}>Reintentar guardado</button>}
     {!appointment && <TicketSearch previewDisabled={receiptHeaderLoading}
-      onPreview={movement => setTicketPreview(movementTicket(movement))} />}
+      onPreview={movement => setTicketPreview(movementTicket(movement, receiptHeader))} />}
     {!loading && state && <>
       {!appointment && (state.history?.length === 30 || selection.before) && <div className="cash-actions">
         {state.history?.length === 30 && <button type="button" disabled={blocked} onClick={() =>
@@ -1277,7 +1429,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
             </div>
             {(movement.kind === 'sale' || movement.kind === 'refund' || movement.kind === 'courtesy') && <div className="cash-actions">
               {!appointment && openAppointment && movement.appointment_id && <button type="button" onClick={() => openAppointment(movement.appointment_id!)}>Ver cita</button>}
-              <button type="button" aria-haspopup="dialog" disabled={receiptHeaderLoading} onClick={() => setTicketPreview(movementTicket(movement))}>Vista previa</button>
+              <button type="button" aria-haspopup="dialog" disabled={receiptHeaderLoading} onClick={() => setTicketPreview(movementTicket(movement, receiptHeader))}>Vista previa</button>
               <button type="button" disabled={receiptHeaderLoading} onClick={() => printMovement(movement)}><Printer size={15} aria-hidden="true" />Imprimir justificante</button>
               {movement.kind !== 'courtesy' && <button type="button" disabled={blocked}
                 onClick={() => setInvoiceEdit({ id: movement.id, value: movement.invoice_reference || '' })}>Número de factura</button>}
@@ -1306,18 +1458,10 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         <p>Apertura {date(shift.opened_at)} · Cierre {date(shift.closed_at)}</p>
         <dl className="cash-summary">{cashSummary().map(([label, amount]) =>
           <div key={label}><dt>{label}</dt><dd>{money(amount)}</dd></div>)}</dl>
-        <button type="button" disabled={receiptHeaderLoading} onClick={() => void print({
-          title: 'L’Studio Ana · Cierre de caja',
-          kind: 'closing',
-          header: receiptHeader,
-          lines: [
-            { label: 'Fondo inicial', value: money(shift.opening_cents) },
-            { label: 'Efectivo', value: money(totals.cash) },
-            { label: 'Tarjeta', value: money(totals.card) },
-            { label: 'Bizum', value: money(totals.bizum) },
-            { label: 'Total', value: money(totals.cash + totals.card + totals.bizum), total: true },
-          ],
-        })}><Printer size={16} aria-hidden="true" />Imprimir cierre</button>
+        <button type="button" disabled={receiptHeaderLoading}
+          onClick={() => void print(closingTicket(receiptHeader, shift.opening_cents, totals))}>
+          <Printer size={16} aria-hidden="true" />Imprimir cierre
+        </button>
       </section> : <details className="cash-card cash-close" key={shift.id} ref={closingPanel}>
         <summary><span><Wallet size={19} aria-hidden="true" />Cierre de caja</span><ChevronDown size={19} aria-hidden="true" /></summary>
         <dl className="cash-summary">{cashSummary().map(([label, amount]) =>
