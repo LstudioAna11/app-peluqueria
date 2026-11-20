@@ -828,7 +828,7 @@ export default function AdminPanelView(props: Props) {
               No hay profesionales configurados. Ve a Configuración → Empleados y añade al menos una persona en activo para que las clientas puedan elegir profesional al reservar.
             </div>
           )}
-          {adminTab === 'cash' && <React.Suspense fallback={<p role="status">Abriendo caja…</p>}><LazyCashRegister openAppointment={id => {
+          {adminTab === 'cash' && <React.Suspense fallback={<p role="status">Abriendo caja…</p>}><LazyCashRegister openAgenda={() => { setAgendaExpanded(false); setAdminTab('agenda'); }} openAppointment={id => {
             const appointment = appointments.find(item => item.serverId === id);
             if (appointment) setViewApptModal(appointment);
             else window.alert('La cita no está disponible en la agenda actual.');
