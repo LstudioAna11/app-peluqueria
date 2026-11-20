@@ -21,11 +21,11 @@ type ServiceReceipt = {
   voucher_cents?: number;
   voucher_kind?: string;
 };
-type ReceiptServiceTable = {
+type ReceiptServiceDetails = {
   services: { label: string; base: number | null; vat: number | null; total: number | null }[];
   vatRate: string;
 };
-type ReceiptLine = string | { label: string; value: string; total?: boolean } | ReceiptServiceTable;
+type ReceiptLine = string | { label: string; value: string; total?: boolean } | ReceiptServiceDetails;
 type TicketVatRate = 'none' | '21' | '10' | '4';
 type ReceiptHeader = {
   fiscalName: string; taxId: string; address: string; phone: string; logo: string; vatRate: TicketVatRate;
@@ -223,7 +223,7 @@ function splitTicketCents(total: number, weights: number[]): number[] {
   });
 }
 
-function makeReceiptServiceTable(snapshot: ServiceReceipt, vatRate: string, base: number | null): ReceiptServiceTable {
+function makeReceiptServiceDetails(snapshot: ServiceReceipt, vatRate: string, base: number | null): ReceiptServiceDetails {
   const prices = snapshot.items.map(([, amount]) => amount);
   const knownPrices = prices.every((price): price is number => price !== null);
   const canAllocate = knownPrices && (snapshot.total_cents === 0 || prices.some(price => price > 0));
@@ -241,37 +241,41 @@ function makeReceiptServiceTable(snapshot: ServiceReceipt, vatRate: string, base
   };
 }
 
-function printServiceTable(page: Document, details: ReceiptServiceTable): HTMLTableElement {
-  const table = page.createElement('table');
-  table.className = 'ticket-services';
-  const caption = table.createCaption();
-  caption.textContent = 'Servicios';
-  const header = table.createTHead().insertRow();
-  for (const label of ['Base', details.vatRate ? 'IVA ' + details.vatRate + ' %' : 'IVA', 'Total']) {
-    const cell = page.createElement('th');
-    cell.scope = 'col';
-    cell.textContent = label;
-    header.append(cell);
-  }
-  details.services.forEach((service, index) => {
-    const group = table.createTBody();
-    const label = group.insertRow().insertCell();
-    label.colSpan = 3;
-    label.className = 'ticket-service-name';
-    label.textContent = `${index + 1}. ${service.label}`;
-    const amounts = group.insertRow();
-    for (const amount of [service.base, service.vat, service.total]) {
-      amounts.insertCell().textContent = amount === null ? '—' : money(amount);
+function printServiceDetails(page: Document, details: ReceiptServiceDetails): HTMLElement {
+  const list = page.createElement('section');
+  list.className = 'ticket-services';
+  for (const service of details.services) {
+    const item = page.createElement('div');
+    item.className = 'ticket-service';
+    const name = page.createElement('p');
+    name.className = 'ticket-service-name';
+    name.textContent = service.label;
+    item.append(name);
+    const amounts: [string, number | null][] = [
+      ['Base', service.base], ['IVA ' + details.vatRate + ' %', service.vat], ['Total', service.total],
+    ];
+    const breakdown = page.createElement('dl');
+    for (const [label, amount] of amounts) {
+      if (amount === null) continue;
+      const row = page.createElement('div');
+      const caption = page.createElement('dt');
+      const value = page.createElement('dd');
+      caption.textContent = label;
+      value.textContent = money(amount);
+      row.append(caption, value);
+      breakdown.append(row);
     }
-  });
-  return table;
+    if (breakdown.childElementCount) item.append(breakdown);
+    list.append(item);
+  }
+  return list;
 }
 
 function printTicketFooter(page: Document) {
   const footer = page.createElement('footer');
   footer.className = 'ticket-footer';
   const thanks = page.createElement('p');
-  thanks.textContent = 'Gracias por tu visita';
+  thanks.textContent = 'Gracias por su visita';
   const { side, modules } = createSalonQrModules();
   const namespace = 'http://www.w3.org/2000/svg';
   const qr = page.createElementNS(namespace, 'svg');
@@ -289,8 +293,9 @@ function printTicketFooter(page: Document) {
   qr.append(back, pattern);
   const link = page.createElement('a');
   link.href = SALON_QR_LINK;
-  link.textContent = 'Reserva en ' + new URL(SALON_QR_LINK).hostname;
-  footer.append(thanks, qr, link);
+  link.setAttribute('aria-label', 'Abrir reservas de L’Studio Ana');
+  link.append(qr);
+  footer.append(link, thanks);
   page.body.append(footer);
 }
 
@@ -332,16 +337,25 @@ async function printSlip(title: string, lines: ReceiptLine[], header?: ReceiptHe
       .ticket-document p { font-size: 8pt }
       .amount-row { gap: 4px }
       .amount-row span:first-child { min-width: 0 }
-      .ticket-services { width: 100%; table-layout: fixed; border-collapse: collapse; margin: 7px 0; font-variant-numeric: tabular-nums }
-      .ticket-services caption { text-align: left; font-weight: 700; margin-bottom: 4px }
-      .ticket-services th, .ticket-services td { text-align: right; padding: 2px 1px }
-      .ticket-services thead { border-bottom: 1px solid #111 }
-      .ticket-services tbody { break-inside: avoid; border-bottom: 1px dotted #777 }
-      .ticket-services td.ticket-service-name { text-align: left; padding-top: 5px; overflow-wrap: anywhere }
-      .ticket-footer { margin-top: 8px; padding-top: 4px; border-top: 1px solid #111; text-align: center; break-inside: avoid }
-      .ticket-footer p { font-weight: 700 }
-      .ticket-footer svg { display: block; width: 27mm; height: 27mm; margin: 2px auto }
-      .ticket-footer a { color: #000; text-decoration: none; font-size: 8pt }
+      p { margin: 2px 0 }
+      .ticket-brand { margin-bottom: 4px }
+      .ticket-brand img { max-height: 17mm }
+      .ticket-issuer { margin-block: 3px }
+      .ticket-issuer p { margin-block: 1px }
+      .ticket-document { margin-block: 5px; padding-block: 3px }
+      .amount-total { margin-block: 4px; padding-top: 3px }
+      .ticket-services { margin-block: 4px; border-top: 1px solid #111 }
+      .ticket-service { padding-block: 3px; break-inside: avoid }
+      .ticket-service + .ticket-service { border-top: 1px dotted #777 }
+      .ticket-service-name { margin: 0 0 2px; font-weight: 700 }
+      .ticket-service dl, .ticket-service dd { margin: 0 }
+      .ticket-service dl { font-size: 8pt; line-height: 1.15; font-variant-numeric: tabular-nums }
+      .ticket-service dl div { display: flex; justify-content: space-between; gap: 4px }
+      .ticket-service dl div:last-child { font-weight: 700 }
+      .ticket-footer { margin-top: 4px; padding-top: 2px; border-top: 1px solid #111; text-align: center; break-inside: avoid }
+      .ticket-footer p { font-weight: 700; margin: 1px 0 0 }
+      .ticket-footer svg { display: block; width: 27mm; height: 27mm; margin: 0 auto }
+      .ticket-footer a { display: block; color: #000; text-decoration: none }
     `;
     page.head.append(css);
     const heading = page.createElement('h1');
@@ -380,7 +394,7 @@ async function printSlip(title: string, lines: ReceiptLine[], header?: ReceiptHe
     }
     for (const line of lines) {
       if (typeof line !== 'string' && 'services' in line) {
-        page.body.append(printServiceTable(page, line));
+        page.body.append(printServiceDetails(page, line));
         continue;
       }
       const row = page.createElement('p');
@@ -780,52 +794,42 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         : { label: 'Movimiento', value: movement.id.slice(0, 8).toUpperCase() },
       ...(movement.ticket_client_name ? ['Cliente · ' + movement.ticket_client_name] : []),
       ...(movement.invoice_reference ? ['Factura asociada ' + movement.invoice_reference] : []),
-      kinds[movement.kind],
     ];
 
+    let serviceShowsPaid = false;
     if (snapshot) {
-      const subtotal = snapshot.total_cents + discount;
       const vatRate = header.vatRate !== 'none' && movement.kind === 'sale' && snapshot.items.length > 0
         && !snapshot.deposit_cents && !snapshot.voucher_cents && snapshot.total_cents === movement.amount_cents
         ? header.vatRate : '';
       const base = vatRate ? Math.round(snapshot.total_cents * 100 / (100 + Number(vatRate))) : null;
-      if (snapshot.items.length) {
-        lines.push(makeReceiptServiceTable(snapshot, vatRate, base));
-      } else {
-        lines.push({ vatRate: '', services: [{
-          label: movement.description, base: null, vat: null, total: snapshot.total_cents,
-        }] });
-      }
-      if (discount > 0) lines.push(
-        { label: 'Subtotal antes del descuento', value: money(subtotal) },
-        { label: 'Descuento aplicado', value: money(-discount) },
-      );
-      if (base !== null) {
-        lines.push(
-          { label: 'Base sin IVA', value: money(base) },
-          { label: 'IVA ' + vatRate + ' %', value: money(snapshot.total_cents - base) },
-          { label: 'Total con IVA incluido', value: money(snapshot.total_cents), total: true },
-        );
-      } else {
-        lines.push({ label: 'Total servicios', value: money(snapshot.total_cents), total: true });
-      }
+      const services = snapshot.items.length ? makeReceiptServiceDetails(snapshot, vatRate, base) : {
+        vatRate: '', services: [{ label: movement.description, base: null, vat: null, total: snapshot.total_cents }],
+      };
+      lines.push(services);
+      serviceShowsPaid = services.services.length === 1 && services.services[0].total === movement.amount_cents;
+      if (discount > 0) lines.push({ label: 'Descuento aplicado', value: money(-discount) });
       if (snapshot.deposit_cents) lines.push({ label: 'Anticipo aplicado', value: money(-snapshot.deposit_cents) });
       if (snapshot.voucher_cents) lines.push({
         label: snapshot.voucher_kind === 'gift' ? 'Tarjeta regalo aplicada' : 'Bono aplicado',
         value: money(-snapshot.voucher_cents),
       });
     } else {
+      serviceShowsPaid = movement.appointment_id === null && movement.kind === 'sale';
       lines.push({ vatRate: '', services: [{
-        label: movement.description, base: null, vat: null, total: movement.appointment_id ? null : movement.amount_cents,
+        label: movement.description, base: null, vat: null, total: serviceShowsPaid ? movement.amount_cents : null,
       }] });
       if (discount > 0) lines.push({ label: 'Descuento aplicado', value: money(-discount) });
     }
 
+    if (!serviceShowsPaid || movement.kind === 'refund') lines.push({
+      label: movement.kind === 'refund' ? 'Importe devuelto' : 'Total cobrado',
+      value: money(movement.amount_cents),
+      total: true,
+    });
     lines.push(
-      { label: movement.kind === 'refund' ? 'Importe devuelto' : 'Importe cobrado', value: money(movement.amount_cents), total: true },
-      { label: 'Método de pago', value: methods[movement.method] },
       ...(movement.bank_reference ? [`Referencia ${movement.bank_reference}`] : []),
       ...(movement.refunded ? ['Cobro devuelto'] : []),
+      { label: 'Método de pago', value: methods[movement.method] },
     );
     print('L’Studio Ana · Justificante de caja', lines, header);
   }
