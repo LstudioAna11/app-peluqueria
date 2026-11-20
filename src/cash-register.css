@@ -365,3 +365,29 @@
 @media (max-width: 520px) {
   .appointment-cash-dialog { width: calc(100% - 12px); max-height: calc(100dvh - 12px); }
 }
+
+.cash-sale-confirmation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border-color: #7d9869;
+  background: #2b3528;
+}
+
+.cash-sale-confirmation:focus-visible { outline: 2px solid #a9d2ae; outline-offset: 2px; }
+.cash-sale-confirmation-summary { display: flex; align-items: center; gap: 12px; }
+.cash-sale-confirmation-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #3c5037;
+  color: #c7e3c8;
+}
+.cash-sale-confirmation-summary p { margin-top: 3px; color: #c7dec4; }
+.cash-sale-confirmation-summary strong { color: #fff8ee; font-size: 1.2rem; font-variant-numeric: tabular-nums; }
+.cash-sale-confirmation .cash-actions button { min-height: 44px; }
