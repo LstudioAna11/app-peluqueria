@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
   ArrowDownLeft, ArrowUpRight, Banknote, CalendarDays, Check, ChevronDown, CreditCard,
-  Delete, Gift, History, Printer, Receipt, RefreshCw, Search, Smartphone, Wallet,
+  Delete, Gift, Printer, Receipt, RefreshCw, Search, Settings, Smartphone, Wallet,
 } from 'lucide-react';
 import { attachAppointmentVoucher, currentToken, fetchVouchers, StudioApiError, studioCashRegister } from './studioApi';
 import { createSalonQrModules, SALON_QR_LINK } from './ReservationQr';
@@ -73,6 +73,13 @@ const movementButtons = [
   { value: 'cash_in', label: 'Entrada de efectivo', Icon: ArrowDownLeft },
   { value: 'cash_out', label: 'Salida de efectivo', Icon: ArrowUpRight },
 ] as const;
+const cashTabs = [
+  { id: 'checkout', label: 'Cobrar', Icon: Wallet },
+  { id: 'movements', label: 'Movimientos', Icon: Receipt },
+  { id: 'closing', label: 'Cierres', Icon: CalendarDays },
+  { id: 'settings', label: 'Ajustes', Icon: Settings },
+] as const;
+type CashTab = (typeof cashTabs)[number]['id'];
 const keypad = ['1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '0', 'delete'];
 const euro = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 const dateTime = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', dateStyle: 'short', timeStyle: 'short' });
@@ -178,8 +185,8 @@ function ReceiptHeaderSettings({ header, shared, onSaved }: {
     reader.readAsDataURL(file);
   }
 
-  return <details className="cash-card cash-receipt-settings">
-    <summary>Datos de impresión del ticket</summary>
+  return <section className="cash-card cash-receipt-settings">
+    <h3>Datos de impresión del ticket</h3>
     <form className="cash-receipt-settings-form" onSubmit={save} aria-busy={saving}>
       {receiptHeaderFields.map(({ key, label, limit }) => <label className="cash-field" key={key}>
         {label}
@@ -225,7 +232,7 @@ function ReceiptHeaderSettings({ header, shared, onSaved }: {
     {header.fiscalName && !shared && <p className="cash-pos-note">Pulsa «Guardar datos de impresión» para usar la cabecera de este navegador en todos los dispositivos.</p>}
     {saved && <p role="status">Cabecera guardada para todos los tickets.</p>}
     {error && <p className="cash-message cash-error" role="alert">{error}</p>}
-  </details>;
+  </section>;
 }
 
 function cents(text: string, signed = false): number | null {
@@ -637,8 +644,8 @@ function TicketSearch({ onPreview, previewDisabled }: {
     }
   }
 
-  return <details className="cash-card cash-ticket-search">
-    <summary><Search size={18} aria-hidden="true" />Buscar tickets</summary>
+  return <section className="cash-card cash-ticket-search">
+    <h3><Search size={18} aria-hidden="true" />Buscar tickets</h3>
     <form className="cash-form" aria-busy={busy} onSubmit={event => {
       event.preventDefault();
       if (query.trim() || day) void findTickets({ query: query.trim(), day: day || null });
@@ -676,7 +683,7 @@ function TicketSearch({ onPreview, previewDisabled }: {
         <button type="button" disabled={busy} onClick={() => void findTickets(results.criteria, results.nextBefore!)}>Ver más tickets</button>
       </div>}
     </>}
-  </details>;
+  </section>;
 }
 
 type ClosingReportDay = Record<TenderMethod, number> & { day: string; shifts: number };
@@ -1020,6 +1027,8 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
 }) {
   const appointmentId = appointment?.id;
   const [state, setState] = useState<CashState>();
+  const [cashTab, setCashTab] = useState<CashTab>('checkout');
+  const cashPanelId = useId();
   const [selection, setSelection] = useState<{ shiftId?: string; before?: string }>({});
   const [reload, setReload] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -1036,7 +1045,6 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   const confirmationTitleId = useId();
   const [retry, setRetry] = useState<Command>();
   const lock = useRef(false);
-  const closingPanel = useRef<HTMLDetailsElement>(null);
   const [opening, setOpening] = useState('');
   const [counted, setCounted] = useState('');
   const [terminal, setTerminal] = useState('');
@@ -1138,6 +1146,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
       });
       if (payload.operation === 'close' && result.shiftId) {
         setSelection({ shiftId: result.shiftId });
+        setCashTab('closing');
         setCounted('');
         setTerminal('');
       }
@@ -1315,6 +1324,40 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   const latestTicket = !appointment && !loading && state?.movements.find(movement =>
     movement.kind === 'sale' || movement.kind === 'refund' || movement.kind === 'courtesy');
 
+  function changeViewedShift(shiftId?: string) {
+    if (shiftId === selection.shiftId) return;
+    setConfirmedSale(undefined);
+    setCashReceived('');
+    setCounted('');
+    setTerminal('');
+    setInvoiceEdit(undefined);
+    setLoading(true);
+    setSelection({ ...selection, shiftId });
+  }
+
+  function selectCashTab(tab: CashTab) {
+    if (tab === 'checkout') changeViewedShift();
+    setCashTab(tab);
+  }
+
+  const shiftPicker = !appointment && state && <div className="cash-card cash-shift-picker">
+    <label className="cash-history">
+      <span>Turno de caja</span>
+      <select value={selection.shiftId || ''} disabled={blocked} onChange={event => changeViewedShift(event.target.value || undefined)}>
+        <option value="">{activeShift ? 'Caja actual' : 'Caja actual · sin turno abierto'}</option>
+        {shift?.closed_at && !state.history?.some(item => item.id === shift.id) &&
+          <option value={shift.id}>Cierre · {date(shift.closed_at)}</option>}
+        {state.history?.map(item => <option key={item.id} value={item.id}>Cierre · {date(item.closed_at!)}</option>)}
+      </select>
+    </label>
+    {(state.history?.length === 30 || selection.before) && <div className="cash-actions">
+      {state.history?.length === 30 && <button type="button" disabled={blocked} onClick={() =>
+        setSelection({ ...selection, before: state.history?.[29]?.opened_at })}>Cierres anteriores</button>}
+      {selection.before && <button type="button" disabled={blocked} onClick={() =>
+        setSelection({ ...selection, before: undefined })}>Cierres recientes</button>}
+    </div>}
+  </div>;
+
   if (!appointment && practice) return <CashPractice header={receiptHeader} onExit={() => {
     setPractice(false);
     setReload(value => value + 1);
@@ -1327,45 +1370,45 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         {!hideTitle && <div className="cash-title-icon"><Wallet size={23} aria-hidden="true" /></div>}
         <div>
           {!hideTitle && <h2>{appointment ? 'Cobro de cita' : 'Caja'}</h2>}
-          {state && <span className={`cash-status${activeShift && !shift?.closed_at ? ' cash-status-open' : ''}`}>
-            {shift?.closed_at ? `Cierre · ${date(shift.closed_at)}` : activeShift ? `Caja abierta · ${date(activeShift.opened_at)}` : 'Caja cerrada'}
+          {state && <span className={`cash-status${activeShift ? ' cash-status-open' : ''}`}>
+            {activeShift ? `Caja abierta · ${date(activeShift.opened_at)}` : 'Caja cerrada'}
           </span>}
         </div>
       </div>
       <div className="cash-heading-actions">
-        {!appointment && <button type="button" disabled={blocked || receiptHeaderLoading}
-          onClick={() => setPractice(true)}>Modo de prueba</button>}
-        {latestTicket && <button type="button" aria-haspopup="dialog" disabled={receiptHeaderLoading}
-          onClick={() => setTicketPreview(movementTicket(latestTicket, receiptHeader))}>Vista previa del último ticket</button>}
-        {!appointment && state && <label className="cash-history">
-          <History size={17} aria-hidden="true" />
-          <span className="cash-sr-only">Turno de caja</span>
-          <select value={selection.shiftId || ''} disabled={blocked} onChange={event => {
-            setConfirmedSale(undefined);
-            setCashReceived('');
-            setCounted('');
-            setTerminal('');
-            setSelection({ ...selection, shiftId: event.target.value || undefined });
-          }}>
-            <option value="">Caja actual</option>
-            {shift?.closed_at && !state.history?.some(item => item.id === shift.id) &&
-              <option value={shift.id}>Cierre · {date(shift.closed_at)}</option>}
-            {state.history?.map(item => <option key={item.id} value={item.id}>Cierre · {date(item.closed_at!)}</option>)}
-          </select>
-        </label>}
-        {dashboard && !shift.closed_at && <button type="button" disabled={blocked} onClick={() => {
-          const panel = closingPanel.current;
-          if (!panel) return;
-          panel.open = true;
-          panel.querySelector('summary')?.focus();
-          panel.scrollIntoView({ block: 'nearest' });
-        }}>Cerrar turno</button>}
+        {!appointment && activeShift && <button type="button" className="cash-close-shortcut" disabled={blocked} onClick={() => {
+          changeViewedShift();
+          selectCashTab('closing');
+          document.getElementById(cashPanelId + '-tab-closing')?.focus();
+        }}><Wallet size={16} aria-hidden="true" />Cerrar turno</button>}
         <button type="button" className="cash-refresh" disabled={blocked} onClick={() => { setError(''); setReload(value => value + 1); }}>
           <RefreshCw size={16} aria-hidden="true" /> Actualizar
         </button>
       </div>
     </header>
+    {!appointment && <div className="cash-tabs" role="tablist" aria-label="Secciones de Caja">
+      {cashTabs.map(({ id, label, Icon }, index) => <button type="button" role="tab" key={id}
+        id={cashPanelId + '-tab-' + id} aria-controls={cashPanelId + '-panel-' + id}
+        aria-selected={cashTab === id} tabIndex={cashTab === id ? 0 : -1} onClick={() => selectCashTab(id)}
+        onKeyDown={event => {
+          const direction = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+          if (!direction && event.key !== 'Home' && event.key !== 'End') return;
+          event.preventDefault();
+          const next = event.key === 'Home' ? 0 : event.key === 'End' ? cashTabs.length - 1
+            : (index + direction + cashTabs.length) % cashTabs.length;
+          const tab = cashTabs[next].id;
+          selectCashTab(tab);
+          document.getElementById(cashPanelId + '-tab-' + tab)?.focus();
+        }}><Icon size={19} aria-hidden="true" />{label}</button>)}
+    </div>}
     {ticketPreview && <TicketPreview ticket={ticketPreview} onClose={() => setTicketPreview(undefined)} />}
+    {loading && <p className="cash-message" role="status">Consultando caja…</p>}
+    {error && <p className="cash-message cash-error" role="alert">{error}</p>}
+    {notice && <p className="cash-message cash-success" role="status"><Check size={16} aria-hidden="true" />{notice}</p>}
+    {retry && <button type="button" disabled={busy} onClick={() => void send(retry)}>Reintentar guardado</button>}
+    <div className="cash-panel" hidden={!appointment && cashTab !== 'checkout'}
+      role={appointment ? undefined : 'tabpanel'} id={appointment ? undefined : cashPanelId + '-panel-checkout'}
+      aria-labelledby={appointment ? undefined : cashPanelId + '-tab-checkout'}>
     {receipt && !receipt.refunded && <section className="cash-card cash-sale-confirmation" ref={confirmedSaleSection}
       tabIndex={-1} aria-labelledby={confirmationTitleId}>
       <div className="cash-sale-confirmation-summary" role="status">
@@ -1385,23 +1428,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         {openAgenda && <button type="button" onClick={openAgenda}>Volver a la agenda</button>}
       </div>
     </section>}
-    {loading && <p className="cash-message" role="status">Consultando caja…</p>}
-    {error && <p className="cash-message cash-error" role="alert">{error}</p>}
-    {notice && <p className="cash-message cash-success" role="status"><Check size={16} aria-hidden="true" />{notice}</p>}
-    {retry && <button type="button" disabled={busy} onClick={() => void send(retry)}>Reintentar guardado</button>}
-    {!appointment && <TicketSearch previewDisabled={receiptHeaderLoading}
-      onPreview={movement => setTicketPreview(movementTicket(movement, receiptHeader))} />}
-    {!appointment && <ClosingReport />}
-    {!loading && state && <>
-      {!appointment && (state.history?.length === 30 || selection.before) && <div className="cash-actions">
-        {state.history?.length === 30 && <button type="button" disabled={blocked} onClick={() =>
-          setSelection({ ...selection, before: state.history?.[29]?.opened_at })}>Cierres anteriores</button>}
-        {selection.before && <button type="button" disabled={blocked} onClick={() => setSelection({ ...selection, before: undefined })}>Cierres recientes</button>}
-      </div>}
-
-      {!appointment && !receiptHeaderLoading && <ReceiptHeaderSettings
-        header={receiptHeader} shared={receiptHeaderShared} onSaved={applyReceiptHeader} />}
-
+    {state && <>
       {!appointment && !selection.shiftId && !activeShift && <form className="cash-card cash-opening" onSubmit={event => {
         event.preventDefault();
         const amountCents = cents(opening);
@@ -1413,11 +1440,12 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         <button className="cash-primary" disabled={blocked}>Abrir caja</button>
       </form>}
 
-      {dashboard && <section className="cash-overview" aria-label="Resumen de caja">
+      {dashboard && !selection.shiftId && !shift.closed_at && <section className="cash-overview" aria-label="Resumen de caja">
         {([
+          [Receipt, 'Cobros del turno', totals.cash + totals.card + totals.bizum + totals.transfer],
           [Banknote, 'Efectivo esperado', expected],
           [CreditCard, 'Tarjeta', totals.card],
-          [Receipt, 'Cobros del turno', totals.cash + totals.card + totals.bizum + totals.transfer],
+          [Smartphone, 'Bizum', totals.bizum],
         ] as const).map(([Icon, label, amount]) => <div className="cash-metric" key={label}>
           <div><span>{label}</span><Icon size={19} aria-hidden="true" /></div>
           <strong>{money(amount)}</strong>
@@ -1444,10 +1472,10 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
       {appointment?.hasUnknownVoucher && !appointmentPaid && <p className="cash-message">Actualiza la cita y comprueba el saldo del bono antes de cobrar.</p>}
       {appointment?.unavailable && !appointmentPaid && <p className="cash-message">Comprueba el estado de la cita, su aprobación y el anticipo antes de cobrar.</p>}
 
-      {activeShift && (appointment ? !appointmentPaid && !appointment.unavailable && !appointment.hasUnknownVoucher : shift?.id === activeShift.id) &&
+      {activeShift && (appointment ? !appointmentPaid && !appointment.unavailable && !appointment.hasUnknownVoucher : !selection.shiftId && shift?.id === activeShift.id) &&
         <form className="cash-card cash-pos" onSubmit={record}>
           <div className="cash-pos-main">
-            <h3>{appointment ? 'Registrar saldo' : 'Nuevo movimiento'}</h3>
+            <h3>{appointment ? 'Registrar saldo' : kind === 'sale' ? 'Cobrar sin cita' : 'Nuevo movimiento'}</h3>
             {!appointment && <>
               <fieldset className="cash-choice-group" disabled={blocked}>
                 <legend>Operación</legend>
@@ -1562,8 +1590,23 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
           </div>
         </form>}
 
-      {(appointment || shift) && <section className="cash-card cash-activity">
-        <div className="cash-section-heading"><h3>Movimientos</h3><span>{state.movements.length}</span></div>
+    </>}
+    </div>
+
+    <div className="cash-panel" hidden={!appointment && cashTab !== 'movements'}
+      role={appointment ? undefined : 'tabpanel'} id={appointment ? undefined : cashPanelId + '-panel-movements'}
+      aria-labelledby={appointment ? undefined : cashPanelId + '-tab-movements'}>
+      {!appointment && <>
+        <TicketSearch previewDisabled={receiptHeaderLoading} onPreview={movement => setTicketPreview(movementTicket(movement, receiptHeader))} />
+        {shiftPicker}
+        {state && !shift && !loading && <p className="cash-card cash-empty">No hay un turno seleccionado. Puedes buscar un ticket o elegir un turno anterior.</p>}
+      </>}
+      {state && (appointment || shift) && <section className="cash-card cash-activity">
+        <div className="cash-activity-heading">
+          <div className="cash-section-heading"><h3>Movimientos</h3><span>{state.movements.length}</span></div>
+          {latestTicket && <button type="button" aria-haspopup="dialog" disabled={receiptHeaderLoading}
+            onClick={() => setTicketPreview(movementTicket(latestTicket, receiptHeader))}>Vista previa del último ticket</button>}
+        </div>
         {state.movements.length === 0 && <div className="cash-empty"><Receipt size={21} aria-hidden="true" /><p>Todavía no hay movimientos.</p></div>}
         {state.movements.length > 0 && <ul className="cash-movements">{state.movements.map(movement =>
           <li key={movement.id}>
@@ -1604,6 +1647,12 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
           </li>)}</ul>}
       </section>}
 
+    </div>
+
+    {!appointment && <div className="cash-panel" role="tabpanel" id={cashPanelId + '-panel-closing'}
+      aria-labelledby={cashPanelId + '-tab-closing'} hidden={cashTab !== 'closing'}>
+      {shiftPicker}
+      {state && !shift && !loading && <p className="cash-card cash-empty">No hay un turno abierto. Elige un cierre anterior o consulta el historial por fechas.</p>}
       {dashboard && (shift.closed_at ? <section className="cash-card cash-close">
         <h3>Cierre de caja</h3>
         <p>Apertura {date(shift.opened_at)} · Cierre {date(shift.closed_at)}</p>
@@ -1613,8 +1662,8 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
           onClick={() => void print(closingTicket(receiptHeader, shift.opening_cents, totals))}>
           <Printer size={16} aria-hidden="true" />Imprimir cierre
         </button>
-      </section> : <details className="cash-card cash-close" key={shift.id} ref={closingPanel}>
-        <summary><span><Wallet size={19} aria-hidden="true" />Cierre de caja</span><ChevronDown size={19} aria-hidden="true" /></summary>
+      </section> : <section className="cash-card cash-close" key={shift.id}>
+        <h3>Cierre de caja</h3>
         <dl className="cash-summary">{cashSummary().map(([label, amount]) =>
           <div key={label}><dt>{label}</dt><dd>{money(amount)}</dd></div>)}</dl>
         <form className="cash-form" onSubmit={close}>
@@ -1628,7 +1677,17 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
           </div>
           <button className="cash-primary" disabled={blocked}>Cerrar caja</button>
         </form>
-      </details>)}
-    </>}
+      </section>)}
+      <ClosingReport />
+    </div>}
+    {!appointment && <div className="cash-panel" role="tabpanel" id={cashPanelId + '-panel-settings'}
+      aria-labelledby={cashPanelId + '-tab-settings'} hidden={cashTab !== 'settings'}>
+      {!receiptHeaderLoading && <ReceiptHeaderSettings
+        header={receiptHeader} shared={receiptHeaderShared} onSaved={applyReceiptHeader} />}
+      <section className="cash-card cash-settings-practice">
+        <div><h3>Practicar con Caja</h3><p>Ensaya el cobro, el ticket y el cierre sin guardar movimientos reales.</p></div>
+        <button type="button" disabled={blocked || receiptHeaderLoading} onClick={() => setPractice(true)}>Modo de prueba</button>
+      </section>
+    </div>}
   </section>;
 }
