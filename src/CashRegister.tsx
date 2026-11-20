@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
+import {
+  ArrowDownLeft, ArrowUpRight, Banknote, Building2, Check, ChevronDown, CreditCard,
+  Delete, History, Printer, Receipt, RefreshCw, Smartphone, Wallet,
+} from 'lucide-react';
 import { currentToken, StudioApiError, studioCashRegister } from './studioApi';
 import './cash-register.css';
 
@@ -24,8 +28,20 @@ type AppointmentSale = {
 };
 type Command = { operation: 'open' | 'close' | 'record' | 'invoice'; id?: string; [key: string]: unknown };
 
-const methods: Record<Method, string> = { cash: 'Efectivo', card: 'Tarjeta · CaixaBank', bizum: 'Bizum', transfer: 'Transferencia' };
+const methods: Record<Method, string> = { cash: 'Efectivo', card: 'Tarjeta', bizum: 'Bizum', transfer: 'Transferencia' };
 const kinds: Record<Kind, string> = { sale: 'Cobro', refund: 'Devolución', cash_in: 'Entrada de efectivo', cash_out: 'Salida de efectivo' };
+const methodButtons = [
+  { value: 'card', Icon: CreditCard },
+  { value: 'cash', Icon: Banknote },
+  { value: 'bizum', Icon: Smartphone },
+  { value: 'transfer', Icon: Building2 },
+] as const;
+const movementButtons = [
+  { value: 'sale', label: 'Cobro sin cita', Icon: Receipt },
+  { value: 'cash_in', label: 'Entrada de efectivo', Icon: ArrowDownLeft },
+  { value: 'cash_out', label: 'Salida de efectivo', Icon: ArrowUpRight },
+] as const;
+const keypad = ['1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '0', 'delete'];
 const euro = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 const dateTime = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', dateStyle: 'short', timeStyle: 'short' });
 const money = (cents: number) => euro.format(cents / 100);
@@ -80,6 +96,39 @@ function Amount({ label, ...props }: { label: string } & React.InputHTMLAttribut
   return <label>{label}<input inputMode="decimal" maxLength={10} required {...props} /></label>;
 }
 
+function Keypad({ label, value, onChange, disabled }: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled: boolean;
+}) {
+  function press(key: string) {
+    if (key === 'delete') {
+      onChange(value.slice(0, -1));
+      return;
+    }
+    const current = value.trim().replace('.', ',');
+    const next = key === ',' && !current ? '0,' : current + key;
+    if (/^\d{1,6}(,\d{0,2})?$/.test(next)) onChange(next);
+  }
+
+  return <div className="cash-keypad-wrap">
+    <div className="cash-keypad-entry">
+      <label>{label}<span className="cash-number">
+        <input required inputMode="decimal" maxLength={9} placeholder="0,00" value={value} disabled={disabled}
+          onChange={event => onChange(event.target.value)} />
+        <span aria-hidden="true">€</span>
+      </span></label>
+      <button type="button" className="cash-quiet" disabled={disabled || !value} onClick={() => onChange('')}>Borrar importe</button>
+    </div>
+    <div className="cash-keypad" aria-label="Teclado de importes" role="group">
+      {keypad.map(key => <button type="button" key={key} disabled={disabled}
+        aria-label={key === 'delete' ? 'Borrar último dígito' : key === ',' ? 'Coma decimal' : key}
+        onClick={() => press(key)}>{key === 'delete' ? <Delete size={19} aria-hidden="true" /> : key}</button>)}
+    </div>
+  </div>;
+}
+
 export default function CashRegister({ appointment, onOpenCash, openAppointment }: {
   appointment?: AppointmentSale;
   onOpenCash?: () => void;
@@ -95,6 +144,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment 
   const [notice, setNotice] = useState('');
   const [retry, setRetry] = useState<Command>();
   const lock = useRef(false);
+  const closingPanel = useRef<HTMLDetailsElement>(null);
   const [opening, setOpening] = useState('');
   const [counted, setCounted] = useState('');
   const [terminal, setTerminal] = useState('');
@@ -219,19 +269,29 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment 
     return rows;
   }
 
-  return <section className="cash-register" aria-label={appointment ? 'Cobro de cita' : 'Caja'}>
+  const closingDelta = cents(counted);
+  const terminalDelta = cents(terminal, true);
+  const activeSale = appointment ? due : cents(movementAmount);
+  const movementLabel = movementButtons.find(item => item.value === kind)?.label;
+  const dashboard = !appointment && shift && totals;
+
+  return <section className={`cash-register${appointment ? ' cash-register-appointment' : ''}`}
+    aria-label={appointment ? 'Cobro de cita' : 'Caja'} aria-busy={loading || busy}>
     <header className="cash-heading">
-      <h2>{appointment ? 'Cobro de cita' : 'Caja'}</h2>
-      <button type="button" disabled={blocked} onClick={() => { setError(''); setReload(value => value + 1); }}>Actualizar</button>
-    </header>
-    {loading && <p role="status">Consultando caja…</p>}
-    {error && <p role="alert">{error}</p>}
-    {notice && <p role="status">{notice}</p>}
-    {retry && <button type="button" disabled={busy} onClick={() => void send(retry)}>Reintentar guardado</button>}
-    {!loading && state && <>
-      {!appointment && <>
-        <nav className="cash-heading" aria-label="Turnos de caja">
-          <label>Turno<select value={selection.shiftId || ''} disabled={blocked} onChange={event => {
+      <div className="cash-title">
+        <div className="cash-title-icon"><Wallet size={23} aria-hidden="true" /></div>
+        <div>
+          <h2>{appointment ? 'Cobro de cita' : 'Caja'}</h2>
+          {state && <span className={`cash-status${activeShift && !shift?.closed_at ? ' cash-status-open' : ''}`}>
+            {shift?.closed_at ? `Cierre · ${date(shift.closed_at)}` : activeShift ? `Caja abierta · ${date(activeShift.opened_at)}` : 'Caja cerrada'}
+          </span>}
+        </div>
+      </div>
+      <div className="cash-heading-actions">
+        {!appointment && state && <label className="cash-history">
+          <History size={17} aria-hidden="true" />
+          <span className="cash-sr-only">Turno de caja</span>
+          <select value={selection.shiftId || ''} disabled={blocked} onChange={event => {
             setCounted('');
             setTerminal('');
             setSelection({ ...selection, shiftId: event.target.value || undefined });
@@ -240,76 +300,132 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment 
             {shift?.closed_at && !state.history?.some(item => item.id === shift.id) &&
               <option value={shift.id}>Cierre · {date(shift.closed_at)}</option>}
             {state.history?.map(item => <option key={item.id} value={item.id}>Cierre · {date(item.closed_at!)}</option>)}
-          </select></label>
-          <div className="cash-actions">
-            {state.history?.length === 30 && <button type="button" disabled={blocked} onClick={() =>
-              setSelection({ ...selection, before: state.history?.[29]?.opened_at })}>Cierres anteriores</button>}
-            {selection.before && <button type="button" disabled={blocked} onClick={() => setSelection({ ...selection, before: undefined })}>Cierres recientes</button>}
-          </div>
-        </nav>
-        {!selection.shiftId && !activeShift && <form className="cash-card cash-form" onSubmit={event => {
-          event.preventDefault();
-          const amountCents = cents(opening);
-          if (amountCents === null) { setError('Indica el fondo inicial en euros.'); return; }
-          void send({ operation: 'open', amountCents });
-        }}>
-          <Amount label="Fondo inicial (€)" value={opening} onChange={event => setOpening(event.target.value)} placeholder="0,00" disabled={blocked} />
-          <button disabled={blocked}>Abrir caja</button>
-        </form>}
-        {shift && totals && <section className="cash-card">
-          <h3>{shift.closed_at ? 'Cierre de caja' : 'Caja abierta'}</h3>
-          <p>Apertura {date(shift.opened_at)}{shift.closed_at ? ` · Cierre ${date(shift.closed_at)}` : ''}</p>
-          <dl className="cash-summary">{cashSummary().map(([label, amount]) =>
-            <div key={label}><dt>{label}</dt><dd>{money(amount)}</dd></div>)}</dl>
-          {shift.closed_at && <button type="button" onClick={() => print('L’Studio Ana · Cierre de caja', [
-            `Apertura ${date(shift.opened_at)}`, `Cierre ${date(shift.closed_at!)}`,
-            ...cashSummary().map(([label, amount]) => `${label}  ${money(amount)}`),
-          ])}>Imprimir cierre</button>}
-        </section>}
-      </>}
+          </select>
+        </label>}
+        {dashboard && !shift.closed_at && <button type="button" disabled={blocked} onClick={() => {
+          const panel = closingPanel.current;
+          if (!panel) return;
+          panel.open = true;
+          panel.querySelector('summary')?.focus();
+          panel.scrollIntoView({ block: 'nearest' });
+        }}>Cerrar turno</button>}
+        <button type="button" className="cash-refresh" disabled={blocked} onClick={() => { setError(''); setReload(value => value + 1); }}>
+          <RefreshCw size={16} aria-hidden="true" /> Actualizar
+        </button>
+      </div>
+    </header>
+    {loading && <p className="cash-message" role="status">Consultando caja…</p>}
+    {error && <p className="cash-message cash-error" role="alert">{error}</p>}
+    {notice && <p className="cash-message cash-success" role="status"><Check size={16} aria-hidden="true" />{notice}</p>}
+    {retry && <button type="button" disabled={busy} onClick={() => void send(retry)}>Reintentar guardado</button>}
+    {!loading && state && <>
+      {!appointment && (state.history?.length === 30 || selection.before) && <div className="cash-actions">
+        {state.history?.length === 30 && <button type="button" disabled={blocked} onClick={() =>
+          setSelection({ ...selection, before: state.history?.[29]?.opened_at })}>Cierres anteriores</button>}
+        {selection.before && <button type="button" disabled={blocked} onClick={() => setSelection({ ...selection, before: undefined })}>Cierres recientes</button>}
+      </div>}
 
-      {appointment && !activeShift && <p>Abre caja para registrar un cobro. {onOpenCash && <button type="button" onClick={onOpenCash}>Ir a caja</button>}</p>}
-      {appointment && appointmentPaid && <p>El saldo de esta cita ya tiene un cobro registrado.</p>}
-      {appointment?.hasUnknownVoucher && !appointmentPaid && <p>Actualiza la cita y comprueba el saldo del bono antes de cobrar.</p>}
-      {appointment?.unavailable && !appointmentPaid && <p>Comprueba el estado de la cita, su aprobación y el anticipo antes de cobrar.</p>}
+      {!appointment && !selection.shiftId && !activeShift && <form className="cash-card cash-opening" onSubmit={event => {
+        event.preventDefault();
+        const amountCents = cents(opening);
+        if (amountCents === null) { setError('Indica el fondo inicial en euros.'); return; }
+        void send({ operation: 'open', amountCents });
+      }}>
+        <div><h3>Abrir un turno</h3><p>Cuenta el efectivo del cajón para empezar.</p></div>
+        <Amount label="Fondo inicial (€)" value={opening} onChange={event => setOpening(event.target.value)} placeholder="0,00" disabled={blocked} />
+        <button className="cash-primary" disabled={blocked}>Abrir caja</button>
+      </form>}
+
+      {dashboard && <section className="cash-overview" aria-label="Resumen de caja">
+        {([
+          [Banknote, 'Efectivo esperado', expected],
+          [CreditCard, 'Tarjeta neta', totals.card],
+          [Receipt, 'Cobros netos', totals.cash + totals.card + totals.bizum + totals.transfer],
+        ] as const).map(([Icon, label, amount]) => <div className="cash-metric" key={label}>
+          <div><span>{label}</span><Icon size={19} aria-hidden="true" /></div>
+          <strong>{money(amount)}</strong>
+        </div>)}
+      </section>}
+
+      {appointment && !activeShift && <div className="cash-message">
+        <span>Abre caja para registrar un cobro.</span>
+        {onOpenCash && <button type="button" onClick={onOpenCash}>Ir a caja</button>}
+      </div>}
+      {appointment && appointmentPaid && <p className="cash-message cash-success"><Check size={16} aria-hidden="true" />El saldo de esta cita ya tiene un cobro registrado.</p>}
+      {appointment?.hasUnknownVoucher && !appointmentPaid && <p className="cash-message">Actualiza la cita y comprueba el saldo del bono antes de cobrar.</p>}
+      {appointment?.unavailable && !appointmentPaid && <p className="cash-message">Comprueba el estado de la cita, su aprobación y el anticipo antes de cobrar.</p>}
 
       {activeShift && (appointment ? !appointmentPaid && !appointment.unavailable && !appointment.hasUnknownVoucher : shift?.id === activeShift.id) &&
-        <form className="cash-card cash-form" onSubmit={record}>
-          <h3>{appointment ? 'Registrar saldo' : 'Nuevo movimiento'}</h3>
-          {!appointment && <>
-            <label>Tipo<select value={kind} disabled={blocked} onChange={event => setKind(event.target.value as typeof kind)}>
-              <option value="sale">Cobro sin cita</option><option value="cash_in">Entrada de efectivo</option><option value="cash_out">Salida de efectivo</option>
-            </select></label>
-            <label>Concepto<input required maxLength={200} value={description} disabled={blocked} onChange={event => setDescription(event.target.value)} /></label>
-            <Amount label="Importe (€)" value={movementAmount} disabled={blocked} onChange={event => setMovementAmount(event.target.value)} />
-          </>}
-          {appointment && <>
-            <Amount label="Precio final tras descuentos (€)" value={finalAmount} disabled={blocked} onChange={event => setFinalAmount(event.target.value)} />
-            <p className="cash-wide">Anticipo confirmado {money(appointment.depositCents)} · Bono aplicado {money(appointment.voucherCents)}
-              {due !== null && <> · <strong>Saldo {money(Math.max(0, due))}</strong></>}</p>
-            {due !== null && due <= 0 && <p className="cash-wide">{due === 0 ? 'La cita está cubierta. No queda importe por cobrar.' : 'Revisa el precio final y los importes ya aplicados.'}</p>}
-          </>}
-          {kind === 'sale' && <>
-            <label>Método<select value={method} disabled={blocked} onChange={event => setMethod(event.target.value as Method)}>
-              {Object.entries(methods).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-            </select></label>
-            {method === 'card' && <p className="cash-wide">Teclea el importe en el datáfono de CaixaBank y registra el cobro cuando lo apruebe.</p>}
-            <label>Referencia de operación (opcional)<input maxLength={80} value={bankReference} disabled={blocked} onChange={event => setBankReference(event.target.value)} /></label>
-            <label>Número de factura (opcional)<input maxLength={80} value={invoiceReference} disabled={blocked} onChange={event => setInvoiceReference(event.target.value)} /></label>
-          </>}
-          <button disabled={blocked || (!!appointment && (due === null || due <= 0))}>{kind === 'sale' ? 'Registrar cobro' : 'Registrar movimiento'}</button>
+        <form className="cash-card cash-pos" onSubmit={record}>
+          <div className="cash-pos-main">
+            <h3>{appointment ? 'Registrar saldo' : 'Nuevo movimiento'}</h3>
+            {!appointment && <>
+              <fieldset className="cash-choice-group" disabled={blocked}>
+                <legend>Operación</legend>
+                <div className="cash-operation-buttons">
+                  {movementButtons.map(({ value, label, Icon }) => <label key={value} className="cash-choice">
+                    <input type="radio" name="cash-movement-kind" value={value} checked={kind === value} onChange={() => setKind(value)} />
+                    <span><Icon size={17} aria-hidden="true" />{label}</span>
+                  </label>)}
+                </div>
+              </fieldset>
+              <label className="cash-field">Concepto<input required maxLength={200} value={description} placeholder={kind === 'sale' ? 'Ej. Champú' : 'Motivo del movimiento'}
+                disabled={blocked} onChange={event => setDescription(event.target.value)} /></label>
+            </>}
+            {appointment && <div className="cash-appointment-breakdown">
+              <div><span>Anticipo confirmado</span><strong>{money(appointment.depositCents)}</strong></div>
+              <div><span>Bono aplicado</span><strong>{money(appointment.voucherCents)}</strong></div>
+            </div>}
+            {kind === 'sale' && <>
+              <fieldset className="cash-choice-group" disabled={blocked}>
+                <legend>Método de pago</legend>
+                <div className="cash-method-buttons">
+                  {methodButtons.map(({ value, Icon }) => <label key={value} className="cash-choice cash-method">
+                    <input type="radio" name={appointment ? 'appointment-payment-method' : 'cash-payment-method'} value={value}
+                      checked={method === value} onChange={() => setMethod(value)} />
+                    <span><Icon size={23} aria-hidden="true" />{methods[value]}</span>
+                  </label>)}
+                </div>
+              </fieldset>
+              {method === 'card' && <p className="cash-pos-note">Cuando el datáfono apruebe el pago, registra el cobro aquí.</p>}
+              <details className="cash-optional">
+                <summary>Referencia y factura <span>Opcional</span><ChevronDown size={16} aria-hidden="true" /></summary>
+                <div className="cash-optional-fields">
+                  <label className="cash-field">Referencia de operación (opcional)<input maxLength={80} value={bankReference} disabled={blocked}
+                    onChange={event => setBankReference(event.target.value)} /></label>
+                  <label className="cash-field">Número de factura (opcional)<input maxLength={80} value={invoiceReference} disabled={blocked}
+                    onChange={event => setInvoiceReference(event.target.value)} /></label>
+                </div>
+              </details>
+            </>}
+          </div>
+          <div className="cash-pos-amount">
+            <Keypad label={appointment ? 'Precio final tras descuentos' : 'Importe'} value={appointment ? finalAmount : movementAmount}
+              onChange={appointment ? setFinalAmount : setMovementAmount} disabled={blocked} />
+            {appointment && <div className="cash-due"><span>Saldo</span><strong>{due === null ? '—' : money(Math.max(0, due))}</strong></div>}
+            {due !== null && due <= 0 && <p className="cash-pos-note">{due === 0 ? 'La cita está cubierta.' : 'Revisa el precio final y los importes ya aplicados.'}</p>}
+            <button className="cash-primary" disabled={blocked || activeSale === null || activeSale <= 0}>
+              <Check size={17} aria-hidden="true" />
+              <span>{kind === 'sale' ? 'Registrar cobro' : `Registrar ${movementLabel?.toLowerCase()}`}</span>
+              {!appointment && activeSale !== null && activeSale > 0 && <strong>{money(activeSale)}</strong>}
+            </button>
+          </div>
         </form>}
 
-      {(appointment || shift) && <section className="cash-card">
-        <h3>Movimientos</h3>
-        {state.movements.length === 0 && <p>Todavía no hay movimientos.</p>}
-        <ul className="cash-movements">{state.movements.map(movement =>
+      {(appointment || shift) && <section className="cash-card cash-activity">
+        <div className="cash-section-heading"><h3>Movimientos</h3><span>{state.movements.length}</span></div>
+        {state.movements.length === 0 && <div className="cash-empty"><Receipt size={21} aria-hidden="true" /><p>Todavía no hay movimientos.</p></div>}
+        {state.movements.length > 0 && <ul className="cash-movements">{state.movements.map(movement =>
           <li key={movement.id}>
-            <div><strong>{kinds[movement.kind]} · {money(movement.amount_cents)}</strong>
-              <p>{movement.description}</p>
-              <small>{date(movement.recorded_at)} · {methods[movement.method]}{movement.refunded ? ' · Devuelto' : ''}</small>
-              {movement.bank_reference && <p>Referencia {movement.bank_reference}</p>}
-              {movement.invoice_reference && <p>Factura {movement.invoice_reference}</p>}
+            <div className="cash-movement-line">
+              <div className="cash-movement-icon"><Receipt size={18} aria-hidden="true" /></div>
+              <div className="cash-movement-info">
+                <strong>{movement.description}</strong>
+                <small>{kinds[movement.kind]} · {date(movement.recorded_at)} · {methods[movement.method]}{movement.refunded ? ' · Devuelto' : ''}</small>
+                {movement.bank_reference && <p>Referencia {movement.bank_reference}</p>}
+                {movement.invoice_reference && <p>Factura {movement.invoice_reference}</p>}
+              </div>
+              <strong className="cash-movement-amount">{money(movement.kind === 'refund' || movement.kind === 'cash_out' ? -movement.amount_cents : movement.amount_cents)}</strong>
             </div>
             {(movement.kind === 'sale' || movement.kind === 'refund') && <div className="cash-actions">
               {!appointment && openAppointment && movement.appointment_id && <button type="button" onClick={() => openAppointment(movement.appointment_id!)}>Ver cita</button>}
@@ -320,7 +436,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment 
                 ...(movement.bank_reference ? [`Referencia ${movement.bank_reference}`] : []),
                 ...(movement.refunded ? ['Cobro devuelto'] : []),
                 ...(movement.invoice_reference ? [`Factura ${movement.invoice_reference}`] : []),
-              ])}>Imprimir justificante</button>
+              ])}><Printer size={15} aria-hidden="true" />Imprimir justificante</button>
               <button type="button" disabled={blocked} onClick={() => setInvoiceEdit({ id: movement.id, value: movement.invoice_reference || '' })}>Número de factura</button>
               {movement.kind === 'sale' && !movement.refunded && activeShift && <button type="button" disabled={blocked} onClick={() => {
                 if (window.confirm(`¿Registrar una devolución completa de ${money(movement.amount_cents)} ya realizada por ${methods[movement.method]}?`)) {
@@ -328,25 +444,45 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment 
                 }
               }}>Registrar devolución</button>}
             </div>}
-            {invoiceEdit?.id === movement.id && <form className="cash-form cash-wide" onSubmit={event => {
+            {invoiceEdit?.id === movement.id && <form className="cash-form" onSubmit={event => {
               event.preventDefault();
               void send({ operation: 'invoice', id: movement.id, invoiceReference: invoiceEdit.value });
             }}>
-              <label>Número de factura emitida<input maxLength={80} autoFocus value={invoiceEdit.value} disabled={blocked}
+              <label className="cash-field">Número de factura emitida<input maxLength={80} autoFocus value={invoiceEdit.value} disabled={blocked}
                 onChange={event => setInvoiceEdit({ id: movement.id, value: event.target.value })} /></label>
-              <button disabled={blocked}>Guardar número</button>
-              <button type="button" disabled={blocked} onClick={() => setInvoiceEdit(undefined)}>Cancelar</button>
+              <div className="cash-actions">
+                <button className="cash-primary" disabled={blocked}>Guardar número</button>
+                <button type="button" disabled={blocked} onClick={() => setInvoiceEdit(undefined)}>Cancelar</button>
+              </div>
             </form>}
-          </li>)}</ul>
+          </li>)}</ul>}
       </section>}
 
-      {shift && totals && !shift.closed_at && <form className="cash-card cash-form" onSubmit={close}>
-        <h3>Cerrar caja</h3>
-        <Amount label="Efectivo contado (€)" value={counted} onChange={event => setCounted(event.target.value)} disabled={blocked} />
-        <Amount label="Total del datáfono (€) · opcional" required={false} value={terminal} onChange={event => setTerminal(event.target.value)} disabled={blocked} />
-        {terminal.trim() && cents(terminal, true) !== null && <p className="cash-wide">Diferencia de tarjeta {money(cents(terminal, true)! - totals.card)}</p>}
-        <button disabled={blocked}>Cerrar caja</button>
-      </form>}
+      {dashboard && (shift.closed_at ? <section className="cash-card cash-close">
+        <h3>Cierre de caja</h3>
+        <p>Apertura {date(shift.opened_at)} · Cierre {date(shift.closed_at)}</p>
+        <dl className="cash-summary">{cashSummary().map(([label, amount]) =>
+          <div key={label}><dt>{label}</dt><dd>{money(amount)}</dd></div>)}</dl>
+        <button type="button" onClick={() => print('L’Studio Ana · Cierre de caja', [
+          `Apertura ${date(shift.opened_at)}`, `Cierre ${date(shift.closed_at!)}`,
+          ...cashSummary().map(([label, amount]) => `${label}  ${money(amount)}`),
+        ])}><Printer size={16} aria-hidden="true" />Imprimir cierre</button>
+      </section> : <details className="cash-card cash-close" key={shift.id} ref={closingPanel}>
+        <summary><span><Wallet size={19} aria-hidden="true" />Cierre de caja</span><ChevronDown size={19} aria-hidden="true" /></summary>
+        <dl className="cash-summary">{cashSummary().map(([label, amount]) =>
+          <div key={label}><dt>{label}</dt><dd>{money(amount)}</dd></div>)}</dl>
+        <form className="cash-form" onSubmit={close}>
+          <div>
+            <Amount label="Efectivo contado (€)" value={counted} onChange={event => setCounted(event.target.value)} disabled={blocked} />
+            {closingDelta !== null && <p className="cash-pos-note">Diferencia de efectivo {money(closingDelta - expected)}</p>}
+          </div>
+          <div>
+            <Amount label="Total del datáfono (€) · opcional" required={false} value={terminal} onChange={event => setTerminal(event.target.value)} disabled={blocked} />
+            {terminalDelta !== null && <p className="cash-pos-note">Diferencia de tarjeta {money(terminalDelta - totals.card)}</p>}
+          </div>
+          <button className="cash-primary" disabled={blocked}>Cerrar caja</button>
+        </form>
+      </details>)}
     </>}
   </section>;
 }
