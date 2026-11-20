@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
-  ArrowDownLeft, ArrowUpRight, Banknote, Check, ChevronDown, CreditCard,
+  ArrowDownLeft, ArrowUpRight, Banknote, CalendarDays, Check, ChevronDown, CreditCard,
   Delete, Gift, History, Printer, Receipt, RefreshCw, Search, Smartphone, Wallet,
 } from 'lucide-react';
 import { attachAppointmentVoucher, currentToken, fetchVouchers, StudioApiError, studioCashRegister } from './studioApi';
@@ -70,6 +70,7 @@ const movementButtons = [
 const keypad = ['1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '0', 'delete'];
 const euro = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 const dateTime = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', dateStyle: 'short', timeStyle: 'short' });
+const madridDay = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' });
 const money = (cents: number) => euro.format(cents / 100);
 const date = (timestamp: string) => dateTime.format(new Date(timestamp));
 const decimal = (cents: number) => (cents / 100).toFixed(2).replace('.', ',');
@@ -653,6 +654,94 @@ function TicketSearch({ onPreview, previewDisabled }: {
       {results.nextBefore !== null && <div className="cash-actions">
         <button type="button" disabled={busy} onClick={() => void findTickets(results.criteria, results.nextBefore!)}>Ver más tickets</button>
       </div>}
+    </>}
+  </details>;
+}
+
+type ClosingReportDay = Record<TenderMethod, number> & { day: string; shifts: number };
+
+function ClosingReport() {
+  const today = madridDay.format();
+  const [from, setFrom] = useState(() => today.slice(0, 7) + '-01');
+  const [to, setTo] = useState(today);
+  const [days, setDays] = useState<ClosingReportDay[]>();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const totals = { shifts: 0, cash: 0, card: 0, bizum: 0 };
+  for (const row of days ?? []) {
+    totals.shifts += row.shifts;
+    totals.cash += row.cash;
+    totals.card += row.card;
+    totals.bizum += row.bizum;
+  }
+
+  async function report(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busy) return;
+    setError('');
+    setDays(undefined);
+    if (!from || !to || from > to || Date.parse(to) - Date.parse(from) > 365 * 86400000) {
+      setError('Selecciona un periodo válido de hasta 366 días.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await request<{ days: ClosingReportDay[] }>({ operation: 'closing-report', from, to });
+      setDays(result.days);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'No se pudo consultar el historial de cierres.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function downloadCsv() {
+    if (!days?.length) return;
+    const rows = [['Fecha de cierre', 'Turnos', 'Efectivo (€)', 'Tarjeta (€)', 'Bizum (€)', 'Total (€)'],
+      ...days.map(row => [row.day, row.shifts, decimal(row.cash), decimal(row.card), decimal(row.bizum), decimal(row.cash + row.card + row.bizum)]),
+      ['Total', totals.shifts, decimal(totals.cash), decimal(totals.card), decimal(totals.bizum), decimal(totals.cash + totals.card + totals.bizum)],
+    ];
+    const url = URL.createObjectURL(new Blob(['\uFEFF' + rows.map(row => row.join(';')).join('\r\n')], { type: 'text/csv;charset=utf-8;' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `cierres-${from}-a-${to}.csv`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  return <details className="cash-card cash-closing-report">
+    <summary><CalendarDays size={18} aria-hidden="true" />Historial de cierres por fechas</summary>
+    <form className="cash-form" aria-busy={busy} onSubmit={report}>
+      <label>Desde<input type="date" required value={from} disabled={busy} onChange={event => {
+        setFrom(event.target.value); setDays(undefined); setError('');
+      }} /></label>
+      <label>Hasta<input type="date" required value={to} disabled={busy} onChange={event => {
+        setTo(event.target.value); setDays(undefined); setError('');
+      }} /></label>
+      <button className="cash-primary" disabled={busy}>Ver cierres</button>
+    </form>
+    {busy && <p className="cash-pos-note" role="status">Consultando cierres…</p>}
+    {error && <p className="cash-message cash-error" role="alert">{error}</p>}
+    {days?.length === 0 && <p className="cash-pos-note" role="status">No hay turnos cerrados en estas fechas.</p>}
+    {!!days?.length && <>
+      <p className="cash-pos-note">Importes por día de cierre. Las devoluciones se restan del método de pago correspondiente.</p>
+      <div className="cash-closing-table">
+        <table aria-label="Importes diarios de los turnos cerrados">
+          <thead><tr><th scope="col">Fecha de cierre</th><th scope="col">Turnos</th><th scope="col">Efectivo</th>
+            <th scope="col">Tarjeta</th><th scope="col">Bizum</th><th scope="col">Total</th></tr></thead>
+          <tbody>{days.map(row => <tr key={row.day}>
+            <th scope="row">{row.day.split('-').reverse().join('/')}</th><td>{row.shifts}</td><td>{money(row.cash)}</td>
+            <td>{money(row.card)}</td><td>{money(row.bizum)}</td><td>{money(row.cash + row.card + row.bizum)}</td>
+          </tr>)}</tbody>
+          <tfoot><tr>
+            <th scope="row">Total del periodo</th><td>{totals.shifts}</td><td>{money(totals.cash)}</td>
+            <td>{money(totals.card)}</td><td>{money(totals.bizum)}</td><td>{money(totals.cash + totals.card + totals.bizum)}</td>
+          </tr></tfoot>
+        </table>
+      </div>
+      <div className="cash-actions"><button type="button" onClick={downloadCsv}>Descargar CSV de cierres</button></div>
     </>}
   </details>;
 }
@@ -1255,6 +1344,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     {retry && <button type="button" disabled={busy} onClick={() => void send(retry)}>Reintentar guardado</button>}
     {!appointment && <TicketSearch previewDisabled={receiptHeaderLoading}
       onPreview={movement => setTicketPreview(movementTicket(movement, receiptHeader))} />}
+    {!appointment && <ClosingReport />}
     {!loading && state && <>
       {!appointment && (state.history?.length === 30 || selection.before) && <div className="cash-actions">
         {state.history?.length === 30 && <button type="button" disabled={blocked} onClick={() =>
