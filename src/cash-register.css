@@ -189,6 +189,10 @@
 .cash-choice input:disabled + span { opacity: .6; cursor: default; }
 .cash-method span { flex-direction: column; gap: 8px; min-height: 70px; font-size: .78rem; }
 .cash-pos-note { color: var(--cash-muted); font-size: .84rem; line-height: 1.4; }
+.cash-payment-parts > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 92px), 1fr)); gap: 8px; }
+.cash-payment-parts label { display: grid; gap: 6px; min-width: 0; color: var(--cash-muted); font-size: .84rem; }
+.cash-payment-parts input { width: 100%; min-width: 0; }
+.cash-payment-parts p { margin-top: 6px; }
 .cash-optional { border-top: 1px solid var(--cash-border); padding-top: 3px; }
 .cash-optional summary, .cash-close summary {
   display: flex;
@@ -277,6 +281,7 @@
 }
 
 .cash-method-buttons { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.cash-sale-methods .cash-method-buttons { grid-template-columns: repeat(auto-fit, minmax(min(100%, 76px), 1fr)); }
 .cash-register button.cash-gift-button {
   flex-direction: column;
   gap: 8px;
