@@ -283,6 +283,7 @@ function usePortalEntry(options:{screen:string;recoveryOpen:boolean;syncSession:
 const LazyAppointmentDiscountEditor=React.lazy(()=>import('./AppointmentDiscountEditor'));
 const LazyClubClient=React.lazy(()=>import('./ClubClient'));
 const LazyAdminPanelView = React.lazy(() => import('./AdminPanelView'));
+const LazyCashRegister = React.lazy(() => import('./CashRegister'));
 // Optimized copies of bundled photos only; custom uploads remain unchanged.
 const FAST_PHOTO_URLS: Readonly<Record<string,string>> = {
   "/s1.webp": "/s1-fast.webp",
@@ -472,6 +473,25 @@ export interface Appointment {
   };
   professionalId?: string | null;
   professionalName?: string | null;
+}
+
+function appointmentCashPrice(appointment: Appointment): number | null {
+  const voucher = appointment.voucher;
+  if (voucher && (voucher.state === 'held' || voucher.state === 'consumed') && Number.isSafeInteger(voucher.totalCents)) {
+    return voucher.totalCents;
+  }
+  if (!appointment.services?.length) return null;
+  if (appointment.promotion) {
+    const { totalAfter, orientative } = appointment.promotion;
+    return totalAfter === null || orientative ? null : Math.round(totalAfter * 100);
+  }
+  let totalCents = 0;
+  for (const item of appointment.services) {
+    const price = exactPrice(item.variant?.price ?? item.sub.price);
+    if (price === null || (item.sub.priceType && item.sub.priceType !== 'fijo')) return null;
+    totalCents += Math.round(price * 100);
+  }
+  return totalCents;
 }
 
 const isActiveAppointment = (appointment: Appointment) =>
@@ -1243,7 +1263,7 @@ function StudioApp() {
   const [adminLoginBusy, setAdminLoginBusy] = useState(false);
   const [adminLoginMessage, setAdminLoginMessage] = useState('');
   const [adminError, setAdminError] = useState<boolean>(false);
-  const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'demands' | 'holidays' | 'news' | 'vouchers' | 'club'>('agenda');
+  const [adminTab, setAdminTab] = useState<'agenda' | 'config' | 'catalog' | 'clients' | 'detractors' | 'crm' | 'demands' | 'holidays' | 'news' | 'vouchers' | 'club' | 'cash'>('agenda');
   const [configSubTab, setConfigSubTab] = useState<'marca' | 'general' | 'schedule' | 'reservas' | 'anticipada' | 'avisos' | 'backup' | 'precios' | 'empleados' | 'enlaces' | 'fichajes' | 'holidays' | 'maintenance'>('marca');
   const [adminCatalogStatus, setAdminCatalogStatus] = useState<'all' | 'active' | 'inactive'>('all');
   const [adminCatalogSearch, setAdminCatalogSearch] = useState('');
@@ -2436,6 +2456,8 @@ function StudioApp() {
   };
 
   const [viewApptModal, setViewApptModal] = useState<Appointment | null>(null);
+  const [openAppointmentCashId, setOpenAppointmentCashId] = useState<string | null>(null);
+  useEffect(() => { setOpenAppointmentCashId(null); }, [viewApptModal?.serverId]);
   const [bizumSavingId, setBizumSavingId] = useState<string | null>(null);
   const [bizumSaveError, setBizumSaveError] = useState<{ id: string; message: string } | null>(null);
   const bizumSavingRef = useRef(false);
@@ -5955,6 +5977,26 @@ function StudioApp() {
             }} style={{ background: '#322A25', color: '#FFF8EE', border: '1px solid #C5A059',
               borderRadius: '8px', padding: '12px', cursor: 'pointer' }}>Producto adicional · Alisado</button>)}
 </section>
+{viewApptModal.serverId && <section className="lst-appt-reception" aria-label="Caja de la cita">
+  <button type="button" aria-expanded={openAppointmentCashId === viewApptModal.serverId}
+    style={{minHeight:42, padding:'8px 14px', border:'1px solid #C5A059', borderRadius:8, background:'#322A25', color:'#FFF8EE'}}
+    onClick={() => setOpenAppointmentCashId(openAppointmentCashId === viewApptModal.serverId ? null : viewApptModal.serverId!)}>
+    {openAppointmentCashId === viewApptModal.serverId ? 'Ocultar cobro' : 'Cobrar saldo'}
+  </button>
+  {openAppointmentCashId === viewApptModal.serverId && <React.Suspense fallback={<p role="status">Abriendo caja…</p>}>
+    <LazyCashRegister key={viewApptModal.serverId} appointment={{
+      id: viewApptModal.serverId,
+      description: (appointmentServiceNames(viewApptModal) || 'Servicio de salón').slice(0, 200),
+      finalCents: appointmentCashPrice(viewApptModal),
+      depositCents: viewApptModal.advancePayment?.status === 'confirmed' ? Math.round(viewApptModal.advancePayment.amount * 100) : 0,
+      voucherCents: viewApptModal.voucher?.state === 'held' || viewApptModal.voucher?.state === 'consumed' ? viewApptModal.voucher.amountCents : 0,
+      hasUnknownVoucher: !!viewApptModal.voucherId && ((!viewApptModal.voucher?.state ||
+        (viewApptModal.voucher.state !== 'released' && !Number.isSafeInteger(viewApptModal.voucher.amountCents)))),
+      unavailable: !isActiveAppointment(viewApptModal) || viewApptModal.advancePayment?.status === 'pending' ||
+        viewApptModal.saturdayApproval?.status === 'pending' || viewApptModal.saturdayApproval?.status === 'rejected',
+    }} onOpenCash={() => { setViewApptModal(null); setAgendaExpanded(false); setAdminTab('cash'); }} />
+  </React.Suspense>}
+</section>}
 <section className="lst-appt-contact"><h4 className="lst-appt-section-title">Contacto</h4><div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', color: '#D6CBB8', fontSize: '13px', overflowWrap: 'anywhere' }}>
               <a href={`tel:${viewApptModal.phone}`} style={{ color: '#E4C687', padding: '8px 0' }}>{viewApptModal.phone}</a>
               {validRecipientPhone(viewApptModal.phone) && <a href={'https://wa.me/' + (viewApptModal.phone.replace(/[^0-9]/g, '').length === 9 ? '34' : '') + viewApptModal.phone.replace(/[^0-9]/g, '')} target="_blank" rel="noopener noreferrer" style={{ color: '#E4C687', padding: '8px 0' }}>Abrir WhatsApp</a>}
