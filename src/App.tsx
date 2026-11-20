@@ -5580,6 +5580,12 @@ function StudioApp() {
             setAgendaExpanded(false);
             setAdminTab('cash');
           }}
+          onReturnToAgenda={() => {
+            setAppointmentToCharge(null);
+            setViewApptModal(null);
+            setAgendaExpanded(false);
+            setAdminTab('agenda');
+          }}
           appointment={{
             id: appointmentToCharge.serverId,
             description: (appointmentServiceNames(appointmentToCharge) || 'Servicio de salón').slice(0, 200),
