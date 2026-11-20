@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
   ArrowDownLeft, ArrowUpRight, Banknote, Check, ChevronDown, CreditCard,
@@ -182,11 +182,12 @@ function GiftCardPicker({ clientId, disabled, onApply }: {
   </>;
 }
 
-export function AppointmentCashDialog({ appointment, clientName, onClose, onOpenCash }: {
+export function AppointmentCashDialog({ appointment, clientName, onClose, onOpenCash, onReturnToAgenda }: {
   appointment: AppointmentSale;
   clientName: string;
   onClose: () => void;
   onOpenCash: () => void;
+  onReturnToAgenda: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
@@ -210,7 +211,7 @@ export function AppointmentCashDialog({ appointment, clientName, onClose, onOpen
         onClick={() => ref.current?.close()}>Cerrar <span aria-hidden="true">×</span></button>
     </header>
     <div className="appointment-cash-dialog-body">
-      <CashRegister appointment={appointment} onOpenCash={onOpenCash} onSavingChange={setSaving} hideTitle />
+      <CashRegister appointment={appointment} onOpenCash={onOpenCash} openAgenda={onReturnToAgenda} onSavingChange={setSaving} hideTitle />
     </div>
   </dialog>;
 }
@@ -231,6 +232,9 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const [confirmedSale, setConfirmedSale] = useState<Movement>();
+  const confirmedSaleSection = useRef<HTMLElement>(null);
+  const confirmationTitleId = useId();
   const [retry, setRetry] = useState<Command>();
   const lock = useRef(false);
   const closingPanel = useRef<HTMLDetailsElement>(null);
@@ -272,6 +276,10 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     return () => { active = false; };
   }, [appointmentId, selection, reload]);
 
+  useEffect(() => {
+    if (confirmedSale) confirmedSaleSection.current?.focus();
+  }, [confirmedSale]);
+
   async function send(command: Command) {
     if (lock.current) return;
     lock.current = true;
@@ -279,10 +287,15 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     setBusy(true);
     setError('');
     setNotice('');
+    if (payload.operation === 'record' || payload.operation === 'close') setConfirmedSale(undefined);
     try {
-      const result = await request<{ ok: boolean; shiftId?: string }>(payload);
+      const result = await request<{ ok: boolean; shiftId?: string; movement?: Omit<Movement, 'refunded'> }>(payload);
       if (!result.ok) throw new Error('La caja no ha confirmado el guardado.');
       setRetry(undefined);
+      const sale = payload.operation === 'record' && result.movement?.kind === 'sale' && result.movement.id === payload.id
+        ? { ...result.movement, refunded: false }
+        : undefined;
+      if (sale) setConfirmedSale(sale);
       if (payload.operation === 'close' && result.shiftId) {
         setSelection({ shiftId: result.shiftId });
         setCounted('');
@@ -296,7 +309,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         setInvoiceReference('');
       }
       if (payload.operation === 'invoice') setInvoiceEdit(undefined);
-      setNotice({ open: 'Caja abierta.', close: 'Cierre guardado.', record: 'Movimiento registrado.', invoice: 'Número de factura actualizado.' }[payload.operation]);
+      if (!sale) setNotice({ open: 'Caja abierta.', close: 'Cierre guardado.', record: 'Movimiento registrado.', invoice: 'Número de factura actualizado.' }[payload.operation]);
       setLoading(true);
       setReload(value => value + 1);
     } catch (reason) {
@@ -377,6 +390,17 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo abrir la impresión.'); }
   }
 
+  function printMovement(movement: Movement) {
+    print('L’Studio Ana · Justificante de caja', [
+      'Sin validez como factura', `${kinds[movement.kind]} · ${date(movement.recorded_at)}`,
+      movement.description, `${methods[movement.method]}  ${money(movement.amount_cents)}`,
+      `Movimiento ${movement.id.slice(0, 8).toUpperCase()}`,
+      ...(movement.bank_reference ? [`Referencia ${movement.bank_reference}`] : []),
+      ...(movement.refunded ? ['Cobro devuelto'] : []),
+      ...(movement.invoice_reference ? [`Factura ${movement.invoice_reference}`] : []),
+    ]);
+  }
+
   function cashSummary() {
     if (!shift || !totals) return [];
     const rows: [string, number][] = [
@@ -395,6 +419,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   const activeSale = appointment ? due : cents(movementAmount);
   const movementLabel = movementButtons.find(item => item.value === kind)?.label;
   const dashboard = !appointment && shift && totals;
+  const receipt = confirmedSale && (state?.movements.find(movement => movement.id === confirmedSale.id) || confirmedSale);
 
   return <section className={`cash-register${appointment ? ' cash-register-appointment' : ''}`}
     aria-label={appointment ? 'Cobro de cita' : 'Caja'} aria-busy={loading || busy || giftBusy}>
@@ -413,6 +438,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
           <History size={17} aria-hidden="true" />
           <span className="cash-sr-only">Turno de caja</span>
           <select value={selection.shiftId || ''} disabled={blocked} onChange={event => {
+            setConfirmedSale(undefined);
             setCounted('');
             setTerminal('');
             setSelection({ ...selection, shiftId: event.target.value || undefined });
@@ -435,6 +461,21 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         </button>
       </div>
     </header>
+    {receipt && !receipt.refunded && <section className="cash-card cash-sale-confirmation" ref={confirmedSaleSection}
+      tabIndex={-1} aria-labelledby={confirmationTitleId}>
+      <div className="cash-sale-confirmation-summary" role="status">
+        <span className="cash-sale-confirmation-icon"><Check size={24} aria-hidden="true" /></span>
+        <div><h3 id={confirmationTitleId}>Cobro registrado</h3>
+          <p><strong>{money(receipt.amount_cents)}</strong> · {methods[receipt.method]}</p>
+        </div>
+      </div>
+      <div className="cash-actions">
+        <button type="button" className="cash-primary" onClick={() => printMovement(receipt)}>
+          <Printer size={17} aria-hidden="true" />Imprimir ticket
+        </button>
+        {openAgenda && <button type="button" onClick={openAgenda}>Volver a la agenda</button>}
+      </div>
+    </section>}
     {loading && <p className="cash-message" role="status">Consultando caja…</p>}
     {error && <p className="cash-message cash-error" role="alert">{error}</p>}
     {notice && <p className="cash-message cash-success" role="status"><Check size={16} aria-hidden="true" />{notice}</p>}
@@ -484,7 +525,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         <span>Abre caja para registrar un cobro.</span>
         {onOpenCash && <button type="button" onClick={onOpenCash}>Ir a caja</button>}
       </div>}
-      {appointment && appointmentPaid && <p className="cash-message cash-success"><Check size={16} aria-hidden="true" />El saldo de esta cita ya tiene un cobro registrado.</p>}
+      {appointment && appointmentPaid && !receipt && <p className="cash-message cash-success"><Check size={16} aria-hidden="true" />El saldo de esta cita ya tiene un cobro registrado.</p>}
       {appointment?.hasUnknownVoucher && !appointmentPaid && <p className="cash-message">Actualiza la cita y comprueba el saldo del bono antes de cobrar.</p>}
       {appointment?.unavailable && !appointmentPaid && <p className="cash-message">Comprueba el estado de la cita, su aprobación y el anticipo antes de cobrar.</p>}
 
@@ -576,14 +617,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
             </div>
             {(movement.kind === 'sale' || movement.kind === 'refund') && <div className="cash-actions">
               {!appointment && openAppointment && movement.appointment_id && <button type="button" onClick={() => openAppointment(movement.appointment_id!)}>Ver cita</button>}
-              <button type="button" onClick={() => print('L’Studio Ana · Justificante de caja', [
-                'Sin validez como factura', `${kinds[movement.kind]} · ${date(movement.recorded_at)}`,
-                movement.description, `${methods[movement.method]}  ${money(movement.amount_cents)}`,
-                `Movimiento ${movement.id.slice(0, 8).toUpperCase()}`,
-                ...(movement.bank_reference ? [`Referencia ${movement.bank_reference}`] : []),
-                ...(movement.refunded ? ['Cobro devuelto'] : []),
-                ...(movement.invoice_reference ? [`Factura ${movement.invoice_reference}`] : []),
-              ])}><Printer size={15} aria-hidden="true" />Imprimir justificante</button>
+              <button type="button" onClick={() => printMovement(movement)}><Printer size={15} aria-hidden="true" />Imprimir justificante</button>
               <button type="button" disabled={blocked} onClick={() => setInvoiceEdit({ id: movement.id, value: movement.invoice_reference || '' })}>Número de factura</button>
               {movement.kind === 'sale' && !movement.refunded && activeShift && <button type="button" disabled={blocked} onClick={() => {
                 if (window.confirm(`¿Registrar una devolución completa de ${money(movement.amount_cents)} ya realizada por ${methods[movement.method]}?`)) {
