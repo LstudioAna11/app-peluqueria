@@ -1,0 +1,26 @@
+.cash-register { display: grid; gap: 12px; color: #fff8ee; min-width: 0; }
+.cash-register h2, .cash-register h3, .cash-register p { margin: 0; }
+.cash-register h2, .cash-register h3 { color: #e4c687; }
+.cash-register h2 { font-size: 1.25rem; }
+.cash-register h3 { font-size: 1rem; }
+.cash-register p, .cash-register small { line-height: 1.5; overflow-wrap: anywhere; }
+.cash-heading, .cash-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cash-heading { justify-content: space-between; }
+.cash-card { background: #322a25; border: 1px solid #655039; border-radius: 10px; padding: 14px; display: grid; gap: 12px; }
+.cash-form { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,160px),1fr)); gap: 12px; align-items: end; }
+.cash-form h3, .cash-wide { grid-column: 1 / -1; }
+.cash-register label { display: grid; gap: 4px; font-size: .85rem; color: #e4c687; }
+.cash-register input, .cash-register select, .cash-register button { color: #fff8ee; background: #29231f; border: 1px solid #8d7250; border-radius: 6px; padding: 7px 10px; min-height: 42px; max-width: 100%; font: inherit; }
+.cash-register input, .cash-register select { width: 100%; min-width: 0; }
+.cash-register button { cursor: pointer; font-size: .82rem; }
+.cash-form button:not([type="button"]) { background: #c49a58; color: #221d19; font-weight: 650; }
+.cash-register button:disabled { opacity: .55; cursor: default; }
+.cash-register :focus-visible { outline: 2px solid #e4c687; outline-offset: 2px; }
+.cash-register [role="alert"] { color: #ffd0bf; }
+.cash-summary { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,136px),1fr)); gap: 8px; margin: 0; }
+.cash-summary div { padding: 8px; background: #29231f; border-radius: 6px; }
+.cash-summary dt { font-size: .8rem; color: #e4c687; }
+.cash-summary dd { margin: 4px 0 0; font-variant-numeric: tabular-nums; }
+.cash-movements { list-style: none; margin: 0; padding: 0; }
+.cash-movements li { display: grid; gap: 8px; padding: 9px 0; border-top: 1px solid #655039; }
+.cash-print-frame { position: fixed; width: 1px; height: 1px; border: 0; opacity: 0; pointer-events: none; }
