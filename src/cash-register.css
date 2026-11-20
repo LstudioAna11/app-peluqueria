@@ -310,3 +310,9 @@
     padding-inline: 8px;
   }
 }
+
+.cash-service-breakdown dl { display: grid; gap: 7px; }
+.cash-service-breakdown dl > div { display: flex; justify-content: space-between; gap: 10px; align-items: baseline; }
+.cash-service-breakdown dt { min-width: 0; overflow-wrap: anywhere; }
+.cash-service-breakdown dd { flex: none; color: var(--cash-accent); font-variant-numeric: tabular-nums; }
+.cash-service-breakdown .cash-service-total { padding-top: 9px; border-top: 1px solid var(--cash-border); font-weight: 700; }
