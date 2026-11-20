@@ -407,3 +407,8 @@
 .cash-checkout-discount-fields label { display: grid; gap: 5px; color: var(--cash-muted); font-size: .8rem; }
 .cash-checkout-discount-fields .cash-quiet { grid-column: 1 / -1; }
 .cash-pos-note.cash-discount-error { color: #ffc5b6; }
+
+.cash-receipt-settings summary { min-height: 36px; display: flex; align-items: center; color: var(--cash-text); cursor: pointer; font-weight: 650; }
+.cash-receipt-settings[open] summary { margin-bottom: 8px; }
+.cash-receipt-settings-form { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr)); gap: 10px; align-items: end; }
+.cash-receipt-settings-form + .cash-pos-note { margin-top: 8px; }
