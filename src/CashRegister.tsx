@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
   ArrowDownLeft, ArrowUpRight, Banknote, Check, ChevronDown, CreditCard,
@@ -104,26 +104,36 @@ function readReceiptHeader(): ReceiptHeader {
   catch { return cleanReceiptHeader(null); }
 }
 
-function ReceiptHeaderSettings() {
-  const [draft, setDraft] = useState(readReceiptHeader);
+function ReceiptHeaderSettings({ header, shared, onSaved }: {
+  header: ReceiptHeader;
+  shared: boolean;
+  onSaved: (header: ReceiptHeader) => void;
+}) {
+  const [draft, setDraft] = useState(header);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [readingLogo, setReadingLogo] = useState(false);
   const [error, setError] = useState('');
 
-  function save(event: FormEvent<HTMLFormElement>) {
+  async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const values = cleanReceiptHeader(draft);
     if (!values.fiscalName || !values.taxId || !values.address) {
       setError('Completa el nombre fiscal, el NIF y el domicilio.');
       return;
     }
+    setSaving(true);
+    setError('');
     try {
-      localStorage.setItem(receiptHeaderKey, JSON.stringify(values));
-      setDraft(values);
-      setError('');
+      const result = await request<{ header: ReceiptHeader }>({ operation: 'receipt-header', header: values });
+      const stored = cleanReceiptHeader(result.header);
+      setDraft(stored);
+      onSaved(stored);
       setSaved(true);
-    } catch {
-      setError('Este navegador no pudo guardar los datos de impresión.');
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'No se pudieron guardar los datos de impresión.');
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -147,10 +157,10 @@ function ReceiptHeaderSettings() {
 
   return <details className="cash-card cash-receipt-settings">
     <summary>Datos de impresión del ticket</summary>
-    <form className="cash-receipt-settings-form" onSubmit={save}>
+    <form className="cash-receipt-settings-form" onSubmit={save} aria-busy={saving}>
       {receiptHeaderFields.map(({ key, label, limit }) => <label className="cash-field" key={key}>
         {label}
-        <input type="text" required={key !== 'phone'} maxLength={limit} autoComplete="off" value={draft[key]}
+        <input type="text" required={key !== 'phone'} maxLength={limit} autoComplete="off" value={draft[key]} disabled={saving}
           onChange={event => {
             setDraft(current => ({ ...current, [key]: event.target.value }));
             setSaved(false);
@@ -158,7 +168,7 @@ function ReceiptHeaderSettings() {
           }} />
       </label>)}
       <label className="cash-field">IVA incluido en el precio
-        <select value={draft.vatRate} onChange={event => {
+        <select value={draft.vatRate} disabled={saving} onChange={event => {
           const vatRate = event.target.value as TicketVatRate;
           setDraft(current => ({ ...current, vatRate }));
           setSaved(false);
@@ -170,7 +180,7 @@ function ReceiptHeaderSettings() {
       </label>
       <div className="cash-receipt-logo">
         <label className="cash-field">Logo del ticket
-          <input type="file" accept="image/png,image/jpeg,image/webp" disabled={readingLogo}
+          <input type="file" accept="image/png,image/jpeg,image/webp" disabled={readingLogo || saving}
             onChange={event => {
               const file = event.currentTarget.files?.[0];
               event.currentTarget.value = '';
@@ -179,7 +189,7 @@ function ReceiptHeaderSettings() {
         </label>
         {draft.logo && <div className="cash-actions">
           <img src={draft.logo} alt="Vista previa del logo del ticket" />
-          <button type="button" disabled={readingLogo} onClick={() => {
+          <button type="button" disabled={readingLogo || saving} onClick={() => {
             setDraft(current => ({ ...current, logo: '' }));
             setSaved(false);
             setError('');
@@ -187,10 +197,10 @@ function ReceiptHeaderSettings() {
         </div>}
         {readingLogo && <p role="status">Cargando logo…</p>}
       </div>
-      <button className="cash-primary" disabled={readingLogo}>Guardar datos de impresión</button>
+      <button className="cash-primary" disabled={readingLogo || saving}>{saving ? 'Guardando…' : 'Guardar datos de impresión'}</button>
     </form>
-    <p className="cash-pos-note">Formato vertical para rollo de 58 mm. El tipo elegido se usa en el desglose informativo del precio. Los datos se guardan en este navegador.</p>
-    {saved && <p role="status">Datos de impresión guardados.</p>}
+    {header.fiscalName && !shared && <p className="cash-pos-note">Pulsa «Guardar datos de impresión» para usar la cabecera de este navegador en todos los dispositivos.</p>}
+    {saved && <p role="status">Cabecera guardada para todos los tickets.</p>}
     {error && <p className="cash-message cash-error" role="alert">{error}</p>}
   </details>;
 }
@@ -645,6 +655,9 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [ticketPreview, setTicketPreview] = useState<PrintableTicket>();
+  const [receiptHeader, setReceiptHeader] = useState(readReceiptHeader);
+  const [receiptHeaderLoading, setReceiptHeaderLoading] = useState(true);
+  const [receiptHeaderShared, setReceiptHeaderShared] = useState(false);
   const [confirmedSale, setConfirmedSale] = useState<{ movement: Movement; receivedCents: number | null }>();
   const confirmedSaleSection = useRef<HTMLElement>(null);
   const confirmationTitleId = useId();
@@ -677,6 +690,24 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   const [cashReceived, setCashReceived] = useState('');
   const [discountType, setDiscountType] = useState<'amount' | 'percent'>('amount');
   const [discountInput, setDiscountInput] = useState('');
+
+  const applyReceiptHeader = useCallback((header: ReceiptHeader) => {
+    setReceiptHeader(header);
+    setReceiptHeaderShared(true);
+    // Keep the last shared header available on a device if a later request fails.
+    try { localStorage.setItem(receiptHeaderKey, JSON.stringify(header)); } catch { /* Optional cache. */ }
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    request<{ header: ReceiptHeader | null }>({ operation: 'receipt-header' })
+      .then(result => {
+        if (active && result.header) applyReceiptHeader(cleanReceiptHeader(result.header));
+      })
+      .catch(() => { /* Keep this device's last known header. */ })
+      .finally(() => { if (active) setReceiptHeaderLoading(false); });
+    return () => { active = false; };
+  }, [applyReceiptHeader]);
 
   useEffect(() => {
     let active = true;
@@ -860,7 +891,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   }
 
   function movementTicket(movement: Movement): PrintableTicket {
-    const header = readReceiptHeader();
+    const header = receiptHeader;
     const snapshot = movement.service_receipt;
     const discount = movement.discount_cents ?? 0;
     const lines: ReceiptLine[] = [
@@ -943,7 +974,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         </div>
       </div>
       <div className="cash-heading-actions">
-        {latestTicket && <button type="button" aria-haspopup="dialog"
+        {latestTicket && <button type="button" aria-haspopup="dialog" disabled={receiptHeaderLoading}
           onClick={() => setTicketPreview(movementTicket(latestTicket))}>Vista previa del último ticket</button>}
         {!appointment && state && <label className="cash-history">
           <History size={17} aria-hidden="true" />
@@ -986,10 +1017,10 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         </div>
       </div>
       <div className="cash-actions">
-        <button type="button" className="cash-primary" onClick={() => printMovement(receipt)}>
+        <button type="button" className="cash-primary" disabled={receiptHeaderLoading} onClick={() => printMovement(receipt)}>
           <Printer size={17} aria-hidden="true" />Imprimir ticket
         </button>
-        <button type="button" aria-haspopup="dialog" onClick={() => setTicketPreview(movementTicket(receipt))}>Vista previa</button>
+        <button type="button" aria-haspopup="dialog" disabled={receiptHeaderLoading} onClick={() => setTicketPreview(movementTicket(receipt))}>Vista previa</button>
         {openAgenda && <button type="button" onClick={openAgenda}>Volver a la agenda</button>}
       </div>
     </section>}
@@ -1004,7 +1035,8 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         {selection.before && <button type="button" disabled={blocked} onClick={() => setSelection({ ...selection, before: undefined })}>Cierres recientes</button>}
       </div>}
 
-      {!appointment && <ReceiptHeaderSettings />}
+      {!appointment && !receiptHeaderLoading && <ReceiptHeaderSettings
+        header={receiptHeader} shared={receiptHeaderShared} onSaved={applyReceiptHeader} />}
 
       {!appointment && !selection.shiftId && !activeShift && <form className="cash-card cash-opening" onSubmit={event => {
         event.preventDefault();
@@ -1170,8 +1202,8 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
             </div>
             {(movement.kind === 'sale' || movement.kind === 'refund' || movement.kind === 'courtesy') && <div className="cash-actions">
               {!appointment && openAppointment && movement.appointment_id && <button type="button" onClick={() => openAppointment(movement.appointment_id!)}>Ver cita</button>}
-              <button type="button" aria-haspopup="dialog" onClick={() => setTicketPreview(movementTicket(movement))}>Vista previa</button>
-              <button type="button" onClick={() => printMovement(movement)}><Printer size={15} aria-hidden="true" />Imprimir justificante</button>
+              <button type="button" aria-haspopup="dialog" disabled={receiptHeaderLoading} onClick={() => setTicketPreview(movementTicket(movement))}>Vista previa</button>
+              <button type="button" disabled={receiptHeaderLoading} onClick={() => printMovement(movement)}><Printer size={15} aria-hidden="true" />Imprimir justificante</button>
               {movement.kind !== 'courtesy' && <button type="button" disabled={blocked}
                 onClick={() => setInvoiceEdit({ id: movement.id, value: movement.invoice_reference || '' })}>Número de factura</button>}
               {movement.kind === 'sale' && !movement.refunded && activeShift && <button type="button" disabled={blocked} onClick={() => {
