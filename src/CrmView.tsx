@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ChevronDown, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
+import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ChevronDown, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2, Wallet } from 'lucide-react';
 import * as studioApi from './studioApi';
 import type { StudioEmployee, BusinessConfig, ServiceVariant, Appointment, StylingPolicy, FinishKind, ServiceTranslation, SubService, CatalogCategory, ClientRecord, LostDemandRecord, FeedbackRecord, HolidayBlock } from './App';
+
+type CashPeriod = { salesCount: number; salesCents: number; refundCount: number; refundCents: number };
+type CashStatistics = { current: CashPeriod; previous: CashPeriod };
+const euro = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
+const averageTicket = (period: CashPeriod) => period.salesCount ? Math.round(period.salesCents / period.salesCount) : null;
+const returnsAdjustedAmount = (period: CashPeriod) => period.salesCents - period.refundCents;
+
 interface Props {
   appointments: Appointment[];
   bookingName: (service: SubService) => string;
@@ -27,8 +34,40 @@ interface Props {
 }
 export default function CrmView(props: Props) {
  const { appointments, bookingName, bizConfig, crmView, dashboardEnd, dashboardStart, formatDateKey, isActiveAppointment, isDateBlockedByHoliday, listaClientes, lostDemandsList, setAdminTab, setAgendaSidePanel, setClientStatusFilter, setCrmView, setDashboardEnd, setDashboardStart, setPendingPanelFilter, timeBlocks, trafficEvents, workingRanges }=props;
+ const valid = /^\d{4}-\d{2}-\d{2}$/.test(dashboardStart) && /^\d{4}-\d{2}-\d{2}$/.test(dashboardEnd) && dashboardStart <= dashboardEnd && (Date.parse(dashboardEnd) - Date.parse(dashboardStart)) / 86400000 <= 366;
+ const [cashReport, setCashReport] = useState<{ period: string; data?: CashStatistics; error?: string }>();
+ const [cashReload, setCashReload] = useState(0);
+ const cashPeriod = dashboardStart + '/' + dashboardEnd;
+
+ useEffect(() => {
+   if (crmView !== 'informes' || !valid) return;
+   const token = studioApi.currentToken();
+   if (!token) {
+     setCashReport({ period: cashPeriod, error: 'Vuelve a entrar en la intranet para consultar Caja.' });
+     return;
+   }
+   let active = true;
+   setCashReport({ period: cashPeriod });
+   studioApi.studioCashRegister<CashStatistics>(token, { operation: 'crm-statistics', from: dashboardStart, to: dashboardEnd })
+     .then(data => { if (active) setCashReport({ period: cashPeriod, data }); })
+     .catch(reason => {
+       if (active) setCashReport({ period: cashPeriod, error: reason instanceof Error ? reason.message : 'No se pudo consultar Caja.' });
+     });
+   return () => { active = false; };
+ }, [crmView, valid, cashPeriod, dashboardStart, dashboardEnd, cashReload]);
+
+ const cashResult = valid && cashReport?.period === cashPeriod ? cashReport : undefined;
+ const cashStats = cashResult?.data;
+ const cashMetrics = cashStats ? [
+   { label: 'Ticket medio', current: averageTicket(cashStats.current), previous: averageTicket(cashStats.previous), currency: true, note: 'Importe de los cobros dividido entre el número de tickets.' },
+   { label: 'Cobros registrados', current: cashStats.current.salesCount, previous: cashStats.previous.salesCount, currency: false, note: 'Cada pago combinado cuenta como un cobro.' },
+   { label: 'Total cobrado', current: cashStats.current.salesCents, previous: cashStats.previous.salesCents, currency: true, note: 'Importe de los cobros antes de restar las devoluciones.' },
+   { label: 'Devoluciones', current: cashStats.current.refundCents, previous: cashStats.previous.refundCents, currency: true, note: `${cashStats.current.refundCount} registradas en el periodo.` },
+   { label: 'Cobrado tras devoluciones', current: returnsAdjustedAmount(cashStats.current), previous: returnsAdjustedAmount(cashStats.previous), currency: true, note: 'Total cobrado menos lo devuelto en el periodo.' },
+ ] : [];
+ const formatCashMetric = (value: number | null, currency: boolean) => value === null ? '—' : currency ? euro.format(value / 100) : String(value);
+
  return ((() => {
-            const valid = /^\d{4}-\d{2}-\d{2}$/.test(dashboardStart) && /^\d{4}-\d{2}-\d{2}$/.test(dashboardEnd) && dashboardStart <= dashboardEnd && (Date.parse(dashboardEnd) - Date.parse(dashboardStart)) / 86400000 <= 366;
             const inPeriod = appointments.filter(item => valid && item.dateKey >= dashboardStart && item.dateKey <= dashboardEnd);
             const booked = inPeriod.filter(item => item.lifecycleStatus !== 'cancelled' && item.lifecycleStatus !== 'no_show' && item.saturdayApproval?.status !== 'pending' && item.saturdayApproval?.status !== 'rejected' && item.advancePayment?.status !== 'pending');
             const serviceCounts = new Map<string, { key: string; name: string; count: number }>();
@@ -135,6 +174,11 @@ export default function CrmView(props: Props) {
                 .crm-card{border:1px solid #655039;border-radius:13px;background:linear-gradient(140deg,#382F28,#2D2621);padding:18px;min-width:0;box-sizing:border-box}
                 .crm-label{color:#E5D8C4;font-size:12px;line-height:1.5;display:block}
                 .crm-metric strong{display:block;font-size:35px;font-weight:500;line-height:1.2;margin:10px 0 7px}
+                .crm-cash-statistics{display:grid;gap:14px}.crm-cash-metrics{grid-template-columns:repeat(auto-fit,minmax(min(100%,158px),1fr))}
+                .crm-cash-metrics .crm-card{background:#29231F;padding:12px}
+                .crm-cash-metrics article:first-child{border-color:#B58C54}
+                .crm-cash-metrics strong{display:block;margin:7px 0;color:#E4C687;font-size:clamp(20px,3vw,28px);line-height:1.2;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+                .crm-cash-previous{margin-top:5px}
                 .crm-track{height:9px;border-radius:20px;background:#181512;overflow:hidden}.crm-track>div{height:100%;border-radius:20px}
                 .crm-ranking{display:flex;flex-direction:column;gap:16px;margin-top:18px}.crm-ranking-row{display:grid;grid-template-columns:25px minmax(0,1fr) 35px;align-items:start;gap:10px}.crm-ranking-row>span{color:#CBB79B;font-size:12px}.crm-ranking-row strong{font-size:13px;color:#E4C687;text-align:right}.crm-ranking-row p{font-size:13px;margin-bottom:8px;line-height:1.5}
                 .crm-actions{display:flex;flex-direction:column;gap:9px;margin-top:16px}.crm-actions button{width:100%;justify-content:space-between!important;text-align:left}
@@ -163,7 +207,27 @@ export default function CrmView(props: Props) {
               </>}
               {crmView === 'servicios' && <div className="crm-grid crm-two"><section className="crm-card"><h3>Ranking de servicios</h3><small style={{marginTop:7}}>Un servicio cuenta una vez por cita, agrupando variantes.</small><div className="crm-ranking">{ranking.map((item,i)=><div className="crm-ranking-row" key={item.key}><span>{i+1}</span><div><p>{item.name}</p><div className="crm-track"><div style={{width:`${item.count/top*100}%`,background:'#C49A58'}}/></div></div><strong>{item.count}</strong></div>)}</div>{!ranking.length && <p className="crm-empty">No hay servicios desglosados en estas fechas.</p>}{booked.some(item=>!item.services?.length) && <small style={{marginTop:15}}>Las citas antiguas sin desglose no entran en este ranking.</small>}</section><section className="crm-card"><h3>¿De dónde llegan las reservas?</h3><small style={{marginTop:7}}>Incluye todas las citas del periodo, también pendientes y canceladas.</small><div className="crm-ranking">{channelRows.map(row=><div key={row.name}><div style={{display:'flex',justifyContent:'space-between',gap:12,marginBottom:8}}><span>{row.name}</span><strong style={{color:'#E4C687'}}>{row.count}</strong></div><div className="crm-track"><div style={{width:`${row.count/Math.max(1,inPeriod.length)*100}%`,background:row.name === 'Sin canal registrado' ? '#AFA394' : '#C49A58'}}/></div></div>)}</div>{!inPeriod.length && <p className="crm-empty">No hay citas en este periodo.</p>}</section></div>}
               {crmView === 'informes' && <>
-                <section className="crm-card"><div className="crm-section-title"><h3>Exporta tu resumen</h3><BookOpen size={18} color="#E4C687"/></div><small style={{margin:'8px 0 14px'}}>El CSV incluye comparación, servicios y ocupación diaria del periodo. El PDF imprime la vista que tienes abierta.</small>
+                <section className="crm-card crm-cash-statistics" aria-labelledby="crm-cash-title">
+                  <div className="crm-section-title"><h3 id="crm-cash-title">Estadísticas de Caja</h3><Wallet size={18} color="#E4C687" aria-hidden="true" /></div>
+                  <small>Según la fecha del cobro o de la devolución. Las cortesías y los movimientos internos de efectivo quedan fuera.</small>
+                  {valid && !cashStats && !cashResult?.error && <p className="crm-note" role="status">Consultando Caja…</p>}
+                  {cashResult?.error && <div className="crm-section-title">
+                    <p className="crm-note" role="alert">{cashResult.error}</p>
+                    <button type="button" className="crm-button" onClick={() => setCashReload(value => value + 1)}>Reintentar consulta de Caja</button>
+                  </div>}
+                  {cashStats && <>
+                    <div className="crm-grid crm-cash-metrics">
+                      {cashMetrics.map(metric => <article className="crm-card" key={metric.label}>
+                        <span className="crm-label">{metric.label}</span>
+                        <strong>{formatCashMetric(metric.current, metric.currency)}</strong>
+                        <small>{metric.note}</small>
+                        <small className="crm-cash-previous">Antes · {formatCashMetric(metric.previous, metric.currency)}</small>
+                      </article>)}
+                    </div>
+                    <small>Periodo anterior · {previousFrom.split('-').reverse().join('/')} – {previousTo.split('-').reverse().join('/')}</small>
+                  </>}
+                </section>
+                <section className="crm-card"><div className="crm-section-title"><h3>Exporta tu resumen</h3><BookOpen size={18} color="#E4C687"/></div><small style={{margin:'8px 0 14px'}}>El CSV incluye comparación, servicios, ocupación diaria y las estadísticas de Caja cuando están disponibles. El PDF imprime la vista que tienes abierta.</small>
                             <div className="studio-crm-export" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
               <button type="button" disabled={!valid} onClick={() => {
                 const rows: (string | number)[][] = [
@@ -174,7 +238,18 @@ export default function CrmView(props: Props) {
                   ['Ocupación diaria', 'Minutos reservados', 'Minutos disponibles', 'Porcentaje'], ...days.map(day => [day.date, day.occupied, day.available, day.available ? (day.occupied / day.available * 100).toFixed(1) : 'Sin horario']),
                   ['Nota', 'Datos locales; ocupación histórica calculada con el horario actual. Actividad web acumulada excluida de este informe por fechas.']
                 ];
-                const cell = (value: string | number) => { let text = String(value); if (/^[=+@-]/.test(text)) text = "'" + text; return '"' + text.replace(/"/g, '""') + '"'; };
+                if (cashStats) {
+                  const csvValue = (value: number | null, currency: boolean) => value === null ? 'Sin datos' : currency ? value / 100 : value;
+                  rows.push([], ['Estadísticas de Caja', 'Actual', 'Anterior', 'Unidad'],
+                    ...cashMetrics.map(metric => [metric.label, csvValue(metric.current, metric.currency),
+                      csvValue(metric.previous, metric.currency), metric.currency ? 'EUR' : 'Cobros']),
+                    ['Número de devoluciones', cashStats.current.refundCount, cashStats.previous.refundCount, 'Devoluciones']);
+                }
+                const cell = (value: string | number) => {
+                  let text = typeof value === 'number' ? String(value).replace('.', ',') : value;
+                  if (typeof value === 'string' && /^[=+@-]/.test(text)) text = "'" + text;
+                  return '"' + text.replace(/"/g, '""') + '"';
+                };
                 const csv = '\uFEFF' + rows.map(row => row.map(cell).join(';')).join('\r\n');
                 const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
                 const link = document.createElement('a'); link.href = url; link.download = `CRM-${dashboardStart}-${dashboardEnd}.csv`; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
@@ -188,7 +263,7 @@ export default function CrmView(props: Props) {
                 <details className="crm-notes"><summary>Actividad de este navegador</summary><p>Estos datos son locales e incluyen tus pruebas. No representan todas las visitas a la web ni se filtran por las fechas del informe.</p><div className="crm-status"><span>{trafficEvents.filter(item=>item.type === 'visit').length} visitas locales</span><span>{trafficEvents.filter(item=>item.type === 'login').length} accesos locales</span><span>{trafficEvents.filter(item=>item.type === 'booking').length} reservas locales</span></div></details>
               </>}
               </div>
-              <details className="crm-notes"><summary>Cómo leer estos datos</summary><p>Periodo: fecha de la cita, excepto altas, que usan la fecha de creación de la ficha. Las citas confirmadas incluyen las realizadas; las finalizadas muestran cuántas has marcado como realizadas. La ocupación usa el horario actual, descuenta cierres y bloqueos y cuenta los solapamientos una sola vez; no mide capacidad por profesional. Son registros disponibles en esta app, no facturación ni estadísticas completas de la web.</p></details>
+              <details className="crm-notes"><summary>Cómo leer estos datos</summary><p>Las citas se agrupan por fecha de la cita y las altas por fecha de creación de la ficha. Caja usa la fecha en que se registró cada cobro o devolución. Las citas confirmadas incluyen las realizadas; las finalizadas muestran cuántas has marcado como realizadas. La ocupación usa el horario actual, descuenta cierres y bloqueos y cuenta los solapamientos una sola vez; no mide capacidad por profesional. Son registros disponibles en esta app, no facturación ni estadísticas completas de la web.</p></details>
             </section>;
           })());
 }
