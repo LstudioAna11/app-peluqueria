@@ -13,8 +13,17 @@ type Shift = {
   id: string; opened_at: string; closed_at: string | null; opening_cents: number;
   counted_cents: number | null; terminal_cents: number | null;
 };
+type ServiceReceipt = {
+  items: [label: string, amountCents: number | null][];
+  total_cents: number;
+  deposit_cents?: number;
+  voucher_cents?: number;
+  voucher_kind?: string;
+};
+type ReceiptLine = string | { label: string; value: string; total?: boolean };
 type Movement = {
   id: string; recorded_at: string; description: string; kind: Kind; method: Method;
+  service_receipt?: ServiceReceipt | null;
   amount_cents: number; appointment_id: string | null; bank_reference: string | null; invoice_reference: string | null; refunded: boolean;
 };
 type Totals = Record<Method, number> & { cashIn: number; cashOut: number; count: number };
@@ -62,7 +71,7 @@ async function request<T>(body: unknown) {
   return studioCashRegister<T>(token, body);
 }
 
-function printSlip(title: string, lines: string[]) {
+function printSlip(title: string, lines: ReceiptLine[]) {
   const frame = document.createElement('iframe');
   frame.className = 'cash-print-frame';
   frame.title = title;
@@ -74,14 +83,31 @@ function printSlip(title: string, lines: string[]) {
     if (!page || !printer) throw new Error('No se pudo abrir la impresión.');
     page.title = title;
     const css = page.createElement('style');
-    css.textContent = '@page{margin:4mm}body{font:11pt system-ui;color:#000;width:100%;max-width:70mm;margin:0 auto;overflow-wrap:anywhere}h1{font-size:14pt}p{margin:5px 0}';
+    css.textContent = `
+      @page { margin: 4mm }
+      body { font: 11pt system-ui; color: #000; width: 100%; max-width: 70mm; margin: 0 auto; overflow-wrap: anywhere }
+      h1 { font-size: 14pt }
+      p { margin: 5px 0; break-inside: avoid }
+      .amount-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px }
+      .amount-row span:last-child { flex: none; white-space: nowrap; font-variant-numeric: tabular-nums }
+      .amount-total { margin-block: 7px; padding-top: 4px; border-top: 1px solid #111; font-weight: 700 }
+    `;
     page.head.append(css);
     const heading = page.createElement('h1');
     heading.textContent = title;
     page.body.append(heading);
     for (const line of lines) {
       const row = page.createElement('p');
-      row.textContent = line;
+      if (typeof line === 'string') {
+        row.textContent = line;
+      } else {
+        row.className = line.total ? 'amount-row amount-total' : 'amount-row';
+        for (const text of [line.label, line.value]) {
+          const span = page.createElement('span');
+          span.textContent = text;
+          row.append(span);
+        }
+      }
       page.body.append(row);
     }
     printer.addEventListener('afterprint', () => frame.remove(), { once: true });
@@ -400,20 +426,48 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     void send({ operation: 'close', shiftId: shift.id, amountCents, terminalCents, movementCount: totals.count });
   }
 
-  function print(title: string, lines: string[]) {
+  function print(title: string, lines: ReceiptLine[]) {
     try { printSlip(title, lines); }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo abrir la impresión.'); }
   }
 
   function printMovement(movement: Movement) {
-    print('L’Studio Ana · Justificante de caja', [
-      'Sin validez como factura', `${kinds[movement.kind]} · ${date(movement.recorded_at)}`,
-      movement.description, `${methods[movement.method]}  ${money(movement.amount_cents)}`,
+    const snapshot = movement.service_receipt;
+    const lines: ReceiptLine[] = ['Sin validez como factura', `${kinds[movement.kind]} · ${date(movement.recorded_at)}`];
+
+    if (snapshot) {
+      if (snapshot.items.length) {
+        lines.push('Servicios', ...snapshot.items.map(([label, amount]) => ({
+          label, value: amount === null ? 'Incluido' : money(amount),
+        })));
+        if (snapshot.items.every(([, amount]) => amount !== null)) {
+          const listed = snapshot.items.reduce((sum, [, amount]) => sum + (amount ?? 0), 0);
+          if (listed !== snapshot.total_cents) lines.push({
+            label: 'Ajuste de precio', value: money(snapshot.total_cents - listed),
+          });
+        }
+      } else {
+        lines.push(movement.description);
+      }
+      lines.push({ label: 'Total servicios', value: money(snapshot.total_cents), total: true });
+      if (snapshot.deposit_cents) lines.push({ label: 'Anticipo aplicado', value: money(-snapshot.deposit_cents) });
+      if (snapshot.voucher_cents) lines.push({
+        label: snapshot.voucher_kind === 'gift' ? 'Tarjeta regalo aplicada' : 'Bono aplicado',
+        value: money(-snapshot.voucher_cents),
+      });
+    } else {
+      lines.push(movement.description);
+    }
+
+    lines.push(
+      { label: movement.kind === 'refund' ? 'Importe devuelto' : 'Importe cobrado', value: money(movement.amount_cents), total: true },
+      { label: 'Método de pago', value: methods[movement.method] },
       `Movimiento ${movement.id.slice(0, 8).toUpperCase()}`,
       ...(movement.bank_reference ? [`Referencia ${movement.bank_reference}`] : []),
       ...(movement.refunded ? ['Cobro devuelto'] : []),
       ...(movement.invoice_reference ? [`Factura ${movement.invoice_reference}`] : []),
-    ]);
+    );
+    print('L’Studio Ana · Justificante de caja', lines);
   }
 
   function cashSummary() {
