@@ -218,6 +218,21 @@
 .cash-payment-parts label { display: grid; gap: 6px; min-width: 0; color: var(--cash-muted); font-size: .84rem; }
 .cash-payment-parts input { width: 100%; min-width: 0; }
 .cash-payment-parts p { margin-top: 6px; }
+.cash-shortcuts { display: grid; gap: 9px; }
+.cash-shortcut-buttons { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 122px), 1fr)); gap: 7px; }
+.cash-register .cash-shortcut-buttons button {
+  align-items: flex-start;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  min-height: 54px;
+  padding: 7px 9px;
+  text-align: left;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+.cash-shortcut-buttons small { color: var(--cash-accent); font-weight: 500; }
+.cash-register .cash-shortcut-buttons button[aria-pressed="true"] { border-color: var(--cash-accent); background: #4b3824; }
 .cash-optional { border-top: 1px solid var(--cash-border); padding-top: 3px; }
 .cash-optional summary {
   display: flex;
