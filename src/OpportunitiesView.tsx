@@ -17,7 +17,7 @@ interface Props {
   opportunityPage: number;
   opportunitySearch: string;
   opportunityStatus: "pending" | "all" | "contacted" | "recovered";
-  setAdminTab: React.Dispatch<React.SetStateAction<"agenda" | "clients" | "catalog" | "config" | "detractors" | "crm" | "demands" | "holidays">>;
+  setAdminTab: (tab: "clients") => void;
   setBookingAttempts: React.Dispatch<React.SetStateAction<{ id: string; email: string; name: string; services: string; date: string; time: string; step: string; updatedAt: string; registered?: boolean; contactedAt?: string; recoveredAt?: string; reachedDate?: boolean; reachedTime?: boolean; }[]>>;
   setBusquedaCliente: React.Dispatch<React.SetStateAction<string>>;
   setClientStatusFilter: React.Dispatch<React.SetStateAction<"all" | "active" | "archived">>;
