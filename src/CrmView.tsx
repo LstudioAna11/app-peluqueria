@@ -3,10 +3,15 @@ import { Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, Arrow
 import * as studioApi from './studioApi';
 import type { StudioEmployee, BusinessConfig, ServiceVariant, Appointment, StylingPolicy, FinishKind, ServiceTranslation, SubService, CatalogCategory, ClientRecord, LostDemandRecord, FeedbackRecord, HolidayBlock } from './App';
 
-type CashPeriod = { salesCount: number; salesCents: number; refundCount: number; refundCents: number };
-type CashStatistics = { current: CashPeriod; previous: CashPeriod };
+type CashClient = { id: string; name: string; salesCount: number; salesCents: number };
+type CashPeriod = {
+  salesCount: number; salesCents: number; refundCount: number; refundCents: number;
+  clientCount: number; clientSalesCents: number; unlinkedSalesCount: number;
+};
+type CashStatistics = { current: CashPeriod; previous: CashPeriod; clients: CashClient[]; nextOffset: number | null };
 const euro = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
-const averageTicket = (period: CashPeriod) => period.salesCount ? Math.round(period.salesCents / period.salesCount) : null;
+const averageTicket = (client: CashClient) => Math.round(client.salesCents / client.salesCount);
+const averageSpending = (period: CashPeriod) => period.clientCount ? Math.round(period.clientSalesCents / period.clientCount) : null;
 const returnsAdjustedAmount = (period: CashPeriod) => period.salesCents - period.refundCents;
 
 interface Props {
@@ -35,31 +40,34 @@ interface Props {
 export default function CrmView(props: Props) {
  const { appointments, bookingName, bizConfig, crmView, dashboardEnd, dashboardStart, formatDateKey, isActiveAppointment, isDateBlockedByHoliday, listaClientes, lostDemandsList, setAdminTab, setAgendaSidePanel, setClientStatusFilter, setCrmView, setDashboardEnd, setDashboardStart, setPendingPanelFilter, timeBlocks, trafficEvents, workingRanges }=props;
  const valid = /^\d{4}-\d{2}-\d{2}$/.test(dashboardStart) && /^\d{4}-\d{2}-\d{2}$/.test(dashboardEnd) && dashboardStart <= dashboardEnd && (Date.parse(dashboardEnd) - Date.parse(dashboardStart)) / 86400000 <= 366;
- const [cashReport, setCashReport] = useState<{ period: string; data?: CashStatistics; error?: string }>();
+ const [cashReport, setCashReport] = useState<{ key: string; data?: CashStatistics; error?: string }>();
  const [cashReload, setCashReload] = useState(0);
+ const [clientPage, setClientPage] = useState<{ period: string; offset: number }>();
  const cashPeriod = dashboardStart + '/' + dashboardEnd;
+ const clientOffset = clientPage?.period === cashPeriod ? clientPage.offset : 0;
+ const cashKey = cashPeriod + '/' + clientOffset;
 
  useEffect(() => {
    if (crmView !== 'informes' || !valid) return;
    const token = studioApi.currentToken();
    if (!token) {
-     setCashReport({ period: cashPeriod, error: 'Vuelve a entrar en la intranet para consultar Caja.' });
+     setCashReport({ key: cashKey, error: 'Vuelve a entrar en la intranet para consultar Caja.' });
      return;
    }
    let active = true;
-   setCashReport({ period: cashPeriod });
-   studioApi.studioCashRegister<CashStatistics>(token, { operation: 'crm-statistics', from: dashboardStart, to: dashboardEnd })
-     .then(data => { if (active) setCashReport({ period: cashPeriod, data }); })
+   setCashReport({ key: cashKey });
+   studioApi.studioCashRegister<CashStatistics>(token, { operation: 'crm-client-statistics', from: dashboardStart, to: dashboardEnd, offset: clientOffset })
+     .then(data => { if (active) setCashReport({ key: cashKey, data }); })
      .catch(reason => {
-       if (active) setCashReport({ period: cashPeriod, error: reason instanceof Error ? reason.message : 'No se pudo consultar Caja.' });
+       if (active) setCashReport({ key: cashKey, error: reason instanceof Error ? reason.message : 'No se pudo consultar Caja.' });
      });
    return () => { active = false; };
- }, [crmView, valid, cashPeriod, dashboardStart, dashboardEnd, cashReload]);
+ }, [crmView, valid, cashKey, clientOffset, dashboardStart, dashboardEnd, cashReload]);
 
- const cashResult = valid && cashReport?.period === cashPeriod ? cashReport : undefined;
+ const cashResult = valid && cashReport?.key === cashKey ? cashReport : undefined;
  const cashStats = cashResult?.data;
  const cashMetrics = cashStats ? [
-   { label: 'Ticket medio', current: averageTicket(cashStats.current), previous: averageTicket(cashStats.previous), currency: true, note: 'Importe de los cobros dividido entre el número de tickets.' },
+   { label: 'Gasto medio por cliente', current: averageSpending(cashStats.current), previous: averageSpending(cashStats.previous), currency: true, note: `Importe cobrado de ${cashStats.current.clientCount} clientes con ficha, dividido entre esos clientes.` },
    { label: 'Cobros registrados', current: cashStats.current.salesCount, previous: cashStats.previous.salesCount, currency: false, note: 'Cada pago combinado cuenta como un cobro.' },
    { label: 'Total cobrado', current: cashStats.current.salesCents, previous: cashStats.previous.salesCents, currency: true, note: 'Importe de los cobros antes de restar las devoluciones.' },
    { label: 'Devoluciones', current: cashStats.current.refundCents, previous: cashStats.previous.refundCents, currency: true, note: `${cashStats.current.refundCount} registradas en el periodo.` },
@@ -179,6 +187,8 @@ export default function CrmView(props: Props) {
                 .crm-cash-metrics article:first-child{border-color:#B58C54}
                 .crm-cash-metrics strong{display:block;margin:7px 0;color:#E4C687;font-size:clamp(20px,3vw,28px);line-height:1.2;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
                 .crm-cash-previous{margin-top:5px}
+                .crm-cash-client-table{overflow-x:auto}
+                .crm-cash-client-table th,.crm-cash-client-table td{white-space:nowrap}
                 .crm-track{height:9px;border-radius:20px;background:#181512;overflow:hidden}.crm-track>div{height:100%;border-radius:20px}
                 .crm-ranking{display:flex;flex-direction:column;gap:16px;margin-top:18px}.crm-ranking-row{display:grid;grid-template-columns:25px minmax(0,1fr) 35px;align-items:start;gap:10px}.crm-ranking-row>span{color:#CBB79B;font-size:12px}.crm-ranking-row strong{font-size:13px;color:#E4C687;text-align:right}.crm-ranking-row p{font-size:13px;margin-bottom:8px;line-height:1.5}
                 .crm-actions{display:flex;flex-direction:column;gap:9px;margin-top:16px}.crm-actions button{width:100%;justify-content:space-between!important;text-align:left}
@@ -187,28 +197,27 @@ export default function CrmView(props: Props) {
                 .crm-empty{padding:25px 10px;text-align:center;color:#D6CBB8;font-size:13px}.crm-note{font-size:12px;color:#D6CBB8;line-height:1.7}.crm-notes{border:1px dashed #655039;border-radius:10px;padding:13px;color:#D6CBB8;font-size:12px;line-height:1.7}.crm-notes summary{cursor:pointer;color:#E4C687}.crm-notes p{margin-top:10px}.crm-table{width:100%;border-collapse:collapse;font-size:12px}.crm-table td,.crm-table th{padding:11px 8px;border-bottom:1px solid #554535;text-align:left}.crm-table th{color:#E4C687;font-weight:500}.crm-table td{color:#E5D8C4}
                 @media(max-width:1000px){.crm-four{grid-template-columns:repeat(2,minmax(0,1fr))}.crm-three{grid-template-columns:1fr}}
                 @media(max-width:620px){.crm-two{grid-template-columns:1fr}.crm-card{padding:14px}.crm-metric strong{font-size:28px}.crm-toolbar label{flex:1}.crm-toolbar input{width:100%}}
-                @media print{body *{visibility:hidden!important}.studio-crm-report,.studio-crm-report *{visibility:visible!important}.studio-crm-report{position:absolute!important;left:0;top:0;width:100%!important;background:white!important;padding:16px;box-sizing:border-box}.crm-visual *{color:#221D19!important;background:transparent!important;box-shadow:none!important}.crm-visual button,.crm-toolbar,.crm-tabs,.studio-crm-export{display:none!important}.crm-card{break-inside:avoid}.crm-track{border:1px solid #999}}
+                @media print{body *{visibility:hidden!important}.studio-crm-report,.studio-crm-report *{visibility:visible!important}.studio-crm-report{position:absolute!important;left:0;top:0;width:100%!important;background:white!important;padding:16px;box-sizing:border-box}.crm-visual *{color:#221D19!important;background:transparent!important;box-shadow:none!important}.crm-visual button,.crm-toolbar,.crm-tabs,.crm-report-index,.studio-crm-export{display:none!important}.crm-card{break-inside:avoid}.crm-track{border:1px solid #999}}
               `}</style>
               <header className="crm-heading"><div><small>L’STUDIO ANA · SEGUIMIENTO DEL STUDIO</small><h2>Tu Studio, de un vistazo</h2><p>Qué está pasando y dónde poner tu atención.</p></div><span className="crm-period-badge">{periodLabel}</span></header>
               <div className="crm-toolbar"><div className="crm-shortcuts">{[{label:'Últimos 7 días',days:7},{label:'Últimos 30 días',days:30},{label:'Este mes',days:0}].map(item => <button key={item.label} type="button" className="crm-button" onClick={() => {const end=new Date();const start=new Date(end);if(item.days)start.setDate(start.getDate()-item.days+1);else start.setDate(1);setDashboardStart(formatDateKey(start));setDashboardEnd(formatDateKey(end));}}>{item.label}</button>)}</div><label>Desde<input type="date" value={dashboardStart} max={dashboardEnd || undefined} onChange={e=>setDashboardStart(e.target.value)} /></label><label>Hasta<input type="date" value={dashboardEnd} min={dashboardStart || undefined} onChange={e=>setDashboardEnd(e.target.value)} /></label></div>
               {!valid && <p role="alert" className="crm-note">Elige fechas válidas, con un máximo de un año.</p>}
               <nav className="crm-tabs" role="tablist" aria-label="Secciones del CRM">{([{id:'resumen',label:'Resumen',icon:CalendarDays},{id:'clientas',label:'Clientas',icon:User},{id:'servicios',label:'Servicios',icon:Scissors},{id:'informes',label:'Informes',icon:BookOpen}] as const).map(tab=><button type="button" role="tab" id={`crm-tab-${tab.id}`} aria-selected={crmView === tab.id} aria-controls="crm-content" onClick={()=>setCrmView(tab.id)} key={tab.id}><tab.icon size={16}/>{tab.label}</button>)}</nav>
               <div id="crm-content" role="tabpanel" aria-labelledby={`crm-tab-${crmView}`} style={{display:'flex',flexDirection:'column',gap:16}}>
-              {crmView === 'resumen' && <>
-                <div className="crm-grid crm-four">{metricCard('Citas confirmadas y realizadas',valid ? booked.length : '—','Según la fecha de la cita')}{metricCard('Visitas realizadas',valid ? completedCount : '—','Citas marcadas como realizadas','#BDE1B8')}{metricCard('Agenda ocupada',occupancy === null ? '—' : occupancy+'%',capacity ? `${(occupied/60).toFixed(1)} de ${(capacity/60).toFixed(1)} horas del horario` : 'Sin horario para calcular')}{metricCard('Fichas nuevas',valid ? newClientsInPeriod : '—','Altas registradas en estas fechas')}</div>
-                <div className="crm-grid crm-two"><section className="crm-card"><div className="crm-section-title"><h3>¿Qué necesita tu atención?</h3><Clock3 size={18} color="#E4C687"/></div><div className="crm-actions"><button className="crm-button" type="button" onClick={()=>{setAdminTab('agenda');setPendingPanelFilter('all');setAgendaSidePanel('pending');}}>Revisar solicitudes y pagos <span>→</span></button><button className="crm-button" type="button" onClick={()=>setAdminTab('demands')}>Ver demanda perdida <span>→</span></button><button className="crm-button" type="button" onClick={()=>setAdminTab('detractors')}>Leer opiniones de clientas <span>→</span></button></div><div className="crm-status"><span>{valid ? pendingCount : '—'} pendientes en el periodo</span><span>{valid ? demandInPeriod.length : '—'} búsquedas sin hueco</span><span>{valid ? cancelledCount : '—'} canceladas</span><span>{valid ? noShowCount : '—'} ausencias</span></div><small style={{marginTop:10}}>Los accesos abren sus apartados completos; las cifras corresponden al periodo seleccionado.</small></section>
-                <section className="crm-card"><div className="crm-section-title"><h3>Los servicios que más se reservan</h3><Scissors size={18} color="#E4C687"/></div><div className="crm-ranking">{ranking.slice(0,4).map((item,i)=><div className="crm-ranking-row" key={item.key}><span>{String(i+1).padStart(2,'0')}</span><div><p>{item.name}</p><div className="crm-track"><div style={{width:`${item.count/top*100}%`,background:'#C49A58'}}/></div></div><strong>{item.count}</strong></div>)}</div>{!ranking.length && <p className="crm-empty">Todavía no hay servicios desglosados en este periodo.</p>}<button className="crm-button" type="button" style={{marginTop:16}} onClick={()=>setCrmView('servicios')}>Ver todos los servicios →</button></section></div>
-                <div className="crm-section-title"><h3>Frente al periodo anterior</h3><small>{valid ? `${previousFrom.split('-').reverse().join('/')} – ${previousTo.split('-').reverse().join('/')}` : 'Sin comparación disponible'}</small></div>{compareCards}
-              </>}
-              {crmView === 'clientas' && <>
-                <div className="crm-grid crm-three">{metricCard('Clientas atendidas',valid ? attendedEmails.size : '—','Personas con visita realizada y email')}{metricCard('Clientas que repiten',valid ? returning : '—','Ya tenían una visita realizada anterior','#BDE1B8')}{metricCard('Fichas nuevas',valid ? newClientsInPeriod : '—','Altas en el periodo; no primeras visitas')}</div>
-                <div className="crm-grid crm-two"><section className="crm-card"><h3>Tu comunidad</h3><div className="crm-status"><span>{listaClientes.filter(c=>!c.archivedAt).length} activas</span><span>{listaClientes.filter(c=>!!c.archivedAt).length} de baja</span></div><small style={{margin:'12px 0'}}>Total de fichas actuales, independiente de las fechas del informe.</small><button className="crm-button crm-gold" type="button" onClick={()=>{setAdminTab('clients');setClientStatusFilter('active');}}>Abrir fichas de clientes →</button></section><section className="crm-card"><h3>Nuevas fichas por mes</h3><small style={{marginTop:7}}>Últimos 12 meses con altas registradas. Histórico completo.</small><div className="crm-ranking">{monthlyClientsRows.map(([month,count])=><div key={month}><div style={{display:'flex',justifyContent:'space-between',gap:12,marginBottom:7,fontSize:12}}><span>{new Date(month+'-01T12:00:00').toLocaleDateString('es-ES',{month:'short',year:'numeric'})}</span><strong style={{color:'#E4C687'}}>{count}</strong></div><div className="crm-track"><div style={{width:`${count/Math.max(1,...monthlyClientsRows.map(row=>row[1]))*100}%`,background:'#C49A58'}}/></div></div>)}</div>{!monthlyClientsRows.length && <p className="crm-empty">Sin fechas de alta registradas.</p>}</section></div>
-                <p className="crm-note">Las visitas y repeticiones se identifican por email. Las citas sin email no cuentan como personas únicas; no se infieren visitas que no estén registradas.</p>
-              </>}
-              {crmView === 'servicios' && <div className="crm-grid crm-two"><section className="crm-card"><h3>Ranking de servicios</h3><small style={{marginTop:7}}>Un servicio cuenta una vez por cita, agrupando variantes.</small><div className="crm-ranking">{ranking.map((item,i)=><div className="crm-ranking-row" key={item.key}><span>{i+1}</span><div><p>{item.name}</p><div className="crm-track"><div style={{width:`${item.count/top*100}%`,background:'#C49A58'}}/></div></div><strong>{item.count}</strong></div>)}</div>{!ranking.length && <p className="crm-empty">No hay servicios desglosados en estas fechas.</p>}{booked.some(item=>!item.services?.length) && <small style={{marginTop:15}}>Las citas antiguas sin desglose no entran en este ranking.</small>}</section><section className="crm-card"><h3>¿De dónde llegan las reservas?</h3><small style={{marginTop:7}}>Incluye todas las citas del periodo, también pendientes y canceladas.</small><div className="crm-ranking">{channelRows.map(row=><div key={row.name}><div style={{display:'flex',justifyContent:'space-between',gap:12,marginBottom:8}}><span>{row.name}</span><strong style={{color:'#E4C687'}}>{row.count}</strong></div><div className="crm-track"><div style={{width:`${row.count/Math.max(1,inPeriod.length)*100}%`,background:row.name === 'Sin canal registrado' ? '#AFA394' : '#C49A58'}}/></div></div>)}</div>{!inPeriod.length && <p className="crm-empty">No hay citas en este periodo.</p>}</section></div>}
               {crmView === 'informes' && <>
+                <nav className="crm-shortcuts crm-report-index" aria-label="Ir a una sección del informe">
+                  {([
+                    ['Caja', 'crm-cash-title'], ['Citas', 'crm-report-citas'], ['Clientas', 'crm-report-clientas'],
+                    ['Servicios', 'crm-report-servicios'], ['Ocupación', 'crm-report-ocupacion'],
+                  ] as const).map(([label, id]) => <button type="button" key={id} className="crm-button"
+                    onClick={() => {
+                      const heading = document.getElementById(id);
+                      heading?.focus({ preventScroll: true });
+                      heading?.scrollIntoView({ block: 'start' });
+                    }}>{label}</button>)}
+                </nav>
                 <section className="crm-card crm-cash-statistics" aria-labelledby="crm-cash-title">
-                  <div className="crm-section-title"><h3 id="crm-cash-title">Estadísticas de Caja</h3><Wallet size={18} color="#E4C687" aria-hidden="true" /></div>
+                  <div className="crm-section-title"><h3 id="crm-cash-title" tabIndex={-1}>Estadísticas de Caja</h3><Wallet size={18} color="#E4C687" aria-hidden="true" /></div>
                   <small>Según la fecha del cobro o de la devolución. Las cortesías y los movimientos internos de efectivo quedan fuera.</small>
                   {valid && !cashStats && !cashResult?.error && <p className="crm-note" role="status">Consultando Caja…</p>}
                   {cashResult?.error && <div className="crm-section-title">
@@ -225,8 +234,53 @@ export default function CrmView(props: Props) {
                       </article>)}
                     </div>
                     <small>Periodo anterior · {previousFrom.split('-').reverse().join('/')} – {previousTo.split('-').reverse().join('/')}</small>
+                    <h4>Ticket medio por cliente</h4>
+                    <small>Total cobrado dividido entre los tickets de cada cliente, antes de devoluciones. Solo entran cobros de citas vinculadas a una ficha.</small>
+                    {cashStats.current.unlinkedSalesCount > 0 && <small>Cobros sin ficha en el periodo: {cashStats.current.unlinkedSalesCount}. Se incluyen en los totales de Caja.</small>}
+                    {cashStats.clients.length > 0 ? <div className="crm-cash-client-table">
+                      <table className="crm-table" aria-label="Ticket medio por cliente">
+                        <thead><tr><th scope="col">Cliente</th><th scope="col">Tickets</th><th scope="col">Total cobrado</th><th scope="col">Ticket medio</th></tr></thead>
+                        <tbody>{cashStats.clients.map(client => <tr key={client.id}>
+                          <th scope="row">{client.name}</th><td>{client.salesCount}</td>
+                          <td>{euro.format(client.salesCents / 100)}</td><td>{euro.format(averageTicket(client) / 100)}</td>
+                        </tr>)}</tbody>
+                      </table>
+                    </div> : <p className="crm-note">No hay cobros vinculados a una ficha en estas fechas.</p>}
+                    {(clientOffset > 0 || cashStats.nextOffset !== null) && <div className="crm-section-title">
+                      <small>{cashStats.clients.length > 0 ? `${clientOffset + 1}–${clientOffset + cashStats.clients.length} de ${cashStats.current.clientCount} clientes` : ''}</small>
+                      <div className="crm-shortcuts">
+                        {clientOffset > 0 && <button type="button" className="crm-button"
+                          onClick={() => setClientPage({ period: cashPeriod, offset: Math.max(0, clientOffset - 25) })}>Clientes anteriores</button>}
+                        {cashStats.nextOffset !== null && <button type="button" className="crm-button"
+                          onClick={() => setClientPage({ period: cashPeriod, offset: cashStats.nextOffset ?? 0 })}>Más clientes</button>}
+                      </div>
+                    </div>}
                   </>}
                 </section>
+              </>}
+              {(crmView === 'resumen' || crmView === 'informes') && <>
+                {crmView === 'informes' && <h3 id="crm-report-citas" tabIndex={-1}>Citas y actividad</h3>}
+                <div className="crm-grid crm-four">{metricCard('Citas confirmadas y realizadas',valid ? booked.length : '—','Según la fecha de la cita')}{metricCard('Visitas realizadas',valid ? completedCount : '—','Citas marcadas como realizadas','#BDE1B8')}{metricCard('Agenda ocupada',occupancy === null ? '—' : occupancy+'%',capacity ? `${(occupied/60).toFixed(1)} de ${(capacity/60).toFixed(1)} horas del horario` : 'Sin horario para calcular')}{metricCard('Fichas nuevas',valid ? newClientsInPeriod : '—','Altas registradas en estas fechas')}</div>
+                {crmView === 'informes' && valid && <div className="crm-status">
+                  <span>{pendingCount} pendientes</span><span>{demandInPeriod.length} búsquedas sin hueco</span>
+                  <span>{cancelledCount} canceladas</span><span>{noShowCount} ausencias</span>
+                </div>}
+                {crmView === 'resumen' && <>
+                <div className="crm-grid crm-two"><section className="crm-card"><div className="crm-section-title"><h3>¿Qué necesita tu atención?</h3><Clock3 size={18} color="#E4C687"/></div><div className="crm-actions"><button className="crm-button" type="button" onClick={()=>{setAdminTab('agenda');setPendingPanelFilter('all');setAgendaSidePanel('pending');}}>Revisar solicitudes y pagos <span>→</span></button><button className="crm-button" type="button" onClick={()=>setAdminTab('demands')}>Ver demanda perdida <span>→</span></button><button className="crm-button" type="button" onClick={()=>setAdminTab('detractors')}>Leer opiniones de clientas <span>→</span></button></div><div className="crm-status"><span>{valid ? pendingCount : '—'} pendientes en el periodo</span><span>{valid ? demandInPeriod.length : '—'} búsquedas sin hueco</span><span>{valid ? cancelledCount : '—'} canceladas</span><span>{valid ? noShowCount : '—'} ausencias</span></div><small style={{marginTop:10}}>Los accesos abren sus apartados completos; las cifras corresponden al periodo seleccionado.</small></section>
+                <section className="crm-card"><div className="crm-section-title"><h3>Los servicios que más se reservan</h3><Scissors size={18} color="#E4C687"/></div><div className="crm-ranking">{ranking.slice(0,4).map((item,i)=><div className="crm-ranking-row" key={item.key}><span>{String(i+1).padStart(2,'0')}</span><div><p>{item.name}</p><div className="crm-track"><div style={{width:`${item.count/top*100}%`,background:'#C49A58'}}/></div></div><strong>{item.count}</strong></div>)}</div>{!ranking.length && <p className="crm-empty">Todavía no hay servicios desglosados en este periodo.</p>}<button className="crm-button" type="button" style={{marginTop:16}} onClick={()=>setCrmView('servicios')}>Ver todos los servicios →</button></section></div>
+                </>}
+                <div className="crm-section-title"><h3>Frente al periodo anterior</h3><small>{valid ? `${previousFrom.split('-').reverse().join('/')} – ${previousTo.split('-').reverse().join('/')}` : 'Sin comparación disponible'}</small></div>{compareCards}
+              </>}
+              {(crmView === 'clientas' || crmView === 'informes') && <>
+                {crmView === 'informes' && <h3 id="crm-report-clientas" tabIndex={-1}>Clientas</h3>}
+                <div className="crm-grid crm-three">{metricCard('Clientas atendidas',valid ? attendedEmails.size : '—','Personas con visita realizada y email')}{metricCard('Clientas que repiten',valid ? returning : '—','Ya tenían una visita realizada anterior','#BDE1B8')}{metricCard('Fichas nuevas',valid ? newClientsInPeriod : '—','Altas en el periodo; no primeras visitas')}</div>
+                <div className="crm-grid crm-two"><section className="crm-card"><h3>Tu comunidad</h3><div className="crm-status"><span>{listaClientes.filter(c=>!c.archivedAt).length} activas</span><span>{listaClientes.filter(c=>!!c.archivedAt).length} de baja</span></div><small style={{margin:'12px 0'}}>Total de fichas actuales, independiente de las fechas del informe.</small><button className="crm-button crm-gold" type="button" onClick={()=>{setAdminTab('clients');setClientStatusFilter('active');}}>Abrir fichas de clientes →</button></section><section className="crm-card"><h3>Nuevas fichas por mes</h3><small style={{marginTop:7}}>Últimos 12 meses con altas registradas. Histórico completo.</small><div className="crm-ranking">{monthlyClientsRows.map(([month,count])=><div key={month}><div style={{display:'flex',justifyContent:'space-between',gap:12,marginBottom:7,fontSize:12}}><span>{new Date(month+'-01T12:00:00').toLocaleDateString('es-ES',{month:'short',year:'numeric'})}</span><strong style={{color:'#E4C687'}}>{count}</strong></div><div className="crm-track"><div style={{width:`${count/Math.max(1,...monthlyClientsRows.map(row=>row[1]))*100}%`,background:'#C49A58'}}/></div></div>)}</div>{!monthlyClientsRows.length && <p className="crm-empty">Sin fechas de alta registradas.</p>}</section></div>
+                <p className="crm-note">Las visitas y repeticiones se identifican por email. Las citas sin email no cuentan como personas únicas; no se infieren visitas que no estén registradas.</p>
+              </>}
+              {(crmView === 'servicios' || crmView === 'informes') && <>
+                {crmView === 'informes' && <h3 id="crm-report-servicios" tabIndex={-1}>Servicios y reservas</h3>}
+                <div className="crm-grid crm-two"><section className="crm-card"><h3>Ranking de servicios</h3><small style={{marginTop:7}}>Un servicio cuenta una vez por cita, agrupando variantes.</small><div className="crm-ranking">{ranking.map((item,i)=><div className="crm-ranking-row" key={item.key}><span>{i+1}</span><div><p>{item.name}</p><div className="crm-track"><div style={{width:`${item.count/top*100}%`,background:'#C49A58'}}/></div></div><strong>{item.count}</strong></div>)}</div>{!ranking.length && <p className="crm-empty">No hay servicios desglosados en estas fechas.</p>}{booked.some(item=>!item.services?.length) && <small style={{marginTop:15}}>Las citas antiguas sin desglose no entran en este ranking.</small>}</section><section className="crm-card"><h3>¿De dónde llegan las reservas?</h3><small style={{marginTop:7}}>Incluye todas las citas del periodo, también pendientes y canceladas.</small><div className="crm-ranking">{channelRows.map(row=><div key={row.name}><div style={{display:'flex',justifyContent:'space-between',gap:12,marginBottom:8}}><span>{row.name}</span><strong style={{color:'#E4C687'}}>{row.count}</strong></div><div className="crm-track"><div style={{width:`${row.count/Math.max(1,inPeriod.length)*100}%`,background:row.name === 'Sin canal registrado' ? '#AFA394' : '#C49A58'}}/></div></div>)}</div>{!inPeriod.length && <p className="crm-empty">No hay citas en este periodo.</p>}</section></div></>}
+              {crmView === 'informes' && <>
                 <section className="crm-card"><div className="crm-section-title"><h3>Exporta tu resumen</h3><BookOpen size={18} color="#E4C687"/></div><small style={{margin:'8px 0 14px'}}>El CSV incluye comparación, servicios, ocupación diaria y las estadísticas de Caja cuando están disponibles. El PDF imprime la vista que tienes abierta.</small>
                             <div className="studio-crm-export" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
               <button type="button" disabled={!valid} onClick={() => {
@@ -258,7 +312,7 @@ export default function CrmView(props: Props) {
             </div>
 
                 </section>
-                <div className="crm-section-title"><h3>Ocupación día a día</h3><span className="crm-period-badge">{occupancy === null ? 'Sin horario' : occupancy+'% de ocupación'}</span></div>
+                <div className="crm-section-title"><h3 id="crm-report-ocupacion" tabIndex={-1}>Ocupación día a día</h3><span className="crm-period-badge">{occupancy === null ? 'Sin horario' : occupancy+'% de ocupación'}</span></div>
                 <div className="crm-card" style={{overflowX:'auto'}}><table className="crm-table"><thead><tr><th>Fecha</th><th>Reservadas</th><th>Horario disponible</th><th>Ocupación</th></tr></thead><tbody>{days.map(day=><tr key={day.date}><td>{day.date.split('-').reverse().join('/')}</td><td>{(day.occupied/60).toFixed(1)} h</td><td>{(day.available/60).toFixed(1)} h</td><td style={{minWidth:150}}><div style={{display:'flex',alignItems:'center',gap:10}}><div className="crm-track" style={{flex:1}}><div style={{width:`${day.available ? day.occupied/day.available*100 : 0}%`,background:'#C49A58'}}/></div><span>{day.available ? Math.round(day.occupied/day.available*100)+'%' : '—'}</span></div></td></tr>)}</tbody></table>{!days.length && <p className="crm-empty">Selecciona un periodo válido.</p>}</div>
                 <details className="crm-notes"><summary>Actividad de este navegador</summary><p>Estos datos son locales e incluyen tus pruebas. No representan todas las visitas a la web ni se filtran por las fechas del informe.</p><div className="crm-status"><span>{trafficEvents.filter(item=>item.type === 'visit').length} visitas locales</span><span>{trafficEvents.filter(item=>item.type === 'login').length} accesos locales</span><span>{trafficEvents.filter(item=>item.type === 'booking').length} reservas locales</span></div></details>
               </>}
