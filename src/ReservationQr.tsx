@@ -1,11 +1,15 @@
 import React,{useEffect,useRef,useState} from 'react';
 import qrcode from './qrEncoder';
 export const SALON_QR_LINK='https://lstudioana.es/?reservar=1&origen=qr';
-export function createReservationQrSvg():string{
+export function createSalonQrModules(){
  const factory=qrcode as unknown as (version:number,correction:string)=>{addData:(data:string,mode:string)=>void;make:()=>void;getModuleCount:()=>number;isDark:(row:number,column:number)=>boolean};
  const code=factory(0,'M');code.addData(SALON_QR_LINK,'Byte');code.make();
  const count=code.getModuleCount(),side=count+8;let modules='';
  for(let y=0;y<count;y++)for(let x=0;x<count;x++)if(code.isDark(y,x))modules+=`M${x+4} ${y+4}h1v1h-1z`;
+ return {side,modules};
+}
+export function createReservationQrSvg():string{
+ const {side,modules}=createSalonQrModules();
  return `<?xml version="1.0" encoding="UTF-8"?><svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1700" viewBox="0 0 640 850" role="img" aria-label="Reserva tu cita en L’Studio Ana"><rect width="640" height="850" rx="22" fill="#29231F"/><rect x="22" y="22" width="596" height="806" rx="16" fill="none" stroke="#B9955F" stroke-width="1.5"/><text x="320" y="82" fill="#E4C687" font-family="Georgia,serif" font-size="38" text-anchor="middle">L’Studio Ana</text><text x="320" y="112" fill="#D6CBB8" font-family="Arial,sans-serif" font-size="12" letter-spacing="5" text-anchor="middle">HAIR EXPERIENCE</text><text x="320" y="160" fill="#F3E7D5" font-family="Arial,sans-serif" font-size="20" text-anchor="middle">Tu próxima cita empieza aquí</text><svg x="64" y="192" width="512" height="512" viewBox="0 0 ${side} ${side}"><rect width="${side}" height="${side}" fill="#FFFFFF"/><path d="${modules}" fill="#211D1A" shape-rendering="crispEdges"/></svg><text x="320" y="751" fill="#F3E7D5" font-family="Arial,sans-serif" font-size="18" text-anchor="middle">Escanea para reservar tu experiencia</text><text x="320" y="789" fill="#E4C687" font-family="Arial,sans-serif" font-size="17" text-anchor="middle">lstudioana.es</text></svg>`;
 }
 type ReadyFile={file:File;url:string};
