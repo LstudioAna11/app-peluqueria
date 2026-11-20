@@ -21,6 +21,7 @@ type ServiceReceipt = {
   voucher_kind?: string;
 };
 type ReceiptLine = string | { label: string; value: string; total?: boolean };
+type ReceiptHeader = { fiscalName: string; taxId: string; address: string; phone: string };
 type Movement = {
   id: string; recorded_at: string; description: string; kind: Kind; method: Method;
   service_receipt?: ServiceReceipt | null;
@@ -60,6 +61,70 @@ const money = (cents: number) => euro.format(cents / 100);
 const date = (timestamp: string) => dateTime.format(new Date(timestamp));
 const decimal = (cents: number) => (cents / 100).toFixed(2).replace('.', ',');
 
+const receiptHeaderKey = 'lst_cash_receipt_header';
+const receiptHeaderFields = [
+  { key: 'fiscalName', label: 'Nombre fiscal', limit: 100 },
+  { key: 'taxId', label: 'NIF', limit: 20 },
+  { key: 'address', label: 'Domicilio fiscal, código postal y localidad', limit: 180 },
+  { key: 'phone', label: 'Teléfono del salón (opcional)', limit: 30 },
+] as const;
+
+function cleanReceiptHeader(value: Partial<ReceiptHeader> | null): ReceiptHeader {
+  return {
+    fiscalName: typeof value?.fiscalName === 'string' ? value.fiscalName.trim().slice(0, 100) : '',
+    taxId: typeof value?.taxId === 'string' ? value.taxId.trim().slice(0, 20).toUpperCase() : '',
+    address: typeof value?.address === 'string' ? value.address.trim().slice(0, 180) : '',
+    phone: typeof value?.phone === 'string' ? value.phone.trim().slice(0, 30) : '',
+  };
+}
+
+function readReceiptHeader(): ReceiptHeader {
+  try { return cleanReceiptHeader(JSON.parse(localStorage.getItem(receiptHeaderKey) || 'null')); }
+  catch { return cleanReceiptHeader(null); }
+}
+
+function ReceiptHeaderSettings() {
+  const [draft, setDraft] = useState(readReceiptHeader);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+
+  function save(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const values = cleanReceiptHeader(draft);
+    if (!values.fiscalName || !values.taxId || !values.address) {
+      setError('Completa el nombre fiscal, el NIF y el domicilio.');
+      return;
+    }
+    try {
+      localStorage.setItem(receiptHeaderKey, JSON.stringify(values));
+      setDraft(values);
+      setError('');
+      setSaved(true);
+    } catch {
+      setError('Este navegador no pudo guardar los datos de impresión.');
+    }
+  }
+
+  return <details className="cash-card cash-receipt-settings">
+    <summary>Datos de impresión del ticket</summary>
+    <form className="cash-receipt-settings-form" onSubmit={save}>
+      {receiptHeaderFields.map(({ key, label, limit }) => <label className="cash-field" key={key}>
+        {label}
+        <input type="text" required={key !== 'phone'} maxLength={limit} autoComplete="off" value={draft[key]}
+          onChange={event => {
+            setDraft(current => ({ ...current, [key]: event.target.value }));
+            setSaved(false);
+            setError('');
+          }} />
+      </label>)}
+      <button className="cash-primary">Guardar datos de impresión</button>
+    </form>
+    <p className="cash-pos-note">Estos datos se guardan en este navegador.</p>
+    {saved && <p role="status">Datos de impresión guardados.</p>}
+    {error && <p className="cash-message cash-error" role="alert">{error}</p>}
+  </details>;
+}
+
 function cents(text: string, signed = false): number | null {
   const value = text.trim();
   if (!(signed ? /^-?\d{1,6}([,.]\d{1,2})?$/ : /^\d{1,6}([,.]\d{1,2})?$/).test(value)) return null;
@@ -72,7 +137,7 @@ async function request<T>(body: unknown) {
   return studioCashRegister<T>(token, body);
 }
 
-function printSlip(title: string, lines: ReceiptLine[]) {
+function printSlip(title: string, lines: ReceiptLine[], header?: ReceiptHeader) {
   const frame = document.createElement('iframe');
   frame.className = 'cash-print-frame';
   frame.title = title;
@@ -92,11 +157,40 @@ function printSlip(title: string, lines: ReceiptLine[]) {
       .amount-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px }
       .amount-row span:last-child { flex: none; white-space: nowrap; font-variant-numeric: tabular-nums }
       .amount-total { margin-block: 7px; padding-top: 4px; border-top: 1px solid #111; font-weight: 700 }
+      .ticket-brand { margin: 0 0 7px; text-align: center; font: bold 18pt Georgia, serif }
+      .ticket-issuer { margin-block: 6px; break-inside: avoid }
+      .ticket-issuer p { margin-block: 2px }
+      .ticket-document { border-block: 1px solid #111; margin-block: 9px; padding: 4px 0; break-inside: avoid }
+      .ticket-document h2 { margin: 0; font-size: 11pt }
+      .ticket-document p { margin: 2px 0 0; font-size: 9pt }
     `;
     page.head.append(css);
     const heading = page.createElement('h1');
-    heading.textContent = title;
-    page.body.append(heading);
+    if (header) {
+      heading.textContent = 'L’Studio Ana';
+      heading.className = 'ticket-brand';
+      page.body.append(heading);
+      const issuer = page.createElement('div');
+      issuer.className = 'ticket-issuer';
+      for (const text of [header.fiscalName, header.taxId && 'NIF ' + header.taxId, header.address, header.phone && 'Tel. ' + header.phone]) {
+        if (!text) continue;
+        const row = page.createElement('p');
+        row.textContent = text;
+        issuer.append(row);
+      }
+      page.body.append(issuer);
+      const documentType = page.createElement('div');
+      documentType.className = 'ticket-document';
+      const subtitle = page.createElement('h2');
+      subtitle.textContent = 'Justificante de caja';
+      const qualifier = page.createElement('p');
+      qualifier.textContent = 'Sin validez como factura';
+      documentType.append(subtitle, qualifier);
+      page.body.append(documentType);
+    } else {
+      heading.textContent = title;
+      page.body.append(heading);
+    }
     for (const line of lines) {
       const row = page.createElement('p');
       if (typeof line === 'string') {
@@ -461,15 +555,20 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     void send({ operation: 'close', shiftId: shift.id, amountCents, terminalCents, movementCount: totals.count });
   }
 
-  function print(title: string, lines: ReceiptLine[]) {
-    try { printSlip(title, lines); }
+  function print(title: string, lines: ReceiptLine[], header?: ReceiptHeader) {
+    try { printSlip(title, lines, header); }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo abrir la impresión.'); }
   }
 
   function printMovement(movement: Movement) {
     const snapshot = movement.service_receipt;
     const discount = movement.discount_cents ?? 0;
-    const lines: ReceiptLine[] = ['Sin validez como factura', `${kinds[movement.kind]} · ${date(movement.recorded_at)}`];
+    const lines: ReceiptLine[] = [
+      { label: 'Fecha', value: date(movement.recorded_at) },
+      { label: 'Movimiento', value: movement.id.slice(0, 8).toUpperCase() },
+      ...(movement.invoice_reference ? ['Factura asociada ' + movement.invoice_reference] : []),
+      kinds[movement.kind],
+    ];
 
     if (snapshot) {
       const subtotal = snapshot.total_cents + discount;
@@ -504,12 +603,10 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     lines.push(
       { label: movement.kind === 'refund' ? 'Importe devuelto' : 'Importe cobrado', value: money(movement.amount_cents), total: true },
       { label: 'Método de pago', value: methods[movement.method] },
-      `Movimiento ${movement.id.slice(0, 8).toUpperCase()}`,
       ...(movement.bank_reference ? [`Referencia ${movement.bank_reference}`] : []),
       ...(movement.refunded ? ['Cobro devuelto'] : []),
-      ...(movement.invoice_reference ? [`Factura ${movement.invoice_reference}`] : []),
     );
-    print('L’Studio Ana · Justificante de caja', lines);
+    print('L’Studio Ana · Justificante de caja', lines, readReceiptHeader());
   }
 
   function cashSummary() {
@@ -600,6 +697,8 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
           setSelection({ ...selection, before: state.history?.[29]?.opened_at })}>Cierres anteriores</button>}
         {selection.before && <button type="button" disabled={blocked} onClick={() => setSelection({ ...selection, before: undefined })}>Cierres recientes</button>}
       </div>}
+
+      {!appointment && <ReceiptHeaderSettings />}
 
       {!appointment && !selection.shiftId && !activeShift && <form className="cash-card cash-opening" onSubmit={event => {
         event.preventDefault();
