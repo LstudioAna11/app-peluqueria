@@ -30,7 +30,7 @@ type TicketVatRate = '21' | '10' | '4';
 type ReceiptHeader = {
   fiscalName: string; taxId: string; address: string; phone: string; logo: string; vatRate: TicketVatRate;
 };
-type PrintableTicket = { title: string; lines: ReceiptLine[]; header: ReceiptHeader };
+type PrintableTicket = { title: string; lines: ReceiptLine[]; header: ReceiptHeader; kind: 'receipt' | 'closing' };
 type Movement = {
   id: string; recorded_at: string; description: string; kind: Kind; method: Method;
   service_receipt?: ServiceReceipt | null;
@@ -309,7 +309,7 @@ function printTicketFooter(page: Document) {
   page.body.append(footer);
 }
 
-function writeCashDocument(page: Document, title: string, lines: ReceiptLine[], header?: ReceiptHeader) {
+function writeCashDocument(page: Document, { title, lines, header, kind }: PrintableTicket) {
   page.head.replaceChildren();
   page.body.replaceChildren();
   page.title = title;
@@ -331,7 +331,7 @@ function writeCashDocument(page: Document, title: string, lines: ReceiptLine[], 
     .ticket-document p { margin: 2px 0 0; font-size: 9pt }
   `;
   // The driver supplies the roll length; the printable ticket fits the 58 mm roll with 3 mm margins.
-  if (header) css.textContent += `
+  css.textContent += `
     @page { size: portrait; margin: 3mm }
     body { max-width: 52mm; font-size: 9pt }
     .ticket-brand { font-size: 15pt }
@@ -363,39 +363,37 @@ function writeCashDocument(page: Document, title: string, lines: ReceiptLine[], 
   `;
   page.head.append(css);
   const heading = page.createElement('h1');
+  heading.className = 'ticket-brand';
   let logo: HTMLImageElement | undefined;
-  if (header) {
-    heading.className = 'ticket-brand';
-    if (header.logo) {
-      logo = page.createElement('img');
-      logo.alt = 'L’Studio Ana';
-      logo.src = header.logo;
-      heading.append(logo);
-    } else {
-      heading.textContent = 'L’Studio Ana';
-    }
-    page.body.append(heading);
-    const issuer = page.createElement('div');
-    issuer.className = 'ticket-issuer';
-    for (const text of [header.fiscalName, header.taxId && 'NIF ' + header.taxId, header.address, header.phone && 'Tel. ' + header.phone]) {
-      if (!text) continue;
-      const row = page.createElement('p');
-      row.textContent = text;
-      issuer.append(row);
-    }
-    page.body.append(issuer);
-    const documentType = page.createElement('div');
-    documentType.className = 'ticket-document';
-    const subtitle = page.createElement('h2');
-    subtitle.textContent = 'Justificante de caja';
+  if (header.logo) {
+    logo = page.createElement('img');
+    logo.alt = 'L’Studio Ana';
+    logo.src = header.logo;
+    heading.append(logo);
+  } else {
+    heading.textContent = 'L’Studio Ana';
+  }
+  page.body.append(heading);
+  const issuer = page.createElement('div');
+  issuer.className = 'ticket-issuer';
+  for (const text of [header.fiscalName, header.taxId && 'NIF ' + header.taxId, header.address, header.phone && 'Tel. ' + header.phone]) {
+    if (!text) continue;
+    const row = page.createElement('p');
+    row.textContent = text;
+    issuer.append(row);
+  }
+  page.body.append(issuer);
+  const documentType = page.createElement('div');
+  documentType.className = 'ticket-document';
+  const subtitle = page.createElement('h2');
+  subtitle.textContent = kind === 'closing' ? 'Cierre de caja' : 'Justificante de caja';
+  documentType.append(subtitle);
+  if (kind === 'receipt') {
     const qualifier = page.createElement('p');
     qualifier.textContent = 'Sin validez como factura';
-    documentType.append(subtitle, qualifier);
-    page.body.append(documentType);
-  } else {
-    heading.textContent = title;
-    page.body.append(heading);
+    documentType.append(qualifier);
   }
+  page.body.append(documentType);
   for (const line of lines) {
     if (typeof line !== 'string' && 'services' in line) {
       page.body.append(printServiceDetails(page, line));
@@ -415,14 +413,14 @@ function writeCashDocument(page: Document, title: string, lines: ReceiptLine[], 
     }
     page.body.append(row);
   }
-  if (header) printTicketFooter(page);
+  if (kind === 'receipt') printTicketFooter(page);
   return { heading, logo };
 }
 
-async function printSlip(title: string, lines: ReceiptLine[], header?: ReceiptHeader) {
+async function printSlip(ticket: PrintableTicket) {
   const frame = document.createElement('iframe');
   frame.className = 'cash-print-frame';
-  frame.title = title;
+  frame.title = ticket.title;
   const host = document.querySelector('dialog.cash-ticket-preview[open]')
     ?? document.querySelector('dialog.appointment-cash-dialog[open]') ?? document.body;
   host.append(frame);
@@ -430,7 +428,7 @@ async function printSlip(title: string, lines: ReceiptLine[], header?: ReceiptHe
     const page = frame.contentDocument;
     const printer = frame.contentWindow;
     if (!page || !printer) throw new Error('No se pudo abrir la impresión.');
-    const { heading, logo } = writeCashDocument(page, title, lines, header);
+    const { heading, logo } = writeCashDocument(page, ticket);
     if (logo) {
       const ready = logo.complete ? logo.naturalWidth > 0 : await new Promise<boolean>(resolve => {
         const image = logo;
@@ -468,7 +466,7 @@ function TicketPreview({ ticket, onClose }: { ticket: PrintableTicket; onClose: 
     try {
       const page = iframe.contentDocument;
       if (!page) throw new Error('No se pudo abrir la vista previa.');
-      const { heading, logo } = writeCashDocument(page, ticket.title, ticket.lines, ticket.header);
+      const { heading, logo } = writeCashDocument(page, ticket);
       function fit() {
         if (iframe && page) iframe.style.height = Math.max(170, page.body.scrollHeight + 20) + 'px';
       }
@@ -495,7 +493,7 @@ function TicketPreview({ ticket, onClose }: { ticket: PrintableTicket; onClose: 
 
   async function printPreview() {
     setError('');
-    try { await printSlip(ticket.title, ticket.lines, ticket.header); }
+    try { await printSlip(ticket); }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo abrir la impresión.'); }
   }
 
@@ -885,8 +883,8 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     void send({ operation: 'close', shiftId: shift.id, amountCents, terminalCents, movementCount: totals.count });
   }
 
-  async function print(title: string, lines: ReceiptLine[], header?: ReceiptHeader) {
-    try { await printSlip(title, lines, header); }
+  async function print(ticket: PrintableTicket) {
+    try { await printSlip(ticket); }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo abrir la impresión.'); }
   }
 
@@ -930,12 +928,11 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
       { label: 'Total con IVA', value: money(totalCents), total: true },
       { label: 'Método de pago', value: methods[movement.method] },
     );
-    return { title: 'L’Studio Ana · Justificante de caja', lines, header };
+    return { title: 'L’Studio Ana · Justificante de caja', lines, header, kind: 'receipt' };
   }
 
   function printMovement(movement: Movement) {
-    const ticket = movementTicket(movement);
-    void print(ticket.title, ticket.lines, ticket.header);
+    void print(movementTicket(movement));
   }
 
   function cashSummary() {
@@ -1231,10 +1228,18 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         <p>Apertura {date(shift.opened_at)} · Cierre {date(shift.closed_at)}</p>
         <dl className="cash-summary">{cashSummary().map(([label, amount]) =>
           <div key={label}><dt>{label}</dt><dd>{money(amount)}</dd></div>)}</dl>
-        <button type="button" onClick={() => print('L’Studio Ana · Cierre de caja', [
-          `Apertura ${date(shift.opened_at)}`, `Cierre ${date(shift.closed_at!)}`,
-          ...cashSummary().map(([label, amount]) => `${label}  ${money(amount)}`),
-        ])}><Printer size={16} aria-hidden="true" />Imprimir cierre</button>
+        <button type="button" disabled={receiptHeaderLoading} onClick={() => void print({
+          title: 'L’Studio Ana · Cierre de caja',
+          kind: 'closing',
+          header: receiptHeader,
+          lines: [
+            { label: 'Fondo inicial', value: money(shift.opening_cents) },
+            { label: 'Efectivo', value: money(totals.cash) },
+            { label: 'Tarjeta', value: money(totals.card) },
+            { label: 'Bizum', value: money(totals.bizum) },
+            { label: 'Total', value: money(totals.cash + totals.card + totals.bizum), total: true },
+          ],
+        })}><Printer size={16} aria-hidden="true" />Imprimir cierre</button>
       </section> : <details className="cash-card cash-close" key={shift.id} ref={closingPanel}>
         <summary><span><Wallet size={19} aria-hidden="true" />Cierre de caja</span><ChevronDown size={19} aria-hidden="true" /></summary>
         <dl className="cash-summary">{cashSummary().map(([label, amount]) =>
