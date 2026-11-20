@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
+mport { useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
   ArrowDownLeft, ArrowUpRight, Banknote, CalendarDays, Check, ChevronDown, CreditCard,
@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { attachAppointmentVoucher, currentToken, fetchVouchers, StudioApiError, studioCashRegister } from './studioApi';
 import { createSalonQrModules, SALON_QR_LINK } from './ReservationQr';
+import type { CashQuickService } from './cashQuickServices';
 import './cash-register.css';
 
 type Method = 'cash' | 'card' | 'bizum' | 'transfer' | 'courtesy' | 'mixed';
@@ -80,6 +81,7 @@ const cashTabs = [
   { id: 'settings', label: 'Ajustes', Icon: Settings },
 ] as const;
 type CashTab = (typeof cashTabs)[number]['id'];
+type QuickSelection = { serviceId: string; variantId?: string };
 const keypad = ['1', '2', '3', '4', '5', '6', '7', '8', '9', ',', '0', 'delete'];
 const euro = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 const dateTime = new Intl.DateTimeFormat('es-ES', { timeZone: 'Europe/Madrid', dateStyle: 'short', timeStyle: 'short' });
@@ -774,6 +776,47 @@ function ClosingReport() {
   </details>;
 }
 
+function CashServiceShortcuts({ services, selection, disabled, onSelect }: {
+  services: CashQuickService[];
+  selection?: QuickSelection;
+  disabled: boolean;
+  onSelect: (service: CashQuickService, variantId?: string) => void;
+}) {
+  const shortcuts = services.slice(0, 6);
+  const others = services.slice(6);
+  const selected = services.find(service => service.id === selection?.serviceId);
+  const variant = selected?.variants.find(item => item.id === selection?.variantId);
+  return <fieldset className="cash-choice-group cash-shortcuts" disabled={disabled}>
+    <legend>Servicios rápidos</legend>
+    <div className="cash-shortcut-buttons">
+      {shortcuts.map(service => <button type="button" key={service.id}
+        aria-pressed={selection?.serviceId === service.id} onClick={() => onSelect(service)}>
+        <span>{service.label}</span>
+        <small>{service.variants.length ? 'Elegir variante' : service.priceCents === null ? 'Precio manual' : money(service.priceCents)}</small>
+      </button>)}
+    </div>
+    {!!others.length && <label className="cash-field">Más servicios
+      <select value={others.some(service => service.id === selected?.id) ? selected?.id : ''} onChange={event => {
+        const service = others.find(item => item.id === event.target.value);
+        if (service) onSelect(service);
+      }}>
+        <option value="" disabled>Elige otro servicio</option>
+        {others.map(service => <option key={service.id} value={service.id}>{service.label}</option>)}
+      </select>
+    </label>}
+    {!!selected?.variants.length && <label className="cash-field">Variante de {selected.label}
+      <select value={selection?.variantId ?? ''} onChange={event => onSelect(selected, event.target.value || undefined)}>
+        <option value="">Elige una variante</option>
+        {selected.variants.map(item => <option key={item.id} value={item.id}>
+          {item.label}{item.priceCents === null ? '' : ' · ' + money(item.priceCents)}
+        </option>)}
+      </select>
+    </label>}
+    {selected && (selected.variants.length ? variant?.priceCents === null : selected.priceCents === null)
+      && <p className="cash-pos-note">Introduce el precio acordado en el campo Importe.</p>}
+  </fieldset>;
+}
+
 function Amount({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return <label>{label}<input inputMode="decimal" maxLength={10} required {...props} /></label>;
 }
@@ -1017,13 +1060,14 @@ export function AppointmentCashDialog({ appointment, clientName, onClose, onOpen
   </dialog>;
 }
 
-export default function CashRegister({ appointment, onOpenCash, openAppointment, openAgenda, onSavingChange, hideTitle = false }: {
+export default function CashRegister({ appointment, onOpenCash, openAppointment, openAgenda, onSavingChange, hideTitle = false, quickServices = [] }: {
   appointment?: AppointmentSale;
   onOpenCash?: () => void;
   openAppointment?: (id: string) => void;
   openAgenda?: () => void;
   onSavingChange?: (saving: boolean) => void;
   hideTitle?: boolean;
+  quickServices?: CashQuickService[];
 }) {
   const appointmentId = appointment?.id;
   const [state, setState] = useState<CashState>();
@@ -1069,6 +1113,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     ? (appointment?.finalCents == null ? '' : decimal(appointment.finalCents))
     : finalAmountDraft;
   const [movementAmount, setMovementAmount] = useState('');
+  const [quickSelection, setQuickSelection] = useState<QuickSelection>();
   const [cashReceived, setCashReceived] = useState('');
   const [discountType, setDiscountType] = useState<'amount' | 'percent'>('amount');
   const [discountInput, setDiscountInput] = useState('');
@@ -1154,6 +1199,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
       if (isRecord) {
         setDiscountInput('');
         setMovementAmount('');
+        setQuickSelection(undefined);
         setCashReceived('');
         setPaymentDraft(emptyPaymentParts);
         setDescription('');
@@ -1358,6 +1404,16 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     </div>}
   </div>;
 
+  function pickQuickService(service: CashQuickService, variantId?: string) {
+    const variant = service.variants.find(item => item.id === variantId);
+    const price = service.variants.length ? variant?.priceCents : service.priceCents;
+    setQuickSelection({ serviceId: service.id, variantId: variant?.id });
+    setDescription((service.label + (variant ? ' · ' + variant.label : '')).slice(0, 200));
+    setMovementAmount(price == null ? '' : decimal(price));
+    setCashReceived('');
+    setPaymentDraft(emptyPaymentParts);
+  }
+
   if (!appointment && practice) return <CashPractice header={receiptHeader} onExit={() => {
     setPractice(false);
     setReload(value => value + 1);
@@ -1481,11 +1537,23 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
                 <legend>Operación</legend>
                 <div className="cash-operation-buttons">
                   {movementButtons.map(({ value, label, Icon }) => <label key={value} className="cash-choice">
-                    <input type="radio" name="cash-movement-kind" value={value} checked={kind === value} onChange={() => { setKind(value); setGiftMode(false); setCashReceived(''); }} />
+                    <input type="radio" name="cash-movement-kind" value={value} checked={kind === value} onChange={() => {
+                      setKind(value);
+                      setGiftMode(false);
+                      setCashReceived('');
+                      if (quickSelection) {
+                        setQuickSelection(undefined);
+                        setDescription('');
+                        setMovementAmount('');
+                        setPaymentDraft(emptyPaymentParts);
+                      }
+                    }} />
                     <span><Icon size={17} aria-hidden="true" />{label}</span>
                   </label>)}
                 </div>
               </fieldset>
+              {kind === 'sale' && !!quickServices.length && <CashServiceShortcuts services={quickServices}
+                selection={quickSelection} disabled={blocked} onSelect={pickQuickService} />}
               <label className="cash-field">Concepto<input required maxLength={200} value={description} placeholder={kind === 'sale' ? 'Ej. Champú' : 'Motivo del movimiento'}
                 disabled={blocked} onChange={event => setDescription(event.target.value)} /></label>
               {kind === 'sale' && <label className="cash-field">Nombre del cliente (opcional)
