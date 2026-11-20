@@ -66,7 +66,8 @@ function printSlip(title: string, lines: string[]) {
   const frame = document.createElement('iframe');
   frame.className = 'cash-print-frame';
   frame.title = title;
-  document.body.append(frame);
+  const host = document.querySelector('dialog.appointment-cash-dialog[open]') ?? document.body;
+  host.append(frame);
   try {
     const page = frame.contentDocument;
     const printer = frame.contentWindow;
@@ -181,11 +182,46 @@ function GiftCardPicker({ clientId, disabled, onApply }: {
   </>;
 }
 
-export default function CashRegister({ appointment, onOpenCash, openAppointment, openAgenda }: {
+export function AppointmentCashDialog({ appointment, clientName, onClose, onOpenCash }: {
+  appointment: AppointmentSale;
+  clientName: string;
+  onClose: () => void;
+  onOpenCash: () => void;
+}) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog || dialog.open) return;
+    dialog.showModal();
+    closeButton.current?.focus();
+  }, []);
+
+  return <dialog ref={ref} className="appointment-cash-dialog" aria-labelledby="appointment-cash-dialog-title"
+    onClose={onClose} onCancel={event => { if (saving) event.preventDefault(); }}>
+    <header className="appointment-cash-dialog-header">
+      <div>
+        <h2 id="appointment-cash-dialog-title">Cobro de cita</h2>
+        {clientName && <p>{clientName}</p>}
+      </div>
+      <button ref={closeButton} type="button" aria-label="Cerrar cobro" disabled={saving}
+        onClick={() => ref.current?.close()}>Cerrar <span aria-hidden="true">×</span></button>
+    </header>
+    <div className="appointment-cash-dialog-body">
+      <CashRegister appointment={appointment} onOpenCash={onOpenCash} onSavingChange={setSaving} hideTitle />
+    </div>
+  </dialog>;
+}
+
+export default function CashRegister({ appointment, onOpenCash, openAppointment, openAgenda, onSavingChange, hideTitle = false }: {
   appointment?: AppointmentSale;
   onOpenCash?: () => void;
   openAppointment?: (id: string) => void;
   openAgenda?: () => void;
+  onSavingChange?: (saving: boolean) => void;
+  hideTitle?: boolean;
 }) {
   const appointmentId = appointment?.id;
   const [state, setState] = useState<CashState>();
@@ -204,6 +240,9 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   const [kind, setKind] = useState<Exclude<Kind, 'refund'>>('sale');
   const [giftMode, setGiftMode] = useState(false);
   const [giftBusy, setGiftBusy] = useState(false);
+  useEffect(() => {
+    onSavingChange?.(busy || giftBusy);
+  }, [busy, giftBusy, onSavingChange]);
   const [giftError, setGiftError] = useState('');
   const [method, setMethod] = useState<(typeof methodButtons)[number]['value']>('card');
   const [description, setDescription] = useState('');
@@ -361,9 +400,9 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     aria-label={appointment ? 'Cobro de cita' : 'Caja'} aria-busy={loading || busy || giftBusy}>
     <header className="cash-heading">
       <div className="cash-title">
-        <div className="cash-title-icon"><Wallet size={23} aria-hidden="true" /></div>
+        {!hideTitle && <div className="cash-title-icon"><Wallet size={23} aria-hidden="true" /></div>}
         <div>
-          <h2>{appointment ? 'Cobro de cita' : 'Caja'}</h2>
+          {!hideTitle && <h2>{appointment ? 'Cobro de cita' : 'Caja'}</h2>}
           {state && <span className={`cash-status${activeShift && !shift?.closed_at ? ' cash-status-open' : ''}`}>
             {shift?.closed_at ? `Cierre · ${date(shift.closed_at)}` : activeShift ? `Caja abierta · ${date(activeShift.opened_at)}` : 'Caja cerrada'}
           </span>}
