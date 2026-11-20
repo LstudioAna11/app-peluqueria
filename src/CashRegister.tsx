@@ -26,7 +26,7 @@ type ReceiptServiceDetails = {
   vatRate: string;
 };
 type ReceiptLine = string | { label: string; value: string; total?: boolean } | ReceiptServiceDetails;
-type TicketVatRate = 'none' | '21' | '10' | '4';
+type TicketVatRate = '21' | '10' | '4';
 type ReceiptHeader = {
   fiscalName: string; taxId: string; address: string; phone: string; logo: string; vatRate: TicketVatRate;
 };
@@ -95,7 +95,7 @@ function cleanReceiptHeader(value: Partial<ReceiptHeader> | null): ReceiptHeader
     address: typeof value?.address === 'string' ? value.address.trim().slice(0, 180) : '',
     phone: typeof value?.phone === 'string' ? value.phone.trim().slice(0, 30) : '',
     logo: cleanReceiptLogo(value?.logo),
-    vatRate: value?.vatRate === 'none' || value?.vatRate === '10' || value?.vatRate === '4' ? value.vatRate : '21',
+    vatRate: value?.vatRate === '10' || value?.vatRate === '4' ? value.vatRate : '21',
   };
 }
 
@@ -163,7 +163,6 @@ function ReceiptHeaderSettings() {
           setDraft(current => ({ ...current, vatRate }));
           setSaved(false);
         }}>
-          <option value="none">Sin desglose</option>
           <option value="21">21 %</option>
           <option value="10">10 %</option>
           <option value="4">4 %</option>
@@ -190,7 +189,7 @@ function ReceiptHeaderSettings() {
       </div>
       <button className="cash-primary" disabled={readingLogo}>Guardar datos de impresión</button>
     </form>
-    <p className="cash-pos-note">Formato vertical para rollo de 58 mm. El IVA se desglosa en cobros de citas sin anticipos ni bonos. Los datos se guardan en este navegador.</p>
+    <p className="cash-pos-note">Formato vertical para rollo de 58 mm. El tipo elegido se usa en el desglose informativo del precio. Los datos se guardan en este navegador.</p>
     {saved && <p role="status">Datos de impresión guardados.</p>}
     {error && <p className="cash-message cash-error" role="alert">{error}</p>}
   </details>;
@@ -871,39 +870,34 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
       ...(movement.invoice_reference ? ['Factura asociada ' + movement.invoice_reference] : []),
     ];
 
-    let serviceShowsPaid = false;
-    if (snapshot) {
-      const vatRate = header.vatRate !== 'none' && movement.kind === 'sale' && snapshot.items.length > 0
-        && !snapshot.deposit_cents && !snapshot.voucher_cents && snapshot.total_cents === movement.amount_cents
-        ? header.vatRate : '';
-      const base = vatRate ? Math.round(snapshot.total_cents * 100 / (100 + Number(vatRate))) : null;
-      const services = snapshot.items.length ? makeReceiptServiceDetails(snapshot, vatRate, base) : {
-        vatRate: '', services: [{ label: movement.description, base: null, vat: null, total: snapshot.total_cents }],
-      };
-      lines.push(services);
-      serviceShowsPaid = services.services.length === 1 && services.services[0].total === movement.amount_cents;
-      if (discount > 0) lines.push({ label: 'Descuento aplicado', value: money(-discount) });
-      if (snapshot.deposit_cents) lines.push({ label: 'Anticipo aplicado', value: money(-snapshot.deposit_cents) });
-      if (snapshot.voucher_cents) lines.push({
-        label: snapshot.voucher_kind === 'gift' ? 'Tarjeta regalo aplicada' : 'Bono aplicado',
-        value: money(-snapshot.voucher_cents),
-      });
+    const totalCents = snapshot?.total_cents ?? movement.amount_cents;
+    const baseCents = Math.round(totalCents * 100 / (100 + Number(header.vatRate)));
+
+    if (snapshot && snapshot.items.length > 1) {
+      lines.push(makeReceiptServiceDetails(snapshot, header.vatRate, baseCents));
     } else {
-      serviceShowsPaid = movement.appointment_id === null && movement.kind === 'sale';
-      lines.push({ vatRate: '', services: [{
-        label: movement.description, base: null, vat: null, total: serviceShowsPaid ? movement.amount_cents : null,
-      }] });
-      if (discount > 0) lines.push({ label: 'Descuento aplicado', value: money(-discount) });
+      lines.push(snapshot?.items[0]?.[0] || movement.description);
     }
 
-    if (!serviceShowsPaid || movement.kind === 'refund') lines.push({
-      label: movement.kind === 'refund' ? 'Importe devuelto' : 'Total cobrado',
-      value: money(movement.amount_cents),
-      total: true,
+    if (discount > 0) lines.push({ label: 'Descuento aplicado', value: money(-discount) });
+    if (snapshot?.deposit_cents) lines.push({ label: 'Anticipo aplicado', value: money(-snapshot.deposit_cents) });
+    if (snapshot?.voucher_cents) lines.push({
+      label: snapshot.voucher_kind === 'gift' ? 'Tarjeta regalo aplicada' : 'Bono aplicado',
+      value: money(-snapshot.voucher_cents),
     });
+    if (snapshot && totalCents !== movement.amount_cents) lines.push({
+      label: 'Saldo cobrado', value: money(movement.amount_cents),
+    });
+
     lines.push(
       ...(movement.bank_reference ? [`Referencia ${movement.bank_reference}`] : []),
       ...(movement.refunded ? ['Cobro devuelto'] : []),
+      movement.kind === 'refund' ? 'Desglose informativo de la devolución'
+        : snapshot ? 'Desglose informativo del precio'
+          : 'Desglose informativo del importe registrado',
+      { label: 'Base sin IVA', value: money(baseCents) },
+      { label: 'IVA ' + header.vatRate + ' %', value: money(totalCents - baseCents) },
+      { label: 'Total con IVA', value: money(totalCents), total: true },
       { label: 'Método de pago', value: methods[movement.method] },
     );
     return { title: 'L’Studio Ana · Justificante de caja', lines, header };
