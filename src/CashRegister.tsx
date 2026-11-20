@@ -21,7 +21,10 @@ type ServiceReceipt = {
   voucher_kind?: string;
 };
 type ReceiptLine = string | { label: string; value: string; total?: boolean };
-type ReceiptHeader = { fiscalName: string; taxId: string; address: string; phone: string };
+type TicketVatRate = '' | '21' | '10' | '4';
+type ReceiptHeader = {
+  fiscalName: string; taxId: string; address: string; phone: string; logo: string; vatRate: TicketVatRate;
+};
 type Movement = {
   id: string; recorded_at: string; description: string; kind: Kind; method: Method;
   service_receipt?: ServiceReceipt | null;
@@ -62,6 +65,13 @@ const date = (timestamp: string) => dateTime.format(new Date(timestamp));
 const decimal = (cents: number) => (cents / 100).toFixed(2).replace('.', ',');
 
 const receiptHeaderKey = 'lst_cash_receipt_header';
+const receiptLogoLimit = 600 * 1024;
+const receiptLogoTypes = ['image/png', 'image/jpeg', 'image/webp'];
+
+function cleanReceiptLogo(value: unknown): string {
+  return typeof value === 'string' && value.length <= Math.ceil(receiptLogoLimit / 3) * 4 + 32
+    && /^data:image\/(png|jpeg|webp);base64,[a-z0-9+/]+=*$/i.test(value) ? value : '';
+}
 const receiptHeaderFields = [
   { key: 'fiscalName', label: 'Nombre fiscal', limit: 100 },
   { key: 'taxId', label: 'NIF', limit: 20 },
@@ -75,6 +85,8 @@ function cleanReceiptHeader(value: Partial<ReceiptHeader> | null): ReceiptHeader
     taxId: typeof value?.taxId === 'string' ? value.taxId.trim().slice(0, 20).toUpperCase() : '',
     address: typeof value?.address === 'string' ? value.address.trim().slice(0, 180) : '',
     phone: typeof value?.phone === 'string' ? value.phone.trim().slice(0, 30) : '',
+    logo: cleanReceiptLogo(value?.logo),
+    vatRate: value?.vatRate === '21' || value?.vatRate === '10' || value?.vatRate === '4' ? value.vatRate : '',
   };
 }
 
@@ -86,6 +98,7 @@ function readReceiptHeader(): ReceiptHeader {
 function ReceiptHeaderSettings() {
   const [draft, setDraft] = useState(readReceiptHeader);
   const [saved, setSaved] = useState(false);
+  const [readingLogo, setReadingLogo] = useState(false);
   const [error, setError] = useState('');
 
   function save(event: FormEvent<HTMLFormElement>) {
@@ -105,6 +118,24 @@ function ReceiptHeaderSettings() {
     }
   }
 
+  function selectLogo(file: File) {
+    setSaved(false);
+    if (!receiptLogoTypes.includes(file.type) || file.size > receiptLogoLimit) {
+      setError('Elige un logo PNG, JPG o WebP de hasta 600 KB.');
+      return;
+    }
+    setReadingLogo(true);
+    setError('');
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setReadingLogo(false);
+      const logo = cleanReceiptLogo(reader.result);
+      if (logo) setDraft(current => ({ ...current, logo }));
+      else setError('No se pudo leer el logo seleccionado.');
+    };
+    reader.readAsDataURL(file);
+  }
+
   return <details className="cash-card cash-receipt-settings">
     <summary>Datos de impresión del ticket</summary>
     <form className="cash-receipt-settings-form" onSubmit={save}>
@@ -117,9 +148,40 @@ function ReceiptHeaderSettings() {
             setError('');
           }} />
       </label>)}
-      <button className="cash-primary">Guardar datos de impresión</button>
+      <label className="cash-field">IVA incluido en el precio
+        <select value={draft.vatRate} onChange={event => {
+          const vatRate = event.target.value as TicketVatRate;
+          setDraft(current => ({ ...current, vatRate }));
+          setSaved(false);
+        }}>
+          <option value="">Sin desglose</option>
+          <option value="21">21 %</option>
+          <option value="10">10 %</option>
+          <option value="4">4 %</option>
+        </select>
+      </label>
+      <div className="cash-receipt-logo">
+        <label className="cash-field">Logo del ticket
+          <input type="file" accept="image/png,image/jpeg,image/webp" disabled={readingLogo}
+            onChange={event => {
+              const file = event.currentTarget.files?.[0];
+              event.currentTarget.value = '';
+              if (file) selectLogo(file);
+            }} />
+        </label>
+        {draft.logo && <div className="cash-actions">
+          <img src={draft.logo} alt="Vista previa del logo del ticket" />
+          <button type="button" disabled={readingLogo} onClick={() => {
+            setDraft(current => ({ ...current, logo: '' }));
+            setSaved(false);
+            setError('');
+          }}>Quitar logo</button>
+        </div>}
+        {readingLogo && <p role="status">Cargando logo…</p>}
+      </div>
+      <button className="cash-primary" disabled={readingLogo}>Guardar datos de impresión</button>
     </form>
-    <p className="cash-pos-note">Estos datos se guardan en este navegador.</p>
+    <p className="cash-pos-note">Formato vertical para rollo de 58 mm. El IVA se desglosa en cobros de citas sin anticipos ni bonos. Los datos se guardan en este navegador.</p>
     {saved && <p role="status">Datos de impresión guardados.</p>}
     {error && <p className="cash-message cash-error" role="alert">{error}</p>}
   </details>;
@@ -137,7 +199,7 @@ async function request<T>(body: unknown) {
   return studioCashRegister<T>(token, body);
 }
 
-function printSlip(title: string, lines: ReceiptLine[], header?: ReceiptHeader) {
+async function printSlip(title: string, lines: ReceiptLine[], header?: ReceiptHeader) {
   const frame = document.createElement('iframe');
   frame.className = 'cash-print-frame';
   frame.title = title;
@@ -158,17 +220,37 @@ function printSlip(title: string, lines: ReceiptLine[], header?: ReceiptHeader) 
       .amount-row span:last-child { flex: none; white-space: nowrap; font-variant-numeric: tabular-nums }
       .amount-total { margin-block: 7px; padding-top: 4px; border-top: 1px solid #111; font-weight: 700 }
       .ticket-brand { margin: 0 0 7px; text-align: center; font: bold 18pt Georgia, serif }
+      .ticket-brand img { display: block; max-width: min(100%, 38mm); max-height: 22mm; width: auto; height: auto; margin: 0 auto }
       .ticket-issuer { margin-block: 6px; break-inside: avoid }
       .ticket-issuer p { margin-block: 2px }
       .ticket-document { border-block: 1px solid #111; margin-block: 9px; padding: 4px 0; break-inside: avoid }
       .ticket-document h2 { margin: 0; font-size: 11pt }
       .ticket-document p { margin: 2px 0 0; font-size: 9pt }
     `;
+    // The driver supplies the roll length; the printable ticket fits the 58 mm roll with 3 mm margins.
+    if (header) css.textContent += `
+      @page { size: portrait; margin: 3mm }
+      body { max-width: 52mm; font-size: 9pt }
+      .ticket-brand { font-size: 15pt }
+      .ticket-brand img { max-width: min(100%, 38mm) }
+      .ticket-document h2 { font-size: 9pt }
+      .ticket-document p { font-size: 8pt }
+      .amount-row { gap: 4px }
+      .amount-row span:first-child { min-width: 0 }
+    `;
     page.head.append(css);
     const heading = page.createElement('h1');
+    let logo: HTMLImageElement | undefined;
     if (header) {
-      heading.textContent = 'L’Studio Ana';
       heading.className = 'ticket-brand';
+      if (header.logo) {
+        logo = page.createElement('img');
+        logo.alt = 'L’Studio Ana';
+        logo.src = header.logo;
+        heading.append(logo);
+      } else {
+        heading.textContent = 'L’Studio Ana';
+      }
       page.body.append(heading);
       const issuer = page.createElement('div');
       issuer.className = 'ticket-issuer';
@@ -205,6 +287,16 @@ function printSlip(title: string, lines: ReceiptLine[], header?: ReceiptHeader) 
       }
       page.body.append(row);
     }
+    if (logo) {
+      const ready = logo.complete ? logo.naturalWidth > 0 : await new Promise<boolean>(resolve => {
+        const image = logo;
+        const timeout = window.setTimeout(() => resolve(false), 1200);
+        image.addEventListener('load', () => { window.clearTimeout(timeout); resolve(true); }, { once: true });
+        image.addEventListener('error', () => { window.clearTimeout(timeout); resolve(false); }, { once: true });
+      });
+      if (!ready) heading.textContent = 'L’Studio Ana';
+    }
+    if (!frame.isConnected) return;
     printer.addEventListener('afterprint', () => frame.remove(), { once: true });
     printer.focus();
     printer.print();
@@ -555,12 +647,13 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     void send({ operation: 'close', shiftId: shift.id, amountCents, terminalCents, movementCount: totals.count });
   }
 
-  function print(title: string, lines: ReceiptLine[], header?: ReceiptHeader) {
-    try { printSlip(title, lines, header); }
+  async function print(title: string, lines: ReceiptLine[], header?: ReceiptHeader) {
+    try { await printSlip(title, lines, header); }
     catch (reason) { setError(reason instanceof Error ? reason.message : 'No se pudo abrir la impresión.'); }
   }
 
   function printMovement(movement: Movement) {
+    const header = readReceiptHeader();
     const snapshot = movement.service_receipt;
     const discount = movement.discount_cents ?? 0;
     const lines: ReceiptLine[] = [
@@ -589,7 +682,17 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         { label: 'Subtotal servicios', value: money(subtotal) },
         { label: 'Descuento aplicado', value: money(-discount) },
       );
-      lines.push({ label: 'Total servicios', value: money(snapshot.total_cents), total: true });
+      if (header.vatRate && movement.kind === 'sale' && snapshot.items.length > 0
+        && !snapshot.deposit_cents && !snapshot.voucher_cents && snapshot.total_cents === movement.amount_cents) {
+        const base = Math.round(snapshot.total_cents * 100 / (100 + Number(header.vatRate)));
+        lines.push(
+          { label: 'Base sin IVA', value: money(base) },
+          { label: 'IVA ' + header.vatRate + ' %', value: money(snapshot.total_cents - base) },
+          { label: 'Total con IVA incluido', value: money(snapshot.total_cents), total: true },
+        );
+      } else {
+        lines.push({ label: 'Total servicios', value: money(snapshot.total_cents), total: true });
+      }
       if (snapshot.deposit_cents) lines.push({ label: 'Anticipo aplicado', value: money(-snapshot.deposit_cents) });
       if (snapshot.voucher_cents) lines.push({
         label: snapshot.voucher_kind === 'gift' ? 'Tarjeta regalo aplicada' : 'Bono aplicado',
@@ -606,7 +709,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
       ...(movement.bank_reference ? [`Referencia ${movement.bank_reference}`] : []),
       ...(movement.refunded ? ['Cobro devuelto'] : []),
     );
-    print('L’Studio Ana · Justificante de caja', lines, readReceiptHeader());
+    print('L’Studio Ana · Justificante de caja', lines, header);
   }
 
   function cashSummary() {
