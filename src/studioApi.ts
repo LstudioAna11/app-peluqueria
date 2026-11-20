@@ -388,3 +388,6 @@ export type GiftAssignment={requestId:string;voucherId:string;expectedOwner:stri
 export type GiftPurchaseReceipt={id:string;title:string;price_cents:number;payment_reference:string;activated_at:string;created_at:string;expires_on:string|null};
 export const assignGiftRecipient=(token:string,body:GiftAssignment)=>call<{ok:true;replayed?:boolean;codeRenewed?:boolean}>('voucher-assign-recipient',{token,body});
 export const fetchGiftPurchases=(token:string,page=0)=>call<{purchases:GiftPurchaseReceipt[];total:number;page:number}>('voucher-purchases',{token,body:{page}});
+
+export const studioCashRegister = <T>(token: string, body: unknown) =>
+  call<T>('cash-register', { token, body });
