@@ -25,7 +25,7 @@ type ReceiptServiceDetails = {
   services: { label: string; base: number | null; vat: number | null; total: number | null }[];
   vatRate: string;
 };
-type ReceiptLine = string | { label: string; value: string; total?: boolean } | ReceiptServiceDetails;
+type ReceiptLine = string | { label: string; value: string; total?: boolean; startsBreakdown?: boolean } | ReceiptServiceDetails;
 type TicketVatRate = '21' | '10' | '4';
 type ReceiptHeader = {
   fiscalName: string; taxId: string; address: string; phone: string; logo: string; vatRate: TicketVatRate;
@@ -336,6 +336,7 @@ function writeCashDocument(page: Document, title: string, lines: ReceiptLine[], 
     .ticket-issuer { margin-block: 3px }
     .ticket-issuer p { margin-block: 1px }
     .ticket-document { margin-block: 5px; padding-block: 3px }
+    .amount-breakdown-start { margin-top: 3mm }
     .amount-total { margin-block: 4px; padding-top: 3px }
     .ticket-services { margin-block: 4px; border-top: 1px solid #111 }
     .ticket-service { padding-block: 3px; break-inside: avoid }
@@ -395,6 +396,7 @@ function writeCashDocument(page: Document, title: string, lines: ReceiptLine[], 
       row.textContent = line;
     } else {
       row.className = line.total ? 'amount-row amount-total' : 'amount-row';
+      if (line.startsBreakdown) row.classList.add('amount-breakdown-start');
       for (const text of [line.label, line.value]) {
         const span = page.createElement('span');
         span.textContent = text;
@@ -892,10 +894,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     lines.push(
       ...(movement.bank_reference ? [`Referencia ${movement.bank_reference}`] : []),
       ...(movement.refunded ? ['Cobro devuelto'] : []),
-      movement.kind === 'refund' ? 'Desglose informativo de la devolución'
-        : snapshot ? 'Desglose informativo del precio'
-          : 'Desglose informativo del importe registrado',
-      { label: 'Base sin IVA', value: money(baseCents) },
+      { label: 'Base sin IVA', value: money(baseCents), startsBreakdown: true },
       { label: 'IVA ' + header.vatRate + ' %', value: money(totalCents - baseCents) },
       { label: 'Total con IVA', value: money(totalCents), total: true },
       { label: 'Método de pago', value: methods[movement.method] },
