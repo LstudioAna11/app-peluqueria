@@ -2,7 +2,7 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import {
   ArrowDownLeft, ArrowUpRight, Banknote, Check, ChevronDown, CreditCard,
-  Delete, Gift, History, Printer, Receipt, RefreshCw, Smartphone, Wallet,
+  Delete, Gift, History, Printer, Receipt, RefreshCw, Search, Smartphone, Wallet,
 } from 'lucide-react';
 import { attachAppointmentVoucher, currentToken, fetchVouchers, StudioApiError, studioCashRegister } from './studioApi';
 import { createSalonQrModules, SALON_QR_LINK } from './ReservationQr';
@@ -39,6 +39,7 @@ type Movement = {
   ticket_client_name?: string | null;
   amount_cents: number; appointment_id: string | null; bank_reference: string | null; invoice_reference: string | null; refunded: boolean;
 };
+type TicketSearchPage = { tickets: (Movement & { ticket_number: number })[]; nextBefore: number | null };
 type Totals = Record<Exclude<Method, 'courtesy'>, number> & { cashIn: number; cashOut: number; count: number };
 type CashState = {
   openShift: Shift | null; shift?: Shift | null; movements: Movement[]; totals?: Totals | null;
@@ -513,6 +514,81 @@ function TicketPreview({ ticket, onClose }: { ticket: PrintableTicket; onClose: 
       <Printer size={17} aria-hidden="true" />Imprimir ticket
     </button></footer>
   </dialog>;
+}
+
+function TicketSearch({ onPreview, previewDisabled }: {
+  onPreview: (movement: Movement) => void;
+  previewDisabled: boolean;
+}) {
+  const [query, setQuery] = useState('');
+  const [day, setDay] = useState('');
+  const [results, setResults] = useState<TicketSearchPage & {
+    criteria: { query: string; day: string | null };
+  }>();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  async function findTickets(criteria: { query: string; day: string | null }, before?: number) {
+    if (busy) return;
+    setBusy(true);
+    setError('');
+    if (before === undefined) setResults(undefined);
+    try {
+      const page = await request<TicketSearchPage>({
+        operation: 'ticket-search', ...criteria, before,
+      });
+      setResults(current => ({
+        criteria,
+        tickets: before === undefined ? page.tickets : [...(current?.tickets ?? []), ...page.tickets],
+        nextBefore: page.nextBefore,
+      }));
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'No se pudieron buscar tickets.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return <details className="cash-card cash-ticket-search">
+    <summary><Search size={18} aria-hidden="true" />Buscar tickets</summary>
+    <form className="cash-form" aria-busy={busy} onSubmit={event => {
+      event.preventDefault();
+      if (query.trim() || day) void findTickets({ query: query.trim(), day: day || null });
+    }}>
+      <label>Número de ticket o cliente
+        <input type="search" maxLength={160} placeholder="T-000123 o nombre" value={query}
+          onChange={event => setQuery(event.target.value)} />
+      </label>
+      <label>Fecha del ticket
+        <input type="date" value={day} onChange={event => setDay(event.target.value)} />
+      </label>
+      <button type="submit" className="cash-primary" disabled={busy || (!query.trim() && !day)}>Buscar</button>
+    </form>
+    {busy && <p className="cash-pos-note" role="status">Buscando tickets…</p>}
+    {error && <p className="cash-message cash-error" role="alert">{error}</p>}
+    {results?.tickets.length === 0 && <p className="cash-pos-note" role="status">No se encontraron tickets.</p>}
+    {!!results?.tickets.length && <>
+      <ul className="cash-movements">
+        {results.tickets.map(movement => <li key={movement.id}>
+          <div className="cash-movement-line">
+            <div className="cash-movement-info">
+              <strong>Ticket {ticketNumber(movement.ticket_number)}{movement.ticket_client_name ? ' · ' + movement.ticket_client_name : ''}</strong>
+              <small>{date(movement.recorded_at)} · {kinds[movement.kind]} · {methods[movement.method]}{movement.refunded ? ' · Devuelto' : ''}</small>
+              <p>{movement.description}</p>
+            </div>
+            <strong className="cash-movement-amount">{money(movement.kind === 'refund' ? -movement.amount_cents : movement.amount_cents)}</strong>
+          </div>
+          <div className="cash-actions">
+            <button type="button" aria-haspopup="dialog" disabled={previewDisabled}
+              onClick={() => onPreview(movement)}>Vista previa</button>
+          </div>
+        </li>)}
+      </ul>
+      {results.nextBefore !== null && <div className="cash-actions">
+        <button type="button" disabled={busy} onClick={() => void findTickets(results.criteria, results.nextBefore!)}>Ver más tickets</button>
+      </div>}
+    </>}
+  </details>;
 }
 
 function Amount({ label, ...props }: { label: string } & React.InputHTMLAttributes<HTMLInputElement>) {
@@ -1025,6 +1101,8 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     {error && <p className="cash-message cash-error" role="alert">{error}</p>}
     {notice && <p className="cash-message cash-success" role="status"><Check size={16} aria-hidden="true" />{notice}</p>}
     {retry && <button type="button" disabled={busy} onClick={() => void send(retry)}>Reintentar guardado</button>}
+    {!appointment && <TicketSearch previewDisabled={receiptHeaderLoading}
+      onPreview={movement => setTicketPreview(movementTicket(movement))} />}
     {!loading && state && <>
       {!appointment && (state.history?.length === 30 || selection.before) && <div className="cash-actions">
         {state.history?.length === 30 && <button type="button" disabled={blocked} onClick={() =>
