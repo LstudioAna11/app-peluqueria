@@ -1,0 +1,5 @@
+.slot-alert-card { display: grid; justify-items: start; gap: 8px; padding: 14px; border: 1px solid #806340; border-radius: 10px; background: #302721; color: #fff8ee; }
+.slot-alert-card p { margin: 0; font-size: .88rem; line-height: 1.5; color: #e5d5c2; overflow-wrap: anywhere; }
+.slot-alert-card strong { color: #e4c687; }
+.slot-alert-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.slot-alert-list { display: grid; gap: 10px; }
