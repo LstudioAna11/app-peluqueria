@@ -1,3 +1,4 @@
+import ProductInventory, { ClientProductRoutine } from './Products';
 import {StraighteningProductConfig,isStraighteningSupplement} from './StraighteningProduct'; // lst-straightening-product-v1
 import { cashQuickServices } from './cashQuickServices';
 import { AgendaSlotAlerts } from './SlotAlerts';
@@ -58,13 +59,13 @@ interface Props {
  appointmentServiceNames: (appointment: Appointment) => string;
  compactVisitText: (text: string) => string;
   agendaExpanded: boolean;
-  adminTab: "agenda" | "clients" | "catalog" | "config" | "detractors" | "crm" | "demands" | "holidays" | "news" | "vouchers" | "club" | "cash";
+  adminTab: "agenda" | "clients" | "catalog" | "config" | "detractors" | "crm" | "demands" | "holidays" | "news" | "vouchers" | "club" | "cash" | "products";
   headerLogoSrc: string;
   bizConfig: BusinessConfig;
   fallbackHeaderLogo: (event: React.SyntheticEvent<HTMLImageElement>) => void;
   t: (key: string) => string;
   setCurrentScreen: React.Dispatch<React.SetStateAction<"clientPin" | "clientRegistration" | "clientPortal" | "myAppointmentsPage" | "catalogBooking" | "categoryScreen" | "serviceDetail" | "visualAgenda" | "clientHistoryPage" | "adminLogin" | "adminPanel">>;
-  setAdminTab: React.Dispatch<React.SetStateAction<"agenda" | "clients" | "catalog" | "config" | "detractors" | "crm" | "demands" | "holidays" | "news" | "vouchers" | "club" | "cash">>;
+  setAdminTab: React.Dispatch<React.SetStateAction<"agenda" | "clients" | "catalog" | "config" | "detractors" | "crm" | "demands" | "holidays" | "news" | "vouchers" | "club" | "cash" | "products">>;
   renderAgendaLinks: () => JSX.Element;
   feedbackList: FeedbackRecord[];
   activeEmployees: StudioEmployee[];
@@ -810,16 +811,16 @@ export default function AdminPanelView(props: Props) {
             </div>
             <button type="button" aria-current={promotionsOpen ? "page" : undefined} onClick={() => { setAgendaExpanded(false); setPromotionsOpen(true); }} style={{minHeight:48,padding:14,borderRadius:9,border:"1px solid #C5A059",background:promotionsOpen ? "#C49A58" : "#322A25",color:promotionsOpen ? "#221D19" : "#FFF8EE",cursor:"pointer"}}>Promociones</button>
             <details style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '9px', padding: '14px' }}>
-              <summary style={{ color: '#E4C687', cursor: 'pointer', fontSize: '14px' }}>Más opciones{!['agenda', 'clients', 'catalog', 'cash'].includes(adminTab) ? ' · ' + ({ config: 'Configuración', detractors: 'Buzón', crm: 'CRM e informes', demands: 'Demanda perdida', holidays: 'Vacaciones y festivos', club: 'L’Studio Club' } as Record<string, string>)[adminTab] : ''}</summary>
+              <summary style={{ color: '#E4C687', cursor: 'pointer', fontSize: '14px' }}>Más opciones{!['agenda', 'clients', 'catalog', 'cash'].includes(adminTab) ? ' · ' + ({ config: 'Configuración', detractors: 'Buzón', crm: 'CRM e informes', demands: 'Demanda perdida', holidays: 'Vacaciones y festivos', club: 'L’Studio Club', products: 'Productos' } as Record<string, string>)[adminTab] : ''}</summary>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: '8px', marginTop: '14px' }}>
-                {([['config', 'Configuración'], ['detractors', `Buzón (${feedbackList.filter(f => !f.resolvedAt).length})`], ['crm', 'CRM e informes'], ['demands', 'Demanda perdida'], ['news', 'Novedades'], ['vouchers', 'Bonos'], ['club', 'L’Studio Club']] as const).map(([tab, label]) => <button type="button" key={tab} aria-current={!promotionsOpen && adminTab === tab ? 'page' : undefined} onClick={() => { setPromotionsOpen(false); setAdminTab(tab); }} style={{ minHeight: '44px', padding: '10px 12px', textAlign: 'left', backgroundColor: !promotionsOpen && adminTab === tab ? '#322A25' : 'transparent', border: '1px solid #C5A059', color: !promotionsOpen && adminTab === tab ? '#F3D994' : '#FFF8EE', borderRadius: '7px', fontSize: '13px', cursor: 'pointer' }}>{label}</button>)}
+                {([['products', 'Productos'], ['config', 'Configuración'], ['detractors', `Buzón (${feedbackList.filter(f => !f.resolvedAt).length})`], ['crm', 'CRM e informes'], ['demands', 'Demanda perdida'], ['news', 'Novedades'], ['vouchers', 'Bonos'], ['club', 'L’Studio Club']] as const).map(([tab, label]) => <button type="button" key={tab} aria-current={!promotionsOpen && adminTab === tab ? 'page' : undefined} onClick={() => { setPromotionsOpen(false); setAdminTab(tab); }} style={{ minHeight: '44px', padding: '10px 12px', textAlign: 'left', backgroundColor: !promotionsOpen && adminTab === tab ? '#322A25' : 'transparent', border: '1px solid #C5A059', color: !promotionsOpen && adminTab === tab ? '#F3D994' : '#FFF8EE', borderRadius: '7px', fontSize: '13px', cursor: 'pointer' }}>{label}</button>)}
               </div>
             </details>
           </nav>
 
           <nav className="studio-desktop-nav" aria-label="Menú lateral de 360studio">
             <p style={{ color: '#C9BCA9', fontSize: '11px', letterSpacing: '2px', padding: '0 12px', margin: '0 0 12px' }}>GESTIÓN DEL STUDIO</p>
-            {([['agenda', 'Agenda Maestra'], ['clients', 'Clientes'], ['catalog', 'Catálogo'], ['cash', 'Caja'], ['config', 'Configuración'], ['detractors', `Buzón (${feedbackList.filter(f => !f.resolvedAt).length})`], ['crm', 'CRM e informes'], ['demands', 'Demanda perdida'], ['news', 'Novedades'], ['vouchers', 'Bonos'], ['club', 'L’Studio Club']] as const).map(([tab, label]) => <React.Fragment key={tab}><button type="button" key={tab} aria-current={!promotionsOpen && adminTab === tab ? 'page' : undefined} onClick={() => { setPromotionsOpen(false); setAdminTab(tab); }} style={{ width: '100%', textAlign: 'left', minHeight: '48px', padding: '14px', backgroundColor: !promotionsOpen && adminTab === tab ? 'rgba(201, 158, 82, 0.16)' : 'transparent', color: !promotionsOpen && adminTab === tab ? '#F3D994' : '#FFF8EE', border: !promotionsOpen && adminTab === tab ? '1px solid rgba(228, 198, 135, 0.45)' : '1px solid transparent', borderRadius: '9px', fontSize: '14px', cursor: 'pointer' }}>{label}</button></React.Fragment>)}
+            {([['agenda', 'Agenda Maestra'], ['clients', 'Clientes'], ['catalog', 'Catálogo'], ['cash', 'Caja'], ['products', 'Productos'], ['config', 'Configuración'], ['detractors', `Buzón (${feedbackList.filter(f => !f.resolvedAt).length})`], ['crm', 'CRM e informes'], ['demands', 'Demanda perdida'], ['news', 'Novedades'], ['vouchers', 'Bonos'], ['club', 'L’Studio Club']] as const).map(([tab, label]) => <React.Fragment key={tab}><button type="button" key={tab} aria-current={!promotionsOpen && adminTab === tab ? 'page' : undefined} onClick={() => { setPromotionsOpen(false); setAdminTab(tab); }} style={{ width: '100%', textAlign: 'left', minHeight: '48px', padding: '14px', backgroundColor: !promotionsOpen && adminTab === tab ? 'rgba(201, 158, 82, 0.16)' : 'transparent', color: !promotionsOpen && adminTab === tab ? '#F3D994' : '#FFF8EE', border: !promotionsOpen && adminTab === tab ? '1px solid rgba(228, 198, 135, 0.45)' : '1px solid transparent', borderRadius: '9px', fontSize: '14px', cursor: 'pointer' }}>{label}</button></React.Fragment>)}
           <button type="button" aria-current={promotionsOpen ? "page" : undefined} onClick={() => { setAgendaExpanded(false); setPromotionsOpen(true); }} style={{minHeight:48,padding:14,borderRadius:9,border:"1px solid #C5A059",background:promotionsOpen ? "#C49A58" : "#322A25",color:promotionsOpen ? "#221D19" : "#FFF8EE",cursor:"pointer"}}>Promociones</button>
           </nav>
           <main className="studio-admin-content">
@@ -829,6 +830,7 @@ export default function AdminPanelView(props: Props) {
               No hay profesionales configurados. Ve a Configuración → Empleados y añade al menos una persona en activo para que las clientas puedan elegir profesional al reservar.
             </div>
           )}
+          {adminTab === 'products' && <ProductInventory />}
           {adminTab === 'cash' && <React.Suspense fallback={<p role="status">Abriendo caja…</p>}><LazyCashRegister
             quickServices={cashQuickServices(catalog, appointments, bookingName, formatDateKey(new Date()))}
             openAgenda={() => { setAgendaExpanded(false); setAdminTab('agenda'); }} openAppointment={id => {
@@ -2166,6 +2168,12 @@ export default function AdminPanelView(props: Props) {
                         </div>
 <ClientPermissionStatus clientId={c.serverId}/>
 <ClientPhotoGallery key={c.serverId||String(c.idNum)} clientId={c.serverId} editable/>
+<details className="lst-profile-section" key={'routine-' + c.idNum}>
+  <summary>Rutina de productos <ChevronDown className="lst-profile-chevron" size={16} aria-hidden="true"/></summary>
+  <div className="lst-profile-section-content">{c.serverId
+    ? <ClientProductRoutine key={c.serverId} clientId={c.serverId}/>
+    : <p>Guarda la ficha en el servidor para asignar productos.</p>}</div>
+</details>
 {isEditing ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#322A25', padding: '14px', borderRadius: '8px', border: '1px solid #B98A3E' }}>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
