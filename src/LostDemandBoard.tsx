@@ -1,5 +1,6 @@
 import React,{useEffect,useRef,useState} from 'react';
 import {demandCall,type DemandList,type DemandRow,type DemandDetail,type DemandService} from './demandApi';
+import { SlotAlertList } from './SlotAlerts';
 import './lostDemand.css';
 const reasons:Record<string,string>={none:'Sin bloqueo registrado',available:'Había horas disponibles',closed_weekly:'Cerrado según horario',closed_vacation:'Cerrado por vacaciones',closed_holiday:'Cerrado por festivo oficial',closed_manual:'Cierre marcado en agenda',outside_window:'Fuera del plazo de reserva',no_slots:'Sin hueco suficiente para el servicio',blocked:'Agenda bloqueada',query_error:'No se pudieron consultar los horarios',slot_taken:'El hueco se ocupó al confirmar',request_error:'No se confirmó el envío de la reserva',unclassified:'Motivo no determinado'};
 const steps:Record<string,string>={entry:'Entró a reservar',services:'Cambió la selección de servicios',agenda_open:'Abrió la agenda',calendar:'Consultó una fecha',time:'Eligió una hora',submit:'Intentó confirmar',booking_error:'El envío no se confirmó',saved:'Cita guardada',left:'Salió del proceso dentro del portal'};
@@ -18,6 +19,7 @@ const demandFilters = [
 type DemandFilter = (typeof demandFilters)[number]['id'];
 
 export default function LostDemandBoard(){
+ const [alertsOpen, setAlertsOpen] = useState(false);
  const [from,setFrom]=useState(()=>ago(6)),[to,setTo]=useState(today),[filter,setFilter]=useState<DemandFilter>('blocked'),[search,setSearch]=useState(''),[page,setPage]=useState(1),[refresh,setRefresh]=useState(0);
  const [data,setData]=useState<DemandList|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(false),[selected,setSelected]=useState<DemandRow|null>(null),[detail,setDetail]=useState<DemandDetail|null>(null),[detailError,setDetailError]=useState(''),[note,setNote]=useState(''),[appointment,setAppointment]=useState(''),[busy,setBusy]=useState(false),[pending,setPending]=useState<Write|null>(null),[notice,setNotice]=useState('');
  const alive=useRef(true),writeLock=useRef(false),detailGeneration=useRef(0);
@@ -47,6 +49,10 @@ export default function LostDemandBoard(){
  const chooseFilter=(value:DemandFilter)=>{setFilter(value);setPage(1);};
  const visible = data?.items.filter(row => !row.appointmentId && row.status === filter) ?? [];
  return <section className="ld-board" aria-label="Demanda perdida"><header className="ld-heading"><div><small>L’STUDIO ANA · MOVIMIENTO DE RESERVAS</small><h2>Demanda perdida</h2><p>Intentos desde el portal que quedaron sin reserva por falta de disponibilidad o por un error.</p></div><button type="button" onClick={()=>setRefresh(n=>n+1)} disabled={loading}>Actualizar</button></header>
+ <details className="ld-toolbar" onToggle={event => setAlertsOpen(event.currentTarget.open)}>
+  <summary>Solicitudes de aviso</summary>
+  {alertsOpen && <SlotAlertList refresh={refresh} />}
+ </details>
  <div className="ld-toolbar"><div className="ld-inline">{[1,7,30].map(n=><button key={n} type="button" onClick={()=>period(n)}>{n===1?'Hoy':`Últimos ${n} días`}</button>)}</div><div className="ld-inline"><label>Desde<input type="date" value={from} onChange={e=>{setFrom(e.target.value);setPage(1);}}/></label><label>Hasta<input type="date" value={to} onChange={e=>{setTo(e.target.value);setPage(1);}}/></label></div></div>
  <div className="ld-inline ld-filters" role="group" aria-label="Tipo de incidencia">
   {demandFilters.map(option => <button key={option.id} type="button" aria-pressed={filter === option.id}
