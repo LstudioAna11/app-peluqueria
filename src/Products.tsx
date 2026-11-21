@@ -168,6 +168,7 @@ export default function ProductInventory() {
   const [editor, setEditor] = useState<'new' | Product | null>(null);
   const [stock, setStock] = useState<Product | null>(null);
   const [preview, setPreview] = useState<ProductCard | null>(null);
+  const [zoomProduct, setZoomProduct] = useState<ProductCard | null>(null);
   const [moving, setMoving] = useState(false);
   const [moveError, setMoveError] = useState('');
   const [moveMessage, setMoveMessage] = useState('');
@@ -214,7 +215,7 @@ export default function ProductInventory() {
       <p className="lst-product-order-status" role="status">{moveMessage}</p>
       {!loading && result?.items.length === 0 && <p>{search || brand ? 'No hay productos con esta búsqueda.' : 'Añade tu primer producto para empezar el inventario.'}</p>}
       <ul className="lst-inventory-list">{result?.items.map((product, index) => <li className="lst-products-panel" key={product.id}>
-        <div className="lst-product-desc"><ProductThumbnail product={product} /><div><small>{product.brand} · {product.sku}{product.barcode && <> · {product.barcode}</>}</small>
+        <div className="lst-product-desc"><ProductPhoto product={product} onOpen={() => setZoomProduct(product)} /><div><small>{product.brand} · {product.sku}{product.barcode && <> · {product.barcode}</>}</small>
           <h3>{product.name}</h3>{product.microtext && <p>{product.microtext}</p>}</div></div>
         <div className="lst-product-metrics"><strong>{euro.format(product.price_cents / 100)}</strong><span>{product.stock ? `${product.stock} ud.` : 'Agotado'}</span>{!product.active && <small>Archivado</small>}</div>
         <div className="lst-product-actions">
@@ -237,6 +238,7 @@ export default function ProductInventory() {
         <button type="button" disabled={loading || moving || (page + 1) * result.pageSize >= result.total} onClick={() => setPage(page + 1)}>Siguiente</button>
       </div>}
       {preview && <ProductRecommendationPreview product={preview} onClose={() => setPreview(null)} />}
+      {zoomProduct && <ProductPhotoDialog product={zoomProduct} onClose={() => setZoomProduct(null)} />}
     </>}
   </section>;
 }
