@@ -6,3 +6,6 @@
 .slot-alert-primary { width: 100%; min-height: 48px; padding: 10px 14px; border: 1px solid #e4c687; border-radius: 8px; background: #e4c687; color: #29231f; font: inherit; font-weight: 700; cursor: pointer; }
 .slot-alert-primary:disabled { opacity: .7; cursor: wait; }
 .slot-alert-primary:focus-visible { outline: 2px solid #fff8ee; outline-offset: 3px; }
+.ld-board.slot-alert-agenda { padding: 0 12px; gap: 10px; margin-bottom: 10px; border: 1px solid #806340; border-radius: 9px; background: #302721; }
+.slot-alert-agenda summary { font-weight: 650; padding: 11px 0; }
+.slot-alert-agenda[open] { padding-bottom: 12px; }
