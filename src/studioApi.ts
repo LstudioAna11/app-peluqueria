@@ -397,3 +397,9 @@ export const slotAlert = <T>(body: unknown) => {
   if (!token || offlineConsultation()) return Promise.reject(new Error('Necesitas conexión y una sesión válida.'));
   return call<T>('slot-alert', { token, body });
 };
+
+export const studioProducts = <T>(body: unknown) => {
+  const token = currentToken();
+  if (!token || offlineConsultation()) return Promise.reject(new Error('Necesitas conexión y una sesión válida.'));
+  return call<T>('products', { token, body });
+};
