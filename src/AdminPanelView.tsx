@@ -1,5 +1,6 @@
 import {StraighteningProductConfig,isStraighteningSupplement} from './StraighteningProduct'; // lst-straightening-product-v1
 import { cashQuickServices } from './cashQuickServices';
+import { AgendaSlotAlerts } from './SlotAlerts';
 import CatalogServiceOrder,{moveCatalogService} from './CatalogServiceOrder'; // lst-service-order-controls-v1
 import {HighlightsVariantEditor} from './HighlightOptions'; // lst-soft-full-length-picker-v1
 // lst-quick-open-direct-v1
@@ -901,6 +902,7 @@ export default function AdminPanelView(props: Props) {
                 </div>
                 
 
+                <AgendaSlotAlerts key={selectedDayKey} day={selectedDayKey} />
                 <section className="studio-mobile-daily-agenda" aria-label="Agenda diaria móvil">
                   <div className="studio-mobile-day-navigation">
                     <button type="button" aria-label="Día anterior" onClick={() => { const day = new Date(fechaSeleccionada); day.setDate(day.getDate() - 1); setFechaSeleccionada(day); }}>◀</button>
