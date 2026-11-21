@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
-import type { FormEvent } from 'react';
-import { ArrowDown, ArrowUp, Package, Plus } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
+import type { FormEvent, ReactNode } from 'react';
+import { ArrowDown, ArrowUp, Eye, Package, Plus, X } from 'lucide-react';
 import { prepareCatalogImage } from './catalogImage';
 import { studioProducts } from './studioApi';
 import { offlineConsultation } from './offlineSession';
@@ -166,6 +166,7 @@ export default function ProductInventory() {
   const [revision, setRevision] = useState(0);
   const [editor, setEditor] = useState<'new' | Product | null>(null);
   const [stock, setStock] = useState<Product | null>(null);
+  const [preview, setPreview] = useState<ProductCard | null>(null);
   const [moving, setMoving] = useState(false);
   const [moveError, setMoveError] = useState('');
   const [moveMessage, setMoveMessage] = useState('');
@@ -224,6 +225,7 @@ export default function ProductInventory() {
               aria-disabled={loading || moving || page * result.pageSize + index + 1 >= result.total}
               onClick={() => void moveProduct(product, index, 1)}><ArrowDown size={17} aria-hidden="true" /></button>
           </div>}
+          <button type="button" onClick={() => setPreview(product)}><Eye size={16} aria-hidden="true" /> Vista previa</button>
           <button type="button" onClick={() => { setStock(null); setEditor(product); }}>Editar</button>
           <button type="button" onClick={() => { setEditor(null); setStock(product); }}>Mover stock</button>
         </div>
@@ -233,13 +235,48 @@ export default function ProductInventory() {
         <span>Página {page + 1} de {Math.ceil(result.total / result.pageSize)}</span>
         <button type="button" disabled={loading || moving || (page + 1) * result.pageSize >= result.total} onClick={() => setPage(page + 1)}>Siguiente</button>
       </div>}
+      {preview && <ProductRecommendationPreview product={preview} onClose={() => setPreview(null)} />}
     </>}
   </section>;
 }
 
-function RoutineList({ items, onEdit, onRemove }: { items: RoutineItem[]; onEdit?: (item: RoutineItem) => void; onRemove?: (item: RoutineItem) => void }) {
+function ProductRecommendationPreview({ product, onClose }: { product: ProductCard; onClose: () => void }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const [note, setNote] = useState('');
+  useEffect(() => {
+    const element = dialog.current;
+    if (element && !element.open) element.showModal();
+  }, []);
+
+  return <dialog className="lst-products lst-product-preview" ref={dialog} aria-labelledby={titleId} onClose={onClose}>
+    <header className="lst-products-head"><h2 id={titleId}>Vista previa</h2>
+      <button type="button" className="lst-product-preview-close" aria-label="Cerrar vista previa" onClick={() => dialog.current?.close()}>
+        <X size={19} aria-hidden="true" />
+      </button>
+    </header>
+    <div className="lst-product-preview-portal">
+      <p className="lst-product-preview-location">Pasaporte · Mi cabello</p>
+      <ProductRoutineSection portal><RoutineList items={[{ product, note: note.trim() }]} /></ProductRoutineSection>
+    </div>
+    {!product.active && <p>Activa este producto para que pueda mostrarse en el Pasaporte.</p>}
+    <label>Indicación de prueba (opcional)
+      <textarea rows={2} maxLength={500} value={note} onChange={event => setNote(event.target.value)}
+        placeholder="Ej. Aplica de medios a puntas tras el lavado" />
+    </label>
+  </dialog>;
+}
+
+function ProductRoutineSection({ portal, children }: { portal: boolean; children: ReactNode }) {
+  return <section className={`lst-products lst-routine${portal ? ' lst-routine-customer' : ''}`}>
+    {portal && <h3>Productos recomendados</h3>}
+    {children}
+  </section>;
+}
+
+function RoutineList({ items, showArchived = false, onEdit, onRemove }: { items: RoutineItem[]; showArchived?: boolean; onEdit?: (item: RoutineItem) => void; onRemove?: (item: RoutineItem) => void }) {
   return <ul className="lst-routine-list">{items.map(item => <li key={item.product.id}>
-    <div className="lst-product-desc"><ProductThumbnail product={item.product} /><div><small>{item.product.brand}{!item.product.active && ' · Archivado'}</small>
+    <div className="lst-product-desc"><ProductThumbnail product={item.product} /><div><small>{item.product.brand}{showArchived && !item.product.active && ' · Archivado'}</small>
       <h4>{item.product.name}</h4>{item.product.microtext && <p>{item.product.microtext}</p>}</div></div>
     {item.note && <p className="lst-routine-note"><strong>Cómo usarlo</strong>{item.note}</p>}
     {(onEdit || onRemove) && <div className="lst-product-actions">
@@ -298,13 +335,12 @@ export function ClientProductRoutine({ clientId }: { clientId?: string }) {
     finally { setBusy(false); }
   }
 
-  return <section className="lst-products lst-routine">
-    {!admin && <h3>Productos recomendados</h3>}
+  return <ProductRoutineSection portal={!admin}>
     {offline ? <p>Conéctate para consultar los productos de la rutina.</p> : <>
       {loading && <p role="status">Cargando rutina…</p>}
       {loadError && <p role="alert">{loadError} <button type="button" onClick={() => setRevision(value => value + 1)}>Reintentar</button></p>}
       {!loading && !loadError && !items.length && <p>{admin ? 'Aún no hay productos en esta rutina.' : 'Aquí verás los productos que te recomiende el salón.'}</p>}
-      <RoutineList items={items} onEdit={admin && !busy ? item => edit(item.product, item.note) : undefined}
+      <RoutineList items={items} showArchived={admin} onEdit={admin && !busy ? item => edit(item.product, item.note) : undefined}
         onRemove={admin && !busy ? item => { if (window.confirm(`¿Quitar ${item.product.name} de esta rutina?`)) void change(item.product, true); } : undefined} />
       {admin && <>
         {!adding && !selection && <button type="button" onClick={() => { setAdding(true); setPage(0); }}>Añadir producto</button>}
@@ -331,5 +367,5 @@ export function ClientProductRoutine({ clientId }: { clientId?: string }) {
         {error && <p role="alert">{error}</p>}
       </>}
     </>}
-  </section>;
+  </ProductRoutineSection>;
 }
