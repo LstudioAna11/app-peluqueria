@@ -757,7 +757,7 @@ function withConsultationPhoto(sub: SubService): SubService {
   if (!strand && !visagism) return sub;
   const photoVersion = strand ? 5 : 1;
   if (sub.consultationPhotoVersion === photoVersion && sub.imageUrl) return sub;
-  return { ...sub, consultationPhotoVersion: photoVersion, imageUrl: strand ? CONSULTATION_PHOTOS.strand : CONSULTATION_PHOTOS.visagism, imageIsAiPlaceholder: strand, imagePosition: { x: 50, y: 45 }, imageCredit: strand ? 'Imagen ilustrativa creada con IA para L’Studio Ana' : 'Imagen de referencia: Salon CHRIS · https://www.chris.ma/post/coupe-sur-mesure-marrakech' };
+  return { ...sub, consultationPhotoVersion: photoVersion, imageUrl: strand ? CONSULTATION_PHOTOS.strand : CONSULTATION_PHOTOS.visagism, imageIsAiPlaceholder: strand, imagePosition: { x: 50, y: 45 }, imageCredit: strand ? 'Imagen ilustrativa creada con IA para L’Studio Ana' : undefined };
 }
 
 const INITIAL_CATALOG: CatalogCategory[] = [
@@ -5371,13 +5371,18 @@ function StudioApp() {
         // Every service keeps its own configured variants, independently of add-ons.
         const detailSub = originalDetailSub;
         const detailDescription = serviceText(detailSub, 'description');
-        const isViabilityTest = [detailSub.name, bookingName(detailSub)].some(name => /test.*viabilidad|viabilidad.*resistencia/i.test(name));
-        const visibleDescription = isViabilityTest
-          ? detailDescription.replace(/[ \t]*(?:\r?\n[ \t]*)*Imagen de referencia[ \t]*:[ \t]*Peluquer[ií]a Yesbeauty\b(?:[ \t]*[·–-][ \t]*https?:\/\/\S+)?/gi, '').trim()
-          : detailDescription;
+        const detailNames = [detailSub.name, bookingName(detailSub)];
+        const isViabilityTest = detailNames.some(name => /test.*viabilidad|viabilidad.*resistencia/i.test(name));
+        const isVisagismStudy = detailNames.some(name => /estudio.*visagismo/i.test(name));
+        let visibleDescription = detailDescription;
+        if (isViabilityTest) {
+          visibleDescription = detailDescription.replace(/[ \t]*(?:\r?\n[ \t]*)*Imagen de referencia[ \t]*:[ \t]*Peluquer[ií]a Yesbeauty\b(?:[ \t]*[·–-][ \t]*https?:\/\/\S+)?/gi, '').trim();
+        } else if (isVisagismStudy) {
+          visibleDescription = detailDescription.replace(/[ \t]*(?:\r?\n[ \t]*)*Imagen de referencia[ \t]*:[ \t]*Sal[oó]n CHRIS\b(?:[ \t]*[·–-][ \t]*https?:\/\/\S+)?/gi, '').trim();
+        }
         const imageCredit = detailSub.imageCredit?.trim();
         const hideImageCredit = imageCredit && /^imagen de referencia\b/i.test(imageCredit) &&
-          (isViabilityTest || /estudio.*visagismo/i.test(detailSub.name));
+          (isViabilityTest || isVisagismStudy);
         const detailImage = detailSub.imageUrl;
         const detailSelection = selectedServicesToBook.find(item => item.sub.id === detailSub.id);
         return (
