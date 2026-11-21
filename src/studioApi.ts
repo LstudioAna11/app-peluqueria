@@ -391,3 +391,9 @@ export const fetchGiftPurchases=(token:string,page=0)=>call<{purchases:GiftPurch
 
 export const studioCashRegister = <T>(token: string, body: unknown) =>
   call<T>('cash-register', { token, body });
+
+export const slotAlert = <T>(body: unknown) => {
+  const token = currentToken();
+  if (!token || offlineConsultation()) return Promise.reject(new Error('Necesitas conexión y una sesión válida.'));
+  return call<T>('slot-alert', { token, body });
+};
