@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
-import { Package, Plus } from 'lucide-react';
+import { ArrowDown, ArrowUp, Package, Plus } from 'lucide-react';
 import { prepareCatalogImage } from './catalogImage';
 import { studioProducts } from './studioApi';
 import { offlineConsultation } from './offlineSession';
@@ -9,7 +9,7 @@ import './products.css';
 const brands = ['Balmain Hair', 'Authentic Beauty Concept', 'BlondMe Care', 'Revivre Essence', 'STMNT'];
 const euro = new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' });
 type ProductCard = { id: string; brand: string; name: string; microtext: string; active: boolean; imageUrl: string | null };
-type Product = ProductCard & { sku: string; price_cents: number; stock: number };
+type Product = ProductCard & { sku: string; barcode: string; price_cents: number; stock: number; sort_position: number };
 type RoutineItem = { product: ProductCard; note: string };
 type StockMovement = { id: string; delta: number; note: string; created_at: string };
 type ProductPage = { items: Product[]; total: number; pageSize: number };
@@ -58,7 +58,7 @@ function ProductEditor({ product, onSaved, onClose }: { product?: Product; onSav
     try {
       const image = photo ? await prepareCatalogImage(photo, true) : undefined;
       const { item } = await studioProducts<{ item: Product }>({
-        operation: 'save', productId, create: !saved, sku: get('sku'), brand: get('brand'),
+        operation: 'save', productId, create: !saved, sku: get('sku'), brand: get('brand'), barcode: get('barcode'),
         name: get('name'), microtext: get('microtext'), priceCents: Math.round(Number(get('price')) * 100),
         active: fields.has('active'),
       });
@@ -84,6 +84,7 @@ function ProductEditor({ product, onSaved, onClose }: { product?: Product; onSav
       <datalist id="lst-product-brands">{brands.map(brand => <option key={brand} value={brand} />)}</datalist>
       <label>Nombre y formato<input name="name" required maxLength={120} placeholder="Champú hidratante · 250 ml" defaultValue={product?.name} /></label>
       <label>Referencia (SKU)<input name="sku" required maxLength={60} defaultValue={product?.sku} /></label>
+      <label>Código de barras (opcional)<input name="barcode" maxLength={64} defaultValue={product?.barcode ?? ''} spellCheck={false} /></label>
       <label>Precio (€)<input name="price" type="number" min="0" max="99999.99" step="0.01" required defaultValue={product ? product.price_cents / 100 : ''} /></label>
       <label className="lst-product-wide">Microtexto<textarea name="microtext" rows={2} maxLength={240} placeholder="Para qué sirve y qué aporta al cabello" defaultValue={product?.microtext} /></label>
       <div className="lst-product-photo-field lst-product-wide">
@@ -165,9 +166,35 @@ export default function ProductInventory() {
   const [revision, setRevision] = useState(0);
   const [editor, setEditor] = useState<'new' | Product | null>(null);
   const [stock, setStock] = useState<Product | null>(null);
+  const [moving, setMoving] = useState(false);
+  const [moveError, setMoveError] = useState('');
+  const [moveMessage, setMoveMessage] = useState('');
   const offline = offlineConsultation();
   const { result, error, loading } = useProducts({ search, brand, page, revision, enabled: !offline });
   const refresh = () => setRevision(value => value + 1);
+  const filtered = Boolean(search.trim() || brand);
+  const clearFilters = () => { setSearch(''); setBrand(''); setPage(0); };
+
+  async function moveProduct(product: Product, index: number, direction: -1 | 1) {
+    if (!result || loading || moving || filtered) return;
+    const destination = page * result.pageSize + index + direction;
+    if (destination < 0 || destination >= result.total) return;
+    setMoving(true);
+    setMoveError('');
+    setMoveMessage('');
+    try {
+      const { moved } = await studioProducts<{ moved: boolean }>({
+        operation: 'reorder', productId: product.id, direction, position: product.sort_position,
+        neighborPosition: result.items[index + direction]?.sort_position,
+      });
+      if (moved) {
+        setPage(Math.floor(destination / result.pageSize));
+        setMoveMessage(`${product.name} · posición ${destination + 1}`);
+      }
+    } catch (failure) { setMoveError(errorText(failure)); }
+    finally { refresh(); setMoving(false); }
+  }
+
   return <section className="lst-products">
     <header className="lst-products-head"><h2>Productos</h2>
       {!offline && <button type="button" className="lst-product-primary" onClick={() => { setStock(null); setEditor('new'); }}><Plus size={17} aria-hidden="true" /> Nuevo producto</button>}</header>
@@ -175,25 +202,36 @@ export default function ProductInventory() {
       {editor && <ProductEditor key={editor === 'new' ? editor : editor.id} product={editor === 'new' ? undefined : editor} onSaved={refresh} onClose={() => setEditor(null)} />}
       {stock && <ProductStock key={stock.id} product={stock} onSaved={refresh} onClose={() => setStock(null)} />}
       <div className="lst-product-fields">
-        <label>Buscar producto<input type="search" placeholder="Nombre, marca o referencia" value={search} onChange={event => { setSearch(event.target.value); setPage(0); }} /></label>
-        <label>Marca<select value={brand} onChange={event => { setBrand(event.target.value); setPage(0); }}><option value="">Todas las marcas</option>{brands.map(value => <option key={value}>{value}</option>)}</select></label>
+        <label>Buscar producto<input type="search" placeholder="Nombre, marca, SKU o código de barras" value={search} disabled={moving} onChange={event => { setSearch(event.target.value); setPage(0); }} /></label>
+        <label>Marca<select value={brand} disabled={moving} onChange={event => { setBrand(event.target.value); setPage(0); }}><option value="">Todas las marcas</option>{brands.map(value => <option key={value}>{value}</option>)}</select></label>
       </div>
       {error && <p role="alert">{error} <button type="button" onClick={refresh}>Reintentar</button></p>}
       {loading && <p role="status">Cargando productos…</p>}
+      {filtered && <div className="lst-product-actions"><button type="button" onClick={clearFilters}>Ver todos para ordenar</button></div>}
+      {moveError && <p role="alert">{moveError}</p>}
+      <p className="lst-product-order-status" role="status">{moveMessage}</p>
       {!loading && result?.items.length === 0 && <p>{search || brand ? 'No hay productos con esta búsqueda.' : 'Añade tu primer producto para empezar el inventario.'}</p>}
-      <ul className="lst-inventory-list">{result?.items.map(product => <li className="lst-products-panel" key={product.id}>
-        <div className="lst-product-desc"><ProductThumbnail product={product} /><div><small>{product.brand} · {product.sku}</small>
+      <ul className="lst-inventory-list">{result?.items.map((product, index) => <li className="lst-products-panel" key={product.id}>
+        <div className="lst-product-desc"><ProductThumbnail product={product} /><div><small>{product.brand} · {product.sku}{product.barcode && <> · {product.barcode}</>}</small>
           <h3>{product.name}</h3>{product.microtext && <p>{product.microtext}</p>}</div></div>
         <div className="lst-product-metrics"><strong>{euro.format(product.price_cents / 100)}</strong><span>{product.stock ? `${product.stock} ud.` : 'Agotado'}</span>{!product.active && <small>Archivado</small>}</div>
         <div className="lst-product-actions">
+          {!filtered && result.total > 1 && <div className="lst-product-actions lst-product-order" role="group" aria-label={`Ordenar ${product.name}`}>
+            <button type="button" aria-label={`Subir ${product.name}`} title="Subir tarjeta"
+              aria-disabled={loading || moving || page * result.pageSize + index === 0}
+              onClick={() => void moveProduct(product, index, -1)}><ArrowUp size={17} aria-hidden="true" /></button>
+            <button type="button" aria-label={`Bajar ${product.name}`} title="Bajar tarjeta"
+              aria-disabled={loading || moving || page * result.pageSize + index + 1 >= result.total}
+              onClick={() => void moveProduct(product, index, 1)}><ArrowDown size={17} aria-hidden="true" /></button>
+          </div>}
           <button type="button" onClick={() => { setStock(null); setEditor(product); }}>Editar</button>
           <button type="button" onClick={() => { setEditor(null); setStock(product); }}>Mover stock</button>
         </div>
       </li>)}</ul>
       {!!result && result.total > result.pageSize && <div className="lst-product-actions">
-        <button type="button" disabled={loading || page === 0} onClick={() => setPage(page - 1)}>Anterior</button>
+        <button type="button" disabled={loading || moving || page === 0} onClick={() => setPage(page - 1)}>Anterior</button>
         <span>Página {page + 1} de {Math.ceil(result.total / result.pageSize)}</span>
-        <button type="button" disabled={loading || (page + 1) * result.pageSize >= result.total} onClick={() => setPage(page + 1)}>Siguiente</button>
+        <button type="button" disabled={loading || moving || (page + 1) * result.pageSize >= result.total} onClick={() => setPage(page + 1)}>Siguiente</button>
       </div>}
     </>}
   </section>;
