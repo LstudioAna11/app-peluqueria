@@ -5370,6 +5370,14 @@ function StudioApp() {
         const originalDetailSub = catalog.flatMap(category => category.subservices).find(service => service.id === viewServiceDetail.sub.id) || viewServiceDetail.sub;
         // Every service keeps its own configured variants, independently of add-ons.
         const detailSub = originalDetailSub;
+        const detailDescription = serviceText(detailSub, 'description');
+        const isViabilityTest = [detailSub.name, bookingName(detailSub)].some(name => /test.*viabilidad|viabilidad.*resistencia/i.test(name));
+        const visibleDescription = isViabilityTest
+          ? detailDescription.replace(/[ \t]*(?:\r?\n[ \t]*)*Imagen de referencia[ \t]*:[ \t]*Peluquer[ií]a Yesbeauty\b(?:[ \t]*[·–-][ \t]*https?:\/\/\S+)?/gi, '').trim()
+          : detailDescription;
+        const imageCredit = detailSub.imageCredit?.trim();
+        const hideImageCredit = imageCredit && /^imagen de referencia\b/i.test(imageCredit) &&
+          (isViabilityTest || /estudio.*visagismo/i.test(detailSub.name));
         const detailImage = detailSub.imageUrl;
         const detailSelection = selectedServicesToBook.find(item => item.sub.id === detailSub.id);
         return (
@@ -5389,8 +5397,8 @@ function StudioApp() {
             <span className="lst-detail-eyebrow">{categoryText(viewServiceDetail.cat)}</span>
             <h1 className="lst-detail-title">{bookingName(detailSub)}</h1>
             {(serviceText(detailSub, 'name') || detailSub.name).trim() !== bookingName(detailSub).trim() && <p style={{ color: '#F0E6D2', fontSize: 14, lineHeight: 1.5, margin: '8px 0' }}>{serviceText(detailSub, 'name') || detailSub.name}</p>}
-            {!!serviceText(detailSub, 'description') && <p className="lst-detail-desc">{serviceText(detailSub, 'description')}</p>}
-            {detailSub.imageCredit && !(/(?:test.*viabilidad|viabilidad.*resistencia|estudio.*visagismo)/.test(String(detailSub.name||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase()) && /^imagen de referencia\b/i.test(detailSub.imageCredit.trim())) && <p style={{ fontSize: 10, color: '#D6CBB8', lineHeight: 1.5 }}>{detailSub.imageCredit}</p>}
+            {!!visibleDescription && <p className="lst-detail-desc">{visibleDescription}</p>}
+            {imageCredit && !hideImageCredit && <p style={{ fontSize: 10, color: '#D6CBB8', lineHeight: 1.5 }}>{imageCredit}</p>}
           </header>
           {([
             { field: 'includesText', title: '¿Qué incluye?', icon: Scissors },
