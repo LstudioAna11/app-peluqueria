@@ -90,3 +90,24 @@
   background: #29231f;
 }
 .lst-products .lst-product-preview-location { font-size: 13px; }
+
+.lst-routine-list > .lst-routine-clickable { padding: 0; }
+.lst-products .lst-recommendation-card {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  justify-content: stretch;
+  gap: 10px;
+  padding: 10px;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+}
+.lst-products .lst-recommendation-card:hover { background: #382c21; }
+.lst-recommendation-summary { min-width: 0; display: grid; gap: 2px; }
+.lst-recommendation-summary > strong { font-size: 14px; }
+.lst-recommendation-link { display: inline-flex; align-items: center; gap: 3px; color: var(--product-gold); font-size: 12px; }
+.lst-recommendation-info { display: grid; gap: 4px; padding: 12px; border-radius: 10px; background: #251e18; }
+.lst-recommendation-info h3 { color: var(--product-gold); }
+.lst-recommendation-info p { white-space: pre-wrap; }
