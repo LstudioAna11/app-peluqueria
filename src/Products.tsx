@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { ArrowDown, ArrowUp, Eye, Package, Plus, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronRight, Eye, Package, Plus, X } from 'lucide-react';
 import { prepareCatalogImage } from './catalogImage';
 import { studioProducts } from './studioApi';
 import { offlineConsultation } from './offlineSession';
@@ -13,12 +13,13 @@ type Product = ProductCard & { sku: string; barcode: string; price_cents: number
 type RoutineItem = { product: ProductCard; note: string };
 type StockMovement = { id: string; delta: number; note: string; created_at: string };
 type ProductPage = { items: Product[]; total: number; pageSize: number };
+const routineChanged = 'lst-product-routine-changed';
 const errorText = (error: unknown) => error instanceof Error ? error.message : 'No se pudo completar la operación.';
 
 function ProductThumbnail({ product }: { product: ProductCard }) {
-  return <div className="lst-product-thumb">{product.imageUrl
+  return <span className="lst-product-thumb">{product.imageUrl
     ? <img src={product.imageUrl} alt="" loading="lazy" />
-    : <Package size={21} aria-hidden="true" />}</div>;
+    : <Package size={21} aria-hidden="true" />}</span>;
 }
 
 function useProducts({ search, brand = '', activeOnly = false, page = 0, revision = 0, enabled = true }:
@@ -240,31 +241,54 @@ export default function ProductInventory() {
   </section>;
 }
 
-function ProductRecommendationPreview({ product, onClose }: { product: ProductCard; onClose: () => void }) {
+function ProductDialog({ title, closeLabel, onClose, children }: {
+  title: string; closeLabel: string; onClose: () => void; children: ReactNode;
+}) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
-  const [note, setNote] = useState('');
   useEffect(() => {
     const element = dialog.current;
     if (element && !element.open) element.showModal();
   }, []);
 
-  return <dialog className="lst-products lst-product-preview" ref={dialog} aria-labelledby={titleId} onClose={onClose}>
-    <header className="lst-products-head"><h2 id={titleId}>Vista previa</h2>
-      <button type="button" className="lst-product-preview-close" aria-label="Cerrar vista previa" onClick={() => dialog.current?.close()}>
+  return <dialog className="lst-products lst-product-preview" ref={dialog} aria-labelledby={titleId}
+    onClose={event => { if (event.target === event.currentTarget) onClose(); }}>
+    <header className="lst-products-head"><h2 id={titleId}>{title}</h2>
+      <button type="button" className="lst-product-preview-close" aria-label={closeLabel} onClick={() => dialog.current?.close()}>
         <X size={19} aria-hidden="true" />
       </button>
     </header>
+    {children}
+  </dialog>;
+}
+
+function ProductRecommendationPreview({ product, onClose }: { product: ProductCard; onClose: () => void }) {
+  const [note, setNote] = useState('');
+  return <ProductDialog title="Vista previa" closeLabel="Cerrar vista previa" onClose={onClose}>
     <div className="lst-product-preview-portal">
       <p className="lst-product-preview-location">Pasaporte · Mi cabello</p>
-      <ProductRoutineSection portal><RoutineList items={[{ product, note: note.trim() }]} /></ProductRoutineSection>
+      <ProductRoutineSection portal><RoutineList items={[{ product, note: note.trim() }]} interactive /></ProductRoutineSection>
     </div>
     {!product.active && <p>Activa este producto para que pueda mostrarse en el Pasaporte.</p>}
     <label>Indicación de prueba (opcional)
       <textarea rows={2} maxLength={500} value={note} onChange={event => setNote(event.target.value)}
         placeholder="Ej. Aplica de medios a puntas tras el lavado" />
     </label>
-  </dialog>;
+  </ProductDialog>;
+}
+
+function ProductRecommendationDetail({ item, onClose }: { item: RoutineItem; onClose: () => void }) {
+  return <ProductDialog title={item.product.name} closeLabel="Cerrar ficha del producto" onClose={onClose}>
+    <div className="lst-product-desc"><ProductThumbnail product={item.product} /><small>{item.product.brand}</small></div>
+    <section className="lst-recommendation-info">
+      <h3>Cómo aplicarlo</h3>
+      <p>{item.note.trim() || 'Consulta con el salón cómo incorporar este producto a tu rutina.'}</p>
+    </section>
+    <section className="lst-recommendation-info">
+      <h3>Qué vas a conseguir</h3>
+      <p>{item.product.microtext.trim() || 'Tu salón puede indicarte qué aporta este producto a tu rutina.'}</p>
+    </section>
+  </ProductDialog>;
 }
 
 function ProductRoutineSection({ portal, children }: { portal: boolean; children: ReactNode }) {
@@ -274,16 +298,36 @@ function ProductRoutineSection({ portal, children }: { portal: boolean; children
   </section>;
 }
 
-function RoutineList({ items, showArchived = false, onEdit, onRemove }: { items: RoutineItem[]; showArchived?: boolean; onEdit?: (item: RoutineItem) => void; onRemove?: (item: RoutineItem) => void }) {
-  return <ul className="lst-routine-list">{items.map(item => <li key={item.product.id}>
-    <div className="lst-product-desc"><ProductThumbnail product={item.product} /><div><small>{item.product.brand}{showArchived && !item.product.active && ' · Archivado'}</small>
-      <h4>{item.product.name}</h4>{item.product.microtext && <p>{item.product.microtext}</p>}</div></div>
-    {item.note && <p className="lst-routine-note"><strong>Cómo usarlo</strong>{item.note}</p>}
-    {(onEdit || onRemove) && <div className="lst-product-actions">
-      {onEdit && item.product.active && <button type="button" onClick={() => onEdit(item)}>Editar indicación</button>}
-      {onRemove && <button type="button" onClick={() => onRemove(item)}>Quitar de la rutina</button>}
-    </div>}
-  </li>)}</ul>;
+function RoutineList({ items, interactive = false, showArchived = false, onEdit, onRemove }: {
+  items: RoutineItem[]; interactive?: boolean; showArchived?: boolean;
+  onEdit?: (item: RoutineItem) => void; onRemove?: (item: RoutineItem) => void;
+}) {
+  const [openId, setOpenId] = useState<string | null>(null);
+  const openItem = interactive ? items.find(item => item.product.id === openId) : undefined;
+
+  return <>
+    <ul className="lst-routine-list">{items.map(item => <li key={item.product.id} className={interactive ? 'lst-routine-clickable' : undefined}>
+      {interactive ? <button type="button" className="lst-recommendation-card" aria-haspopup="dialog"
+        aria-label={`Ver cómo usar ${item.product.name}`} onClick={() => setOpenId(item.product.id)}>
+        <ProductThumbnail product={item.product} />
+        <span className="lst-recommendation-summary">
+          <small>{item.product.brand}</small>
+          <strong>{item.product.name}</strong>
+          {item.product.microtext && <span>{item.product.microtext}</span>}
+          <span className="lst-recommendation-link">Ver cómo usarlo <ChevronRight size={15} aria-hidden="true" /></span>
+        </span>
+      </button> : <>
+        <div className="lst-product-desc"><ProductThumbnail product={item.product} /><div><small>{item.product.brand}{showArchived && !item.product.active && ' · Archivado'}</small>
+          <h4>{item.product.name}</h4>{item.product.microtext && <p>{item.product.microtext}</p>}</div></div>
+        {item.note && <p className="lst-routine-note"><strong>Cómo aplicarlo</strong>{item.note}</p>}
+        {(onEdit || onRemove) && <div className="lst-product-actions">
+          {onEdit && item.product.active && <button type="button" onClick={() => onEdit(item)}>Editar indicación</button>}
+          {onRemove && <button type="button" onClick={() => onRemove(item)}>Quitar de la rutina</button>}
+        </div>}
+      </>}
+    </li>)}</ul>
+    {openItem && <ProductRecommendationDetail item={openItem} onClose={() => setOpenId(null)} />}
+  </>;
 }
 
 export function ClientProductRoutine({ clientId }: { clientId?: string }) {
@@ -313,6 +357,14 @@ export function ClientProductRoutine({ clientId }: { clientId?: string }) {
     ).finally(() => { if (valid) setLoading(false); });
     return () => { valid = false; };
   }, [admin, clientId, offline, revision]);
+  useEffect(() => {
+    if (!clientId) return;
+    const refresh = (event: Event) => {
+      if ((event as CustomEvent<string>).detail === clientId) setRevision(value => value + 1);
+    };
+    window.addEventListener(routineChanged, refresh);
+    return () => window.removeEventListener(routineChanged, refresh);
+  }, [clientId]);
 
   function edit(product: ProductCard, indication = '') {
     setSelection(product);
@@ -328,7 +380,7 @@ export function ClientProductRoutine({ clientId }: { clientId?: string }) {
     setFeedback('');
     try {
       await studioProducts({ operation: remove ? 'unrecommend' : 'recommend', clientId, productId: product.id, note });
-      setRevision(value => value + 1);
+      window.dispatchEvent(new CustomEvent(routineChanged, { detail: clientId }));
       setFeedback(remove ? 'Producto retirado de la rutina.' : 'Recomendación guardada en el Pasaporte.');
       setSelection(null);
     } catch (failure) { setError(errorText(failure)); }
@@ -340,7 +392,7 @@ export function ClientProductRoutine({ clientId }: { clientId?: string }) {
       {loading && <p role="status">Cargando rutina…</p>}
       {loadError && <p role="alert">{loadError} <button type="button" onClick={() => setRevision(value => value + 1)}>Reintentar</button></p>}
       {!loading && !loadError && !items.length && <p>{admin ? 'Aún no hay productos en esta rutina.' : 'Aquí verás los productos que te recomiende el salón.'}</p>}
-      <RoutineList items={items} showArchived={admin} onEdit={admin && !busy ? item => edit(item.product, item.note) : undefined}
+      <RoutineList items={items} interactive={!admin} showArchived={admin} onEdit={admin && !busy ? item => edit(item.product, item.note) : undefined}
         onRemove={admin && !busy ? item => { if (window.confirm(`¿Quitar ${item.product.name} de esta rutina?`)) void change(item.product, true); } : undefined} />
       {admin && <>
         {!adding && !selection && <button type="button" onClick={() => { setAdding(true); setPage(0); }}>Añadir producto</button>}
@@ -359,7 +411,7 @@ export function ClientProductRoutine({ clientId }: { clientId?: string }) {
         </div>}
         {selection && <form className="lst-products-panel" onSubmit={event => { event.preventDefault(); void change(selection); }}>
           <h4>{selection.name}</h4>
-          <label>Indicación para esta clienta (opcional)<textarea maxLength={500} rows={3} value={note} disabled={busy} onChange={event => setNote(event.target.value)} placeholder="Cantidad, frecuencia o paso de la rutina" /></label>
+          <label>Cómo aplicarlo para esta clienta (opcional)<textarea maxLength={500} rows={3} value={note} disabled={busy} onChange={event => setNote(event.target.value)} placeholder="Cantidad, frecuencia o paso de la rutina" /></label>
           <div className="lst-product-actions"><button className="lst-product-primary" disabled={busy}>Guardar recomendación</button>
             <button type="button" disabled={busy} onClick={() => setSelection(null)}>Cancelar</button></div>
         </form>}
