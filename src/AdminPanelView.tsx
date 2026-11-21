@@ -41,7 +41,6 @@ function clientDisplayNumber(client: {registroId?: string} | null | undefined): 
 }
 const isCutCategory = (category: {id: string; title: string}) => category.id === 'c2' || /cort[eo]/i.test(category.title);
 const LazyTimeClockAdmin=React.lazy(()=>import('./TimeClock').then(m=>({default:m.TimeClockAdmin})));
-const LazyOpportunitiesView=React.lazy(()=>import('./OpportunitiesView'));
 const LazyLostDemandBoard=React.lazy(()=>import('./LostDemandBoard'));
 
 const LazyClubAdmin=React.lazy(()=>import('./ClubAdmin'));
@@ -2350,7 +2349,7 @@ export default function AdminPanelView(props: Props) {
           {adminTab === 'crm' && <React.Suspense fallback={<p role="status" style={{padding:24,color:'#E4C687'}}>Cargando el CRM…</p>}><LazyCrmView appointments={appointments} bookingName={bookingName} bizConfig={bizConfig} crmView={crmView} dashboardEnd={dashboardEnd} dashboardStart={dashboardStart} formatDateKey={formatDateKey} isActiveAppointment={isActiveAppointment} isDateBlockedByHoliday={isDateBlockedByHoliday} listaClientes={listaClientes} lostDemandsList={lostDemandsList} setAdminTab={setAdminTab} setAgendaSidePanel={setAgendaSidePanel} setClientStatusFilter={setClientStatusFilter} setCrmView={setCrmView} setDashboardEnd={setDashboardEnd} setDashboardStart={setDashboardStart} setPendingPanelFilter={setPendingPanelFilter} timeBlocks={timeBlocks} trafficEvents={trafficEvents} workingRanges={workingRanges} /></React.Suspense>}
           {adminTab === 'crm' && OptionalAppUsageStats && <OptionalAppUsageStats />}
 
-          {adminTab === 'demands' && <React.Suspense fallback={<p role="status" style={{padding:24,color:'#E4C687'}}>Cargando la demanda…</p>}><LazyLostDemandBoard legacy={<LazyOpportunitiesView attemptClock={attemptClock} bizConfig={bizConfig} bookingAttempts={bookingAttempts} crmPeriod={crmPeriod} demandEnd={demandEnd} demandFilter={demandFilter} demandStart={demandStart} formatDateKey={formatDateKey} listaClientes={listaClientes} lostDemandsList={lostDemandsList} normalizeEmail={normalizeEmail} opportunityPage={opportunityPage} opportunitySearch={opportunitySearch} opportunityStatus={opportunityStatus} setAdminTab={setAdminTab} setBookingAttempts={setBookingAttempts} setBusquedaCliente={setBusquedaCliente} setClientStatusFilter={setClientStatusFilter} setCrmPeriod={setCrmPeriod} setDemandEnd={setDemandEnd} setDemandFilter={setDemandFilter} setDemandStart={setDemandStart} setLostDemandsList={setLostDemandsList} setOpportunityPage={setOpportunityPage} setOpportunitySearch={setOpportunitySearch} setOpportunityStatus={setOpportunityStatus} />} /></React.Suspense>}
+          {adminTab === 'demands' && <React.Suspense fallback={<p role="status" style={{padding:24,color:'#E4C687'}}>Cargando la demanda…</p>}><LazyLostDemandBoard /></React.Suspense>}
 
           </>}
           </main>
