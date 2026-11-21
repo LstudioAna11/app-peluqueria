@@ -65,3 +65,28 @@
 .lst-products .lst-product-order button { min-width: 42px; color: var(--product-gold); }
 .lst-products .lst-product-order button[aria-disabled="true"] { opacity: .45; cursor: default; }
 .lst-product-order-status:empty { position: absolute; }
+
+.lst-routine-customer { font-size: 13px; line-height: 1.6; }
+.lst-routine-customer * { box-sizing: border-box; }
+.lst-products.lst-product-preview {
+  box-sizing: border-box;
+  width: min(450px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 16px;
+  border: 1px solid var(--product-line);
+  border-radius: 14px;
+  background: #302820;
+}
+.lst-product-preview:not([open]) { display: none; }
+.lst-product-preview::backdrop { background: #17110dc9; }
+.lst-products .lst-product-preview-close { min-width: 44px; }
+.lst-product-preview-portal {
+  display: grid;
+  gap: 9px;
+  padding: 11px;
+  border-radius: 10px;
+  background: #29231f;
+}
+.lst-products .lst-product-preview-location { font-size: 13px; }
