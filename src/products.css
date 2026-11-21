@@ -61,3 +61,7 @@
 @media (max-width: 420px) {
   .lst-product-fields { grid-template-columns: minmax(0, 1fr); }
 }
+.lst-products .lst-product-order { gap: 4px; }
+.lst-products .lst-product-order button { min-width: 42px; color: var(--product-gold); }
+.lst-products .lst-product-order button[aria-disabled="true"] { opacity: .45; cursor: default; }
+.lst-product-order-status:empty { position: absolute; }
