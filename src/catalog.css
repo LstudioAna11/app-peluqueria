@@ -380,3 +380,33 @@
   background: transparent !important;
   border: none !important;
 }
+.lst-addons { display: grid; gap: 10px; }
+.lst-addon-required, .lst-addon-optional, .lst-addon-included {
+  padding: 14px;
+  border: 1px solid #725b3e;
+  border-radius: 12px;
+  background: #302822;
+  color: #fff8ee;
+}
+.lst-addon-required:focus-visible { outline: 2px solid #e4c687; outline-offset: 3px; }
+.lst-addon-required[data-addon-pending] { border-color: #c5a059; background: #392e23; }
+.lst-addon-heading, .lst-addon-optional summary { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.lst-addon-heading h3 { margin: 0; color: #fff8ee; font-size: 1.05rem; }
+.lst-addon-badge { padding: 3px 8px; border-radius: 6px; background: #463b31; color: #f0e4d3; font-size: .76rem; font-weight: 700; }
+.lst-addon-required[data-addon-pending] .lst-addon-badge { background: #e4c687; color: #29231f; }
+.lst-addon-required:not([data-addon-pending]) .lst-addon-badge { background: #2c4236; color: #e0f1e3; }
+.lst-addon-required p, .lst-addon-included { margin: 7px 0 0; font-size: .86rem; line-height: 1.5; }
+.lst-addon-optional summary { cursor: pointer; min-height: 32px; }
+.lst-addon-optional summary::before { content: '+'; color: #e4c687; font-weight: 700; }
+.lst-addon-optional[open] summary::before { content: '−'; }
+.lst-addon-options { display: grid; gap: 10px; margin-top: 12px; }
+.lst-addon-service { display: grid; gap: 7px; }
+.lst-addon-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 118px), 1fr)); gap: 7px; }
+.lst-addon-choices button {
+  display: grid; gap: 3px; text-align: left; min-height: 48px; padding: 8px 10px;
+  border: 1px solid #89704c; border-radius: 8px; background: #27201b; color: #fff8ee; cursor: pointer;
+}
+.lst-addon-choices button[aria-pressed="true"] { border-color: #e4c687; background: #e4c687; color: #29231f; }
+.lst-addon-choices button:focus-visible, .lst-addon-optional summary:focus-visible { outline: 2px solid #e4c687; outline-offset: 2px; }
+.lst-addon-selected { font-weight: 700; }
+.lst-cta-full.lst-addon-pending-cta { background: #463b31; color: #ffe0a4; border: 1px solid #c5a059; }
