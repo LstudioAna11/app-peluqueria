@@ -1,3 +1,4 @@
+import { ClientProductRoutine } from './Products';
 import GiftRecipientAdmin,{GiftPurchaseReceipts} from './GiftRecipientAdmin'; // lst-gift-recipient-v1
 import './passport-refine.css';
 import {Fingerprint as PassportHairIcon,Home as PassportHomeIcon} from 'lucide-react';
@@ -631,6 +632,7 @@ export function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,
    <div className="lp-hair"><section className="lp-next" data-recommendation={hasRecommendation?'true':'false'}><small>{t('recommendedVisit')}</small><p>{hasRecommendation?recommendation:'Ana te indicará cuándo volver.'}</p>{hasRecommendation&&<><button className="lp-book" type="button" onClick={onBook}>Reservar</button><details className="lp-recommend-extra"><summary>Ver orientación de mantenimiento</summary><p>{t('maintenanceNote')}</p></details></>}</section>
    <details className="lp-fold"><summary><span className="lp-fold-label"><PassportHairIcon size={19} strokeWidth={1.5} aria-hidden="true"/>{t('hairDna')}</span><ChevronDown size={16} aria-hidden="true"/></summary><div className="lp-fold-body">{client?.dniCapilar||t('emptyDna')}</div></details>
    <details className="lp-fold"><summary><span className="lp-fold-label"><PassportHomeIcon size={19} strokeWidth={1.5} aria-hidden="true"/>{t('homeRitual')}</span><ChevronDown size={16} aria-hidden="true"/></summary><div className="lp-fold-body">{client?.prescripcionCasa||t('emptyCare')}</div></details>
+   <ClientProductRoutine key={client?.serverId || 'own-routine'}/>
    {client?.ultimaVisita&&stamp(client.ultimaVisita)>0&&stamp(client.ultimaVisita)<=Date.now()&&<p className="lp-quiet">Última visita registrada · {client.ultimaVisita}</p>}
    </div>
   </div>
