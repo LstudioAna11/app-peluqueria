@@ -5385,6 +5385,16 @@ function StudioApp() {
           (isViabilityTest || isVisagismStudy);
         const detailImage = detailSub.imageUrl;
         const detailSelection = selectedServicesToBook.find(item => item.sub.id === detailSub.id);
+        const addonPending = addonError(selectedServicesToBook, catalog);
+        const stylingPending = !!addonPending && selectedServicesToBook.some(item => {
+          const owner = latestSub(item.sub);
+          return owner.addonGroups?.some(group => group.mode === 'required' && /peinad|styling/i.test(group.title) &&
+            !selectedServicesToBook.some(choice => {
+              const service = latestSub(choice.sub);
+              return service.id !== owner.id && group.serviceIds.includes(service.id) && service.active !== false &&
+                (!service.hasVariants || !service.variants?.length || service.variants.some(variant => variant.id === choice.variant?.id));
+            }));
+        });
         return (
         <div className="lst-page" style={{ maxWidth: '520px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div className="lst-app-header">
@@ -5453,7 +5463,24 @@ function StudioApp() {
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
                 <button type="button" onClick={() => { setViewServiceDetail(null); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="lst-cta-full" style={{ flex: 1, background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.16)' }}>Añadir otro servicio</button>
-                <button type="button" onClick={() => { const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant); if (missing) { alert(tf('requiredVariant', { service: bookingName(missing.sub) })); return; } const finishError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook); if (finishError) { alert(finishError); return; } setCurrentScreen('visualAgenda'); }} className="lst-cta-full" style={{ flex: 1 }}>{t('chooseDateTime')} <ArrowRight size={18} strokeWidth={2} aria-hidden="true" /></button>
+                <button type="button" onClick={event => {
+                  if (addonPending) {
+                    const pending = event.currentTarget.closest('.lst-page')?.querySelector<HTMLElement>(
+                      stylingPending ? '[data-addon-pending="styling"]' : '[data-addon-pending]'
+                    );
+                    if (pending) { pending.focus(); return; }
+                    alert(addonPending);
+                    return;
+                  }
+                  const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant);
+                  if (missing) { alert(tf('requiredVariant', { service: bookingName(missing.sub) })); return; }
+                  const finishError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook);
+                  if (finishError) { alert(finishError); return; }
+                  setCurrentScreen('visualAgenda');
+                }} className={addonPending ? 'lst-cta-full lst-addon-pending-cta' : 'lst-cta-full'} style={{ flex: 1 }}>
+                  {addonPending ? (stylingPending ? 'Selecciona un peinado' : 'Completa la selección obligatoria') : t('chooseDateTime')}
+                  <ArrowRight size={18} strokeWidth={2} aria-hidden="true" />
+                </button>
               </div>
             </div>
           ) : (
@@ -6543,4 +6570,3 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
 
 // lst-agenda-soft-states-v1
 
-// lst-appointment-move-refresh-v1
