@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { slotAlert } from './studioApi';
+import './lostDemand.css';
 import './slotAlerts.css';
 
 type Selection = { id: string; variantId: string | null; name: string };
@@ -72,7 +73,36 @@ export function SlotAlertRequest({ day, selection, allowRequest }: {
   </section>;
 }
 
-export function SlotAlertList({ refresh }: { refresh: number }) {
+export function AgendaSlotAlerts({ day }: { day: string }) {
+  const [open, setOpen] = useState(false);
+  const [count, setCount] = useState<number>();
+  const [reload, setReload] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    slotAlert<{ count: number }>({ operation: 'count', day })
+      .then(result => { if (active) setCount(result.count); })
+      .catch(() => { if (active) setCount(undefined); });
+    return () => { active = false; };
+  }, [day, reload]);
+
+  return <details className="ld-board slot-alert-agenda" onToggle={event => {
+    const expanded = event.currentTarget.open;
+    setOpen(expanded);
+    if (expanded) setReload(value => value + 1);
+  }}>
+    <summary>Avisos pendientes{count === undefined ? '' : ' · ' + count}</summary>
+    {open && <>
+      <header className="ld-inline">
+        <strong>{formatDay(day)}</strong>
+        <button type="button" onClick={() => setReload(value => value + 1)}>Actualizar avisos</button>
+      </header>
+      <SlotAlertList day={day} refresh={reload} onChange={() => setReload(value => value + 1)} />
+    </>}
+  </details>;
+}
+
+export function SlotAlertList({ refresh, day, onChange }: { refresh: number; day?: string; onChange?: () => void }) {
   const [offset, setOffset] = useState(0);
   const [managed, setManaged] = useState(false);
   const [rows, setRows] = useState<AlertRow[]>();
@@ -85,11 +115,11 @@ export function SlotAlertList({ refresh }: { refresh: number }) {
     let active = true;
     setRows(undefined);
     setError('');
-    slotAlert<{ alerts: AlertRow[] }>({ operation: 'list', offset, managed })
+    slotAlert<{ alerts: AlertRow[] }>({ operation: 'list', offset, managed, day })
       .then(result => { if (active) setRows(result.alerts); })
       .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'No se pudieron consultar los avisos.'); });
     return () => { active = false; };
-  }, [offset, refresh, managed, reload]);
+  }, [offset, refresh, managed, reload, day]);
 
   function show(value: boolean) {
     if (managed === value) return;
@@ -114,7 +144,8 @@ export function SlotAlertList({ refresh }: { refresh: number }) {
       setNotice(managed ? 'Solicitud devuelta a pendientes.' : 'Solicitud marcada como gestionada.');
       if (rows?.length === 1 && offset > 0) setOffset(offset - 30);
       setRows(undefined);
-      setReload(value => value + 1);
+      if (onChange) onChange();
+      else setReload(value => value + 1);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : 'No se pudo actualizar la solicitud.');
     } finally {
@@ -124,10 +155,10 @@ export function SlotAlertList({ refresh }: { refresh: number }) {
   }
 
   return <section className="slot-alert-list" aria-label="Solicitudes de aviso">
-    <div className="ld-inline ld-filters" role="group" aria-label="Estado del aviso">
+    {!day && <div className="ld-inline ld-filters" role="group" aria-label="Estado del aviso">
       <button type="button" aria-pressed={!managed} disabled={busy} onClick={() => show(false)}>Pendientes</button>
       <button type="button" aria-pressed={managed} disabled={busy} onClick={() => show(true)}>Gestionadas</button>
-    </div>
+    </div>}
     {!managed && <p>Si tienes un hueco para la fecha y el servicio que pidió la clienta, abre el mensaje y revisa el horario antes de enviarlo.</p>}
     {notice && <p role="status">{notice}</p>}
     {error && <p className="ld-error" role="alert">{error}</p>}
