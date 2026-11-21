@@ -19,6 +19,7 @@ import StudioPortalNews from './StudioPortalNews';
 import StudioReviewsCard from './StudioReviewsCard';
 import './portal-bonos-nav.css';
 import {useLostDemand} from './useLostDemand';
+import { SlotAlertRequest } from './SlotAlerts';
 import {depositMoney} from './serviceDeposits';
 import {studioDayRanges,studioWeekErrors,studioScheduleLabel,STUDIO_WEEK_DAYS,type StudioWeek} from './weeklyHours';
 import {appointmentDiscountDepositLimit,clearAppointmentDiscount,type AppointmentDiscount} from './appointmentDiscounts';
@@ -4249,12 +4250,6 @@ function StudioApp() {
   const saturdayPolicyKey = formatDateKey(bookingDate) + '|' + saturdayPolicyText;
   const saturdayNeedsAcceptance = bookingDate.getDay() === 6 && bizConfig.saturdayPolicyEnabled !== false;
   useEffect(() => {
-    if (currentScreen === 'visualAgenda' && saturdayNeedsAcceptance && acceptedSaturdayPolicy !== saturdayPolicyKey) {
-      setReservationPolicyChecked(false);
-      setReservationPolicyOpen(true);
-    }
-  }, [currentScreen, saturdayNeedsAcceptance, saturdayPolicyKey, acceptedSaturdayPolicy]);
-  useEffect(() => {
     if (reservationPolicyOpen && reservationPolicyDialog.current && !reservationPolicyDialog.current.open) reservationPolicyDialog.current.showModal();
   }, [reservationPolicyOpen]);
   const leaveReservationPolicy = () => {
@@ -4322,6 +4317,15 @@ function StudioApp() {
   },[clientRescheduleActive]);
 
   const portalTimes = portalAvailableTimes(bookingDate);
+  const hasPortalTimes = portalTimes.length > 0;
+  const canShowSlotAlert = !!availabilityToken && studioApi.storedRole() !== 'admin' &&
+    selectedServicesToBook.length > 0 && formatDateKey(bookingDate) >= formatDateKey(new Date());
+  useEffect(() => {
+    if (currentScreen === 'visualAgenda' && hasPortalTimes && saturdayNeedsAcceptance && acceptedSaturdayPolicy !== saturdayPolicyKey) {
+      setReservationPolicyChecked(false);
+      setReservationPolicyOpen(true);
+    }
+  }, [currentScreen, hasPortalTimes, saturdayNeedsAcceptance, saturdayPolicyKey, acceptedSaturdayPolicy]);
   const demandTracker=useLostDemand({screen:currentScreen,clientId:currentClientRecord?.serverId,services:selectedServicesToBook.map(item=>({id:item.sub.id,variantId:item.variant?.id||null})),date:formatDateKey(bookingDate),explicit:demandExplicitDate===formatDateKey(bookingDate),time:selectedVisualTime,ready:availabilityReady,error:!!portalAvailability?.error&&!portalAvailability.loading&&portalAvailability.token===availabilityToken&&portalAvailability.startDate<=formatDateKey(bookingDate)&&portalAvailability.endDate>=formatDateKey(bookingDate),hasSlots:portalTimes.length>0});
   useEffect(() => {
     if (!['catalogBooking', 'visualAgenda'].includes(currentScreen) || !currentClientRecord || !selectedServicesToBook.length) return;
@@ -5542,6 +5546,13 @@ function StudioApp() {
               const times = portalTimes.filter(time => period === 'morning' ? Number(time.slice(0, 2)) < 14 : Number(time.slice(0, 2)) >= 14);
               return times.length ? <div key={period} style={{ marginBottom: '18px' }}><p style={{ color: '#C9BCA9', fontSize: '12px' }}>{t(period)}</p><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(76px, 1fr))', gap: '9px' }}>{times.map(time => <button type="button" key={time} aria-pressed={time === selectedVisualTime} onClick={() => setSelectedVisualTime(time)} style={{ minHeight: '48px', backgroundColor: time === selectedVisualTime ? '#C49A58' : '#322A25', color: time === selectedVisualTime ? '#29231F' : '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.12)', borderRadius: '8px', fontSize: '15px', cursor: 'pointer' }}>{time}</button>)}</div></div> : null;
             })}
+            {availabilityReady && canShowSlotAlert &&
+              <SlotAlertRequest key={formatDateKey(bookingDate)} day={formatDateKey(bookingDate)}
+                allowRequest={!hasPortalTimes}
+                selection={selectedServicesToBook.map(({ sub, variant }) => ({
+                  id: sub.id, variantId: variant?.id ?? null,
+                  name: bookingName(sub) + (variant ? ' · ' + variantText(variant, sub) : ''),
+                }))} />}
           </section>
           <div style={{ borderTop: '1px solid #3A312A', paddingTop: '18px' }}>
             <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6 }}>{selectedServicesToBook.map(item => serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name') + (item.variant ? ` · ${variantText(item.variant, item.sub)}` : '')).join(' + ')}</p>
@@ -6570,3 +6581,4 @@ function useLiveAgenda(enabled:boolean,onRows:(rows:Record<string,any>[],blocks:
 
 // lst-agenda-soft-states-v1
 
+// lst-appointment-move-refresh-v1
