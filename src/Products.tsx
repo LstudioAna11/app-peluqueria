@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
-import { ArrowDown, ArrowUp, ChevronRight, Eye, Package, Plus, X } from 'lucide-react';
+import { ArrowDown, ArrowUp, ChevronRight, Eye, Package, Plus, X, ZoomIn } from 'lucide-react';
 import { prepareCatalogImage } from './catalogImage';
 import { studioProducts } from './studioApi';
 import { offlineConsultation } from './offlineSession';
@@ -241,8 +241,8 @@ export default function ProductInventory() {
   </section>;
 }
 
-function ProductDialog({ title, closeLabel, onClose, children }: {
-  title: string; closeLabel: string; onClose: () => void; children: ReactNode;
+function ProductDialog({ title, closeLabel, onClose, children, photo = false }: {
+  title: string; closeLabel: string; onClose: () => void; children: ReactNode; photo?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -251,7 +251,7 @@ function ProductDialog({ title, closeLabel, onClose, children }: {
     if (element && !element.open) element.showModal();
   }, []);
 
-  return <dialog className="lst-products lst-product-preview" ref={dialog} aria-labelledby={titleId}
+  return <dialog className={`lst-products lst-product-preview${photo ? ' lst-product-photo-dialog' : ''}`} ref={dialog} aria-labelledby={titleId}
     onClose={event => { if (event.target === event.currentTarget) onClose(); }}>
     <header className="lst-products-head"><h2 id={titleId}>{title}</h2>
       <button type="button" className="lst-product-preview-close" aria-label={closeLabel} onClick={() => dialog.current?.close()}>
@@ -277,9 +277,27 @@ function ProductRecommendationPreview({ product, onClose }: { product: ProductCa
   </ProductDialog>;
 }
 
+function ProductPhoto({ product, onOpen }: { product: ProductCard; onOpen: () => void }) {
+  if (!product.imageUrl) return <ProductThumbnail product={product} />;
+
+  return <button type="button" className="lst-product-photo-button" aria-haspopup="dialog"
+    aria-label={`Ampliar foto de ${product.name}`} title="Ampliar foto" onClick={onOpen}>
+    <ProductThumbnail product={product} />
+    <span className="lst-product-photo-icon"><ZoomIn size={14} aria-hidden="true" /></span>
+  </button>;
+}
+
+function ProductPhotoDialog({ product, onClose }: { product: ProductCard; onClose: () => void }) {
+  if (!product.imageUrl) return null;
+  return <ProductDialog title={product.name} closeLabel="Cerrar foto ampliada" onClose={onClose} photo>
+    <img className="lst-product-photo-enlarged" src={product.imageUrl} alt={`${product.name} · ${product.brand}`} />
+  </ProductDialog>;
+}
+
 function ProductRecommendationDetail({ item, onClose }: { item: RoutineItem; onClose: () => void }) {
+  const [photoOpen, setPhotoOpen] = useState(false);
   return <ProductDialog title={item.product.name} closeLabel="Cerrar ficha del producto" onClose={onClose}>
-    <div className="lst-product-desc"><ProductThumbnail product={item.product} /><small>{item.product.brand}</small></div>
+    <div className="lst-product-desc"><ProductPhoto product={item.product} onOpen={() => setPhotoOpen(true)} /><small>{item.product.brand}</small></div>
     <section className="lst-recommendation-info">
       <h3>Cómo aplicarlo</h3>
       <p>{item.note.trim() || 'Consulta con el salón cómo incorporar este producto a tu rutina.'}</p>
@@ -288,6 +306,7 @@ function ProductRecommendationDetail({ item, onClose }: { item: RoutineItem; onC
       <h3>Qué vas a conseguir</h3>
       <p>{item.product.microtext.trim() || 'Tu salón puede indicarte qué aporta este producto a tu rutina.'}</p>
     </section>
+    {photoOpen && <ProductPhotoDialog product={item.product} onClose={() => setPhotoOpen(false)} />}
   </ProductDialog>;
 }
 
@@ -303,20 +322,24 @@ function RoutineList({ items, interactive = false, showArchived = false, onEdit,
   onEdit?: (item: RoutineItem) => void; onRemove?: (item: RoutineItem) => void;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
+  const [photoId, setPhotoId] = useState<string | null>(null);
   const openItem = interactive ? items.find(item => item.product.id === openId) : undefined;
+  const openPhoto = interactive ? items.find(item => item.product.id === photoId)?.product : undefined;
 
   return <>
     <ul className="lst-routine-list">{items.map(item => <li key={item.product.id} className={interactive ? 'lst-routine-clickable' : undefined}>
-      {interactive ? <button type="button" className="lst-recommendation-card" aria-haspopup="dialog"
-        aria-label={`Ver cómo usar ${item.product.name}`} onClick={() => setOpenId(item.product.id)}>
-        <ProductThumbnail product={item.product} />
-        <span className="lst-recommendation-summary">
-          <small>{item.product.brand}</small>
-          <strong>{item.product.name}</strong>
-          {item.product.microtext && <span>{item.product.microtext}</span>}
-          <span className="lst-recommendation-link">Ver cómo usarlo <ChevronRight size={15} aria-hidden="true" /></span>
-        </span>
-      </button> : <>
+      {interactive ? <div className="lst-recommendation-row">
+        <ProductPhoto product={item.product} onOpen={() => setPhotoId(item.product.id)} />
+        <button type="button" className="lst-recommendation-card" aria-haspopup="dialog"
+          aria-label={`Ver cómo usar ${item.product.name}`} onClick={() => setOpenId(item.product.id)}>
+          <span className="lst-recommendation-summary">
+            <small>{item.product.brand}</small>
+            <strong>{item.product.name}</strong>
+            {item.product.microtext && <span>{item.product.microtext}</span>}
+            <span className="lst-recommendation-link">Ver cómo usarlo <ChevronRight size={15} aria-hidden="true" /></span>
+          </span>
+        </button>
+      </div> : <>
         <div className="lst-product-desc"><ProductThumbnail product={item.product} /><div><small>{item.product.brand}{showArchived && !item.product.active && ' · Archivado'}</small>
           <h4>{item.product.name}</h4>{item.product.microtext && <p>{item.product.microtext}</p>}</div></div>
         {item.note && <p className="lst-routine-note"><strong>Cómo aplicarlo</strong>{item.note}</p>}
@@ -327,6 +350,7 @@ function RoutineList({ items, interactive = false, showArchived = false, onEdit,
       </>}
     </li>)}</ul>
     {openItem && <ProductRecommendationDetail item={openItem} onClose={() => setOpenId(null)} />}
+    {openPhoto && <ProductPhotoDialog product={openPhoto} onClose={() => setPhotoId(null)} />}
   </>;
 }
 
