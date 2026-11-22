@@ -341,8 +341,7 @@ export function VoucherHub(props:{logoSrc?:string;services:VoucherServiceOption[
  const t=props.t||(key=>spanish[key]);return <section className="lst-bonos"><VoucherStyles/><button type="button" className="vb-entry" aria-expanded={opened} onClick={()=>setOpened(v=>!v)}><span><strong>{t('voucherAdminHeading')}</strong><small>{t('voucherHubSub')}</small></span><Sparkles size={21}/></button>{opened&&<VoucherPanel logoSrc={props.logoSrc} services={props.services} onReserve={props.onReserve} t={t}/>}</section>;
 }
 function portalVoucherIsActive(v:studioApi.StudioVoucher){return v.status==='active'&&(!v.expires_on||v.expires_on>=voucherToday())&&(voucherAvailable(v)>0||v.held_cents>0||v.held_sessions>0);}
-export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoSrc,t=undefined as unknown as (key:string)=>string|undefined}:{admin?:boolean;logoSrc?:string;services:VoucherServiceOption[];clients?:VoucherClientOption[];onReserve?:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void;t?:(key:string)=>string}){
- const t=t||(key=>spanish[key]);
+export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoSrc,t=(key)=>spanish[key]}:{admin?:boolean;logoSrc?:string;services:VoucherServiceOption[];clients?:VoucherClientOption[];onReserve?:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void;t?:(key:string)=>string}){
  const [data,setData]=useState<studioApi.VoucherPage|null>(null),[page,setPage]=useState(0),[client,setClient]=useState('');
  const [busy,setBusy]=useState(false),[writing,setWriting]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const [pendingDelete,setPendingDelete]=useState<string|null>(null);
@@ -436,7 +435,8 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
 {!admin&&<GiftPurchaseReceipts refreshKey={data} t={t}/>}
   {!busy&&data?.vouchers.length===0&&<p className={admin?'vb-note':'vb-note vpc-empty'}>{admin?t('voucherEmptyFiltered'):t('voucherEmptyAll')}</p>}
   {(admin?[null]:[true,false]).flatMap(onlyActive=>(['gift','sessions'] as const).map(kind=>{
-    const group=data?.vouchers.filter(v=>v.kind===kind&&(admin||portalVoucherIsActive(v)===onlyActive))||[];
+    if(!data)return null;
+    const group=data.vouchers.filter(v=>v.kind===kind&&(admin||portalVoucherIsActive(v)===onlyActive));
     if(!group.length)return null;
     return <section key={kind+'-'+String(onlyActive)} className="vpc-wallet-group" data-wallet-active={onlyActive===true?'true':'false'}><h3 className="vb-wallet-heading">{kind==='gift'?(admin?t('voucherGiftsRegistered'):onlyActive?t('voucherMyGifts'):t('voucherOtherGifts')):(admin?t('voucherSessionsRegistered'):onlyActive?t('voucherMySessions'):t('voucherOtherSessions'))}</h3>
 <div className="vb-grid">{group.map(v=>{const expired=!!v.expires_on&&v.expires_on<voucherToday(),available=voucherAvailable(v);const label=v.status==='pending'?t('voucherPendingBizum'):v.status==='cancelled'?t('voucherRequestCancelled'):expired?t('voucherExpired'):available<=0?t('voucherNoAvailability'):v.kind==='gift'?t('voucherCardActive'):t('voucherCardActiveSessions');return <article key={v.id} className={'vb-card vl-card vl-owned vl-'+v.product_id+(v.kind==='gift'?' vb-gift':'')}><VoucherVisual productId={v.product_id} logoSrc={logoSrc}/>
@@ -468,16 +468,16 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
     {t('voucherCancelRequest')}
   </button>
 </div>
-     {pendingCancel===v.id&&<div><p>{t('voucherCancelWarn')}</p><button type="button" disabled={writing} onClick={()=>void act(()=>studioApi.cancelVoucherOrder(voucherToken(),v.id)+t('voucherCancelDone'))}>{t('voucherConfirmCancel')}</button></div>}
-     {admin&&confirming===v.id&&<div><label>{t('voucherAmountReceived')}<input type="number" min="0" step="0.01" value={amount} disabled={writing} onChange={e=>setAmount(e.target.value)}/></label><label className="vb-check"><input type="checkbox" checked={checked} disabled={writing} onChange={e=>setChecked(e.target.checked)}/>{t('voucherPaymentChecked')}</label><button type="button" disabled={writing||!checked||Math.round(Number(amount)*100)!==v.price_cents} onClick={()=>void act(()=>studioApi.activateVoucher(voucherToken(),v.id,Math.round(Number(amount)*100))+t('voucherConfirmPayment'))}>{t('voucherConfirmPayment')}</button></div>}
+     {pendingCancel===v.id&&<div><p>{t('voucherCancelWarn')}</p><button type="button" disabled={writing} onClick={()=>void act(()=>studioApi.cancelVoucherOrder(voucherToken(),v.id),t('voucherCancelDone'))}>{t('voucherConfirmCancel')}</button></div>}
+     {admin&&confirming===v.id&&<div><label>{t('voucherAmountReceived')}<input type="number" min="0" step="0.01" value={amount} disabled={writing} onChange={e=>setAmount(e.target.value)}/></label><label className="vb-check"><input type="checkbox" checked={checked} disabled={writing} onChange={e=>setChecked(e.target.checked)}/>{t('voucherPaymentChecked')}</label><button type="button" disabled={writing||!checked||Math.round(Number(amount)*100)!==v.price_cents} onClick={()=>void act(()=>studioApi.activateVoucher(voucherToken(),v.id,Math.round(Number(amount)*100)),t('voucherConfirmPayment'))}>{t('voucherConfirmPayment')}</button></div>}
    </>}
    {admin&&v.status==='cancelled'&&!v.activated_at&&!v.expires_on&&v.used_cents===0&&v.held_cents===0&&v.used_sessions===0&&v.held_sessions===0&&<div>
-    <button type="button" disabled={writing||busy} onClick={()=>setPendingDelete(current=>current===v.id?null:v.id)}}>{t('voucherDeleteCancelled')}</button>
+    <button type="button" disabled={writing||busy} onClick={()=>setPendingDelete(current=>current===v.id?null:v.id)}>{t('voucherDeleteCancelled')}</button>
     {pendingDelete===v.id&&<div style={{marginTop:10}}><p style={{fontSize:12}}>{t('voucherDeleteCancelledHelp')}</p><div className="vb-actions"><button type="button" disabled={writing||busy} onClick={async()=>{
       let removed=false;
-      await act(async()=>{await studioApi.deleteCancelledVoucher(voucherToken(),v.id);removed=true;setPendingDelete(null);}},t('voucherYesDelete'))
+      await act(async()=>{await studioApi.deleteCancelledVoucher(voucherToken(),v.id);removed=true;setPendingDelete(null);},t('voucherYesDelete'));
       if(removed&&page>0&&data.vouchers.length===1)setPage(p=>p-1);
-    }}}>{t('voucherYesDelete')}</button><button type="button" disabled={writing} onClick={()=>setPendingDelete(null)}>{t('newsKeep')}</button></div></div>}
+    }}>{t('voucherYesDelete')}</button><button type="button" disabled={writing} onClick={()=>setPendingDelete(null)}>{t('newsKeep')}</button></div></div>}
    </div>}
    {admin&&v.status==='active'&&<div style={{marginTop:10}}>
     <button type="button" disabled={writing||busy} onClick={()=>{setPendingDelete(current=>current==='test:'+v.id?null:'test:'+v.id);setTestDeleteConfirmed(false);}}>Eliminar {v.kind==='gift'?'tarjeta':'bono'} de prueba</button>
@@ -492,7 +492,7 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
       }} style={{background:'#7F3429',borderColor:'#7F3429',color:'#FFF8EE'}}>Sí, eliminar definitivamente</button><button type="button" disabled={writing} onClick={()=>{setPendingDelete(null);setTestDeleteConfirmed(false);}}>Conservar</button></div>
     </div>}
    </div>}
-   {v.status==='active'&&<><div className="vb-code">{v.code}</div><div className="vb-actions"><button type="button" onClick={()=>void copy(v.code)}>{t('voucherCopyCode')}</button>{!admin&&voucherUsable(v)&&<button type="button" className="vb-primary" onClick={()=>v.kind==='gift'?onReserve?.(v):setReserveId(reserveId===v.id?null:v.id)}}>{t('voucherReserve')}</button>}</div>
+   {v.status==='active'&&<><div className="vb-code">{v.code}</div><div className="vb-actions"><button type="button" onClick={()=>void copy(v.code)}>{t('voucherCopyCode')}</button>{!admin&&voucherUsable(v)&&<button type="button" className="vb-primary" onClick={()=>v.kind==='gift'?onReserve?.(v):setReserveId(reserveId===v.id?null:v.id)}>{t('voucherReserve')}</button>}</div>
     {!admin&&reserveId===v.id&&<div className="vb-actions">{services.filter(s=>data.products.find(p=>p.id===v.product_id)?.service_ids.includes(s.id)).map(s=><button type="button" key={s.id} onClick={()=>onReserve?.(v,s.id)}>{s.label}</button>)}</div>}
     {v.kind==='gift'&&v.client_id===v.buyer_id&&v.used_cents===0&&v.held_cents===0&&<small>{t('voucherSharePrivate')}</small>}
    </>}
@@ -500,7 +500,7 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
    {v.history.length>0&&<details><summary>{t('voucherMovements')}</summary>{v.history.map((u,i)=><p key={i}>{voucherDate(u.booked_for)} · {u.state==='held'?t('voucherHistHeld'):u.state==='consumed'?t('voucherHistConsumed'):t('voucherHistReleased')} · {v.kind==='gift'?voucherMoney(u.amount_cents):t('voucherOneSession')}{u.service_text?' · '+u.service_text:''}</p>)}</details>}
   </article>;})}</div></section>;
   }))}
-  {data&&data.total>12&&<div className="vb-pager"><button type="button" disabled={page===0||writing||busy} onClick={()=>setPage(p=>p-1)}}>{t('giftPrev')}</button><span>{page+1} / {Math.ceil(data.total/12)}</span><button type="button" disabled={(page+1)*12>=data.total||writing||busy} onClick={()=>setPage(p=>p+1)}}>{t('giftNext')}</button></div>}
+  {data&&data.total>12&&<div className="vb-pager"><button type="button" disabled={page===0||writing||busy} onClick={()=>setPage(p=>p-1)}>{t('giftPrev')}</button><span>{page+1} / {Math.ceil(data.total/12)}</span><button type="button" disabled={(page+1)*12>=data.total||writing||busy} onClick={()=>setPage(p=>p+1)}>{t('giftNext')}</button></div>}
   {checkoutProduct&&<div className="vl-backdrop" onClick={event=>{if(event.target===event.currentTarget)closePurchase();}}><div ref={checkoutRef} className="vl-dialog" role="dialog" aria-modal="true" aria-labelledby="voucher-checkout-title" aria-busy={writing}>
    <button type="button" className="vl-close" disabled={writing} onClick={closePurchase} aria-label={t('portalClose')}>×</button>
    <VoucherVisual productId={checkoutProduct.id} logoSrc={logoSrc}/>
@@ -517,12 +517,12 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
    </form>:<div className="vl-checkout-body">
     <p className="vl-muted">{checkoutOrder.title}</p>
     {checkoutOrder.existingRequest&&<p className="vl-muted">{t('voucherDuplicateRecovered')}</p>}
-    {checkoutOrder.status==='pending'&&<><div className="vl-bizum"><div><span>{t('voucherExactAmount')}</span><strong>{voucherMoney(checkoutOrder.priceCents)}</strong></div><div><span>{t('voucherBizumTo')}</span><strong>{checkoutOrder.bizumNumber}</strong><button type="button" onClick={()=>void copyPurchase(checkoutOrder.bizumNumber)}}>{t('voucherCopyNumber')}</button></div><div><span>{t('voucherConcept')}</span><strong className="vl-reference">{checkoutOrder.paymentReference}</strong><button type="button" onClick={()=>void copyPurchase(checkoutOrder.paymentReference)}}>{t('voucherCopyConcept')}</button></div></div>
+    {checkoutOrder.status==='pending'&&<><div className="vl-bizum"><div><span>{t('voucherExactAmount')}</span><strong>{voucherMoney(checkoutOrder.priceCents)}</strong></div><div><span>{t('voucherBizumTo')}</span><strong>{checkoutOrder.bizumNumber}</strong><button type="button" onClick={()=>void copyPurchase(checkoutOrder.bizumNumber)}>{t('voucherCopyNumber')}</button></div><div><span>{t('voucherConcept')}</span><strong className="vl-reference">{checkoutOrder.paymentReference}</strong><button type="button" onClick={()=>void copyPurchase(checkoutOrder.paymentReference)}>{t('voucherCopyConcept')}</button></div></div>
      <p className="vl-muted">{t('voucherBizumInstructions')}</p>
      {checkoutOrder.dedication&&<p className="vl-muted" style={{whiteSpace:'pre-wrap'}}>{t('voucherDedicationSaved')}<br/>{checkoutOrder.dedication}</p>}
      <button type="button" className="vl-action" disabled={writing||checkoutOrder.paymentReported} onClick={()=>void reportPurchasePayment()}>{writing?t('voucherReporting'):checkoutOrder.paymentReported?t('voucherBizumComunicated'):t('voucherBizumDone2')}</button>
     </>}
-    <button type="button" disabled={writing} onClick={()=>{closePurchase();if(page===0)void load();else setPage(0);}}}>{t('voucherSeeMine')}</button>
+    <button type="button" disabled={writing} onClick={()=>{closePurchase();if(page===0)void load();else setPage(0);}}>{t('voucherSeeMine')}</button>
    </div>}
   </div></div>}
  </section>;
@@ -570,7 +570,7 @@ function resolveRepeatedServices(services:unknown,catalog:CatalogCategory[]):{it
   });
   return{items,warnings};
 }
-function RepeatLastAppointment({clientId,showPrices,onProceed,onCatalog,buttonLabel='Repetir mi última cita'}:{clientId?:string;showPrices:boolean;onProceed:(draft:RepeatPortalDraft)=>void;onCatalog:()=>void;buttonLabel?:string}){
+function RepeatLastAppointment({clientId,showPrices,onProceed,onCatalog,buttonLabel='Repetir mi última cita',t:tt=(key)=>spanish[key]}:{clientId?:string;showPrices:boolean;onProceed:(draft:RepeatPortalDraft)=>void;onCatalog:()=>void;buttonLabel?:string;t?:(key:string)=>string}){
   const [draft,setDraft]=useState<RepeatPortalDraft|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
   const lock=useRef(false),mounted=useRef(false);
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;};},[]);
