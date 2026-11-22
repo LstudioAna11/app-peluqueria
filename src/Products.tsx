@@ -1,3 +1,4 @@
+import spanish from './portalSpanish';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { ArrowDown, ArrowUp, ChevronRight, Eye, Package, Plus, X, ZoomIn } from 'lucide-react';
@@ -269,7 +270,7 @@ function ProductRecommendationPreview({ product, onClose }: { product: ProductCa
   return <ProductDialog title="Vista previa" closeLabel="Cerrar vista previa" onClose={onClose}>
     <div className="lst-product-preview-portal">
       <p className="lst-product-preview-location">Pasaporte · Mi cabello</p>
-      <ProductRoutineSection portal><RoutineList items={[{ product, note: note.trim() }]} interactive /></ProductRoutineSection>
+      <ProductRoutineSection portal t={spanishText}><RoutineList t={spanishText} items={[{ product, note: note.trim() }]} interactive /></ProductRoutineSection>
     </div>
     {!product.active && <p>Activa este producto para que pueda mostrarse en el Pasaporte.</p>}
     <label>Indicación de prueba (opcional)
@@ -279,48 +280,51 @@ function ProductRecommendationPreview({ product, onClose }: { product: ProductCa
   </ProductDialog>;
 }
 
-function ProductPhoto({ product, onOpen }: { product: ProductCard; onOpen: () => void }) {
+type Translate = (key: string) => string;
+const spanishText: Translate = (key) => spanish[key];
+
+function ProductPhoto({ product, onOpen, t = spanishText }: { product: ProductCard; onOpen: () => void; t?: Translate }) {
   if (!product.imageUrl) return <ProductThumbnail product={product} />;
 
   return <button type="button" className="lst-product-photo-button" aria-haspopup="dialog"
-    aria-label={`Ampliar foto de ${product.name}`} title="Ampliar foto" onClick={onOpen}>
+    aria-label={t('productZoomNamed').replace('{name}', () => product.name)} title={t('productZoom')} onClick={onOpen}>
     <ProductThumbnail product={product} />
     <span className="lst-product-photo-icon"><ZoomIn size={14} aria-hidden="true" /></span>
   </button>;
 }
 
-function ProductPhotoDialog({ product, onClose }: { product: ProductCard; onClose: () => void }) {
+function ProductPhotoDialog({ product, onClose, t = spanishText }: { product: ProductCard; onClose: () => void; t?: Translate }) {
   if (!product.imageUrl) return null;
-  return <ProductDialog title={product.name} closeLabel="Cerrar foto ampliada" onClose={onClose} photo>
+  return <ProductDialog title={product.name} closeLabel={t('productClosePhoto')} onClose={onClose} photo>
     <img className="lst-product-photo-enlarged" src={product.imageUrl} alt={`${product.name} · ${product.brand}`} />
   </ProductDialog>;
 }
 
-function ProductRecommendationDetail({ item, onClose }: { item: RoutineItem; onClose: () => void }) {
+function ProductRecommendationDetail({ item, onClose, t }: { item: RoutineItem; onClose: () => void; t: Translate }) {
   const [photoOpen, setPhotoOpen] = useState(false);
-  return <ProductDialog title={item.product.name} closeLabel="Cerrar ficha del producto" onClose={onClose}>
-    <div className="lst-product-desc"><ProductPhoto product={item.product} onOpen={() => setPhotoOpen(true)} /><small>{item.product.brand}</small></div>
+  return <ProductDialog title={item.product.name} closeLabel={t('productCloseDetails')} onClose={onClose}>
+    <div className="lst-product-desc"><ProductPhoto product={item.product} t={t} onOpen={() => setPhotoOpen(true)} /><small>{item.product.brand}</small></div>
     <section className="lst-recommendation-info">
-      <h3>Cómo aplicarlo</h3>
-      <p>{item.note.trim() || 'Consulta con el salón cómo incorporar este producto a tu rutina.'}</p>
+      <h3>{t('productApply')}</h3>
+      <p>{item.note.trim() || t('productApplyFallback')}</p>
     </section>
     <section className="lst-recommendation-info">
-      <h3>Qué vas a conseguir</h3>
-      <p>{item.product.microtext.trim() || 'Tu salón puede indicarte qué aporta este producto a tu rutina.'}</p>
+      <h3>{t('productResults')}</h3>
+      <p>{item.product.microtext.trim() || t('productResultsFallback')}</p>
     </section>
-    {photoOpen && <ProductPhotoDialog product={item.product} onClose={() => setPhotoOpen(false)} />}
+    {photoOpen && <ProductPhotoDialog product={item.product} t={t} onClose={() => setPhotoOpen(false)} />}
   </ProductDialog>;
 }
 
-function ProductRoutineSection({ portal, children }: { portal: boolean; children: ReactNode }) {
+function ProductRoutineSection({ portal, children, t }: { portal: boolean; children: ReactNode; t: Translate }) {
   return <section className={`lst-products lst-routine${portal ? ' lst-routine-customer' : ''}`}>
-    {portal && <h3>Productos recomendados</h3>}
+    {portal && <h3>{t('productsRecommended')}</h3>}
     {children}
   </section>;
 }
 
-function RoutineList({ items, interactive = false, showArchived = false, onEdit, onRemove }: {
-  items: RoutineItem[]; interactive?: boolean; showArchived?: boolean;
+function RoutineList({ items, interactive = false, showArchived = false, onEdit, onRemove, t }: {
+  t: Translate; items: RoutineItem[]; interactive?: boolean; showArchived?: boolean;
   onEdit?: (item: RoutineItem) => void; onRemove?: (item: RoutineItem) => void;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
@@ -331,14 +335,14 @@ function RoutineList({ items, interactive = false, showArchived = false, onEdit,
   return <>
     <ul className="lst-routine-list">{items.map(item => <li key={item.product.id} className={interactive ? 'lst-routine-clickable' : undefined}>
       {interactive ? <div className="lst-recommendation-row">
-        <ProductPhoto product={item.product} onOpen={() => setPhotoId(item.product.id)} />
+        <ProductPhoto product={item.product} t={t} onOpen={() => setPhotoId(item.product.id)} />
         <button type="button" className="lst-recommendation-card" aria-haspopup="dialog"
-          aria-label={`Ver cómo usar ${item.product.name}`} onClick={() => setOpenId(item.product.id)}>
+          aria-label={t('productUseNamed').replace('{name}', () => item.product.name)} onClick={() => setOpenId(item.product.id)}>
           <span className="lst-recommendation-summary">
             <small>{item.product.brand}</small>
             <strong>{item.product.name}</strong>
             {item.product.microtext && <span>{item.product.microtext}</span>}
-            <span className="lst-recommendation-link">Ver cómo usarlo <ChevronRight size={15} aria-hidden="true" /></span>
+            <span className="lst-recommendation-link">{t('productUse')} <ChevronRight size={15} aria-hidden="true" /></span>
           </span>
         </button>
       </div> : <>
@@ -351,12 +355,12 @@ function RoutineList({ items, interactive = false, showArchived = false, onEdit,
         </div>}
       </>}
     </li>)}</ul>
-    {openItem && <ProductRecommendationDetail item={openItem} onClose={() => setOpenId(null)} />}
-    {openPhoto && <ProductPhotoDialog product={openPhoto} onClose={() => setPhotoId(null)} />}
+    {openItem && <ProductRecommendationDetail item={openItem} t={t} onClose={() => setOpenId(null)} />}
+    {openPhoto && <ProductPhotoDialog product={openPhoto} t={t} onClose={() => setPhotoId(null)} />}
   </>;
 }
 
-export function ClientProductRoutine({ clientId }: { clientId?: string }) {
+export function ClientProductRoutine({ clientId, t = spanishText }: { clientId?: string; t?: Translate }) {
   const admin = Boolean(clientId);
   const offline = offlineConsultation();
   const [items, setItems] = useState<RoutineItem[]>([]);
@@ -413,12 +417,12 @@ export function ClientProductRoutine({ clientId }: { clientId?: string }) {
     finally { setBusy(false); }
   }
 
-  return <ProductRoutineSection portal={!admin}>
-    {offline ? <p>Conéctate para consultar los productos de la rutina.</p> : <>
-      {loading && <p role="status">Cargando rutina…</p>}
-      {loadError && <p role="alert">{loadError} <button type="button" onClick={() => setRevision(value => value + 1)}>Reintentar</button></p>}
-      {!loading && !loadError && !items.length && <p>{admin ? 'Aún no hay productos en esta rutina.' : 'Aquí verás los productos que te recomiende el salón.'}</p>}
-      <RoutineList items={items} interactive={!admin} showArchived={admin} onEdit={admin && !busy ? item => edit(item.product, item.note) : undefined}
+  return <ProductRoutineSection portal={!admin} t={t}>
+    {offline ? <p>{t('productOffline')}</p> : <>
+      {loading && <p role="status">{t('productLoading')}</p>}
+      {loadError && <p role="alert">{admin ? loadError : t('productLoadError')} <button type="button" onClick={() => setRevision(value => value + 1)}>{t('portalRetry')}</button></p>}
+      {!loading && !loadError && !items.length && <p>{admin ? 'Aún no hay productos en esta rutina.' :t('productNone')}</p>}
+      <RoutineList t={t} items={items} interactive={!admin} showArchived={admin} onEdit={admin && !busy ? item => edit(item.product, item.note) : undefined}
         onRemove={admin && !busy ? item => { if (window.confirm(`¿Quitar ${item.product.name} de esta rutina?`)) void change(item.product, true); } : undefined} />
       {admin && <>
         {!adding && !selection && <button type="button" onClick={() => { setAdding(true); setPage(0); }}>Añadir producto</button>}
