@@ -116,6 +116,18 @@ export const fetchPublicCatalog = <T = { catalog: { id: string; category: unknow
 export const pushCatalog = (token: string, catalog: unknown) =>
   call<{ ok: true }>("catalog", { method: "PUT", token, body: { catalog } });
 
+export type PackBreakdownItem = { label: string; cents: number };
+
+export const fetchPackBreakdowns = (token: string, serviceId: string) =>
+  call<{ breakdowns: { variantId: string; items: PackBreakdownItem[] }[] }>("pack-breakdown", {
+    token, body: { serviceId },
+  });
+
+export const savePackBreakdown = (token: string, serviceId: string, variantId: string, items: PackBreakdownItem[]) =>
+  call<{ items: PackBreakdownItem[] }>("pack-breakdown", {
+    method: "PUT", token, body: { serviceId, variantId, items },
+  });
+
 export const fetchSchedulingSupport = () => call<{weeklyHoursVersion?:number}>('health',{method:'GET'});
 
 export const pushSettings = (token: string, settings: unknown) =>
