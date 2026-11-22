@@ -4,18 +4,19 @@ import type {SubService} from './App';
 import * as studioApi from './studioApi';
 import {prepareCatalogImage} from './catalogImage';
 import {verifyCatalogPhotoUrl} from './catalogPhotoDrafts';
+import { catalogLabel } from './portalCatalogLabels';
 import './highlight-comparison.css';
 type Pair={soft?:string;full?:string};
 type ComparedService=SubService&{highlightComparison?:Pair};
 const photo=(value:unknown)=>{try{if(typeof value!=='string')return '';const url=new URL(value);return url.protocol==='https:'?url.href:'';}catch{return '';}};
 const label=(service:SubService)=>/\bmechas?\b/i.test(service.name+' '+(service.bookingName||''))&&/\btradicional(?:es)?\b/i.test(service.name+' '+(service.bookingName||'')) ? 'Mechas tradicionales' : (highlightTechniqueLabel(service.name+' '+(service.bookingName||'')));
-export function HighlightComparison({service}:{service:ComparedService}){
+export function HighlightComparison({service,language = 'es',title}:{service:ComparedService;language?:string;title?:string}){
  const [open,setOpen]=useState(false);
  const soft=photo(service.highlightComparison?.soft),full=photo(service.highlightComparison?.full);
  return <div className="lst-highlight-comparison">
-  <div className="lst-highlight-explanations"><p><strong>SOFT · Sutil.</strong> Menos cantidad de mechas, con luz en zonas seleccionadas y un resultado suave.</p><p><strong>FULL · Completa.</strong> Más cantidad de mechas y mayor cobertura para un resultado más luminoso.</p></div>
-  {soft&&full&&<details onToggle={event=>setOpen(event.currentTarget.open)}><summary>Ver la diferencia</summary>
-   {open&&<><div className="lst-highlight-photo-pair">{([{kind:'SOFT',url:soft,text:'Iluminación sutil'},{kind:'FULL',url:full,text:'Iluminación completa'}]).map(item=><figure key={item.kind}><img src={item.url} alt={label(service)+' · '+item.kind+' · '+item.text} loading="lazy" decoding="async"/><figcaption><strong>{item.kind}</strong> · {item.text}</figcaption></figure>)}</div><p className="lst-highlight-image-note">Imágenes orientativas. El resultado depende del cabello y del diagnóstico previo. FULL indica mayor iluminación, no necesariamente un tono más claro.</p></>}
+  <div className="lst-highlight-explanations"><p><strong>SOFT · {catalogLabel(language, 'soft')}. </strong>{catalogLabel(language, 'softExplanation')}</p><p><strong>FULL · {catalogLabel(language, 'full')}. </strong>{catalogLabel(language, 'fullExplanation')}</p></div>
+  {soft&&full&&<details onToggle={event=>setOpen(event.currentTarget.open)}><summary>{catalogLabel(language, 'compare')}</summary>
+   {open&&<><div className="lst-highlight-photo-pair">{([{kind:'SOFT',url:soft,text:catalogLabel(language, 'softLight')},{kind:'FULL',url:full,text:catalogLabel(language, 'fullLight')}]).map(item=><figure key={item.kind}><img src={item.url} alt={(title || label(service))+' · '+item.kind+' · '+item.text} loading="lazy" decoding="async"/><figcaption><strong>{item.kind}</strong> · {item.text}</figcaption></figure>)}</div><p className="lst-highlight-image-note">{catalogLabel(language, 'exampleNote')}</p></>}
   </details>}
  </div>;
 }
