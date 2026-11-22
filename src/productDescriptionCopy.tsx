@@ -52,11 +52,39 @@ const translations: Partial<Record<string, Descriptions>> = {
   ],
 };
 
-const normalizeDescription = (value: string) => value.normalize('NFC').trim().replace(/\s+/g, ' ');
+const translatedNames: Partial<Record<string, Descriptions>> = {
+  en: ['Purple shampoo', 'Purple mask'],
+  fr: ['Shampooing violet', 'Masque violet'],
+  it: ['Shampoo viola', 'Maschera viola'],
+  pt: ['Champô violeta', 'Máscara violeta'],
+  de: ['Violett-Shampoo', 'Violett-Haarmaske'],
+  nl: ['Paarse shampoo', 'Paars haarmasker'],
+  pl: ['Fioletowy szampon', 'Fioletowa maska'],
+  cs: ['Fialový šampon', 'Fialová maska'],
+  nb: ['Lillasjampo', 'Lilla hårmaske'],
+  sv: ['Lila schampo', 'Lila hårinpackning'],
+  ar: ['شامبو بنفسجي', 'ماسك بنفسجي'],
+};
+
+const originalsByName: Descriptions = ['champu morado', 'mascarilla morada'];
+const language = (locale: string) => locale.split('-')[0].toLowerCase();
+const normalizeText = (value: string) => value.normalize('NFKD').toLowerCase()
+  .replace(/\p{M}/gu, '').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+const normalizedDescriptions = originals.map(normalizeText);
+
+export function productNameCopy(original: string, brand: string, locale = 'es'): string {
+  const copy = translatedNames[language(locale)];
+  const brandName = normalizeText(brand);
+  if (!copy || !['blondme', 'blondme care'].includes(brandName)) return original;
+  const match = original.trim().match(/^(.+?)(\s*(?:[·–—-]\s*)?\d+(?:[.,]\d+)?\s*ml)?$/iu);
+  if (!match) return original;
+  const index = originalsByName.indexOf(normalizeText(match[1]));
+  return index === -1 ? original : copy[index] + (match[2] || '');
+}
 
 export function productDescriptionCopy(original: string, locale = 'es'): string {
-  const copy = translations[locale.split('-')[0].toLowerCase()];
+  const copy = translations[language(locale)];
   if (!copy) return original;
-  const index = originals.indexOf(normalizeDescription(original));
+  const index = normalizedDescriptions.indexOf(normalizeText(original));
   return copy[index] ?? original;
 }
