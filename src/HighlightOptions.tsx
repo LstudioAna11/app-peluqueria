@@ -4,6 +4,7 @@ import {HighlightComparison,HighlightComparisonEditor} from './HighlightComparis
 // lst-highlights-grouped-length-v2
 import React,{useState} from 'react';
 import type {SubService,ServiceVariant} from './App';
+import { catalogLabel } from './portalCatalogLabels';
 import './highlight-options.css';
 export const lengths=['Medio','Largo','Extralargo'] as const;
 export const intensities=['SOFT','FULL'] as const;
@@ -23,20 +24,21 @@ export function matrixReady(service:SubService):boolean{
  if(!isHighlights(service)||service.variants?.length!==6)return false;
  return lengths.every(length=>intensities.every(intensity=>service.variants!.filter(v=>{const axes=variantAxes(v);return axes?.length===length&&axes.intensity===intensity;}).length===1));
 }
-export function HighlightOptions({service,selected,onSelect,children}:{service:SubService;selected:ServiceVariant|null|undefined;onSelect:(variant:ServiceVariant)=>void;children:React.ReactNode}){
- if(!matrixReady(service))return <>{children}{isHighlights(service)&&<HighlightComparison key={service.id} service={service}/>}</>;
+export function HighlightOptions({service,selected,onSelect,children,language = 'es',title}:{language?:string;title?:string;service:SubService;selected:ServiceVariant|null|undefined;onSelect:(variant:ServiceVariant)=>void;children:React.ReactNode}){
+ if(!matrixReady(service))return <>{children}{isHighlights(service)&&<HighlightComparison key={service.id} service={service} language={language} title={title}/>}</>;
  const axes=selected?variantAxes(selected):null;
  const name=fold(service.name+' '+(service.bookingName||''));
- const technique=isTraditionalHighlights(service) ? 'Mechas tradicionales' : (highlightTechniqueLabel(name));
+ const technique=title || (isTraditionalHighlights(service) ? 'Mechas tradicionales' : highlightTechniqueLabel(name));
+ const localizedLength = {Medio:'medium', Largo:'long', Extralargo:'extraLong'} as const;
  return <div className="lst-highlights-options lst-highlights-by-length">
   <div className="lst-highlights-length-cards">{lengths.map(length=><fieldset key={length} data-selected={axes?.length===length}>
-   <legend>{technique} {length}</legend>
+   <legend>{technique} · {catalogLabel(language, localizedLength[length])}</legend>
    <div className="lst-highlights-pair">{intensities.map(intensity=>{
     const variant=service.variants!.find(item=>{const a=variantAxes(item);return a?.length===length&&a.intensity===intensity;})!;
-    return <button key={variant.id} type="button" aria-label={technique+' '+length+' · '+intensity+' · '+(intensity==='SOFT'?'Iluminación sutil':'Iluminación completa')} aria-pressed={selected?.id===variant.id} onClick={()=>onSelect(variant)}><strong>{intensity}</strong><span>{intensity==='SOFT'?'Sutil':'Completa'}</span></button>;
+    return <button key={variant.id} type="button" aria-label={technique+' · '+catalogLabel(language, localizedLength[length])+' · '+intensity+' · '+catalogLabel(language, intensity==='SOFT'?'softLight':'fullLight')} aria-pressed={selected?.id===variant.id} onClick={()=>onSelect(variant)}><strong>{intensity}</strong><span>{catalogLabel(language, intensity==='SOFT'?'soft':'full')}</span></button>;
    })}</div>
   </fieldset>)}</div>
-  <HighlightComparison key={service.id} service={service}/>
+  <HighlightComparison key={service.id} service={service} language={language} title={title}/>
  </div>;
 }
 export function setupDraft(service:SubService):Cell[]|null{
