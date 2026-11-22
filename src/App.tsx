@@ -5537,22 +5537,22 @@ function StudioApp() {
             {portalWeekDays.map(day => {
               const selected = formatDateKey(day) === formatDateKey(bookingDate);
               const available = portalAvailableTimes(day).length > 0;
-              return <button type="button" key={formatDateKey(day)} aria-pressed={selected} onClick={() => choosePortalDate(day)} style={{ minHeight: '70px', padding: '8px 1px', backgroundColor: selected ? '#C49A58' : '#322A25', color: selected ? '#29231F' : '#FFF8EE', opacity: portalDateAllowed(day) ? 1 : 0.35, border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '9px', cursor: 'pointer' }}><span style={{ fontSize: '10px', display: 'block' }}>{day.toLocaleDateString(portalLocale, { weekday: 'short' })}</span><strong style={{ fontSize: '18px', display: 'block', margin: '5px 0' }}>{day.getDate()}</strong><span aria-label={portalIntervalReady(portalAvailability,availabilityToken,formatDateKey(day))?(available?t('slotsAvailable'):t('noSlots')):'Comprobando disponibilidad'} style={{ fontSize: '10px' }}>{portalIntervalReady(portalAvailability,availabilityToken,formatDateKey(day))?(available?'●':'—'):'…'}</span></button>;
+              return <button type="button" key={formatDateKey(day)} aria-pressed={selected} onClick={() => choosePortalDate(day)} style={{ minHeight: '70px', padding: '8px 1px', backgroundColor: selected ? '#C49A58' : '#322A25', color: selected ? '#29231F' : '#FFF8EE', opacity: portalDateAllowed(day) ? 1 : 0.35, border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '9px', cursor: 'pointer' }}><span style={{ fontSize: '10px', display: 'block' }}>{day.toLocaleDateString(portalLocale, { weekday: 'short' })}</span><strong style={{ fontSize: '18px', display: 'block', margin: '5px 0' }}>{day.getDate()}</strong><span aria-label={portalIntervalReady(portalAvailability,availabilityToken,formatDateKey(day))?(available?t('slotsAvailable'):t('noSlots')):t('portalCheckingTimes')} style={{ fontSize: '10px' }}>{portalIntervalReady(portalAvailability,availabilityToken,formatDateKey(day))?(available?'●':'—'):'…'}</span></button>;
             })}
           </div>
           <label style={{ color: '#C9BCA9', fontSize: '13px' }}>{t('otherDate')}<input ref={portalDateInputRef} aria-label={t('otherDate')} type="date" value={formatDateKey(bookingDate)} onChange={e => { if (e.target.value) choosePortalDate(new Date(`${e.target.value}T12:00:00`)); }} style={{ display: 'block', marginTop: '8px', padding: '12px', backgroundColor: '#3E342C', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', boxSizing: 'border-box', width: '100%' }} /></label>
           <section><h3 style={{ color: '#FFF8EE', fontSize: '16px', margin: '0 0 16px' }}>{bookingDate.toLocaleDateString(portalLocale, { weekday: 'long', day: 'numeric', month: 'long' })}</h3>
-            <button type="button" className="studio-btn-ghost" onClick={()=>setAvailabilityReload(value=>value+1)} disabled={portalAvailability?.loading} style={{marginBottom:12}}>Actualizar horarios</button>
-            {!availabilityReady ? <div role={portalAvailability?.error?'alert':'status'} style={{color:'#E4C687',fontSize:14,lineHeight:1.6}}>{portalAvailability?.error||'Comprobando horarios disponibles…'}{portalAvailability?.error&&<button type="button" onClick={()=>setAvailabilityReload(value=>value+1)} className="studio-btn-ghost">Reintentar horarios</button>}</div> : !portalTimes.length ? <p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6 }}>{t('noSlotsDay')}</p> : ['morning', 'afternoon'].map(period => {
+            <button type="button" className="studio-btn-ghost" onClick={()=>setAvailabilityReload(value=>value+1)} disabled={portalAvailability?.loading} style={{marginBottom:12}}>{t('portalRefreshTimes')}</button>
+            {!availabilityReady ? <div role={portalAvailability?.error?'alert':'status'} style={{color:'#E4C687',fontSize:14,lineHeight:1.6}}>{portalAvailability?.error||t('portalCheckingTimes')}{portalAvailability?.error&&<button type="button" onClick={()=>setAvailabilityReload(value=>value+1)} className="studio-btn-ghost">{t('portalRetry')}</button>}</div> : !portalTimes.length ? <p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6 }}>{t('noSlotsDay')}</p> : ['morning', 'afternoon'].map(period => {
               const times = portalTimes.filter(time => period === 'morning' ? Number(time.slice(0, 2)) < 14 : Number(time.slice(0, 2)) >= 14);
               return times.length ? <div key={period} style={{ marginBottom: '18px' }}><p style={{ color: '#C9BCA9', fontSize: '12px' }}>{t(period)}</p><div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(76px, 1fr))', gap: '9px' }}>{times.map(time => <button type="button" key={time} aria-pressed={time === selectedVisualTime} onClick={() => setSelectedVisualTime(time)} style={{ minHeight: '48px', backgroundColor: time === selectedVisualTime ? '#C49A58' : '#322A25', color: time === selectedVisualTime ? '#29231F' : '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.12)', borderRadius: '8px', fontSize: '15px', cursor: 'pointer' }}>{time}</button>)}</div></div> : null;
             })}
             {availabilityReady && canShowSlotAlert &&
               <SlotAlertRequest key={formatDateKey(bookingDate)} day={formatDateKey(bookingDate)}
-                allowRequest={!hasPortalTimes}
+                allowRequest={!hasPortalTimes} t={t} locale={portalLocale}
                 selection={selectedServicesToBook.map(({ sub, variant }) => ({
                   id: sub.id, variantId: variant?.id ?? null,
-                  name: bookingName(sub) + (variant ? ' · ' + variantText(variant, sub) : ''),
+                  name: serviceText(sub, 'name') + (variant ? ' · ' + variantText(variant, sub) : ''),
                 }))} />}
           </section>
           <div style={{ borderTop: '1px solid #3A312A', paddingTop: '18px' }}>
@@ -5579,7 +5579,7 @@ function StudioApp() {
       )}
 
       {/* 2.3. PASAPORTE DE EXPERIENCIAS DE AUTOR */}
-      {currentScreen === 'clientHistoryPage' && <ClientProfileCompact key={currentClientRecord?.serverId||'client-profile'} client={currentClientRecord} catalog={catalog} logoSrc={brandLogoSrc} t={t} compactVisitText={compactVisitText} onBack={()=>setCurrentScreen('clientPortal')} showPrices={portalShowsPrices} onRepeat={draft=>{
+      {currentScreen === 'clientHistoryPage' && <ClientProfileCompact key={currentClientRecord?.serverId||'client-profile'} client={currentClientRecord} catalog={catalog} logoSrc={brandLogoSrc} t={t} locale={portalLocale} compactVisitText={compactVisitText} onBack={()=>setCurrentScreen('clientPortal')} showPrices={portalShowsPrices} onRepeat={draft=>{
             if(visualBookingBusy)return;
             const config={...bizConfigRef.current,...draft.settings} as BusinessConfig;
             setBizConfig(config);bizConfigRef.current=config;setCatalog(draft.catalog);setRepeatPortalDraft(draft);
