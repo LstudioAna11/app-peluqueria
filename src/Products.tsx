@@ -1,3 +1,4 @@
+import { productDescriptionCopy } from './productDescriptionCopy';
 import spanish from './portalSpanish';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
@@ -300,7 +301,7 @@ function ProductPhotoDialog({ product, onClose, t = spanishText }: { product: Pr
   </ProductDialog>;
 }
 
-function ProductRecommendationDetail({ item, onClose, t }: { item: RoutineItem; onClose: () => void; t: Translate }) {
+function ProductRecommendationDetail({ item, onClose, t, locale }: { item: RoutineItem; onClose: () => void; t: Translate; locale?: string }) {
   const [photoOpen, setPhotoOpen] = useState(false);
   return <ProductDialog title={item.product.name} closeLabel={t('productCloseDetails')} onClose={onClose}>
     <div className="lst-product-desc"><ProductPhoto product={item.product} t={t} onOpen={() => setPhotoOpen(true)} /><small>{item.product.brand}</small></div>
@@ -310,7 +311,7 @@ function ProductRecommendationDetail({ item, onClose, t }: { item: RoutineItem; 
     </section>
     <section className="lst-recommendation-info">
       <h3>{t('productResults')}</h3>
-      <p>{item.product.microtext.trim() || t('productResultsFallback')}</p>
+      <p>{productDescriptionCopy(item.product.microtext, locale).trim() || t('productResultsFallback')}</p>
     </section>
     {photoOpen && <ProductPhotoDialog product={item.product} t={t} onClose={() => setPhotoOpen(false)} />}
   </ProductDialog>;
@@ -323,8 +324,8 @@ function ProductRoutineSection({ portal, children, t }: { portal: boolean; child
   </section>;
 }
 
-function RoutineList({ items, interactive = false, showArchived = false, onEdit, onRemove, t }: {
-  t: Translate; items: RoutineItem[]; interactive?: boolean; showArchived?: boolean;
+function RoutineList({ items, interactive = false, showArchived = false, onEdit, onRemove, t, locale }: {
+  t: Translate; locale?: string; items: RoutineItem[]; interactive?: boolean; showArchived?: boolean;
   onEdit?: (item: RoutineItem) => void; onRemove?: (item: RoutineItem) => void;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
@@ -341,7 +342,7 @@ function RoutineList({ items, interactive = false, showArchived = false, onEdit,
           <span className="lst-recommendation-summary">
             <small>{item.product.brand}</small>
             <strong>{item.product.name}</strong>
-            {item.product.microtext && <span>{item.product.microtext}</span>}
+            {item.product.microtext && <span>{productDescriptionCopy(item.product.microtext, locale)}</span>}
             <span className="lst-recommendation-link">{t('productUse')} <ChevronRight size={15} aria-hidden="true" /></span>
           </span>
         </button>
@@ -355,12 +356,12 @@ function RoutineList({ items, interactive = false, showArchived = false, onEdit,
         </div>}
       </>}
     </li>)}</ul>
-    {openItem && <ProductRecommendationDetail item={openItem} t={t} onClose={() => setOpenId(null)} />}
+    {openItem && <ProductRecommendationDetail item={openItem} t={t} locale={locale} onClose={() => setOpenId(null)} />}
     {openPhoto && <ProductPhotoDialog product={openPhoto} t={t} onClose={() => setPhotoId(null)} />}
   </>;
 }
 
-export function ClientProductRoutine({ clientId, t = spanishText }: { clientId?: string; t?: Translate }) {
+export function ClientProductRoutine({ clientId, t = spanishText, locale }: { clientId?: string; t?: Translate; locale?: string }) {
   const admin = Boolean(clientId);
   const offline = offlineConsultation();
   const [items, setItems] = useState<RoutineItem[]>([]);
@@ -422,7 +423,7 @@ export function ClientProductRoutine({ clientId, t = spanishText }: { clientId?:
       {loading && <p role="status">{t('productLoading')}</p>}
       {loadError && <p role="alert">{admin ? loadError : t('productLoadError')} <button type="button" onClick={() => setRevision(value => value + 1)}>{t('portalRetry')}</button></p>}
       {!loading && !loadError && !items.length && <p>{admin ? 'Aún no hay productos en esta rutina.' :t('productNone')}</p>}
-      <RoutineList t={t} items={items} interactive={!admin} showArchived={admin} onEdit={admin && !busy ? item => edit(item.product, item.note) : undefined}
+      <RoutineList t={t} locale={admin ? undefined : locale} items={items} interactive={!admin} showArchived={admin} onEdit={admin && !busy ? item => edit(item.product, item.note) : undefined}
         onRemove={admin && !busy ? item => { if (window.confirm(`¿Quitar ${item.product.name} de esta rutina?`)) void change(item.product, true); } : undefined} />
       {admin && <>
         {!adding && !selection && <button type="button" onClick={() => { setAdding(true); setPage(0); }}>Añadir producto</button>}
