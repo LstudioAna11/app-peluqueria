@@ -131,10 +131,11 @@ export function ClientPhotoGallery({clientId,editable=false,t=(key)=>spanish[key
 const NEWS_CATEGORIES:Record<string,string>={servicios:'Nuevos servicios',cuidados:'Cuidados e inspiración',studio:'Vida en L’Studio',avisos:'Avisos del estudio'};
 type NewsOption={id:string;label:string};
 const newsToday=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-const newsDate=(date:string)=>new Intl.DateTimeFormat('es-ES',{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Madrid'}).format(new Date(date.slice(0,10)+'T12:00:00Z'));
+const newsDate=(date:string,locale='es-ES')=>new Intl.DateTimeFormat(locale,{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Madrid'}).format(new Date(date.slice(0,10)+'T12:00:00Z'));
 function newsState(item:studioApi.StudioNewsSummary){return item.status==='draft'?'Borrador':item.start_date&&item.start_date>newsToday()?'Programada':item.end_date&&item.end_date<newsToday()?'Finalizada':'Publicada';}
 const emptyNews=():studioApi.StudioNews=>({id:crypto.randomUUID(),title:'',summary:'',body:'',category:'studio',image_url:'',status:'draft',start_date:null,end_date:null,action:'none',service_id:null,created_at:'',updated_at:''});
-export function StudioNews({admin=false,serviceOptions=[],onService,promotionCards}:{admin?:boolean;serviceOptions?:NewsOption[];onService?:(id:string,action:'service'|'booking')=>void;promotionCards?:React.ReactNode}){
+export function StudioNews({admin=false,serviceOptions=[],onService,promotionCards,t=(key)=>spanish[key],locale}:{t?:(key:string)=>string;locale?:string;admin?:boolean;serviceOptions?:NewsOption[];onService?:(id:string,action:'service'|'booking')=>void;promotionCards?:React.ReactNode}){
+  const newsCategory=(category:studioApi.StudioNews['category'])=>admin?NEWS_CATEGORIES[category]:t(({servicios:'newsServices',cuidados:'newsCare',studio:'newsLife',avisos:'newsNotices'})[category]);
   const [view,setView]=useState<'latest'|'list'|'detail'>(admin?'list':'latest');
   const [page,setPage]=useState(0),[list,setList]=useState<studioApi.StudioNewsPage|null>(null),[detail,setDetail]=useState<studioApi.StudioNews|null>(null);
   const [draft,setDraft]=useState<studioApi.StudioNews|null>(null),[preview,setPreview]=useState(false),[deleting,setDeleting]=useState<string|null>(null);
@@ -179,12 +180,12 @@ export function StudioNews({admin=false,serviceOptions=[],onService,promotionCar
   };
   const article=(item:studioApi.StudioNews,forPreview=false)=><article className="lst-news-article">
     {item.image_url&&<img src={item.image_url} alt={item.title} loading="lazy" decoding="async" className="lst-news-cover"/>}
-    <div className="lst-news-inner"><small>{NEWS_CATEGORIES[item.category]}</small><h3>{item.title||'Título de la novedad'}</h3><p className="lst-news-lead">{item.summary}</p><p className="lst-news-body">{item.body||'Aquí aparecerá el texto completo.'}</p>
-      {item.action!=='none'&&item.service_id&&(forPreview||serviceOptions.some(s=>s.id===item.service_id))&&<button type="button" disabled={forPreview} className="lst-news-primary" onClick={()=>{if(!forPreview)onService?.(item.service_id!,item.action as 'service'|'booking');}}>{item.action==='booking'?'Elegir y reservar':'Ver servicio'} <ArrowRight size={15}/></button>}
+    <div className="lst-news-inner"><small>{newsCategory(item.category)}</small><h3>{item.title||(admin?'Título de la novedad':t('portalNews'))}</h3><p className="lst-news-lead">{item.summary}</p><p className="lst-news-body">{item.body||(admin?'Aquí aparecerá el texto completo.':'')}</p>
+      {item.action!=='none'&&item.service_id&&(forPreview||serviceOptions.some(s=>s.id===item.service_id))&&<button type="button" disabled={forPreview} className="lst-news-primary" onClick={()=>{if(!forPreview)onService?.(item.service_id!,item.action as 'service'|'booking');}}>{item.action==='booking'?t('chooseAndBook'):t('viewService')} <ArrowRight size={15}/></button>}
     </div></article>;
   // No empty placeholder or loading flash on the portal home. Keep all hooks above this return.
   if(!admin&&view==='latest'&&!error&&!promotionCards&&(!list||list.items.length===0))return null;
-  return <section className={`lst-news ${admin?'lst-news-admin':'lst-news-portal'}`} aria-label="El universo L’Studio">
+  return <section className={`lst-news ${admin?'lst-news-admin':'lst-news-portal'}`} aria-label={admin?'El universo L’Studio':t('portalNews')}>
     <style>{`
       .lst-news{color:#302822;min-width:0;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
       .lst-news *{box-sizing:border-box}.lst-news h2,.lst-news h3,.lst-news p{margin:0}.lst-news h2{font-family:Georgia,serif;font-size:23px;font-weight:400;color:#E4C687;line-height:1.3}.lst-news h3{font-family:Georgia,serif;font-size:21px;font-weight:400;color:#876431;line-height:1.3}
@@ -220,14 +221,14 @@ export function StudioNews({admin=false,serviceOptions=[],onService,promotionCar
       .lst-news-footer{display:flex;justify-content:flex-end;margin-top:3px}
       @media(max-width:420px){.lst-news-portal h2{font-size:20px}.lst-news-feature{min-height:245px}.lst-news-feature-content{padding:58px 18px 16px}.lst-news-feature-content>h3{font-size:23px}.lst-news-portal .lst-news-article .lst-news-inner{padding:18px}}
     `}</style>
-    <header className="lst-news-header"><div><h2>{admin?'El universo L’Studio':'Novedades del Studio'}</h2><p className="lst-news-sub">{admin?'Novedades, inspiración y cuidados para tu cabello.':'Inspiración y novedades del estudio.'}</p></div><div className="lst-news-actions">
+    <header className="lst-news-header"><div><h2>{admin?'El universo L’Studio':t('portalNews')}</h2><p className="lst-news-sub">{admin?'Novedades, inspiración y cuidados para tu cabello.':t('newsIntro')}</p></div><div className="lst-news-actions">
       {admin&&<button type="button" disabled={writing||uploading||busy} className="lst-news-primary" onClick={()=>{setDraft(emptyNews());setPreview(false);setError('');setMessage('');setDeleting(null);}}>+ Nueva publicación</button>}
-      {!admin&&view!=='latest'&&<button type="button" onClick={()=>{setDetail(null);setView(view==='detail'?'list':'latest');setPage(0);setError('');}}> <ArrowLeft size={15}/> {view==='detail'?'Novedades':'Volver'}</button>}
+      {!admin&&view!=='latest'&&<button type="button" onClick={()=>{setDetail(null);setView(view==='detail'?'list':'latest');setPage(0);setError('');}}> <ArrowLeft size={15}/> {view==='detail'?t('portalNews'):t('backAction')}</button>}
       {admin&&view!=='detail'&&<button type="button" disabled={busy||writing||uploading} onClick={()=>void load()} aria-label="Actualizar novedades">Actualizar</button>}
     </div></header>
     {!admin&&view!=='detail'&&promotionCards}
 
-    {error&&<div className="lst-news-error"><p role="alert">{error}</p>{!admin&&<button type="button" disabled={busy} onClick={()=>void load()}>Reintentar</button>}</div>}{message&&<p role="status" className="lst-news-message">{message}</p>}
+    {error&&<div className="lst-news-error"><p role="alert">{admin||!locale||locale==='es-ES'?error:t('newsError')}</p>{!admin&&<button type="button" disabled={busy} onClick={()=>void load()}>{t('portalRetry')}</button>}</div>}{message&&<p role="status" className="lst-news-message">{message}</p>}
     {admin&&draft&&<form onSubmit={save} className="lst-news-editor"><h3>{draft.updated_at?'Editar publicación':'Nueva publicación'}</h3><fieldset disabled={writing||uploading}>
       <label>Título<input required maxLength={100} value={draft.title} onChange={e=>change({title:e.target.value})} placeholder="Una novedad para tu cabello"/></label>
       <label>Resumen de la tarjeta<textarea required maxLength={240} rows={2} value={draft.summary} onChange={e=>change({summary:e.target.value})}/></label>
@@ -242,23 +243,23 @@ export function StudioNews({admin=false,serviceOptions=[],onService,promotionCar
       {draft.action==='booking'&&<small>El botón abre la ficha del servicio para elegir sus opciones y complementos antes de reservar.</small>}
       <div className="lst-news-actions"><button type="submit" className="lst-news-primary">{writing?'Guardando…':draft.status==='draft'?'Guardar borrador':'Guardar publicación'}</button><button type="button" onClick={()=>setPreview(v=>!v)}>{preview?'Ocultar vista previa':'Vista previa'}</button><button type="button" onClick={()=>{setDraft(null);setPreview(false);setMessage('');}}>Cerrar editor</button></div>
     </fieldset>{uploading&&<p role="status">Optimizando y preparando la foto…</p>}{preview&&<div className="lst-news-preview"><small>Vista previa del portal</small>{article(draft,true)}</div>}</form>}
-    {busy&&<p role="status" className="lst-news-status">Cargando novedades…</p>}
+    {busy&&<p role="status" className="lst-news-status">{t('portalLoading')}</p>}
     {view==='detail'&&detail?article(detail):!admin&&view==='latest'?<>
       {list?.items.slice(0,1).map(item=><article key={item.id} className="lst-news-feature">
         {item.image_url&&<img src={item.image_url} alt="" loading="lazy" decoding="async"/>}
-        <div className="lst-news-feature-content"><small>{NEWS_CATEGORIES[item.category]}</small><h3>{item.title}</h3><p>{item.summary}</p>
-          <button type="button" disabled={busy} aria-label={'Descubrir: '+item.title} onClick={()=>void open(item.id)}>Descubrir <ArrowRight size={15}/></button>
+        <div className="lst-news-feature-content"><small>{newsCategory(item.category)}</small><h3>{item.title}</h3><p>{item.summary}</p>
+          <button type="button" disabled={busy} aria-label={t('newsRead')+' · '+item.title} onClick={()=>void open(item.id)}>{t('newsRead')} <ArrowRight size={15}/></button>
         </div>
       </article>)}
-      {!!list?.total&&<div className="lst-news-footer"><button type="button" onClick={()=>{setPage(0);setView('list');}}>Ver todas las novedades <ArrowRight size={14}/></button></div>}
+      {!!list?.total&&<div className="lst-news-footer"><button type="button" onClick={()=>{setPage(0);setView('list');}}>{t('newsAll')} <ArrowRight size={14}/></button></div>}
     </>:<>
-      {!busy&&list?.items.length===0&&<p className="lst-news-empty">{admin?'Todavía no hay publicaciones. Crea la primera novedad del estudio.':'Pronto compartiremos novedades y cuidados para ti.'}</p>}
+      {!busy&&list?.items.length===0&&<p className="lst-news-empty">{admin?'Todavía no hay publicaciones. Crea la primera novedad del estudio.':t('newsEmpty')}</p>}
       <div className="lst-news-grid">{list?.items.map(item=><article key={item.id} className="lst-news-card">
-        {item.image_url&&<img src={item.image_url} alt={item.title} loading="lazy" decoding="async" className="lst-news-cover"/>}<div className="lst-news-inner"><small>{NEWS_CATEGORIES[item.category]}{admin?' · '+newsState(item):''}</small><h3>{item.title}</h3><p className="lst-news-lead">{item.summary}</p><small>{newsDate(item.start_date||item.created_at)}</small>
-        <div className="lst-news-actions"><button type="button" disabled={busy||writing||uploading} onClick={()=>void open(item.id,admin)}>{admin?'Editar':'Leer novedad'} <ArrowRight size={14}/></button>{admin&&<button type="button" disabled={writing||uploading||busy} onClick={()=>setDeleting(deleting===item.id?null:item.id)}>Eliminar</button>}</div>
+        {item.image_url&&<img src={item.image_url} alt={item.title} loading="lazy" decoding="async" className="lst-news-cover"/>}<div className="lst-news-inner"><small>{newsCategory(item.category)}{admin?' · '+newsState(item):''}</small><h3>{item.title}</h3><p className="lst-news-lead">{item.summary}</p><small>{newsDate(item.start_date||item.created_at,locale)}</small>
+        <div className="lst-news-actions"><button type="button" disabled={busy||writing||uploading} onClick={()=>void open(item.id,admin)}>{admin?'Editar':t('newsRead')} <ArrowRight size={14}/></button>{admin&&<button type="button" disabled={writing||uploading||busy} onClick={()=>setDeleting(deleting===item.id?null:item.id)}>Eliminar</button>}</div>
         {admin&&deleting===item.id&&<div role="group" aria-label="Confirmar eliminación"><p>¿Eliminar esta publicación del estudio?</p><div className="lst-news-actions"><button type="button" disabled={writing||uploading} onClick={()=>void remove(item)}>Sí, eliminar</button><button type="button" disabled={writing} onClick={()=>setDeleting(null)}>Conservar</button></div></div>}
       </div></article>)}</div>
-      {view==='list'&&list&&list.total>8&&<div className="lst-news-pagination"><button type="button" disabled={page===0||busy||writing||uploading} onClick={()=>setPage(p=>p-1)}>Anterior</button><span>{page+1} / {Math.max(1,Math.ceil(list.total/8))}</span><button type="button" disabled={(page+1)*8>=list.total||busy||writing||uploading} onClick={()=>setPage(p=>p+1)}>Siguiente</button></div>}
+      {view==='list'&&list&&list.total>8&&<div className="lst-news-pagination"><button type="button" disabled={page===0||busy||writing||uploading} onClick={()=>setPage(p=>p-1)}>{t('portalPrevious')}</button><span>{page+1} / {Math.max(1,Math.ceil(list.total/8))}</span><button type="button" disabled={(page+1)*8>=list.total||busy||writing||uploading} onClick={()=>setPage(p=>p+1)}>{t('portalNext')}</button></div>}
     </>}
   </section>;
 }
@@ -645,7 +646,7 @@ export function ClientProfileCompact({client,catalog,logoSrc,t,locale,compactVis
   </div>
   <div className="lp-panel" id="lp-panel-history" role="tabpanel" aria-labelledby="lp-tab-history" hidden={tab!=='history'}>{visited.history&&<><header className="lp-section-head"><h3>{t('visitHistory')}</h3><small>{t('profileVisitCount').replace('{count}', String(visits.length))}</small></header><div className="lp-history-list">{visits.length?visits.slice(page*4,page*4+4).map((visit,index)=><details className="lp-fold lp-visit" key={page*4+index}><summary><span><time>{visit.date}</time><strong>{compactVisitText(visit.service)}</strong></span><ChevronDown size={16}/></summary><div className="lp-fold-body"><p>{compactVisitText(visit.service)}</p>{visit.stylist&&<p>{t('profileVisitWith').replace('{name}', () => visit.stylist)}</p>}{visit.notes&&<p className="lp-notes">{visit.notes}</p>}</div></details>):<p className="lp-quiet">{t('emptyVisits')}</p>}</div>{pages>1&&<div className="lp-pages"><button type="button" disabled={page===0} onClick={()=>setHistoryPage(page-1)}>{t('portalPrevious')}</button><span>{page+1} / {pages}</span><button type="button" disabled={page+1>=pages} onClick={()=>setHistoryPage(page+1)}>{t('portalNext')}</button></div>}</>}</div>
   <div className="lp-panel" id="lp-panel-photos" role="tabpanel" aria-labelledby="lp-tab-photos" hidden={tab!=='photos'}>{visited.photos&&<ClientPhotoGallery key={client?.serverId||'own-gallery'} clientId={client?.serverId} t={t} locale={locale}/>}</div>
-  <div className="lp-panel" id="lp-panel-memories" role="tabpanel" aria-labelledby="lp-tab-memories" hidden={tab!=='memories'}>{visited.memories&&<React.Suspense fallback={<p>{t('profileLoadingMemories')}</p>}><LazyMemoriesClient key={client?.serverId||'own-memories'}/></React.Suspense>}</div>
+  <div className="lp-panel" id="lp-panel-memories" role="tabpanel" aria-labelledby="lp-tab-memories" hidden={tab!=='memories'}>{visited.memories&&<React.Suspense fallback={<p>{t('profileLoadingMemories')}</p>}><LazyMemoriesClient t={t} locale={locale} key={client?.serverId||'own-memories'}/></React.Suspense>}</div>
   
  </section>;
 }
