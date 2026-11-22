@@ -66,17 +66,992 @@ const catalogByLanguage: Record<string, Record<string, Partial<Record<keyof Serv
   ar: {"s1":{"bookingName":["Diagnóstico Capilar con Microcámara","تحليل الشعر وفروة الرأس بكاميرا دقيقة"],"name":["Lo que tu cabello esconde.","ما الذي يخفيه شعرك؟"],"slogan":["Tu cuero cabelludo tiene secretos. Vamos a verlos.","لفروة رأسك أسرار. لنتعرّف عليها."],"description":["Conoce de cerca tu cuero cabelludo y cabello para entender qué cuidados necesitan.","نفحص فروة رأسك وشعرك عن قرب لنفهم نوع العناية التي يحتاجان إليها."],"includesText":["Realizamos un diagnóstico capilar con microcámara de aumento para observar el cuero cabelludo y el cabello. Valoramos el estado de los folículos visibles, la densidad capilar, el grosor del cabello y posibles alteraciones como exceso de grasa, descamación o sensibilidad.","نفحص الفروة والشعر بكاميرا دقيقة مكبّرة. نقيّم البصيلات الظاهرة وكثافة الشعر وسماكته، ونبحث عن علامات مثل الدهون الزائدة أو التقشّر أو الحساسية."],"achievedText":["Una valoración personalizada del estado de tu cuero cabelludo y cabello, con una explicación de lo que observamos y recomendaciones de cuidado adaptadas a tus necesidades.","تقييم شخصي مع شرح لما نلاحظه وتوصيات للعناية تناسب احتياجاتك."],"forWhomText":["Si notas caída, menor densidad, caspa, grasa o molestias, o quieres mejorar tu rutina de cuidado.","إذا لاحظتِ تساقط الشعر أو انخفاض كثافته أو قشرة أو زيادة الدهون أو انزعاجًا، أو أردتِ تحسين روتين العناية."],"conditionsText":["Los productos y tratamientos recomendados se cobran aparte. Análisis estético capilar; no sustituye una valoración dermatológica.","تُحاسَب المنتجات والعلاجات الموصى بها بشكل منفصل. هذا تحليل تجميلي لا يغني عن تقييم طبيب الجلدية."],"alertText":["⚠️ Solo diagnóstico capilar. No incluye peinado, ni tratamientos.","⚠️ تحليل الشعر والفروة فقط. لا يشمل التصفيف أو العلاجات."]},"1792246283319":{"bookingName":["Test de Viabilidad & Resistencia","اختبار خصلة لتقييم إمكانية المعالجة ومتانة الشعر"],"name":["¿Tu cabello está preparado para el cambio?","هل شعرك مستعد للتغيير؟"],"slogan":["Antes de lanzarnos al color, hagamos la prueba.","لنجرب على خصلة قبل تغيير اللون."],"description":["Antes de aclarar o transformar tu color, comprobamos cómo responde tu cabello.","قبل تفتيح شعرك أو تغيير لونه، نتحقق من طريقة استجابته."],"includesText":["Realizamos una prueba sobre un pequeño mechón para valorar la resistencia, elasticidad y reacción del cabello ante el proceso químico previsto. Así comprobamos si es recomendable realizar la decoloración o el cambio de color deseado.","نجري اختبارًا على خصلة صغيرة لتقييم مقاومتها ومرونتها ورد فعلها تجاه المعالجة الكيميائية المقررة. يساعدنا ذلك على تحديد ما إذا كان التفتيح أو تغيير اللون مناسبًا."],"achievedText":["Una valoración profesional de cómo responde tu cabello y una recomendación sobre la viabilidad del cambio que deseas, priorizando siempre su resistencia y estado.","تقييم مهني لاستجابة شعرك وتوصية حول إمكانية التغيير، مع مراعاة حالته ومتانته."],"forWhomText":["Si quieres pasar a un rubio más claro, realizar una decoloración o cambiar radicalmente de color, especialmente si llevas tintes, decoloraciones o tratamientos químicos anteriores.","إذا رغبتِ في درجة أشقر أفتح أو تفتيح الشعر أو تغيير اللون بصورة واضحة، خصوصًا بعد صبغات أو تفتيح أو علاجات كيميائية سابقة."],"conditionsText":["El importe se descuenta de tu posterior servicio de coloración o mechas reservado en L’Studio. La prueba orienta, pero no garantiza el resultado final.","تُخصم تكلفة الاختبار من خدمة الصبغة أو الخصل الفاتحة التالية التي تحجزينها في L’Studio. الاختبار إرشادي ولا يضمن النتيجة النهائية."],"alertText":["⚠️ Solo diagnóstico de viabilidad. No incluye coloración ni mechas.","⚠️ اختبار إمكانية المعالجة فقط. لا يشمل الصبغة أو الخصل الفاتحة."]},"1792246333454":{"bookingName":["Estudio Visagismo Capilar","استشارة لتنسيق الشعر حسب شكل الوجه"],"name":["¿Y si el problema no fuera tu cabello, sino el corte?","ماذا لو كانت المشكلة في القصّة لا في شعرك؟"],"slogan":["Tu próximo look tiene estudio. Y hasta informe.","إطلالتك المقبلة تبدأ بدراسة وتقرير شخصي."],"description":["Tu rostro tiene personalidad. Estudiamos tus facciones para encontrar el corte, volumen y color que mejor van contigo.","ندرس ملامحك لاختيار القصّة والحجم واللون الأنسب لك."],"includesText":["Realizamos un estudio de visagismo mediante un programa digital especializado. Analizamos la forma del rostro, las facciones y las proporciones para asesorarte sobre los cortes, largos, flequillos, volúmenes y colores que mejor armonizan con tu imagen.","نستخدم برنامجًا رقميًا متخصصًا لتحليل شكل الوجه والملامح والتناسق، ونقترح القصّات والأطوال والغُرر والحجم والألوان التي تناسبك."],"achievedText":["Un informe personalizado con recomendaciones de estilo, corte y color, para que sepas qué opciones te favorecen y puedas decidir tu próximo cambio con confianza.","تقرير شخصي بتوصيات حول الإطلالة والقصّة واللون لتختاري تغييرك المقبل بثقة."],"forWhomText":["Si estás pensando en cambiar de look, dudas sobre qué corte o color elegir o quieres descubrir qué estilos encajan mejor con tus facciones y personalidad.","إذا فكرتِ في تغيير إطلالتك أو احتَرْتِ في اختيار القصّة أو اللون أو أردتِ معرفة ما يناسب ملامحك وشخصيتك."],"conditionsText":["Incluye estudio digital personalizado e informe de visagismo capilar y colorimetría. No incluye lavado, corte ni peinado. Los servicios de peluquería se reservan y cobran por separado, en otra cita.","يشمل دراسة رقمية شخصية وتقريرًا لتنسيق الشعر وتحليل الألوان. لا يشمل الغسل أو القص أو التصفيف. تُحجز خدمات الشعر وتُدفع بشكل منفصل في موعد آخر."],"alertText":["⚠️ Solo es estudio de visagismo capilar & colorimetría, no incluye corte ni peinado.","⚠️ دراسة تنسيق الشعر والألوان فقط. لا تشمل القص أو التصفيف."]},"s4":{"bookingName":["Color Raíces","رتوش صبغة الجذور"]},"1792247910592":{"bookingName":["Color Integral","صبغة كاملة للشعر"]},"1792248340199":{"bookingName":["Matización & Tonalización","تعديل درجة اللون وتصحيح الانعكاسات"]},"1792248673014":{"bookingName":["Gloss Protein","Gloss Protein"]},"1792248852621":{"bookingName":["Decoloración Raíces","تفتيح جذور الشعر"]},"1792248908557":{"bookingName":["Decoloración Integral","تفتيح كامل للشعر"]},"s5":{"bookingName":["Mechas Tradicionales","خصل فاتحة كلاسيكية"]},"1792249694609":{"bookingName":["Mechas Parciales / Zonas Internas","خصل فاتحة جزئية أو في الطبقات الداخلية"]},"1792249762145":{"bookingName":["Balayage Experience","Balayage Experience"]},"1792249914936":{"bookingName":["Babylight Precission","Babylight Precission"]},"1792250084664":{"bookingName":["Hybrid Blond by L´Studio","Hybrid Blond by L’Studio"]},"1794856922956":{"name":["Contour Refresh","Contour Refresh"]},"s3":{"bookingName":["Styling & Peinados","تصفيف الشعر وتجفيفه"]},"1792247137939":{"bookingName":["Styling & Eventos","تصفيف للمناسبات"]},"1792246478702":{"bookingName":["Corte Cambio Look - Tendencia","قصّة لتغيير الإطلالة"]},"1792246526630":{"bookingName":["Corte Mantenimiento de puntas","قصّ الأطراف للمحافظة على الطول"]},"1792246571414":{"bookingName":["Corte Mujer - Cut&Go","قصّ شعر للسيدات · Cut&Go"]},"1792246603493":{"bookingName":["Corte Infantil - hasta 12 años","قصّ شعر للأطفال حتى ١٢ سنة"]},"s8":{"bookingName":["Corte Masculino","قصّ شعر للرجال"]},"1792254773655":{"bookingName":["Corte Masculino con arreglo Barba","قصّ شعر للرجال وتهذيب اللحية"]},"1792256948351":{"bookingName":["Corte, Barba & Skin Care","قصّ الشعر وتهذيب اللحية والعناية بالوجه"]},"s6":{"bookingName":["Tratamento Intensivos","علاجات مكثفة للعناية بالشعر"]},"1792253741003":{"bookingName":["Repair Balmain Hair Couture","Repair Balmain Hair Couture"]},"1792253800043":{"bookingName":["Molecular Repair","Molecular Repair"]},"1792253865938":{"bookingName":["Scalp Aromatherapy L´Studio","Scalp Aromatherapy L’Studio"]},"1792254011058":{"bookingName":["Head Spa Experience","Head Spa Experience"]},"s7":{"bookingName":["Terapia Orgánica Botox","عناية عضوية للشعر بتقنية البوتوكس"]},"1792254387849":{"bookingName":["Terapia Orgánica Alisado","علاج عضوي لتنعيم الشعر"]},"1792254568055":{"bookingName":["Terapia Orgánica Nutrición Rizos","عناية عضوية مغذّية للشعر المجعّد"]},"1792254609016":{"bookingName":["Terapia Orgánica Cauterización","عناية عضوية للشعر بالختم الحراري"]},"1792254672655":{"bookingName":["Terapia Detox Capilar","علاج لتنقية الشعر"]},"1795268374937":{"bookingName":["Mantenimiento de raíces · Terapia de alisado","رتوش الجذور · علاج التنعيم"]},"1792256684151":{"bookingName":["Moldeado Parcial","تمويج دائم جزئي"]},"1792256718383":{"bookingName":["Moldeador Completo","تمويج دائم كامل"]},"s9":{"bookingName":["Diseño de Cejas","تحديد شكل الحاجبين"]},"1792256841487":{"bookingName":["Depilación Labio Superior","إزالة شعر الشفة العليا بالشمع"]},"1792256871175":{"bookingName":["Diseño cejas & Labio Superior","تحديد الحاجبين وإزالة شعر الشفة العليا بالشمع"]},"1792256900911":{"bookingName":["Coloración Cejas","صبغ الحاجبين"]}},
 };
 
+const localizedColorCatalog: Record<string, CatalogCopy> = {
+  en: {
+    "s4": {
+      fields: {
+        name: ["Tus raíces te están delatando.","Are your roots giving you away?"],
+        slogan: ["Tu color de siempre. Como recién hecho.","Your usual colour, freshly done."],
+        description: ["Renueva tu color y devuelve la uniformidad a toda tu melena.","Refresh your colour and restore an even look throughout your hair."],
+        includesText: ["Aplicación de coloración en el crecimiento de la raíz, hasta un máximo de 2 cm, para cubrir las canas o igualar el color existente. Incluye lavado profesional después de la coloración.","We colour up to 2 cm of regrowth to cover greys or match your existing shade. A professional wash is included."],
+        achievedText: ["Un color uniforme desde la raíz, con las canas cubiertas según el resultado acordado y sin necesidad de volver a colorear toda la melena.","An even colour from the roots, with grey coverage as agreed, without recolouring your full length."],
+        forWhomText: ["Si ya llevas el cabello teñido y quieres retocar el crecimiento, cubrir las canas o mantener tu tono habitual sin modificar el color de medios y puntas.","For coloured hair that needs a root touch-up, grey coverage or shade maintenance while keeping the mid-lengths and ends unchanged."],
+        conditionsText: ["Solo raíces de hasta 2 cm; si el crecimiento es mayor, corresponde Color Integral. Incluye lavado, no peinado.","For up to 2 cm of regrowth. For more, choose All-over Colour. Wash included. Styling is separate."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ To complete the service, choose styling for your hair length."],
+      },
+      variants: {
+      },
+    },
+    "1792247910592": {
+      fields: {
+        name: ["De la raíz a las puntas. Sin medias tintas.","From roots to ends. One complete colour."],
+        slogan: ["Un solo color. Toda una declaración.","One shade. A statement of its own."],
+        description: ["¿Tu color necesita algo más que un retoque? Es hora de darle protagonismo a toda tu melena. Coloración de raíz a puntas para renovar tu tono, recuperar la uniformidad y conseguir un acabado lleno de personalidad.","Need more than a touch-up? All-over colour refreshes your shade, restores an even tone and gives your hair a finish with character."],
+        includesText: ["Aplicación de coloración uniforme desde la raíz hasta las puntas para renovar, intensificar o cambiar el tono de toda la melena. Incluye asesoramiento sobre el color, aplicación y lavado profesional.","Colour applied from roots to ends to refresh, intensify or change your shade. Includes colour advice, application and a professional wash."],
+        achievedText: ["Un color renovado y uniforme en toda la melena, con mayor intensidad, brillo y un acabado de tono más homogéneo desde la raíz hasta las puntas.","Refreshed, even colour throughout, with more intensity and shine."],
+        forWhomText: ["Si quieres teñir toda tu melena, recuperar un color apagado, igualar el tono de raíces y puntas o cambiar a un nuevo color sin realizar mechas ni decoloración.","For a full colour, to revive a dull shade, even out roots and ends or change colour without highlights or bleaching."],
+        conditionsText: ["Incluye coloración integral y lavado. No incluye peinado, mechas, decoloración ni tratamientos adicionales. Precio según longitud y cantidad de cabello.","Includes all-over colour and a wash. Styling, highlights, bleaching and extra treatments are separate. Price depends on hair length and thickness."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ To complete the service, choose styling for your hair length."],
+      },
+      variants: {
+        "v_m_1792247922296": {"name":["Color Corto","All-over colour · Short"],"description":["Coloración completa cabello corto, estilo pixie","All-over colour for short, pixie-length hair."]},
+        "v_l_1792247922296": {"name":["Color Medio","All-over colour · Medium"],"description":["Coloración completa cabello hasta los hombros estilo Bob, media melena.","All-over colour for shoulder-length or bob-length hair."]},
+        "v_xl_1792247922296": {"name":["Color Largo","All-over colour · Long"],"description":["Coloración cpmpleta cabellos largos, desde hombros hasta media espalda.","All-over colour for hair from shoulder to mid-back length."]},
+        "v_1792248011383": {"name":["Color Extra-largo","All-over colour · Extra-long"],"description":["Coloración completa extra larga, cabellos desde media espalda hasta cintura.","All-over colour for hair from mid-back to waist length."]},
+      },
+    },
+    "1792248340199": {
+      fields: {
+        name: ["¿Tu rubio ya no es el que era?","Has your blonde lost its tone?"],
+        slogan: ["El tono correcto lo cambia todo.","The right tone changes everything."],
+        description: ["¿Tu rubio se ha puesto amarillo? ¿Tus reflejos se han vuelto anaranjados? ¿O simplemente tu color ha perdido ese matiz que tanto te gustaba? No necesitas empezar de cero. La matización & tonalización permiten corregir reflejos no deseados, ajustar la tonalidad y refrescar el color existente sin realizar un nuevo trabajo de mechas.","Refresh a blonde that has turned yellow or orange, or bring back a shade you loved, without getting new highlights."],
+        includesText: ["Aplicamos una tonalización personalizada para corregir o suavizar reflejos no deseados, como amarillos, anaranjados o cobrizos, y ajustar el matiz del cabello teñido o con mechas, sin realizar una nueva decoloración.","We customise the toner to soften yellow, orange or copper tones in coloured or highlighted hair without bleaching again."],
+        achievedText: ["Un color con los reflejos más equilibrados y el matiz renovado, recuperando el tono frío, neutro o cálido que buscas, según las posibilidades de tu base actual.","A balanced, refreshed tone, cool, neutral or warm depending on your starting colour."],
+        forWhomText: ["Si tus mechas han perdido el tono, tu rubio se ha vuelto amarillo o anaranjado, o quieres refrescar los reflejos de tu color sin volver a teñir o decolorar el cabello.","For faded highlights, yellow or orange blonde, or a colour refresh without dyeing or bleaching again."],
+        conditionsText: ["No incluye mechas, decoloración ni peinado. El resultado depende de la base y del estado del cabello.","Highlights, bleaching and styling are separate. Results depend on your base colour and hair condition."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ To complete the service, choose styling for your hair length."],
+      },
+      variants: {
+        "v_m_1792248344062": {"name":["Matiz Corto/Medio","Toning and colour correction · Short/medium"],"description":["Técnica en cabello corto para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutralises unwanted tones in short to medium-length hair after bleaching, dyeing or as colour fades."]},
+        "v_l_1792248344062": {"name":["Matiz Largo","Toning and colour correction · Long"],"description":["Técnica en cabello largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutralises unwanted tones in long hair after bleaching, dyeing or as colour fades."]},
+        "v_xl_1792248344062": {"name":["Matiz Extra-largo","Toning and colour correction · Extra-long"],"description":["Técnica en cabello Extra-largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutralises unwanted tones in extra-long hair after bleaching, dyeing or as colour fades."]},
+      },
+    },
+    "1792248673014": {
+      fields: {
+        name: ["Tu pelo tiene derecho a brillar.","Your hair deserves to shine."],
+        slogan: ["Más brillo. Menos aspecto apagado.","More shine, less dullness."],
+        description: ["Hay días en los que tu pelo no necesita un cambio de color. Necesita recuperar su mejor versión. Gloss Protein es un servicio de brillo y cuidado capilar pensado para mejorar el aspecto de una melena apagada y devolverle luminosidad, suavidad y un acabado más pulido.","Gloss Protein is a shine and care service that gives dull hair more radiance, softness and a polished finish."],
+        includesText: ["Incluye lavado profesional. El secado y peinado no están incluidos y se cobran por separado. Si deseas salir peinada, añade Styling & Peinados a tu reserva. No incluye nuevas mechas ni decoloración.","Includes a professional wash. Blow-drying and styling are charged separately. Add Styling & Blow-dry to your booking if you’d like a styled finish. New highlights and bleaching are separate."],
+        achievedText: ["Una melena de aspecto más cuidado, suave y brillante. De esas que apetece tocar.","Softer, shinier hair that looks well cared for and feels lovely to touch."],
+        forWhomText: ["Si notas el cabello apagado, sin brillo o con un aspecto poco cuidado y quieres darle un extra de luminosidad sin cambiar necesariamente tu color.","For dull, lacklustre hair that needs more shine without necessarily changing its colour."],
+      },
+      variants: {
+        "v_m_1792248677261": {"name":["Gloss Corto/Medio","Gloss Protein · Short/medium"],"description":["Refresca el tono y aporta brillo a tu cabello corto o media melena. Su proteína de trigo aporta cuerpo y vitalidad.","Refreshes the tone and adds shine to short to medium-length hair. Wheat protein adds body for a fuller look."]},
+        "v_l_1792248677261": {"name":["Gloss largo","Gloss Protein · Long"],"description":["Revitaliza el color y el brillo de tu melena larga, con proteína de trigo que ayuda a que el cabello se sienta más grueso y con cuerpo.","Refreshes the tone and adds shine to long hair. Wheat protein adds body for a fuller look."]},
+        "v_xl_1792248677261": {"name":["Gloss Extra.largo","Gloss Protein · Extra-long"],"description":["Realza el tono y el brillo de tu melena extralarga. Su proteína de trigo aporta cuerpo y una apariencia más llena de vitalidad.","Refreshes the tone and adds shine to extra-long hair. Wheat protein adds body for a fuller look."]},
+      },
+    },
+    "1792248852621": {
+      fields: {
+        name: ["¿Tu rubio empieza a tener raíces?","Are your roots starting to show through your blonde?"],
+        slogan: ["Recuperamos la luz desde el principio.","Bring the brightness back to the roots."],
+        description: ["Tu rubio sigue siendo tu rubio. Pero las raíces tienen otros planes. La decoloración de raíces es un servicio técnico destinado a aclarar el crecimiento natural del cabello para mantener un rubio global o un color previamente decolorado, trabajando únicamente la zona de raíz.","Lighten only your natural regrowth to maintain an all-over blonde or previously bleached colour."],
+        includesText: ["Aplicamos decoloración sobre el crecimiento natural de la raíz para aclararlo y mantener la continuidad de un cabello previamente decolorado. Adaptamos el proceso al estado del cabello y finalizamos con lavado profesional.","We bleach the natural regrowth, adapt the process to your hair’s condition and finish with a professional wash."],
+        achievedText: ["Las raíces aclaradas para recuperar la continuidad de tu rubio o color decolorado, dejando el cabello preparado para aplicar el matiz necesario y conseguir el tono final deseado.","Lightened roots that blend with the bleached lengths, ready for the toner needed to achieve the final shade."],
+        forWhomText: ["Si llevas una decoloración global o un rubio muy claro y necesitas aclarar el crecimiento de la raíz para mantener tu color. No es un servicio para cubrir canas ni para realizar mechas.","For all-over bleached or very light blonde hair that needs the roots lightened. For grey coverage or highlights, choose a different service."],
+        conditionsText: ["Incluye decoloración de raíces y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado del cabello.","Includes root bleaching and a wash. Toner, styling and treatments cost extra. Suitability depends on hair condition."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ To complete the service, choose styling for your hair length."],
+      },
+      variants: {
+      },
+    },
+    "1792248908557": {
+      fields: {
+        name: ["¿Quieres llevar tu color a otro nivel?","Ready to take your colour further?"],
+        slogan: ["Los grandes cambios empiezan aclarando el camino.","Big changes start with a lighter base."],
+        description: ["¿Sueñas con un cambio radical de color? Antes de elegir el tono, hay que preparar el lienzo. La decoloración integral es un servicio técnico de aclarado que trabaja toda la melena, desde la raíz hasta las puntas, para conseguir una base más clara sobre la que crear el color deseado.","Planning a dramatic colour change? All-over bleaching lightens your hair from roots to ends to prepare it for the shade you want."],
+        includesText: ["Decoloración del cabello para aclarar su base y preparar la melena para un cambio importante de color. Valoramos previamente el estado del cabello y adaptamos la técnica y el proceso de aclarado a sus necesidades. Incluye lavado profesional.","We assess your hair first and tailor the lightening technique and process to its condition. Includes a professional wash."],
+        achievedText: ["Una base de cabello aclarada, preparada para conseguir el tono final deseado mediante la coloración o tonalización correspondiente, siempre dentro de las posibilidades de tu cabello.","A lighter base, ready for the colour or toner needed for your final shade, within what your hair can handle."],
+        forWhomText: ["Si quieres pasar de un tono oscuro a uno mucho más claro, conseguir un rubio global o preparar tu cabello para un color que necesita una base previamente decolorada.","For going from dark to much lighter, achieving an all-over blonde or preparing for a colour that needs a pre-lightened base."],
+        conditionsText: ["Incluye decoloración y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado y resistencia del cabello.","Includes bleaching and a wash. Toner, styling and treatments cost extra. Suitability depends on hair condition and strength."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ To complete the service, choose styling for your hair length."],
+      },
+      variants: {
+        "v_m_1792248914460": {"name":["Decoloración Medio","All-over bleaching · Medium"]},
+        "v_l_1792248914460": {"name":["Decoloración Largo","All-over bleaching · Long"]},
+        "v_xl_1792248914460": {"name":["Decoloración Extra-largo","All-over bleaching · Extra-long"]},
+      },
+    },
+  },
+  fr: {
+    "s4": {
+      fields: {
+        name: ["Tus raíces te están delatando.","Vos racines vous trahissent ?"],
+        slogan: ["Tu color de siempre. Como recién hecho.","Votre couleur habituelle, comme au premier jour."],
+        description: ["Renueva tu color y devuelve la uniformidad a toda tu melena.","Ravivez votre couleur et retrouvez une chevelure uniforme."],
+        includesText: ["Aplicación de coloración en el crecimiento de la raíz, hasta un máximo de 2 cm, para cubrir las canas o igualar el color existente. Incluye lavado profesional después de la coloración.","Coloration de 2 cm de repousse maximum pour couvrir les cheveux blancs ou retrouver la teinte existante. Shampoing professionnel compris."],
+        achievedText: ["Un color uniforme desde la raíz, con las canas cubiertas según el resultado acordado y sin necesidad de volver a colorear toda la melena.","Une couleur uniforme dès la racine, avec la couverture des cheveux blancs convenue, sans recolorer toute la chevelure."],
+        forWhomText: ["Si ya llevas el cabello teñido y quieres retocar el crecimiento, cubrir las canas o mantener tu tono habitual sin modificar el color de medios y puntas.","Pour les cheveux déjà colorés, si vous souhaitez retoucher la repousse, couvrir les cheveux blancs ou entretenir votre teinte en gardant les longueurs et les pointes intactes."],
+        conditionsText: ["Solo raíces de hasta 2 cm; si el crecimiento es mayor, corresponde Color Integral. Incluye lavado, no peinado.","Jusqu’à 2 cm de repousse. Au-delà, choisissez la coloration complète. Shampoing compris. Coiffage à part."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Pour compléter la prestation, choisissez le coiffage adapté à votre longueur."],
+      },
+      variants: {
+      },
+    },
+    "1792247910592": {
+      fields: {
+        name: ["De la raíz a las puntas. Sin medias tintas.","Des racines aux pointes, sans demi-mesure."],
+        slogan: ["Un solo color. Toda una declaración.","Une seule couleur qui affirme votre style."],
+        description: ["¿Tu color necesita algo más que un retoque? Es hora de darle protagonismo a toda tu melena. Coloración de raíz a puntas para renovar tu tono, recuperar la uniformidad y conseguir un acabado lleno de personalidad.","Besoin de plus qu’une retouche ? Une coloration complète ravive votre teinte, rétablit l’uniformité et donne du caractère à vos cheveux."],
+        includesText: ["Aplicación de coloración uniforme desde la raíz hasta las puntas para renovar, intensificar o cambiar el tono de toda la melena. Incluye asesoramiento sobre el color, aplicación y lavado profesional.","Application des racines aux pointes pour raviver, intensifier ou changer la teinte. Conseil couleur, application et shampoing professionnel compris."],
+        achievedText: ["Un color renovado y uniforme en toda la melena, con mayor intensidad, brillo y un acabado de tono más homogéneo desde la raíz hasta las puntas.","Une couleur renouvelée et uniforme, plus intense et brillante, des racines aux pointes."],
+        forWhomText: ["Si quieres teñir toda tu melena, recuperar un color apagado, igualar el tono de raíces y puntas o cambiar a un nuevo color sin realizar mechas ni decoloración.","Pour colorer toute la chevelure, raviver une teinte terne, harmoniser racines et pointes ou changer de couleur sans mèches ni décoloration."],
+        conditionsText: ["Incluye coloración integral y lavado. No incluye peinado, mechas, decoloración ni tratamientos adicionales. Precio según longitud y cantidad de cabello.","Coloration complète et shampoing compris. Coiffage, mèches, décoloration et soins supplémentaires à part. Tarifs selon la longueur et la densité."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Pour compléter la prestation, choisissez le coiffage adapté à votre longueur."],
+      },
+      variants: {
+        "v_m_1792247922296": {"name":["Color Corto","Coloration complète · Courts"],"description":["Coloración completa cabello corto, estilo pixie","Coloration complète pour cheveux courts de type pixie."]},
+        "v_l_1792247922296": {"name":["Color Medio","Coloration complète · Mi-longs"],"description":["Coloración completa cabello hasta los hombros estilo Bob, media melena.","Coloration complète pour cheveux aux épaules ou au carré."]},
+        "v_xl_1792247922296": {"name":["Color Largo","Coloration complète · Longs"],"description":["Coloración cpmpleta cabellos largos, desde hombros hasta media espalda.","Coloration complète pour cheveux des épaules au milieu du dos."]},
+        "v_1792248011383": {"name":["Color Extra-largo","Coloration complète · Très longs"],"description":["Coloración completa extra larga, cabellos desde media espalda hasta cintura.","Coloration complète pour cheveux du milieu du dos à la taille."]},
+      },
+    },
+    "1792248340199": {
+      fields: {
+        name: ["¿Tu rubio ya no es el que era?","Votre blond a perdu son éclat ?"],
+        slogan: ["El tono correcto lo cambia todo.","La bonne nuance change tout."],
+        description: ["¿Tu rubio se ha puesto amarillo? ¿Tus reflejos se han vuelto anaranjados? ¿O simplemente tu color ha perdido ese matiz que tanto te gustaba? No necesitas empezar de cero. La matización & tonalización permiten corregir reflejos no deseados, ajustar la tonalidad y refrescar el color existente sin realizar un nuevo trabajo de mechas.","Ravivez un blond jauni ou orangé, ou retrouvez le reflet qui vous plaisait sans refaire vos mèches."],
+        includesText: ["Aplicamos una tonalización personalizada para corregir o suavizar reflejos no deseados, como amarillos, anaranjados o cobrizos, y ajustar el matiz del cabello teñido o con mechas, sin realizar una nueva decoloración.","Nous adaptons la patine pour atténuer les reflets jaunes, orangés ou cuivrés des cheveux colorés ou méchés, sans nouvelle décoloration."],
+        achievedText: ["Un color con los reflejos más equilibrados y el matiz renovado, recuperando el tono frío, neutro o cálido que buscas, según las posibilidades de tu base actual.","Des reflets plus équilibrés et une nuance froide, neutre ou chaude selon votre base."],
+        forWhomText: ["Si tus mechas han perdido el tono, tu rubio se ha vuelto amarillo o anaranjado, o quieres refrescar los reflejos de tu color sin volver a teñir o decolorar el cabello.","Pour des mèches dont la nuance s’est estompée, un blond jauni ou orangé, ou pour raviver la couleur sans recoloration ni décoloration."],
+        conditionsText: ["No incluye mechas, decoloración ni peinado. El resultado depende de la base y del estado del cabello.","Mèches, décoloration et coiffage à part. Le résultat dépend de la base et de l’état des cheveux."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Pour compléter la prestation, choisissez le coiffage adapté à votre longueur."],
+      },
+      variants: {
+        "v_m_1792248344062": {"name":["Matiz Corto/Medio","Patine et correction des reflets · Courts à mi-longs"],"description":["Técnica en cabello corto para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutralise les reflets indésirables sur des cheveux courts à mi-longs après une décoloration, une coloration ou avec le temps."]},
+        "v_l_1792248344062": {"name":["Matiz Largo","Patine et correction des reflets · Longs"],"description":["Técnica en cabello largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutralise les reflets indésirables sur des cheveux longs après une décoloration, une coloration ou avec le temps."]},
+        "v_xl_1792248344062": {"name":["Matiz Extra-largo","Patine et correction des reflets · Très longs"],"description":["Técnica en cabello Extra-largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutralise les reflets indésirables sur des cheveux très longs après une décoloration, une coloration ou avec le temps."]},
+      },
+    },
+    "1792248673014": {
+      fields: {
+        name: ["Tu pelo tiene derecho a brillar.","Vos cheveux méritent de briller."],
+        slogan: ["Más brillo. Menos aspecto apagado.","Plus de brillance, moins de ternissure."],
+        description: ["Hay días en los que tu pelo no necesita un cambio de color. Necesita recuperar su mejor versión. Gloss Protein es un servicio de brillo y cuidado capilar pensado para mejorar el aspecto de una melena apagada y devolverle luminosidad, suavidad y un acabado más pulido.","Gloss Protein est un soin qui redonne de la lumière et de la douceur aux cheveux ternes pour un fini soigné."],
+        includesText: ["Incluye lavado profesional. El secado y peinado no están incluidos y se cobran por separado. Si deseas salir peinada, añade Styling & Peinados a tu reserva. No incluye nuevas mechas ni decoloración.","Shampoing professionnel compris. Séchage et coiffage facturés à part. Ajoutez la prestation coiffage et brushing si vous le souhaitez. Nouvelles mèches et décoloration à part."],
+        achievedText: ["Una melena de aspecto más cuidado, suave y brillante. De esas que apetece tocar.","Une chevelure plus douce, brillante et soignée, agréable au toucher."],
+        forWhomText: ["Si notas el cabello apagado, sin brillo o con un aspecto poco cuidado y quieres darle un extra de luminosidad sin cambiar necesariamente tu color.","Pour des cheveux ternes qui ont besoin de brillance sans nécessairement changer de couleur."],
+      },
+      variants: {
+        "v_m_1792248677261": {"name":["Gloss Corto/Medio","Gloss Protein · Courts à mi-longs"],"description":["Refresca el tono y aporta brillo a tu cabello corto o media melena. Su proteína de trigo aporta cuerpo y vitalidad.","Ravive la nuance et apporte de la brillance sur des cheveux courts à mi-longs. Les protéines de blé donnent du corps."]},
+        "v_l_1792248677261": {"name":["Gloss largo","Gloss Protein · Longs"],"description":["Revitaliza el color y el brillo de tu melena larga, con proteína de trigo que ayuda a que el cabello se sienta más grueso y con cuerpo.","Ravive la nuance et apporte de la brillance sur des cheveux longs. Les protéines de blé donnent du corps."]},
+        "v_xl_1792248677261": {"name":["Gloss Extra.largo","Gloss Protein · Très longs"],"description":["Realza el tono y el brillo de tu melena extralarga. Su proteína de trigo aporta cuerpo y una apariencia más llena de vitalidad.","Ravive la nuance et apporte de la brillance sur des cheveux très longs. Les protéines de blé donnent du corps."]},
+      },
+    },
+    "1792248852621": {
+      fields: {
+        name: ["¿Tu rubio empieza a tener raíces?","Votre repousse commence à se voir ?"],
+        slogan: ["Recuperamos la luz desde el principio.","Retrouvez de la lumière dès la racine."],
+        description: ["Tu rubio sigue siendo tu rubio. Pero las raíces tienen otros planes. La decoloración de raíces es un servicio técnico destinado a aclarar el crecimiento natural del cabello para mantener un rubio global o un color previamente decolorado, trabajando únicamente la zona de raíz.","Éclaircissez uniquement votre repousse naturelle pour entretenir un blond global ou une couleur déjà décolorée."],
+        includesText: ["Aplicamos decoloración sobre el crecimiento natural de la raíz para aclararlo y mantener la continuidad de un cabello previamente decolorado. Adaptamos el proceso al estado del cabello y finalizamos con lavado profesional.","Nous décolorons la repousse naturelle, adaptons le procédé à l’état des cheveux et terminons par un shampoing professionnel."],
+        achievedText: ["Las raíces aclaradas para recuperar la continuidad de tu rubio o color decolorado, dejando el cabello preparado para aplicar el matiz necesario y conseguir el tono final deseado.","Des racines éclaircies en harmonie avec les longueurs décolorées et prêtes pour la patine qui donnera la teinte finale."],
+        forWhomText: ["Si llevas una decoloración global o un rubio muy claro y necesitas aclarar el crecimiento de la raíz para mantener tu color. No es un servicio para cubrir canas ni para realizar mechas.","Pour entretenir une décoloration globale ou un blond très clair. Pour couvrir les cheveux blancs ou réaliser des mèches, choisissez une autre prestation."],
+        conditionsText: ["Incluye decoloración de raíces y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado del cabello.","Décoloration des racines et shampoing compris. Patine, coiffage et soins en supplément. Selon l’état des cheveux."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Pour compléter la prestation, choisissez le coiffage adapté à votre longueur."],
+      },
+      variants: {
+      },
+    },
+    "1792248908557": {
+      fields: {
+        name: ["¿Quieres llevar tu color a otro nivel?","Envie d’aller plus loin avec votre couleur ?"],
+        slogan: ["Los grandes cambios empiezan aclarando el camino.","Les grands changements commencent sur une base plus claire."],
+        description: ["¿Sueñas con un cambio radical de color? Antes de elegir el tono, hay que preparar el lienzo. La decoloración integral es un servicio técnico de aclarado que trabaja toda la melena, desde la raíz hasta las puntas, para conseguir una base más clara sobre la que crear el color deseado.","Pour un changement de couleur radical, nous éclaircissons toute la chevelure des racines aux pointes afin de préparer la nuance souhaitée."],
+        includesText: ["Decoloración del cabello para aclarar su base y preparar la melena para un cambio importante de color. Valoramos previamente el estado del cabello y adaptamos la técnica y el proceso de aclarado a sus necesidades. Incluye lavado profesional.","Nous évaluons d’abord l’état des cheveux et adaptons la technique et le procédé d’éclaircissement. Shampoing professionnel compris."],
+        achievedText: ["Una base de cabello aclarada, preparada para conseguir el tono final deseado mediante la coloración o tonalización correspondiente, siempre dentro de las posibilidades de tu cabello.","Une base éclaircie, prête à recevoir la coloration ou la patine adaptée à la nuance finale, selon les possibilités de vos cheveux."],
+        forWhomText: ["Si quieres pasar de un tono oscuro a uno mucho más claro, conseguir un rubio global o preparar tu cabello para un color que necesita una base previamente decolorada.","Pour passer d’une couleur foncée à une teinte beaucoup plus claire, obtenir un blond global ou préparer une couleur qui exige une base décolorée."],
+        conditionsText: ["Incluye decoloración y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado y resistencia del cabello.","Décoloration et shampoing compris. Patine, coiffage et soins en supplément. Selon l’état et la résistance des cheveux."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Pour compléter la prestation, choisissez le coiffage adapté à votre longueur."],
+      },
+      variants: {
+        "v_m_1792248914460": {"name":["Decoloración Medio","Décoloration complète · Mi-longs"]},
+        "v_l_1792248914460": {"name":["Decoloración Largo","Décoloration complète · Longs"]},
+        "v_xl_1792248914460": {"name":["Decoloración Extra-largo","Décoloration complète · Très longs"]},
+      },
+    },
+  },
+  pt: {
+    "s4": {
+      fields: {
+        name: ["Tus raíces te están delatando.","As raízes estão a denunciar-te?"],
+        slogan: ["Tu color de siempre. Como recién hecho.","A tua cor habitual, como acabada de fazer."],
+        description: ["Renueva tu color y devuelve la uniformidad a toda tu melena.","Renova a cor e devolve a uniformidade a todo o cabelo."],
+        includesText: ["Aplicación de coloración en el crecimiento de la raíz, hasta un máximo de 2 cm, para cubrir las canas o igualar el color existente. Incluye lavado profesional después de la coloración.","Coloração de até 2 cm de crescimento da raiz para cobrir brancos ou igualar a cor existente. Inclui lavagem profissional."],
+        achievedText: ["Un color uniforme desde la raíz, con las canas cubiertas según el resultado acordado y sin necesidad de volver a colorear toda la melena.","Cor uniforme desde a raiz, com cobertura de brancos conforme combinado, sem voltar a pintar todo o cabelo."],
+        forWhomText: ["Si ya llevas el cabello teñido y quieres retocar el crecimiento, cubrir las canas o mantener tu tono habitual sin modificar el color de medios y puntas.","Para cabelo já pintado que precisa de um retoque, cobertura de brancos ou manutenção do tom, mantendo comprimentos e pontas."],
+        conditionsText: ["Solo raíces de hasta 2 cm; si el crecimiento es mayor, corresponde Color Integral. Incluye lavado, no peinado.","Até 2 cm de crescimento. Acima disso, escolhe a coloração completa. Inclui lavagem. Penteado à parte."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Para completar o serviço, escolhe o penteado de acordo com o comprimento do teu cabelo."],
+      },
+      variants: {
+      },
+    },
+    "1792247910592": {
+      fields: {
+        name: ["De la raíz a las puntas. Sin medias tintas.","Da raiz às pontas, sem meias medidas."],
+        slogan: ["Un solo color. Toda una declaración.","Um só tom que afirma o teu estilo."],
+        description: ["¿Tu color necesita algo más que un retoque? Es hora de darle protagonismo a toda tu melena. Coloración de raíz a puntas para renovar tu tono, recuperar la uniformidad y conseguir un acabado lleno de personalidad.","Precisas de mais do que um retoque? A coloração completa renova o tom, uniformiza a cor e dá personalidade ao acabamento."],
+        includesText: ["Aplicación de coloración uniforme desde la raíz hasta las puntas para renovar, intensificar o cambiar el tono de toda la melena. Incluye asesoramiento sobre el color, aplicación y lavado profesional.","Coloração da raiz às pontas para renovar, intensificar ou mudar o tom. Inclui aconselhamento sobre a cor, aplicação e lavagem profissional."],
+        achievedText: ["Un color renovado y uniforme en toda la melena, con mayor intensidad, brillo y un acabado de tono más homogéneo desde la raíz hasta las puntas.","Cor renovada e uniforme, com mais intensidade e brilho da raiz às pontas."],
+        forWhomText: ["Si quieres teñir toda tu melena, recuperar un color apagado, igualar el tono de raíces y puntas o cambiar a un nuevo color sin realizar mechas ni decoloración.","Para colorir todo o cabelo, recuperar um tom baço, igualar raízes e pontas ou mudar a cor sem madeixas nem descoloração."],
+        conditionsText: ["Incluye coloración integral y lavado. No incluye peinado, mechas, decoloración ni tratamientos adicionales. Precio según longitud y cantidad de cabello.","Inclui coloração completa e lavagem. Penteado, madeixas, descoloração e tratamentos extra à parte. O preço depende do comprimento e densidade do cabelo."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Para completar o serviço, escolhe o penteado de acordo com o comprimento do teu cabelo."],
+      },
+      variants: {
+        "v_m_1792247922296": {"name":["Color Corto","Coloração integral · Curto"],"description":["Coloración completa cabello corto, estilo pixie","Coloração completa para cabelo curto tipo pixie."]},
+        "v_l_1792247922296": {"name":["Color Medio","Coloração integral · Médio"],"description":["Coloración completa cabello hasta los hombros estilo Bob, media melena.","Coloração completa para cabelo pelos ombros ou ao estilo bob."]},
+        "v_xl_1792247922296": {"name":["Color Largo","Coloração integral · Comprido"],"description":["Coloración cpmpleta cabellos largos, desde hombros hasta media espalda.","Coloração completa para cabelo dos ombros até meio das costas."]},
+        "v_1792248011383": {"name":["Color Extra-largo","Coloração integral · Extra comprido"],"description":["Coloración completa extra larga, cabellos desde media espalda hasta cintura.","Coloração completa para cabelo de meio das costas até à cintura."]},
+      },
+    },
+    "1792248340199": {
+      fields: {
+        name: ["¿Tu rubio ya no es el que era?","O teu loiro já não tem o mesmo tom?"],
+        slogan: ["El tono correcto lo cambia todo.","O tom certo muda tudo."],
+        description: ["¿Tu rubio se ha puesto amarillo? ¿Tus reflejos se han vuelto anaranjados? ¿O simplemente tu color ha perdido ese matiz que tanto te gustaba? No necesitas empezar de cero. La matización & tonalización permiten corregir reflejos no deseados, ajustar la tonalidad y refrescar el color existente sin realizar un nuevo trabajo de mechas.","Corrige o loiro amarelado ou alaranjado, ou recupera o reflexo de que gostavas sem fazer novas madeixas."],
+        includesText: ["Aplicamos una tonalización personalizada para corregir o suavizar reflejos no deseados, como amarillos, anaranjados o cobrizos, y ajustar el matiz del cabello teñido o con mechas, sin realizar una nueva decoloración.","Personalizamos a tonalização para suavizar reflexos amarelos, alaranjados ou acobreados no cabelo pintado ou com madeixas, sem voltar a descolorar."],
+        achievedText: ["Un color con los reflejos más equilibrados y el matiz renovado, recuperando el tono frío, neutro o cálido que buscas, según las posibilidades de tu base actual.","Reflexos equilibrados e um tom renovado, frio, neutro ou quente conforme a tua base."],
+        forWhomText: ["Si tus mechas han perdido el tono, tu rubio se ha vuelto amarillo o anaranjado, o quieres refrescar los reflejos de tu color sin volver a teñir o decolorar el cabello.","Para madeixas desvanecidas ou loiro amarelado ou alaranjado, ou para renovar o tom sem voltar a pintar ou descolorar."],
+        conditionsText: ["No incluye mechas, decoloración ni peinado. El resultado depende de la base y del estado del cabello.","Madeixas, descoloração e penteado à parte. O resultado depende da base e do estado do cabelo."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Para completar o serviço, escolhe o penteado de acordo com o comprimento do teu cabelo."],
+      },
+      variants: {
+        "v_m_1792248344062": {"name":["Matiz Corto/Medio","Matização e tonalização · Curto/médio"],"description":["Técnica en cabello corto para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutraliza reflexos indesejados em cabelo curto a médio após descoloração, coloração ou com o passar do tempo."]},
+        "v_l_1792248344062": {"name":["Matiz Largo","Matização e tonalização · Comprido"],"description":["Técnica en cabello largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutraliza reflexos indesejados em cabelo comprido após descoloração, coloração ou com o passar do tempo."]},
+        "v_xl_1792248344062": {"name":["Matiz Extra-largo","Matização e tonalização · Extra comprido"],"description":["Técnica en cabello Extra-largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutraliza reflexos indesejados em cabelo extra comprido após descoloração, coloração ou com o passar do tempo."]},
+      },
+    },
+    "1792248673014": {
+      fields: {
+        name: ["Tu pelo tiene derecho a brillar.","O teu cabelo merece brilhar."],
+        slogan: ["Más brillo. Menos aspecto apagado.","Mais brilho, menos aspeto baço."],
+        description: ["Hay días en los que tu pelo no necesita un cambio de color. Necesita recuperar su mejor versión. Gloss Protein es un servicio de brillo y cuidado capilar pensado para mejorar el aspecto de una melena apagada y devolverle luminosidad, suavidad y un acabado más pulido.","O Gloss Protein é um cuidado que devolve luminosidade e suavidade ao cabelo baço, com um acabamento mais polido."],
+        includesText: ["Incluye lavado profesional. El secado y peinado no están incluidos y se cobran por separado. Si deseas salir peinada, añade Styling & Peinados a tu reserva. No incluye nuevas mechas ni decoloración.","Inclui lavagem profissional. Secagem e penteado são cobrados à parte. Para um acabamento penteado, adiciona o serviço de styling à marcação. Novas madeixas e descoloração à parte."],
+        achievedText: ["Una melena de aspecto más cuidado, suave y brillante. De esas que apetece tocar.","Cabelo mais cuidado, suave e brilhante, que apetece tocar."],
+        forWhomText: ["Si notas el cabello apagado, sin brillo o con un aspecto poco cuidado y quieres darle un extra de luminosidad sin cambiar necesariamente tu color.","Para cabelo baço ou sem brilho que precisa de luminosidade sem necessariamente mudar de cor."],
+      },
+      variants: {
+        "v_m_1792248677261": {"name":["Gloss Corto/Medio","Gloss Protein · Curto/médio"],"description":["Refresca el tono y aporta brillo a tu cabello corto o media melena. Su proteína de trigo aporta cuerpo y vitalidad.","Renova o tom e dá brilho a cabelo curto a médio. A proteína de trigo dá corpo ao cabelo."]},
+        "v_l_1792248677261": {"name":["Gloss largo","Gloss Protein · Comprido"],"description":["Revitaliza el color y el brillo de tu melena larga, con proteína de trigo que ayuda a que el cabello se sienta más grueso y con cuerpo.","Renova o tom e dá brilho a cabelo comprido. A proteína de trigo dá corpo ao cabelo."]},
+        "v_xl_1792248677261": {"name":["Gloss Extra.largo","Gloss Protein · Extra comprido"],"description":["Realza el tono y el brillo de tu melena extralarga. Su proteína de trigo aporta cuerpo y una apariencia más llena de vitalidad.","Renova o tom e dá brilho a cabelo extra comprido. A proteína de trigo dá corpo ao cabelo."]},
+      },
+    },
+    "1792248852621": {
+      fields: {
+        name: ["¿Tu rubio empieza a tener raíces?","Já se nota o crescimento do teu loiro?"],
+        slogan: ["Recuperamos la luz desde el principio.","Recupera a luminosidade desde a raiz."],
+        description: ["Tu rubio sigue siendo tu rubio. Pero las raíces tienen otros planes. La decoloración de raíces es un servicio técnico destinado a aclarar el crecimiento natural del cabello para mantener un rubio global o un color previamente decolorado, trabajando únicamente la zona de raíz.","Aclara apenas o crescimento natural para manter um loiro global ou uma cor previamente descolorada."],
+        includesText: ["Aplicamos decoloración sobre el crecimiento natural de la raíz para aclararlo y mantener la continuidad de un cabello previamente decolorado. Adaptamos el proceso al estado del cabello y finalizamos con lavado profesional.","Descoloramos o crescimento natural, adaptamos o processo ao estado do cabelo e terminamos com lavagem profissional."],
+        achievedText: ["Las raíces aclaradas para recuperar la continuidad de tu rubio o color decolorado, dejando el cabello preparado para aplicar el matiz necesario y conseguir el tono final deseado.","Raízes aclaradas em harmonia com os comprimentos descolorados, prontas para a tonalização necessária ao tom final."],
+        forWhomText: ["Si llevas una decoloración global o un rubio muy claro y necesitas aclarar el crecimiento de la raíz para mantener tu color. No es un servicio para cubrir canas ni para realizar mechas.","Para cabelo totalmente descolorado ou loiro muito claro que precisa de aclarar as raízes. Para cobrir brancos ou fazer madeixas, escolhe outro serviço."],
+        conditionsText: ["Incluye decoloración de raíces y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado del cabello.","Inclui descoloração de raízes e lavagem. Tonalização, penteado e tratamentos cobrados à parte. Depende do estado do cabelo."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Para completar o serviço, escolhe o penteado de acordo com o comprimento do teu cabelo."],
+      },
+      variants: {
+      },
+    },
+    "1792248908557": {
+      fields: {
+        name: ["¿Quieres llevar tu color a otro nivel?","Queres levar a tua cor mais longe?"],
+        slogan: ["Los grandes cambios empiezan aclarando el camino.","As grandes mudanças começam com uma base mais clara."],
+        description: ["¿Sueñas con un cambio radical de color? Antes de elegir el tono, hay que preparar el lienzo. La decoloración integral es un servicio técnico de aclarado que trabaja toda la melena, desde la raíz hasta las puntas, para conseguir una base más clara sobre la que crear el color deseado.","Para mudar radicalmente de cor, aclaramos todo o cabelo, da raiz às pontas, preparando a base para o tom pretendido."],
+        includesText: ["Decoloración del cabello para aclarar su base y preparar la melena para un cambio importante de color. Valoramos previamente el estado del cabello y adaptamos la técnica y el proceso de aclarado a sus necesidades. Incluye lavado profesional.","Avaliamos primeiro o estado do cabelo e adaptamos a técnica e o processo de aclaramento. Inclui lavagem profissional."],
+        achievedText: ["Una base de cabello aclarada, preparada para conseguir el tono final deseado mediante la coloración o tonalización correspondiente, siempre dentro de las posibilidades de tu cabello.","Uma base mais clara, pronta para a coloração ou tonalização do tom final, dentro das possibilidades do cabelo."],
+        forWhomText: ["Si quieres pasar de un tono oscuro a uno mucho más claro, conseguir un rubio global o preparar tu cabello para un color que necesita una base previamente decolorada.","Para passar de um tom escuro para um muito mais claro, obter um loiro global ou preparar uma cor que exige uma base descolorada."],
+        conditionsText: ["Incluye decoloración y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado y resistencia del cabello.","Inclui descoloração e lavagem. Tonalização, penteado e tratamentos cobrados à parte. Depende do estado e da resistência do cabelo."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Para completar o serviço, escolhe o penteado de acordo com o comprimento do teu cabelo."],
+      },
+      variants: {
+        "v_m_1792248914460": {"name":["Decoloración Medio","Descoloração integral · Médio"]},
+        "v_l_1792248914460": {"name":["Decoloración Largo","Descoloração integral · Comprido"]},
+        "v_xl_1792248914460": {"name":["Decoloración Extra-largo","Descoloração integral · Extra comprido"]},
+      },
+    },
+  },
+  de: {
+    "s4": {
+      fields: {
+        name: ["Tus raíces te están delatando.","Verrät dich dein Ansatz?"],
+        slogan: ["Tu color de siempre. Como recién hecho.","Deine gewohnte Farbe, wie frisch gemacht."],
+        description: ["Renueva tu color y devuelve la uniformidad a toda tu melena.","Frische deine Farbe auf und bring sie wieder in Einklang."],
+        includesText: ["Aplicación de coloración en el crecimiento de la raíz, hasta un máximo de 2 cm, para cubrir las canas o igualar el color existente. Incluye lavado profesional después de la coloración.","Wir färben bis zu 2 cm Ansatz, um graue Haare abzudecken oder die vorhandene Farbe anzugleichen. Mit professioneller Haarwäsche."],
+        achievedText: ["Un color uniforme desde la raíz, con las canas cubiertas según el resultado acordado y sin necesidad de volver a colorear toda la melena.","Gleichmässige Farbe ab dem Ansatz und die vereinbarte Grauabdeckung, ohne das ganze Haar neu zu färben."],
+        forWhomText: ["Si ya llevas el cabello teñido y quieres retocar el crecimiento, cubrir las canas o mantener tu tono habitual sin modificar el color de medios y puntas.","Für bereits gefärbtes Haar, wenn du den Ansatz auffrischen, graue Haare abdecken oder deinen Farbton erhalten möchtest. Längen und Spitzen bleiben wie sie sind."],
+        conditionsText: ["Solo raíces de hasta 2 cm; si el crecimiento es mayor, corresponde Color Integral. Incluye lavado, no peinado.","Bis 2 cm Ansatz. Bei mehr Ansatz bitte die Komplettfärbung wählen. Haarwäsche inklusive. Styling separat."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Wähle für den vollständigen Service ein Styling für deine Haarlänge."],
+      },
+      variants: {
+      },
+    },
+    "1792247910592": {
+      fields: {
+        name: ["De la raíz a las puntas. Sin medias tintas.","Vom Ansatz bis in die Spitzen. Farbe fürs ganze Haar."],
+        slogan: ["Un solo color. Toda una declaración.","Ein Farbton mit Charakter."],
+        description: ["¿Tu color necesita algo más que un retoque? Es hora de darle protagonismo a toda tu melena. Coloración de raíz a puntas para renovar tu tono, recuperar la uniformidad y conseguir un acabado lleno de personalidad.","Mehr als eine Auffrischung am Ansatz? Eine Komplettfärbung erneuert deinen Farbton, gleicht ihn aus und verleiht deinem Haar Charakter."],
+        includesText: ["Aplicación de coloración uniforme desde la raíz hasta las puntas para renovar, intensificar o cambiar el tono de toda la melena. Incluye asesoramiento sobre el color, aplicación y lavado profesional.","Farbe vom Ansatz bis zu den Spitzen, um den Farbton aufzufrischen, zu intensivieren oder zu ändern. Farbberatung, Auftrag und professionelle Haarwäsche inklusive."],
+        achievedText: ["Un color renovado y uniforme en toda la melena, con mayor intensidad, brillo y un acabado de tono más homogéneo desde la raíz hasta las puntas.","Frische und gleichmässige Farbe mit mehr Intensität und Glanz vom Ansatz bis zu den Spitzen."],
+        forWhomText: ["Si quieres teñir toda tu melena, recuperar un color apagado, igualar el tono de raíces y puntas o cambiar a un nuevo color sin realizar mechas ni decoloración.","Wenn du dein ganzes Haar färben, einen matten Ton beleben, Ansatz und Spitzen angleichen oder die Farbe ohne Strähnchen und Blondierung ändern möchtest."],
+        conditionsText: ["Incluye coloración integral y lavado. No incluye peinado, mechas, decoloración ni tratamientos adicionales. Precio según longitud y cantidad de cabello.","Komplettfärbung und Haarwäsche inklusive. Styling, Strähnchen, Blondierung und weitere Behandlungen separat. Preis je nach Haarlänge und -dichte."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Wähle für den vollständigen Service ein Styling für deine Haarlänge."],
+      },
+      variants: {
+        "v_m_1792247922296": {"name":["Color Corto","Komplettfärbung · Kurz"],"description":["Coloración completa cabello corto, estilo pixie","Komplettfärbung für kurzes Haar im Pixie-Stil."]},
+        "v_l_1792247922296": {"name":["Color Medio","Komplettfärbung · Mittellang"],"description":["Coloración completa cabello hasta los hombros estilo Bob, media melena.","Komplettfärbung für schulterlanges Haar oder einen Bob."]},
+        "v_xl_1792247922296": {"name":["Color Largo","Komplettfärbung · Lang"],"description":["Coloración cpmpleta cabellos largos, desde hombros hasta media espalda.","Komplettfärbung für Haar von Schulterhöhe bis zur Rückenmitte."]},
+        "v_1792248011383": {"name":["Color Extra-largo","Komplettfärbung · Extralang"],"description":["Coloración completa extra larga, cabellos desde media espalda hasta cintura.","Komplettfärbung für Haar von der Rückenmitte bis zur Taille."]},
+      },
+    },
+    "1792248340199": {
+      fields: {
+        name: ["¿Tu rubio ya no es el que era?","Hat dein Blond seinen Farbton verloren?"],
+        slogan: ["El tono correcto lo cambia todo.","Der richtige Farbton macht den Unterschied."],
+        description: ["¿Tu rubio se ha puesto amarillo? ¿Tus reflejos se han vuelto anaranjados? ¿O simplemente tu color ha perdido ese matiz que tanto te gustaba? No necesitas empezar de cero. La matización & tonalización permiten corregir reflejos no deseados, ajustar la tonalidad y refrescar el color existente sin realizar un nuevo trabajo de mechas.","Frische gelbliches oder orangefarbenes Blond auf oder hol deinen Lieblingston zurück, ohne neue Strähnchen setzen zu lassen."],
+        includesText: ["Aplicamos una tonalización personalizada para corregir o suavizar reflejos no deseados, como amarillos, anaranjados o cobrizos, y ajustar el matiz del cabello teñido o con mechas, sin realizar una nueva decoloración.","Wir stimmen die Abmattierung auf dein gefärbtes oder gesträhntes Haar ab, um Gelb-, Orange- oder Kupferstiche ohne weitere Blondierung abzumildern."],
+        achievedText: ["Un color con los reflejos más equilibrados y el matiz renovado, recuperando el tono frío, neutro o cálido que buscas, según las posibilidades de tu base actual.","Ausgewogene Reflexe und ein frischer kühler, neutraler oder warmer Ton, je nach Ausgangsfarbe."],
+        forWhomText: ["Si tus mechas han perdido el tono, tu rubio se ha vuelto amarillo o anaranjado, o quieres refrescar los reflejos de tu color sin volver a teñir o decolorar el cabello.","Bei verblassten Strähnchen, gelblichem oder orangefarbenem Blond oder für eine Auffrischung ohne erneutes Färben oder Blondieren."],
+        conditionsText: ["No incluye mechas, decoloración ni peinado. El resultado depende de la base y del estado del cabello.","Strähnchen, Blondierung und Styling separat. Das Ergebnis hängt von Ausgangsfarbe und Haarzustand ab."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Wähle für den vollständigen Service ein Styling für deine Haarlänge."],
+      },
+      variants: {
+        "v_m_1792248344062": {"name":["Matiz Corto/Medio","Abmattierung und Farbtonkorrektur · Kurz bis mittellang"],"description":["Técnica en cabello corto para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutralisiert unerwünschte Reflexe bei kurzem bis mittellangem Haar nach Blondierung, Färbung oder mit der Zeit."]},
+        "v_l_1792248344062": {"name":["Matiz Largo","Abmattierung und Farbtonkorrektur · Lang"],"description":["Técnica en cabello largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutralisiert unerwünschte Reflexe bei langem Haar nach Blondierung, Färbung oder mit der Zeit."]},
+        "v_xl_1792248344062": {"name":["Matiz Extra-largo","Abmattierung und Farbtonkorrektur · Extralang"],"description":["Técnica en cabello Extra-largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutralisiert unerwünschte Reflexe bei extralangem Haar nach Blondierung, Färbung oder mit der Zeit."]},
+      },
+    },
+    "1792248673014": {
+      fields: {
+        name: ["Tu pelo tiene derecho a brillar.","Dein Haar verdient Glanz."],
+        slogan: ["Más brillo. Menos aspecto apagado.","Mehr Glanz für mattes Haar."],
+        description: ["Hay días en los que tu pelo no necesita un cambio de color. Necesita recuperar su mejor versión. Gloss Protein es un servicio de brillo y cuidado capilar pensado para mejorar el aspecto de una melena apagada y devolverle luminosidad, suavidad y un acabado más pulido.","Gloss Protein ist eine Glanzpflege, die mattem Haar mehr Leuchtkraft und Geschmeidigkeit verleiht und es gepflegter aussehen lässt."],
+        includesText: ["Incluye lavado profesional. El secado y peinado no están incluidos y se cobran por separado. Si deseas salir peinada, añade Styling & Peinados a tu reserva. No incluye nuevas mechas ni decoloración.","Professionelle Haarwäsche inklusive. Föhnen und Styling werden separat berechnet. Buche für ein gestyltes Finish Föhnen und Styling dazu. Neue Strähnchen und Blondierung separat."],
+        achievedText: ["Una melena de aspecto más cuidado, suave y brillante. De esas que apetece tocar.","Geschmeidiges, glänzenderes Haar, das gepflegt aussieht und sich gut anfühlt."],
+        forWhomText: ["Si notas el cabello apagado, sin brillo o con un aspecto poco cuidado y quieres darle un extra de luminosidad sin cambiar necesariamente tu color.","Für mattes Haar, das mehr Glanz braucht, auch wenn du deine Farbe behalten möchtest."],
+      },
+      variants: {
+        "v_m_1792248677261": {"name":["Gloss Corto/Medio","Gloss Protein · Kurz bis mittellang"],"description":["Refresca el tono y aporta brillo a tu cabello corto o media melena. Su proteína de trigo aporta cuerpo y vitalidad.","Frischt den Farbton auf und verleiht Glanz bei kurzem bis mittellangem Haar. Weizenprotein gibt dem Haar mehr Fülle."]},
+        "v_l_1792248677261": {"name":["Gloss largo","Gloss Protein · Lang"],"description":["Revitaliza el color y el brillo de tu melena larga, con proteína de trigo que ayuda a que el cabello se sienta más grueso y con cuerpo.","Frischt den Farbton auf und verleiht Glanz bei langem Haar. Weizenprotein gibt dem Haar mehr Fülle."]},
+        "v_xl_1792248677261": {"name":["Gloss Extra.largo","Gloss Protein · Extralang"],"description":["Realza el tono y el brillo de tu melena extralarga. Su proteína de trigo aporta cuerpo y una apariencia más llena de vitalidad.","Frischt den Farbton auf und verleiht Glanz bei extralangem Haar. Weizenprotein gibt dem Haar mehr Fülle."]},
+      },
+    },
+    "1792248852621": {
+      fields: {
+        name: ["¿Tu rubio empieza a tener raíces?","Wächst dein Blond schon heraus?"],
+        slogan: ["Recuperamos la luz desde el principio.","Bring die Helligkeit zurück an den Ansatz."],
+        description: ["Tu rubio sigue siendo tu rubio. Pero las raíces tienen otros planes. La decoloración de raíces es un servicio técnico destinado a aclarar el crecimiento natural del cabello para mantener un rubio global o un color previamente decolorado, trabajando únicamente la zona de raíz.","Wir hellen nur den Naturansatz auf, damit dein Blond oder deine bereits blondierte Farbe durchgehend wirkt."],
+        includesText: ["Aplicamos decoloración sobre el crecimiento natural de la raíz para aclararlo y mantener la continuidad de un cabello previamente decolorado. Adaptamos el proceso al estado del cabello y finalizamos con lavado profesional.","Wir blondieren den nachgewachsenen Ansatz, passen die Behandlung an den Haarzustand an und schliessen mit professioneller Haarwäsche ab."],
+        achievedText: ["Las raíces aclaradas para recuperar la continuidad de tu rubio o color decolorado, dejando el cabello preparado para aplicar el matiz necesario y conseguir el tono final deseado.","Aufgehellter Ansatz passend zu den blondierten Längen, bereit für die Abmattierung auf den gewünschten Farbton."],
+        forWhomText: ["Si llevas una decoloración global o un rubio muy claro y necesitas aclarar el crecimiento de la raíz para mantener tu color. No es un servicio para cubrir canas ni para realizar mechas.","Für komplett blondiertes oder sehr hellblondes Haar mit sichtbarem Ansatz. Für Grauabdeckung oder Strähnchen bitte eine andere Leistung wählen."],
+        conditionsText: ["Incluye decoloración de raíces y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado del cabello.","Ansatzblondierung und Haarwäsche inklusive. Abmattierung, Styling und Behandlungen kosten extra. Eignung je nach Haarzustand."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Wähle für den vollständigen Service ein Styling für deine Haarlänge."],
+      },
+      variants: {
+      },
+    },
+    "1792248908557": {
+      fields: {
+        name: ["¿Quieres llevar tu color a otro nivel?","Bereit für eine grössere Farbveränderung?"],
+        slogan: ["Los grandes cambios empiezan aclarando el camino.","Grosse Veränderungen beginnen mit einer helleren Basis."],
+        description: ["¿Sueñas con un cambio radical de color? Antes de elegir el tono, hay que preparar el lienzo. La decoloración integral es un servicio técnico de aclarado que trabaja toda la melena, desde la raíz hasta las puntas, para conseguir una base más clara sobre la que crear el color deseado.","Für eine deutliche Farbveränderung hellen wir das Haar vom Ansatz bis zu den Spitzen auf und bereiten es auf deinen Wunschton vor."],
+        includesText: ["Decoloración del cabello para aclarar su base y preparar la melena para un cambio importante de color. Valoramos previamente el estado del cabello y adaptamos la técnica y el proceso de aclarado a sus necesidades. Incluye lavado profesional.","Wir beurteilen zuerst den Haarzustand und passen Technik und Aufhellung daran an. Professionelle Haarwäsche inklusive."],
+        achievedText: ["Una base de cabello aclarada, preparada para conseguir el tono final deseado mediante la coloración o tonalización correspondiente, siempre dentro de las posibilidades de tu cabello.","Eine hellere Ausgangsbasis für die passende Farbe oder Abmattierung, soweit der Zustand deines Haars es zulässt."],
+        forWhomText: ["Si quieres pasar de un tono oscuro a uno mucho más claro, conseguir un rubio global o preparar tu cabello para un color que necesita una base previamente decolorada.","Wenn du von dunkel zu deutlich heller wechseln, ein durchgehendes Blond erreichen oder eine Farbe auf voraufgehelltem Haar auftragen lassen möchtest."],
+        conditionsText: ["Incluye decoloración y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado y resistencia del cabello.","Blondierung und Haarwäsche inklusive. Abmattierung, Styling und Behandlungen kosten extra. Eignung je nach Haarzustand und Belastbarkeit."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Wähle für den vollständigen Service ein Styling für deine Haarlänge."],
+      },
+      variants: {
+        "v_m_1792248914460": {"name":["Decoloración Medio","Komplettblondierung · Mittellang"]},
+        "v_l_1792248914460": {"name":["Decoloración Largo","Komplettblondierung · Lang"]},
+        "v_xl_1792248914460": {"name":["Decoloración Extra-largo","Komplettblondierung · Extralang"]},
+      },
+    },
+  },
+  nl: {
+    "s4": {
+      fields: {
+        name: ["Tus raíces te están delatando.","Verraden je uitgroeiende wortels je?"],
+        slogan: ["Tu color de siempre. Como recién hecho.","Je vertrouwde kleur, weer als nieuw."],
+        description: ["Renueva tu color y devuelve la uniformidad a toda tu melena.","Fris je kleur op en maak die weer egaal over je hele haar."],
+        includesText: ["Aplicación de coloración en el crecimiento de la raíz, hasta un máximo de 2 cm, para cubrir las canas o igualar el color existente. Incluye lavado profesional después de la coloración.","We kleuren maximaal 2 cm uitgroei om grijze haren te dekken of de bestaande kleur te evenaren. Inclusief professionele wasbeurt."],
+        achievedText: ["Un color uniforme desde la raíz, con las canas cubiertas según el resultado acordado y sin necesidad de volver a colorear toda la melena.","Een egale kleur vanaf de aanzet, met de afgesproken grijsdekking, zonder je hele haar opnieuw te kleuren."],
+        forWhomText: ["Si ya llevas el cabello teñido y quieres retocar el crecimiento, cubrir las canas o mantener tu tono habitual sin modificar el color de medios y puntas.","Voor gekleurd haar waarvan je de uitgroei wilt bijwerken, grijze haren wilt dekken of de tint wilt behouden zonder lengtes en punten te veranderen."],
+        conditionsText: ["Solo raíces de hasta 2 cm; si el crecimiento es mayor, corresponde Color Integral. Incluye lavado, no peinado.","Tot 2 cm uitgroei. Kies bij meer uitgroei voor volledige kleuring. Inclusief wassen. Styling is apart."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Kies styling voor jouw haarlengte om de behandeling compleet te maken."],
+      },
+      variants: {
+      },
+    },
+    "1792247910592": {
+      fields: {
+        name: ["De la raíz a las puntas. Sin medias tintas.","Van aanzet tot punten. Kleur over de hele lengte."],
+        slogan: ["Un solo color. Toda una declaración.","Eén tint die je stijl laat zien."],
+        description: ["¿Tu color necesita algo más que un retoque? Es hora de darle protagonismo a toda tu melena. Coloración de raíz a puntas para renovar tu tono, recuperar la uniformidad y conseguir un acabado lleno de personalidad.","Meer nodig dan uitgroei bijwerken? Een volledige kleuring verfrist je tint, maakt die egaal en geeft je haar karakter."],
+        includesText: ["Aplicación de coloración uniforme desde la raíz hasta las puntas para renovar, intensificar o cambiar el tono de toda la melena. Incluye asesoramiento sobre el color, aplicación y lavado profesional.","Kleuring van aanzet tot punten om de tint te vernieuwen, te versterken of te veranderen. Inclusief kleuradvies, aanbrengen en professioneel wassen."],
+        achievedText: ["Un color renovado y uniforme en toda la melena, con mayor intensidad, brillo y un acabado de tono más homogéneo desde la raíz hasta las puntas.","Een frisse, egale kleur met meer intensiteit en glans van aanzet tot punten."],
+        forWhomText: ["Si quieres teñir toda tu melena, recuperar un color apagado, igualar el tono de raíces y puntas o cambiar a un nuevo color sin realizar mechas ni decoloración.","Als je je hele haar wilt kleuren, een doffe tint wilt opfrissen, aanzet en punten gelijk wilt maken of kleur wilt veranderen zonder highlights of ontkleuring."],
+        conditionsText: ["Incluye coloración integral y lavado. No incluye peinado, mechas, decoloración ni tratamientos adicionales. Precio según longitud y cantidad de cabello.","Inclusief volledige kleuring en wassen. Styling, highlights, ontkleuring en extra behandelingen zijn apart. Prijs hangt af van haarlengte en -dikte."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Kies styling voor jouw haarlengte om de behandeling compleet te maken."],
+      },
+      variants: {
+        "v_m_1792247922296": {"name":["Color Corto","Volledige kleuring · Kort"],"description":["Coloración completa cabello corto, estilo pixie","Volledige kleuring voor kort haar in pixiestijl."]},
+        "v_l_1792247922296": {"name":["Color Medio","Volledige kleuring · Middellang"],"description":["Coloración completa cabello hasta los hombros estilo Bob, media melena.","Volledige kleuring voor haar tot de schouders of met een boblijn."]},
+        "v_xl_1792247922296": {"name":["Color Largo","Volledige kleuring · Lang"],"description":["Coloración cpmpleta cabellos largos, desde hombros hasta media espalda.","Volledige kleuring voor haar van schouderlengte tot halverwege de rug."]},
+        "v_1792248011383": {"name":["Color Extra-largo","Volledige kleuring · Extra lang"],"description":["Coloración completa extra larga, cabellos desde media espalda hasta cintura.","Volledige kleuring voor haar van halverwege de rug tot de taille."]},
+      },
+    },
+    "1792248340199": {
+      fields: {
+        name: ["¿Tu rubio ya no es el que era?","Is je blond zijn tint kwijt?"],
+        slogan: ["El tono correcto lo cambia todo.","De juiste tint verandert alles."],
+        description: ["¿Tu rubio se ha puesto amarillo? ¿Tus reflejos se han vuelto anaranjados? ¿O simplemente tu color ha perdido ese matiz que tanto te gustaba? No necesitas empezar de cero. La matización & tonalización permiten corregir reflejos no deseados, ajustar la tonalidad y refrescar el color existente sin realizar un nuevo trabajo de mechas.","Fris geel of oranje geworden blond op of krijg je favoriete tint terug zonder nieuwe highlights."],
+        includesText: ["Aplicamos una tonalización personalizada para corregir o suavizar reflejos no deseados, como amarillos, anaranjados o cobrizos, y ajustar el matiz del cabello teñido o con mechas, sin realizar una nueva decoloración.","We stemmen de toner af op je gekleurde haar of highlights om gele, oranje of koperkleurige gloed te verzachten zonder opnieuw te ontkleuren."],
+        achievedText: ["Un color con los reflejos más equilibrados y el matiz renovado, recuperando el tono frío, neutro o cálido que buscas, según las posibilidades de tu base actual.","Een beter uitgebalanceerde gloed en een frisse koele, neutrale of warme tint, afhankelijk van je basiskleur."],
+        forWhomText: ["Si tus mechas han perdido el tono, tu rubio se ha vuelto amarillo o anaranjado, o quieres refrescar los reflejos de tu color sin volver a teñir o decolorar el cabello.","Voor vervaagde highlights, geel of oranje geworden blond of een opfrisbeurt zonder opnieuw te kleuren of te ontkleuren."],
+        conditionsText: ["No incluye mechas, decoloración ni peinado. El resultado depende de la base y del estado del cabello.","Highlights, ontkleuring en styling zijn apart. Het resultaat hangt af van de basiskleur en de conditie van je haar."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Kies styling voor jouw haarlengte om de behandeling compleet te maken."],
+      },
+      variants: {
+        "v_m_1792248344062": {"name":["Matiz Corto/Medio","Toner en kleurcorrectie · Kort/middellang"],"description":["Técnica en cabello corto para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutraliseert ongewenste tinten in kort tot middellang haar na ontkleuring, verven of na verloop van tijd."]},
+        "v_l_1792248344062": {"name":["Matiz Largo","Toner en kleurcorrectie · Lang"],"description":["Técnica en cabello largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutraliseert ongewenste tinten in lang haar na ontkleuring, verven of na verloop van tijd."]},
+        "v_xl_1792248344062": {"name":["Matiz Extra-largo","Toner en kleurcorrectie · Extra lang"],"description":["Técnica en cabello Extra-largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutraliseert ongewenste tinten in extra lang haar na ontkleuring, verven of na verloop van tijd."]},
+      },
+    },
+    "1792248673014": {
+      fields: {
+        name: ["Tu pelo tiene derecho a brillar.","Je haar verdient glans."],
+        slogan: ["Más brillo. Menos aspecto apagado.","Meer glans voor dof haar."],
+        description: ["Hay días en los que tu pelo no necesita un cambio de color. Necesita recuperar su mejor versión. Gloss Protein es un servicio de brillo y cuidado capilar pensado para mejorar el aspecto de una melena apagada y devolverle luminosidad, suavidad y un acabado más pulido.","Gloss Protein geeft dof haar meer glans en zachtheid en zorgt voor een verzorgde afwerking."],
+        includesText: ["Incluye lavado profesional. El secado y peinado no están incluidos y se cobran por separado. Si deseas salir peinada, añade Styling & Peinados a tu reserva. No incluye nuevas mechas ni decoloración.","Inclusief professioneel wassen. Föhnen en styling worden apart berekend. Voeg styling en föhnen toe aan je boeking voor een gestyled resultaat. Nieuwe highlights en ontkleuring zijn apart."],
+        achievedText: ["Una melena de aspecto más cuidado, suave y brillante. De esas que apetece tocar.","Zachter, glanzender haar dat er verzorgd uitziet en fijn aanvoelt."],
+        forWhomText: ["Si notas el cabello apagado, sin brillo o con un aspecto poco cuidado y quieres darle un extra de luminosidad sin cambiar necesariamente tu color.","Voor dof haar dat weer mag glanzen, ook als je je kleur wilt behouden."],
+      },
+      variants: {
+        "v_m_1792248677261": {"name":["Gloss Corto/Medio","Gloss Protein · Kort/middellang"],"description":["Refresca el tono y aporta brillo a tu cabello corto o media melena. Su proteína de trigo aporta cuerpo y vitalidad.","Frist de tint op en laat kort tot middellang haar glanzen. Tarweproteïne geeft het haar meer volume."]},
+        "v_l_1792248677261": {"name":["Gloss largo","Gloss Protein · Lang"],"description":["Revitaliza el color y el brillo de tu melena larga, con proteína de trigo que ayuda a que el cabello se sienta más grueso y con cuerpo.","Frist de tint op en laat lang haar glanzen. Tarweproteïne geeft het haar meer volume."]},
+        "v_xl_1792248677261": {"name":["Gloss Extra.largo","Gloss Protein · Extra lang"],"description":["Realza el tono y el brillo de tu melena extralarga. Su proteína de trigo aporta cuerpo y una apariencia más llena de vitalidad.","Frist de tint op en laat extra lang haar glanzen. Tarweproteïne geeft het haar meer volume."]},
+      },
+    },
+    "1792248852621": {
+      fields: {
+        name: ["¿Tu rubio empieza a tener raíces?","Wordt de uitgroei van je blond zichtbaar?"],
+        slogan: ["Recuperamos la luz desde el principio.","Breng de helderheid terug tot aan de wortels."],
+        description: ["Tu rubio sigue siendo tu rubio. Pero las raíces tienen otros planes. La decoloración de raíces es un servicio técnico destinado a aclarar el crecimiento natural del cabello para mantener un rubio global o un color previamente decolorado, trabajando únicamente la zona de raíz.","Licht alleen je natuurlijke uitgroei op om je volledig blonde of eerder ontkleurde haar bij te houden."],
+        includesText: ["Aplicamos decoloración sobre el crecimiento natural de la raíz para aclararlo y mantener la continuidad de un cabello previamente decolorado. Adaptamos el proceso al estado del cabello y finalizamos con lavado profesional.","We ontkleuren de natuurlijke uitgroei, stemmen de behandeling af op de conditie van je haar en sluiten af met een professionele wasbeurt."],
+        achievedText: ["Las raíces aclaradas para recuperar la continuidad de tu rubio o color decolorado, dejando el cabello preparado para aplicar el matiz necesario y conseguir el tono final deseado.","Een opgelichte aanzet die aansluit bij de ontkleurde lengtes, klaar voor de toner die de uiteindelijke tint geeft."],
+        forWhomText: ["Si llevas una decoloración global o un rubio muy claro y necesitas aclarar el crecimiento de la raíz para mantener tu color. No es un servicio para cubrir canas ni para realizar mechas.","Voor volledig ontkleurd of zeer lichtblond haar waarvan de aanzet moet worden opgelicht. Kies voor grijsdekking of highlights een andere behandeling."],
+        conditionsText: ["Incluye decoloración de raíces y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado del cabello.","Inclusief ontkleuring van de uitgroei en wassen. Toner, styling en verzorging kosten extra. Afhankelijk van je haarconditie."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Kies styling voor jouw haarlengte om de behandeling compleet te maken."],
+      },
+      variants: {
+      },
+    },
+    "1792248908557": {
+      fields: {
+        name: ["¿Quieres llevar tu color a otro nivel?","Wil je verder gaan met je haarkleur?"],
+        slogan: ["Los grandes cambios empiezan aclarando el camino.","Een grote verandering begint met een lichtere basis."],
+        description: ["¿Sueñas con un cambio radical de color? Antes de elegir el tono, hay que preparar el lienzo. La decoloración integral es un servicio técnico de aclarado que trabaja toda la melena, desde la raíz hasta las puntas, para conseguir una base más clara sobre la que crear el color deseado.","Voor een grote kleurverandering lichten we het haar van aanzet tot punten op als basis voor je gewenste kleur."],
+        includesText: ["Decoloración del cabello para aclarar su base y preparar la melena para un cambio importante de color. Valoramos previamente el estado del cabello y adaptamos la técnica y el proceso de aclarado a sus necesidades. Incluye lavado profesional.","We beoordelen eerst de conditie van je haar en stemmen de ontkleuringstechniek hierop af. Inclusief professioneel wassen."],
+        achievedText: ["Una base de cabello aclarada, preparada para conseguir el tono final deseado mediante la coloración o tonalización correspondiente, siempre dentro de las posibilidades de tu cabello.","Een lichtere basis, klaar voor de juiste kleuring of toner, afhankelijk van wat je haar aankan."],
+        forWhomText: ["Si quieres pasar de un tono oscuro a uno mucho más claro, conseguir un rubio global o preparar tu cabello para un color que necesita una base previamente decolorada.","Om van donker naar veel lichter te gaan, volledig blond te worden of een kleur aan te brengen die een ontkleurde basis nodig heeft."],
+        conditionsText: ["Incluye decoloración y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado y resistencia del cabello.","Ontkleuring en wassen inbegrepen. Toner, styling en verzorging kosten extra. Geschiktheid hangt af van de conditie en sterkte van je haar."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Kies styling voor jouw haarlengte om de behandeling compleet te maken."],
+      },
+      variants: {
+        "v_m_1792248914460": {"name":["Decoloración Medio","Volledig blonderen · Middellang"]},
+        "v_l_1792248914460": {"name":["Decoloración Largo","Volledig blonderen · Lang"]},
+        "v_xl_1792248914460": {"name":["Decoloración Extra-largo","Volledig blonderen · Extra lang"]},
+      },
+    },
+  },
+  pl: {
+    "s4": {
+      fields: {
+        name: ["Tus raíces te están delatando.","Czy odrost zdradza Twój kolor?"],
+        slogan: ["Tu color de siempre. Como recién hecho.","Twój zwykły kolor, jak świeżo po farbowaniu."],
+        description: ["Renueva tu color y devuelve la uniformidad a toda tu melena.","Odśwież kolor i przywróć włosom jednolity odcień."],
+        includesText: ["Aplicación de coloración en el crecimiento de la raíz, hasta un máximo de 2 cm, para cubrir las canas o igualar el color existente. Incluye lavado profesional después de la coloración.","Koloryzacja do 2 cm odrostu, aby pokryć siwe włosy lub dopasować kolor do reszty. Z profesjonalnym myciem."],
+        achievedText: ["Un color uniforme desde la raíz, con las canas cubiertas según el resultado acordado y sin necesidad de volver a colorear toda la melena.","Jednolity kolor od nasady i uzgodnione pokrycie siwych włosów, bez ponownego farbowania całości."],
+        forWhomText: ["Si ya llevas el cabello teñido y quieres retocar el crecimiento, cubrir las canas o mantener tu tono habitual sin modificar el color de medios y puntas.","Dla włosów farbowanych, gdy chcesz odświeżyć odrost, pokryć siwiznę lub utrzymać odcień bez zmiany koloru długości i końcówek."],
+        conditionsText: ["Solo raíces de hasta 2 cm; si el crecimiento es mayor, corresponde Color Integral. Incluye lavado, no peinado.","Do 2 cm odrostu. Przy większym odroście wybierz koloryzację całościową. Mycie w cenie. Stylizacja osobno."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Aby dopełnić usługę, dobierz stylizację do długości włosów."],
+      },
+      variants: {
+      },
+    },
+    "1792247910592": {
+      fields: {
+        name: ["De la raíz a las puntas. Sin medias tintas.","Od nasady aż po końce. Kolor na całej długości."],
+        slogan: ["Un solo color. Toda una declaración.","Jeden odcień, wyrazisty efekt."],
+        description: ["¿Tu color necesita algo más que un retoque? Es hora de darle protagonismo a toda tu melena. Coloración de raíz a puntas para renovar tu tono, recuperar la uniformidad y conseguir un acabado lleno de personalidad.","Potrzebujesz czegoś więcej niż poprawki? Koloryzacja całościowa odświeża kolor, wyrównuje ton i nadaje fryzurze charakter."],
+        includesText: ["Aplicación de coloración uniforme desde la raíz hasta las puntas para renovar, intensificar o cambiar el tono de toda la melena. Incluye asesoramiento sobre el color, aplicación y lavado profesional.","Nakładamy kolor od nasady po końce, aby odświeżyć, pogłębić lub zmienić odcień. W cenie konsultacja, aplikacja i profesjonalne mycie."],
+        achievedText: ["Un color renovado y uniforme en toda la melena, con mayor intensidad, brillo y un acabado de tono más homogéneo desde la raíz hasta las puntas.","Odświeżony, jednolity kolor od nasady po końce, o większej intensywności i połysku."],
+        forWhomText: ["Si quieres teñir toda tu melena, recuperar un color apagado, igualar el tono de raíces y puntas o cambiar a un nuevo color sin realizar mechas ni decoloración.","Jeśli chcesz zafarbować całe włosy, ożywić matowy kolor, wyrównać odcień lub zmienić go bez pasemek i rozjaśniania."],
+        conditionsText: ["Incluye coloración integral y lavado. No incluye peinado, mechas, decoloración ni tratamientos adicionales. Precio según longitud y cantidad de cabello.","W cenie koloryzacja całościowa i mycie. Stylizacja, pasemka, rozjaśnianie i dodatkowe zabiegi osobno. Cena zależy od długości i gęstości włosów."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Aby dopełnić usługę, dobierz stylizację do długości włosów."],
+      },
+      variants: {
+        "v_m_1792247922296": {"name":["Color Corto","Koloryzacja całościowa · Krótkie"],"description":["Coloración completa cabello corto, estilo pixie","Koloryzacja całościowa dla krótkich włosów w stylu pixie."]},
+        "v_l_1792247922296": {"name":["Color Medio","Koloryzacja całościowa · Średnie"],"description":["Coloración completa cabello hasta los hombros estilo Bob, media melena.","Koloryzacja całościowa dla włosów do ramion lub typu bob."]},
+        "v_xl_1792247922296": {"name":["Color Largo","Koloryzacja całościowa · Długie"],"description":["Coloración cpmpleta cabellos largos, desde hombros hasta media espalda.","Koloryzacja całościowa dla włosów od ramion do połowy pleców."]},
+        "v_1792248011383": {"name":["Color Extra-largo","Koloryzacja całościowa · Bardzo długie"],"description":["Coloración completa extra larga, cabellos desde media espalda hasta cintura.","Koloryzacja całościowa dla włosów od połowy pleców do talii."]},
+      },
+    },
+    "1792248340199": {
+      fields: {
+        name: ["¿Tu rubio ya no es el que era?","Czy Twój blond stracił dawny odcień?"],
+        slogan: ["El tono correcto lo cambia todo.","Odpowiedni odcień zmienia wszystko."],
+        description: ["¿Tu rubio se ha puesto amarillo? ¿Tus reflejos se han vuelto anaranjados? ¿O simplemente tu color ha perdido ese matiz que tanto te gustaba? No necesitas empezar de cero. La matización & tonalización permiten corregir reflejos no deseados, ajustar la tonalidad y refrescar el color existente sin realizar un nuevo trabajo de mechas.","Odśwież pożółkły lub pomarańczowy blond albo odzyskaj ulubiony odcień bez nowych pasemek."],
+        includesText: ["Aplicamos una tonalización personalizada para corregir o suavizar reflejos no deseados, como amarillos, anaranjados o cobrizos, y ajustar el matiz del cabello teñido o con mechas, sin realizar una nueva decoloración.","Dobieramy toner, by złagodzić żółte, pomarańczowe lub miedziane tony włosów farbowanych lub z pasemkami, bez ponownego rozjaśniania."],
+        achievedText: ["Un color con los reflejos más equilibrados y el matiz renovado, recuperando el tono frío, neutro o cálido que buscas, según las posibilidades de tu base actual.","Bardziej harmonijny kolor oraz odświeżony chłodny, neutralny lub ciepły ton zależnie od koloru wyjściowego."],
+        forWhomText: ["Si tus mechas han perdido el tono, tu rubio se ha vuelto amarillo o anaranjado, o quieres refrescar los reflejos de tu color sin volver a teñir o decolorar el cabello.","Gdy pasemka wyblakły, blond zżółkł lub zrobił się pomarańczowy albo chcesz odświeżyć odcień bez farbowania czy rozjaśniania."],
+        conditionsText: ["No incluye mechas, decoloración ni peinado. El resultado depende de la base y del estado del cabello.","Pasemka, rozjaśnianie i stylizacja osobno. Efekt zależy od koloru wyjściowego i kondycji włosów."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Aby dopełnić usługę, dobierz stylizację do długości włosów."],
+      },
+      variants: {
+        "v_m_1792248344062": {"name":["Matiz Corto/Medio","Tonowanie i korekta odcienia · Krótkie/średnie"],"description":["Técnica en cabello corto para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutralizuje niechciane tony w przypadku krótkich lub średnich włosów po rozjaśnianiu, koloryzacji lub z upływem czasu."]},
+        "v_l_1792248344062": {"name":["Matiz Largo","Tonowanie i korekta odcienia · Długie"],"description":["Técnica en cabello largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutralizuje niechciane tony w przypadku długich włosów po rozjaśnianiu, koloryzacji lub z upływem czasu."]},
+        "v_xl_1792248344062": {"name":["Matiz Extra-largo","Tonowanie i korekta odcienia · Bardzo długie"],"description":["Técnica en cabello Extra-largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutralizuje niechciane tony w przypadku bardzo długich włosów po rozjaśnianiu, koloryzacji lub z upływem czasu."]},
+      },
+    },
+    "1792248673014": {
+      fields: {
+        name: ["Tu pelo tiene derecho a brillar.","Twoje włosy zasługują na blask."],
+        slogan: ["Más brillo. Menos aspecto apagado.","Więcej blasku dla matowych włosów."],
+        description: ["Hay días en los que tu pelo no necesita un cambio de color. Necesita recuperar su mejor versión. Gloss Protein es un servicio de brillo y cuidado capilar pensado para mejorar el aspecto de una melena apagada y devolverle luminosidad, suavidad y un acabado más pulido.","Gloss Protein to zabieg pielęgnacyjny, który przywraca matowym włosom blask i miękkość oraz daje gładsze wykończenie."],
+        includesText: ["Incluye lavado profesional. El secado y peinado no están incluidos y se cobran por separado. Si deseas salir peinada, añade Styling & Peinados a tu reserva. No incluye nuevas mechas ni decoloración.","Profesjonalne mycie w cenie. Suszenie i stylizacja są rozliczane osobno. Jeśli chcesz modelowania, dodaj tę usługę do rezerwacji. Nowe pasemka i rozjaśnianie osobno."],
+        achievedText: ["Una melena de aspecto más cuidado, suave y brillante. De esas que apetece tocar.","Miększe, bardziej lśniące włosy o zadbanym wyglądzie, przyjemne w dotyku."],
+        forWhomText: ["Si notas el cabello apagado, sin brillo o con un aspecto poco cuidado y quieres darle un extra de luminosidad sin cambiar necesariamente tu color.","Dla matowych włosów, które potrzebują blasku i niekoniecznie zmiany koloru."],
+      },
+      variants: {
+        "v_m_1792248677261": {"name":["Gloss Corto/Medio","Gloss Protein · Krótkie/średnie"],"description":["Refresca el tono y aporta brillo a tu cabello corto o media melena. Su proteína de trigo aporta cuerpo y vitalidad.","Odświeża ton i dodaje blasku w przypadku krótkich lub średnich włosów. Proteiny pszenicy dodają objętości."]},
+        "v_l_1792248677261": {"name":["Gloss largo","Gloss Protein · Długie"],"description":["Revitaliza el color y el brillo de tu melena larga, con proteína de trigo que ayuda a que el cabello se sienta más grueso y con cuerpo.","Odświeża ton i dodaje blasku w przypadku długich włosów. Proteiny pszenicy dodają objętości."]},
+        "v_xl_1792248677261": {"name":["Gloss Extra.largo","Gloss Protein · Bardzo długie"],"description":["Realza el tono y el brillo de tu melena extralarga. Su proteína de trigo aporta cuerpo y una apariencia más llena de vitalidad.","Odświeża ton i dodaje blasku w przypadku bardzo długich włosów. Proteiny pszenicy dodają objętości."]},
+      },
+    },
+    "1792248852621": {
+      fields: {
+        name: ["¿Tu rubio empieza a tener raíces?","Czy w blondzie widać już odrost?"],
+        slogan: ["Recuperamos la luz desde el principio.","Przywróć jasność od samej nasady."],
+        description: ["Tu rubio sigue siendo tu rubio. Pero las raíces tienen otros planes. La decoloración de raíces es un servicio técnico destinado a aclarar el crecimiento natural del cabello para mantener un rubio global o un color previamente decolorado, trabajando únicamente la zona de raíz.","Rozjaśniamy tylko naturalny odrost, aby utrzymać jednolity blond lub wcześniej rozjaśniony kolor."],
+        includesText: ["Aplicamos decoloración sobre el crecimiento natural de la raíz para aclararlo y mantener la continuidad de un cabello previamente decolorado. Adaptamos el proceso al estado del cabello y finalizamos con lavado profesional.","Rozjaśniamy naturalny odrost, dobieramy zabieg do kondycji włosów i kończymy profesjonalnym myciem."],
+        achievedText: ["Las raíces aclaradas para recuperar la continuidad de tu rubio o color decolorado, dejando el cabello preparado para aplicar el matiz necesario y conseguir el tono final deseado.","Rozjaśniony odrost dopasowany do rozjaśnionych długości, gotowy na tonowanie do końcowego odcienia."],
+        forWhomText: ["Si llevas una decoloración global o un rubio muy claro y necesitas aclarar el crecimiento de la raíz para mantener tu color. No es un servicio para cubrir canas ni para realizar mechas.","Dla włosów rozjaśnionych w całości lub bardzo jasnego blondu. Do pokrycia siwizny lub wykonania pasemek wybierz inną usługę."],
+        conditionsText: ["Incluye decoloración de raíces y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado del cabello.","Rozjaśnianie odrostu i mycie w cenie. Tonowanie, stylizacja i zabiegi dodatkowo płatne. Możliwość wykonania zależy od stanu włosów."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Aby dopełnić usługę, dobierz stylizację do długości włosów."],
+      },
+      variants: {
+      },
+    },
+    "1792248908557": {
+      fields: {
+        name: ["¿Quieres llevar tu color a otro nivel?","Chcesz zrobić kolejny krok z kolorem?"],
+        slogan: ["Los grandes cambios empiezan aclarando el camino.","Duże zmiany zaczynają się od jaśniejszej bazy."],
+        description: ["¿Sueñas con un cambio radical de color? Antes de elegir el tono, hay que preparar el lienzo. La decoloración integral es un servicio técnico de aclarado que trabaja toda la melena, desde la raíz hasta las puntas, para conseguir una base más clara sobre la que crear el color deseado.","Przy radykalnej zmianie koloru rozjaśniamy włosy od nasady po końce, przygotowując bazę pod wybraną barwę."],
+        includesText: ["Decoloración del cabello para aclarar su base y preparar la melena para un cambio importante de color. Valoramos previamente el estado del cabello y adaptamos la técnica y el proceso de aclarado a sus necesidades. Incluye lavado profesional.","Najpierw oceniamy kondycję włosów, a potem dobieramy technikę i sposób rozjaśniania. Profesjonalne mycie w cenie."],
+        achievedText: ["Una base de cabello aclarada, preparada para conseguir el tono final deseado mediante la coloración o tonalización correspondiente, siempre dentro de las posibilidades de tu cabello.","Jaśniejsza baza, gotowa na koloryzację lub tonowanie do końcowego odcienia, w granicach możliwości włosów."],
+        forWhomText: ["Si quieres pasar de un tono oscuro a uno mucho más claro, conseguir un rubio global o preparar tu cabello para un color que necesita una base previamente decolorada.","Dla osób przechodzących z ciemnego koloru na dużo jaśniejszy, wybierających pełny blond lub odcień wymagający rozjaśnionej bazy."],
+        conditionsText: ["Incluye decoloración y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado y resistencia del cabello.","Rozjaśnianie i mycie w cenie. Tonowanie, stylizacja i pielęgnacja dodatkowo płatne. Zależy od kondycji i wytrzymałości włosów."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Aby dopełnić usługę, dobierz stylizację do długości włosów."],
+      },
+      variants: {
+        "v_m_1792248914460": {"name":["Decoloración Medio","Rozjaśnianie całościowe · Średnie"]},
+        "v_l_1792248914460": {"name":["Decoloración Largo","Rozjaśnianie całościowe · Długie"]},
+        "v_xl_1792248914460": {"name":["Decoloración Extra-largo","Rozjaśnianie całościowe · Bardzo długie"]},
+      },
+    },
+  },
+  cs: {
+    "s4": {
+      fields: {
+        name: ["Tus raíces te están delatando.","Prozrazuje tě odrost?"],
+        slogan: ["Tu color de siempre. Como recién hecho.","Tvůj obvyklý odstín, jako čerstvě nabarvený."],
+        description: ["Renueva tu color y devuelve la uniformidad a toda tu melena.","Oživ barvu a sjednoť odstín po celé délce vlasů."],
+        includesText: ["Aplicación de coloración en el crecimiento de la raíz, hasta un máximo de 2 cm, para cubrir las canas o igualar el color existente. Incluye lavado profesional después de la coloración.","Barvení odrostu do 2 cm pro zakrytí šedin nebo sladění se stávající barvou. Včetně profesionálního mytí."],
+        achievedText: ["Un color uniforme desde la raíz, con las canas cubiertas según el resultado acordado y sin necesidad de volver a colorear toda la melena.","Jednotná barva od kořínků a sjednané krytí šedin bez opětovného barvení celých vlasů."],
+        forWhomText: ["Si ya llevas el cabello teñido y quieres retocar el crecimiento, cubrir las canas o mantener tu tono habitual sin modificar el color de medios y puntas.","Pro barvené vlasy, pokud chceš upravit odrost, zakrýt šediny nebo udržet odstín beze změny délek a konečků."],
+        conditionsText: ["Solo raíces de hasta 2 cm; si el crecimiento es mayor, corresponde Color Integral. Incluye lavado, no peinado.","Pro odrost do 2 cm. U delšího odrostu zvol barvení celé délky. Mytí v ceně. Styling zvlášť."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Pro dokončení služby zvol styling podle délky vlasů."],
+      },
+      variants: {
+      },
+    },
+    "1792247910592": {
+      fields: {
+        name: ["De la raíz a las puntas. Sin medias tintas.","Od kořínků po konečky. Barva v celé délce."],
+        slogan: ["Un solo color. Toda una declaración.","Jeden odstín, výrazný styl."],
+        description: ["¿Tu color necesita algo más que un retoque? Es hora de darle protagonismo a toda tu melena. Coloración de raíz a puntas para renovar tu tono, recuperar la uniformidad y conseguir un acabado lleno de personalidad.","Potřebuješ víc než upravit odrost? Celoplošné barvení obnoví odstín, sjednotí barvu a dodá vlasům osobitost."],
+        includesText: ["Aplicación de coloración uniforme desde la raíz hasta las puntas para renovar, intensificar o cambiar el tono de toda la melena. Incluye asesoramiento sobre el color, aplicación y lavado profesional.","Barvení od kořínků po konečky pro obnovení, zvýraznění či změnu odstínu. Včetně poradenství, nanesení barvy a profesionálního mytí."],
+        achievedText: ["Un color renovado y uniforme en toda la melena, con mayor intensidad, brillo y un acabado de tono más homogéneo desde la raíz hasta las puntas.","Obnovená a jednotná barva s vyšší intenzitou a leskem od kořínků po konečky."],
+        forWhomText: ["Si quieres teñir toda tu melena, recuperar un color apagado, igualar el tono de raíces y puntas o cambiar a un nuevo color sin realizar mechas ni decoloración.","Pokud chceš obarvit celé vlasy, oživit mdlou barvu, sjednotit odrost a konečky nebo změnit barvu bez melíru a zesvětlení."],
+        conditionsText: ["Incluye coloración integral y lavado. No incluye peinado, mechas, decoloración ni tratamientos adicionales. Precio según longitud y cantidad de cabello.","V ceně barvení celé délky a mytí. Styling, melír, zesvětlení a další péče zvlášť. Cena podle délky a hustoty vlasů."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Pro dokončení služby zvol styling podle délky vlasů."],
+      },
+      variants: {
+        "v_m_1792247922296": {"name":["Color Corto","Barvení celé délky · Krátké"],"description":["Coloración completa cabello corto, estilo pixie","Barvení celé délky pro krátký střih pixie."]},
+        "v_l_1792247922296": {"name":["Color Medio","Barvení celé délky · Střední"],"description":["Coloración completa cabello hasta los hombros estilo Bob, media melena.","Barvení celé délky pro vlasy po ramena nebo mikádo."]},
+        "v_xl_1792247922296": {"name":["Color Largo","Barvení celé délky · Dlouhé"],"description":["Coloración cpmpleta cabellos largos, desde hombros hasta media espalda.","Barvení celé délky pro vlasy od ramen do poloviny zad."]},
+        "v_1792248011383": {"name":["Color Extra-largo","Barvení celé délky · Velmi dlouhé"],"description":["Coloración completa extra larga, cabellos desde media espalda hasta cintura.","Barvení celé délky pro vlasy od poloviny zad k pasu."]},
+      },
+    },
+    "1792248340199": {
+      fields: {
+        name: ["¿Tu rubio ya no es el que era?","Ztratila tvoje blond původní odstín?"],
+        slogan: ["El tono correcto lo cambia todo.","Správný odstín změní všechno."],
+        description: ["¿Tu rubio se ha puesto amarillo? ¿Tus reflejos se han vuelto anaranjados? ¿O simplemente tu color ha perdido ese matiz que tanto te gustaba? No necesitas empezar de cero. La matización & tonalización permiten corregir reflejos no deseados, ajustar la tonalidad y refrescar el color existente sin realizar un nuevo trabajo de mechas.","Oživ žlutou či oranžovou blond nebo vrať oblíbený odstín bez nového melíru."],
+        includesText: ["Aplicamos una tonalización personalizada para corregir o suavizar reflejos no deseados, como amarillos, anaranjados o cobrizos, y ajustar el matiz del cabello teñido o con mechas, sin realizar una nueva decoloración.","Tónování přizpůsobíme barveným či melírovaným vlasům, abychom zjemnili žluté, oranžové nebo měděné tóny bez dalšího zesvětlování."],
+        achievedText: ["Un color con los reflejos más equilibrados y el matiz renovado, recuperando el tono frío, neutro o cálido que buscas, según las posibilidades de tu base actual.","Vyváženější barva a svěží studený, neutrální či teplý odstín podle výchozího tónu."],
+        forWhomText: ["Si tus mechas han perdido el tono, tu rubio se ha vuelto amarillo o anaranjado, o quieres refrescar los reflejos de tu color sin volver a teñir o decolorar el cabello.","Pro vybledlý melír, zažloutlou či oranžovou blond nebo oživení odstínu bez nového barvení či zesvětlování."],
+        conditionsText: ["No incluye mechas, decoloración ni peinado. El resultado depende de la base y del estado del cabello.","Melír, zesvětlení a styling zvlášť. Výsledek závisí na výchozí barvě a stavu vlasů."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Pro dokončení služby zvol styling podle délky vlasů."],
+      },
+      variants: {
+        "v_m_1792248344062": {"name":["Matiz Corto/Medio","Tónování a korekce odlesků · Krátké/střední"],"description":["Técnica en cabello corto para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutralizuje nežádoucí tóny u krátkých až středně dlouhých vlasů po zesvětlení, barvení nebo vyblednutí."]},
+        "v_l_1792248344062": {"name":["Matiz Largo","Tónování a korekce odlesků · Dlouhé"],"description":["Técnica en cabello largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutralizuje nežádoucí tóny u dlouhých vlasů po zesvětlení, barvení nebo vyblednutí."]},
+        "v_xl_1792248344062": {"name":["Matiz Extra-largo","Tónování a korekce odlesků · Velmi dlouhé"],"description":["Técnica en cabello Extra-largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutralizuje nežádoucí tóny u velmi dlouhých vlasů po zesvětlení, barvení nebo vyblednutí."]},
+      },
+    },
+    "1792248673014": {
+      fields: {
+        name: ["Tu pelo tiene derecho a brillar.","Tvé vlasy si zaslouží lesk."],
+        slogan: ["Más brillo. Menos aspecto apagado.","Více lesku pro mdlé vlasy."],
+        description: ["Hay días en los que tu pelo no necesita un cambio de color. Necesita recuperar su mejor versión. Gloss Protein es un servicio de brillo y cuidado capilar pensado para mejorar el aspecto de una melena apagada y devolverle luminosidad, suavidad y un acabado más pulido.","Gloss Protein je péče, která dodá mdlým vlasům jas, hebkost a uhlazený vzhled."],
+        includesText: ["Incluye lavado profesional. El secado y peinado no están incluidos y se cobran por separado. Si deseas salir peinada, añade Styling & Peinados a tu reserva. No incluye nuevas mechas ni decoloración.","Profesionální mytí v ceně. Sušení a styling se účtují zvlášť. Pro finální úpravu přidej k rezervaci foukanou a styling. Nový melír a zesvětlení zvlášť."],
+        achievedText: ["Una melena de aspecto más cuidado, suave y brillante. De esas que apetece tocar.","Hebčí a lesklejší vlasy, které vypadají upraveněji a jsou příjemné na dotek."],
+        forWhomText: ["Si notas el cabello apagado, sin brillo o con un aspecto poco cuidado y quieres darle un extra de luminosidad sin cambiar necesariamente tu color.","Pro matné vlasy, kterým chceš vrátit lesk, i pokud si chceš ponechat současnou barvu."],
+      },
+      variants: {
+        "v_m_1792248677261": {"name":["Gloss Corto/Medio","Gloss Protein · Krátké/střední"],"description":["Refresca el tono y aporta brillo a tu cabello corto o media melena. Su proteína de trigo aporta cuerpo y vitalidad.","Oživuje odstín a dodává lesk u krátkých až středně dlouhých vlasů. Pšeničný protein dodává vlasům plnější vzhled."]},
+        "v_l_1792248677261": {"name":["Gloss largo","Gloss Protein · Dlouhé"],"description":["Revitaliza el color y el brillo de tu melena larga, con proteína de trigo que ayuda a que el cabello se sienta más grueso y con cuerpo.","Oživuje odstín a dodává lesk u dlouhých vlasů. Pšeničný protein dodává vlasům plnější vzhled."]},
+        "v_xl_1792248677261": {"name":["Gloss Extra.largo","Gloss Protein · Velmi dlouhé"],"description":["Realza el tono y el brillo de tu melena extralarga. Su proteína de trigo aporta cuerpo y una apariencia más llena de vitalidad.","Oživuje odstín a dodává lesk u velmi dlouhých vlasů. Pšeničný protein dodává vlasům plnější vzhled."]},
+      },
+    },
+    "1792248852621": {
+      fields: {
+        name: ["¿Tu rubio empieza a tener raíces?","Začíná být v blond vidět odrost?"],
+        slogan: ["Recuperamos la luz desde el principio.","Vrať světlost až ke kořínkům."],
+        description: ["Tu rubio sigue siendo tu rubio. Pero las raíces tienen otros planes. La decoloración de raíces es un servicio técnico destinado a aclarar el crecimiento natural del cabello para mantener un rubio global o un color previamente decolorado, trabajando únicamente la zona de raíz.","Zesvětlujeme jen přirozený odrost, abychom zachovali celoplošnou blond nebo dříve zesvětlenou barvu."],
+        includesText: ["Aplicamos decoloración sobre el crecimiento natural de la raíz para aclararlo y mantener la continuidad de un cabello previamente decolorado. Adaptamos el proceso al estado del cabello y finalizamos con lavado profesional.","Přirozený odrost zesvětlíme podle stavu vlasů a zakončíme profesionálním mytím."],
+        achievedText: ["Las raíces aclaradas para recuperar la continuidad de tu rubio o color decolorado, dejando el cabello preparado para aplicar el matiz necesario y conseguir el tono final deseado.","Zesvětlený odrost sladěný s délkami, připravený na tónování do výsledného odstínu."],
+        forWhomText: ["Si llevas una decoloración global o un rubio muy claro y necesitas aclarar el crecimiento de la raíz para mantener tu color. No es un servicio para cubrir canas ni para realizar mechas.","Pro celoplošně zesvětlené nebo velmi světlé blond vlasy. Na šediny či melír vyber jinou službu."],
+        conditionsText: ["Incluye decoloración de raíces y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado del cabello.","Zesvětlení odrostu a mytí v ceně. Tónování, styling a péče zvlášť. Provedení závisí na stavu vlasů."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Pro dokončení služby zvol styling podle délky vlasů."],
+      },
+      variants: {
+      },
+    },
+    "1792248908557": {
+      fields: {
+        name: ["¿Quieres llevar tu color a otro nivel?","Chceš posunout svou barvu dál?"],
+        slogan: ["Los grandes cambios empiezan aclarando el camino.","Velká změna začíná světlejším základem."],
+        description: ["¿Sueñas con un cambio radical de color? Antes de elegir el tono, hay que preparar el lienzo. La decoloración integral es un servicio técnico de aclarado que trabaja toda la melena, desde la raíz hasta las puntas, para conseguir una base más clara sobre la que crear el color deseado.","Pro výraznou změnu barvy zesvětlíme vlasy od kořínků po konečky a připravíme je na požadovaný odstín."],
+        includesText: ["Decoloración del cabello para aclarar su base y preparar la melena para un cambio importante de color. Valoramos previamente el estado del cabello y adaptamos la técnica y el proceso de aclarado a sus necesidades. Incluye lavado profesional.","Nejprve posoudíme stav vlasů a přizpůsobíme mu techniku a průběh zesvětlení. Včetně profesionálního mytí."],
+        achievedText: ["Una base de cabello aclarada, preparada para conseguir el tono final deseado mediante la coloración o tonalización correspondiente, siempre dentro de las posibilidades de tu cabello.","Světlejší základ připravený na barvení či tónování do výsledného odstínu podle možností tvých vlasů."],
+        forWhomText: ["Si quieres pasar de un tono oscuro a uno mucho más claro, conseguir un rubio global o preparar tu cabello para un color que necesita una base previamente decolorada.","Pro přechod z tmavé na mnohem světlejší barvu, celoplošnou blond nebo přípravu na barvu vyžadující zesvětlený základ."],
+        conditionsText: ["Incluye decoloración y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado y resistencia del cabello.","Zesvětlení a mytí v ceně. Tónování, styling a péče zvlášť. Záleží na stavu a odolnosti vlasů."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Pro dokončení služby zvol styling podle délky vlasů."],
+      },
+      variants: {
+        "v_m_1792248914460": {"name":["Decoloración Medio","Zesvětlení celé délky · Střední"]},
+        "v_l_1792248914460": {"name":["Decoloración Largo","Zesvětlení celé délky · Dlouhé"]},
+        "v_xl_1792248914460": {"name":["Decoloración Extra-largo","Zesvětlení celé délky · Velmi dlouhé"]},
+      },
+    },
+  },
+  nb: {
+    "s4": {
+      fields: {
+        name: ["Tus raíces te están delatando.","Avslører etterveksten deg?"],
+        slogan: ["Tu color de siempre. Como recién hecho.","Din vanlige farge, som ny."],
+        description: ["Renueva tu color y devuelve la uniformidad a toda tu melena.","Frisk opp fargen og få et jevnt resultat i hele håret."],
+        includesText: ["Aplicación de coloración en el crecimiento de la raíz, hasta un máximo de 2 cm, para cubrir las canas o igualar el color existente. Incluye lavado profesional después de la coloración.","Vi farger opptil 2 cm ettervekst for å dekke grå hår eller matche eksisterende farge. Profesjonell vask er inkludert."],
+        achievedText: ["Un color uniforme desde la raíz, con las canas cubiertas según el resultado acordado y sin necesidad de volver a colorear toda la melena.","Jevn farge fra røttene og avtalt dekning av grå hår, uten å farge hele lengden igjen."],
+        forWhomText: ["Si ya llevas el cabello teñido y quieres retocar el crecimiento, cubrir las canas o mantener tu tono habitual sin modificar el color de medios y puntas.","For farget hår når du vil ta etterveksten, dekke grå hår eller bevare nyansen uten å endre lengder og tupper."],
+        conditionsText: ["Solo raíces de hasta 2 cm; si el crecimiento es mayor, corresponde Color Integral. Incluye lavado, no peinado.","Opptil 2 cm ettervekst. Ved mer ettervekst velger du helfarging. Vask inkludert. Styling bestilles separat."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Velg styling etter hårlengden for å fullføre tjenesten."],
+      },
+      variants: {
+      },
+    },
+    "1792247910592": {
+      fields: {
+        name: ["De la raíz a las puntas. Sin medias tintas.","Fra røtter til tupper. Farge hele veien."],
+        slogan: ["Un solo color. Toda una declaración.","Én nyanse som setter preg på stilen."],
+        description: ["¿Tu color necesita algo más que un retoque? Es hora de darle protagonismo a toda tu melena. Coloración de raíz a puntas para renovar tu tono, recuperar la uniformidad y conseguir un acabado lleno de personalidad.","Trenger du mer enn å ta etterveksten? Helfarging fornyer nyansen, jevner ut fargen og gir håret karakter."],
+        includesText: ["Aplicación de coloración uniforme desde la raíz hasta las puntas para renovar, intensificar o cambiar el tono de toda la melena. Incluye asesoramiento sobre el color, aplicación y lavado profesional.","Vi farger fra røtter til tupper for å fornye, forsterke eller endre nyansen. Fargeråd, påføring og profesjonell vask er inkludert."],
+        achievedText: ["Un color renovado y uniforme en toda la melena, con mayor intensidad, brillo y un acabado de tono más homogéneo desde la raíz hasta las puntas.","En fornyet og jevn farge med mer intensitet og glans fra røtter til tupper."],
+        forWhomText: ["Si quieres teñir toda tu melena, recuperar un color apagado, igualar el tono de raíces y puntas o cambiar a un nuevo color sin realizar mechas ni decoloración.","Når du vil farge hele håret, friske opp en matt farge, jevne ut røtter og tupper eller bytte farge uten striper eller bleking."],
+        conditionsText: ["Incluye coloración integral y lavado. No incluye peinado, mechas, decoloración ni tratamientos adicionales. Precio según longitud y cantidad de cabello.","Helfarging og vask inkludert. Styling, striper, bleking og ekstra behandlinger bestilles separat. Prisen avhenger av hårets lengde og tykkelse."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Velg styling etter hårlengden for å fullføre tjenesten."],
+      },
+      variants: {
+        "v_m_1792247922296": {"name":["Color Corto","Helfarging · Kort"],"description":["Coloración completa cabello corto, estilo pixie","Helfarging for kort hår i pixie-stil."]},
+        "v_l_1792247922296": {"name":["Color Medio","Helfarging · Mellomlangt"],"description":["Coloración completa cabello hasta los hombros estilo Bob, media melena.","Helfarging for skulderlangt hår eller bob."]},
+        "v_xl_1792247922296": {"name":["Color Largo","Helfarging · Langt"],"description":["Coloración cpmpleta cabellos largos, desde hombros hasta media espalda.","Helfarging for hår fra skuldrene til midt på ryggen."]},
+        "v_1792248011383": {"name":["Color Extra-largo","Helfarging · Ekstra langt"],"description":["Coloración completa extra larga, cabellos desde media espalda hasta cintura.","Helfarging for hår fra midt på ryggen til midjen."]},
+      },
+    },
+    "1792248340199": {
+      fields: {
+        name: ["¿Tu rubio ya no es el que era?","Har blondfargen mistet nyansen?"],
+        slogan: ["El tono correcto lo cambia todo.","Den rette nyansen endrer alt."],
+        description: ["¿Tu rubio se ha puesto amarillo? ¿Tus reflejos se han vuelto anaranjados? ¿O simplemente tu color ha perdido ese matiz que tanto te gustaba? No necesitas empezar de cero. La matización & tonalización permiten corregir reflejos no deseados, ajustar la tonalidad y refrescar el color existente sin realizar un nuevo trabajo de mechas.","Frisk opp gult eller oransje blondt hår, eller få tilbake favorittnyansen uten nye striper."],
+        includesText: ["Aplicamos una tonalización personalizada para corregir o suavizar reflejos no deseados, como amarillos, anaranjados o cobrizos, y ajustar el matiz del cabello teñido o con mechas, sin realizar una nueva decoloración.","Vi tilpasser nyanseringen for å dempe gule, oransje eller kobberfargede toner i farget eller stripet hår uten ny bleking."],
+        achievedText: ["Un color con los reflejos más equilibrados y el matiz renovado, recuperando el tono frío, neutro o cálido que buscas, según las posibilidades de tu base actual.","Mer balanserte toner og en fornyet kald, nøytral eller varm nyanse ut fra grunnfargen."],
+        forWhomText: ["Si tus mechas han perdido el tono, tu rubio se ha vuelto amarillo o anaranjado, o quieres refrescar los reflejos de tu color sin volver a teñir o decolorar el cabello.","For falmede striper, gul eller oransje blondfarge eller oppfriskning uten ny farging eller bleking."],
+        conditionsText: ["No incluye mechas, decoloración ni peinado. El resultado depende de la base y del estado del cabello.","Striper, bleking og styling bestilles separat. Resultatet avhenger av grunnfargen og hårets tilstand."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Velg styling etter hårlengden for å fullføre tjenesten."],
+      },
+      variants: {
+        "v_m_1792248344062": {"name":["Matiz Corto/Medio","Nyansering og korrigering av toner · Kort/mellomlangt"],"description":["Técnica en cabello corto para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Nøytraliserer uønskede toner i kort til mellomlangt hår etter bleking, farging eller over tid."]},
+        "v_l_1792248344062": {"name":["Matiz Largo","Nyansering og korrigering av toner · Langt"],"description":["Técnica en cabello largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Nøytraliserer uønskede toner i langt hår etter bleking, farging eller over tid."]},
+        "v_xl_1792248344062": {"name":["Matiz Extra-largo","Nyansering og korrigering av toner · Ekstra langt"],"description":["Técnica en cabello Extra-largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Nøytraliserer uønskede toner i ekstra langt hår etter bleking, farging eller over tid."]},
+      },
+    },
+    "1792248673014": {
+      fields: {
+        name: ["Tu pelo tiene derecho a brillar.","Håret ditt fortjener å skinne."],
+        slogan: ["Más brillo. Menos aspecto apagado.","Mer glans til matt hår."],
+        description: ["Hay días en los que tu pelo no necesita un cambio de color. Necesita recuperar su mejor versión. Gloss Protein es un servicio de brillo y cuidado capilar pensado para mejorar el aspecto de una melena apagada y devolverle luminosidad, suavidad y un acabado más pulido.","Gloss Protein er en glansbehandling som gir matt hår mer glød, mykhet og et velpleid preg."],
+        includesText: ["Incluye lavado profesional. El secado y peinado no están incluidos y se cobran por separado. Si deseas salir peinada, añade Styling & Peinados a tu reserva. No incluye nuevas mechas ni decoloración.","Profesjonell vask er inkludert. Føning og styling koster ekstra. Legg til føning og styling i bestillingen om du ønsker det. Nye striper og bleking er separate tjenester."],
+        achievedText: ["Una melena de aspecto más cuidado, suave y brillante. De esas que apetece tocar.","Mykere og blankere hår som ser velpleid ut og føles godt å ta på."],
+        forWhomText: ["Si notas el cabello apagado, sin brillo o con un aspecto poco cuidado y quieres darle un extra de luminosidad sin cambiar necesariamente tu color.","For matt hår som trenger mer glans, også hvis du vil beholde fargen."],
+      },
+      variants: {
+        "v_m_1792248677261": {"name":["Gloss Corto/Medio","Gloss Protein · Kort/mellomlangt"],"description":["Refresca el tono y aporta brillo a tu cabello corto o media melena. Su proteína de trigo aporta cuerpo y vitalidad.","Frisker opp nyansen og gir glans til kort til mellomlangt hår. Hveteprotein gir mer fylde."]},
+        "v_l_1792248677261": {"name":["Gloss largo","Gloss Protein · Langt"],"description":["Revitaliza el color y el brillo de tu melena larga, con proteína de trigo que ayuda a que el cabello se sienta más grueso y con cuerpo.","Frisker opp nyansen og gir glans til langt hår. Hveteprotein gir mer fylde."]},
+        "v_xl_1792248677261": {"name":["Gloss Extra.largo","Gloss Protein · Ekstra langt"],"description":["Realza el tono y el brillo de tu melena extralarga. Su proteína de trigo aporta cuerpo y una apariencia más llena de vitalidad.","Frisker opp nyansen og gir glans til ekstra langt hår. Hveteprotein gir mer fylde."]},
+      },
+    },
+    "1792248852621": {
+      fields: {
+        name: ["¿Tu rubio empieza a tener raíces?","Begynner etterveksten å synes i blondfargen?"],
+        slogan: ["Recuperamos la luz desde el principio.","Få lysheten tilbake ved røttene."],
+        description: ["Tu rubio sigue siendo tu rubio. Pero las raíces tienen otros planes. La decoloración de raíces es un servicio técnico destinado a aclarar el crecimiento natural del cabello para mantener un rubio global o un color previamente decolorado, trabajando únicamente la zona de raíz.","Lysne bare den naturlige etterveksten for å vedlikeholde en helblond eller tidligere bleket farge."],
+        includesText: ["Aplicamos decoloración sobre el crecimiento natural de la raíz para aclararlo y mantener la continuidad de un cabello previamente decolorado. Adaptamos el proceso al estado del cabello y finalizamos con lavado profesional.","Vi bleker den naturlige etterveksten, tilpasser prosessen til hårets tilstand og avslutter med profesjonell vask."],
+        achievedText: ["Las raíces aclaradas para recuperar la continuidad de tu rubio o color decolorado, dejando el cabello preparado para aplicar el matiz necesario y conseguir el tono final deseado.","Lysere røtter som passer til de blekede lengdene, klare for nyanseringen som gir sluttfargen."],
+        forWhomText: ["Si llevas una decoloración global o un rubio muy claro y necesitas aclarar el crecimiento de la raíz para mantener tu color. No es un servicio para cubrir canas ni para realizar mechas.","For gjennombleket eller svært lyst blondt hår som trenger lysere røtter. Velg en annen tjeneste for å dekke grå hår eller få striper."],
+        conditionsText: ["Incluye decoloración de raíces y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado del cabello.","Bleking av ettervekst og vask er inkludert. Nyansering, styling og behandlinger koster ekstra. Egnethet avhenger av hårets tilstand."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Velg styling etter hårlengden for å fullføre tjenesten."],
+      },
+      variants: {
+      },
+    },
+    "1792248908557": {
+      fields: {
+        name: ["¿Quieres llevar tu color a otro nivel?","Klar for en større fargeendring?"],
+        slogan: ["Los grandes cambios empiezan aclarando el camino.","Store endringer begynner med en lysere base."],
+        description: ["¿Sueñas con un cambio radical de color? Antes de elegir el tono, hay que preparar el lienzo. La decoloración integral es un servicio técnico de aclarado que trabaja toda la melena, desde la raíz hasta las puntas, para conseguir una base más clara sobre la que crear el color deseado.","Ved en stor fargeendring lysner vi håret fra røtter til tupper som forberedelse til nyansen du ønsker."],
+        includesText: ["Decoloración del cabello para aclarar su base y preparar la melena para un cambio importante de color. Valoramos previamente el estado del cabello y adaptamos la técnica y el proceso de aclarado a sus necesidades. Incluye lavado profesional.","Vi vurderer hårets tilstand på forhånd og tilpasser lysningsteknikken og prosessen. Profesjonell vask er inkludert."],
+        achievedText: ["Una base de cabello aclarada, preparada para conseguir el tono final deseado mediante la coloración o tonalización correspondiente, siempre dentro de las posibilidades de tu cabello.","En lysere base, klar for fargen eller nyanseringen som gir ønsket sluttfarge, innenfor det håret tåler."],
+        forWhomText: ["Si quieres pasar de un tono oscuro a uno mucho más claro, conseguir un rubio global o preparar tu cabello para un color que necesita una base previamente decolorada.","For overgang fra mørkt til mye lysere hår, helblondt hår eller en farge som krever en bleket base."],
+        conditionsText: ["Incluye decoloración y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado y resistencia del cabello.","Bleking og vask inkludert. Nyansering, styling og behandlinger koster ekstra. Egnethet avhenger av hårets tilstand og styrke."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Velg styling etter hårlengden for å fullføre tjenesten."],
+      },
+      variants: {
+        "v_m_1792248914460": {"name":["Decoloración Medio","Helbleking · Mellomlangt"]},
+        "v_l_1792248914460": {"name":["Decoloración Largo","Helbleking · Langt"]},
+        "v_xl_1792248914460": {"name":["Decoloración Extra-largo","Helbleking · Ekstra langt"]},
+      },
+    },
+  },
+  sv: {
+    "s4": {
+      fields: {
+        name: ["Tus raíces te están delatando.","Avslöjar utväxten dig?"],
+        slogan: ["Tu color de siempre. Como recién hecho.","Din vanliga färg, som ny."],
+        description: ["Renueva tu color y devuelve la uniformidad a toda tu melena.","Fräscha upp färgen och få en jämn ton i hela håret."],
+        includesText: ["Aplicación de coloración en el crecimiento de la raíz, hasta un máximo de 2 cm, para cubrir las canas o igualar el color existente. Incluye lavado profesional después de la coloración.","Vi färgar upp till 2 cm utväxt för att täcka grå hår eller matcha befintlig färg. Professionell tvätt ingår."],
+        achievedText: ["Un color uniforme desde la raíz, con las canas cubiertas según el resultado acordado y sin necesidad de volver a colorear toda la melena.","Jämn färg från rötterna och överenskommen täckning av grå hår, utan att färga om hela håret."],
+        forWhomText: ["Si ya llevas el cabello teñido y quieres retocar el crecimiento, cubrir las canas o mantener tu tono habitual sin modificar el color de medios y puntas.","För färgat hår när du vill färga utväxten, täcka grå hår eller behålla nyansen utan att ändra längder och toppar."],
+        conditionsText: ["Solo raíces de hasta 2 cm; si el crecimiento es mayor, corresponde Color Integral. Incluye lavado, no peinado.","Upp till 2 cm utväxt. Välj helfärgning vid längre utväxt. Tvätt ingår. Styling bokas separat."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Välj styling efter hårlängd för att komplettera behandlingen."],
+      },
+      variants: {
+      },
+    },
+    "1792247910592": {
+      fields: {
+        name: ["De la raíz a las puntas. Sin medias tintas.","Från rötter till toppar. Färg hela vägen."],
+        slogan: ["Un solo color. Toda una declaración.","En enda nyans som säger mycket."],
+        description: ["¿Tu color necesita algo más que un retoque? Es hora de darle protagonismo a toda tu melena. Coloración de raíz a puntas para renovar tu tono, recuperar la uniformidad y conseguir un acabado lleno de personalidad.","Behöver färgen mer än en uppfräschning vid rötterna? Helfärgning förnyar nyansen, jämnar ut färgen och ger håret karaktär."],
+        includesText: ["Aplicación de coloración uniforme desde la raíz hasta las puntas para renovar, intensificar o cambiar el tono de toda la melena. Incluye asesoramiento sobre el color, aplicación y lavado profesional.","Färg från rötter till toppar för att förnya, förstärka eller ändra nyansen. Färgrådgivning, applicering och professionell tvätt ingår."],
+        achievedText: ["Un color renovado y uniforme en toda la melena, con mayor intensidad, brillo y un acabado de tono más homogéneo desde la raíz hasta las puntas.","En förnyad och jämn färg, med mer intensitet och glans från rötter till toppar."],
+        forWhomText: ["Si quieres teñir toda tu melena, recuperar un color apagado, igualar el tono de raíces y puntas o cambiar a un nuevo color sin realizar mechas ni decoloración.","Om du vill färga hela håret, pigga upp en matt nyans, jämna ut rötter och toppar eller byta färg utan slingor eller blekning."],
+        conditionsText: ["Incluye coloración integral y lavado. No incluye peinado, mechas, decoloración ni tratamientos adicionales. Precio según longitud y cantidad de cabello.","Helfärgning och tvätt ingår. Styling, slingor, blekning och extra behandlingar bokas separat. Priset beror på hårets längd och tjocklek."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Välj styling efter hårlängd för att komplettera behandlingen."],
+      },
+      variants: {
+        "v_m_1792247922296": {"name":["Color Corto","Helfärgning · Kort"],"description":["Coloración completa cabello corto, estilo pixie","Helfärgning för kort hår i pixie-stil."]},
+        "v_l_1792247922296": {"name":["Color Medio","Helfärgning · Mellanlångt"],"description":["Coloración completa cabello hasta los hombros estilo Bob, media melena.","Helfärgning för axellångt hår eller bob."]},
+        "v_xl_1792247922296": {"name":["Color Largo","Helfärgning · Långt"],"description":["Coloración cpmpleta cabellos largos, desde hombros hasta media espalda.","Helfärgning för hår från axlarna till mitten av ryggen."]},
+        "v_1792248011383": {"name":["Color Extra-largo","Helfärgning · Extra långt"],"description":["Coloración completa extra larga, cabellos desde media espalda hasta cintura.","Helfärgning för hår från mitten av ryggen till midjan."]},
+      },
+    },
+    "1792248340199": {
+      fields: {
+        name: ["¿Tu rubio ya no es el que era?","Har din blonda färg tappat nyansen?"],
+        slogan: ["El tono correcto lo cambia todo.","Rätt nyans gör hela skillnaden."],
+        description: ["¿Tu rubio se ha puesto amarillo? ¿Tus reflejos se han vuelto anaranjados? ¿O simplemente tu color ha perdido ese matiz que tanto te gustaba? No necesitas empezar de cero. La matización & tonalización permiten corregir reflejos no deseados, ajustar la tonalidad y refrescar el color existente sin realizar un nuevo trabajo de mechas.","Fräscha upp en gul eller orange blond färg eller få tillbaka din favoritnyans utan nya slingor."],
+        includesText: ["Aplicamos una tonalización personalizada para corregir o suavizar reflejos no deseados, como amarillos, anaranjados o cobrizos, y ajustar el matiz del cabello teñido o con mechas, sin realizar una nueva decoloración.","Vi anpassar nyanseringen för att dämpa gula, orange eller kopparfärgade toner i färgat eller slingat hår utan ny blekning."],
+        achievedText: ["Un color con los reflejos más equilibrados y el matiz renovado, recuperando el tono frío, neutro o cálido que buscas, según las posibilidades de tu base actual.","Mer balanserade toner och en förnyad kall, neutral eller varm nyans beroende på grundfärgen."],
+        forWhomText: ["Si tus mechas han perdido el tono, tu rubio se ha vuelto amarillo o anaranjado, o quieres refrescar los reflejos de tu color sin volver a teñir o decolorar el cabello.","För blekta urtvättade slingor, gul eller orange blond färg eller uppfräschning utan ny färgning eller blekning."],
+        conditionsText: ["No incluye mechas, decoloración ni peinado. El resultado depende de la base y del estado del cabello.","Slingor, blekning och styling bokas separat. Resultatet beror på grundfärgen och hårets skick."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Välj styling efter hårlängd för att komplettera behandlingen."],
+      },
+      variants: {
+        "v_m_1792248344062": {"name":["Matiz Corto/Medio","Nyansering och tonkorrigering · Kort/mellanlångt"],"description":["Técnica en cabello corto para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutraliserar oönskade toner i kort till mellanlångt hår efter blekning, färgning eller när färgen förändrats med tiden."]},
+        "v_l_1792248344062": {"name":["Matiz Largo","Nyansering och tonkorrigering · Långt"],"description":["Técnica en cabello largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutraliserar oönskade toner i långt hår efter blekning, färgning eller när färgen förändrats med tiden."]},
+        "v_xl_1792248344062": {"name":["Matiz Extra-largo","Nyansering och tonkorrigering · Extra långt"],"description":["Técnica en cabello Extra-largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","Neutraliserar oönskade toner i extra långt hår efter blekning, färgning eller när färgen förändrats med tiden."]},
+      },
+    },
+    "1792248673014": {
+      fields: {
+        name: ["Tu pelo tiene derecho a brillar.","Ditt hår förtjänar att glänsa."],
+        slogan: ["Más brillo. Menos aspecto apagado.","Mer glans för matt hår."],
+        description: ["Hay días en los que tu pelo no necesita un cambio de color. Necesita recuperar su mejor versión. Gloss Protein es un servicio de brillo y cuidado capilar pensado para mejorar el aspecto de una melena apagada y devolverle luminosidad, suavidad y un acabado más pulido.","Gloss Protein är en glansbehandling som ger matt hår mer lyster, mjukhet och en välvårdad finish."],
+        includesText: ["Incluye lavado profesional. El secado y peinado no están incluidos y se cobran por separado. Si deseas salir peinada, añade Styling & Peinados a tu reserva. No incluye nuevas mechas ni decoloración.","Professionell tvätt ingår. Föning och styling debiteras separat. Lägg till föning och styling i bokningen om du vill ha en stylad finish. Nya slingor och blekning bokas separat."],
+        achievedText: ["Una melena de aspecto más cuidado, suave y brillante. De esas que apetece tocar.","Mjukare, glansigare hår som ser välvårdat ut och är skönt att ta på."],
+        forWhomText: ["Si notas el cabello apagado, sin brillo o con un aspecto poco cuidado y quieres darle un extra de luminosidad sin cambiar necesariamente tu color.","För matt hår som behöver mer lyster, även om du vill behålla färgen."],
+      },
+      variants: {
+        "v_m_1792248677261": {"name":["Gloss Corto/Medio","Gloss Protein · Kort/mellanlångt"],"description":["Refresca el tono y aporta brillo a tu cabello corto o media melena. Su proteína de trigo aporta cuerpo y vitalidad.","Fräschar upp nyansen och ger glans till kort till mellanlångt hår. Veteprotein ger mer fyllighet."]},
+        "v_l_1792248677261": {"name":["Gloss largo","Gloss Protein · Långt"],"description":["Revitaliza el color y el brillo de tu melena larga, con proteína de trigo que ayuda a que el cabello se sienta más grueso y con cuerpo.","Fräschar upp nyansen och ger glans till långt hår. Veteprotein ger mer fyllighet."]},
+        "v_xl_1792248677261": {"name":["Gloss Extra.largo","Gloss Protein · Extra långt"],"description":["Realza el tono y el brillo de tu melena extralarga. Su proteína de trigo aporta cuerpo y una apariencia más llena de vitalidad.","Fräschar upp nyansen och ger glans till extra långt hår. Veteprotein ger mer fyllighet."]},
+      },
+    },
+    "1792248852621": {
+      fields: {
+        name: ["¿Tu rubio empieza a tener raíces?","Börjar utväxten synas i ditt blonda hår?"],
+        slogan: ["Recuperamos la luz desde el principio.","Få tillbaka ljusheten vid rötterna."],
+        description: ["Tu rubio sigue siendo tu rubio. Pero las raíces tienen otros planes. La decoloración de raíces es un servicio técnico destinado a aclarar el crecimiento natural del cabello para mantener un rubio global o un color previamente decolorado, trabajando únicamente la zona de raíz.","Vi ljusar endast upp den naturliga utväxten för att underhålla en helblond eller tidigare blekt färg."],
+        includesText: ["Aplicamos decoloración sobre el crecimiento natural de la raíz para aclararlo y mantener la continuidad de un cabello previamente decolorado. Adaptamos el proceso al estado del cabello y finalizamos con lavado profesional.","Vi bleker den naturliga utväxten, anpassar processen till hårets skick och avslutar med professionell tvätt."],
+        achievedText: ["Las raíces aclaradas para recuperar la continuidad de tu rubio o color decolorado, dejando el cabello preparado para aplicar el matiz necesario y conseguir el tono final deseado.","Uppljusade rötter som matchar de blekta längderna, redo för nyansering till önskad slutton."],
+        forWhomText: ["Si llevas una decoloración global o un rubio muy claro y necesitas aclarar el crecimiento de la raíz para mantener tu color. No es un servicio para cubrir canas ni para realizar mechas.","För helblekt eller mycket ljust blont hår med utväxt. Välj en annan tjänst för gråhårstäckning eller slingor."],
+        conditionsText: ["Incluye decoloración de raíces y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado del cabello.","Blekning av utväxt och tvätt ingår. Nyansering, styling och behandlingar kostar extra. Lämpligheten beror på hårets skick."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Välj styling efter hårlängd för att komplettera behandlingen."],
+      },
+      variants: {
+      },
+    },
+    "1792248908557": {
+      fields: {
+        name: ["¿Quieres llevar tu color a otro nivel?","Redo för en större färgförändring?"],
+        slogan: ["Los grandes cambios empiezan aclarando el camino.","Stora förändringar börjar med en ljusare bas."],
+        description: ["¿Sueñas con un cambio radical de color? Antes de elegir el tono, hay que preparar el lienzo. La decoloración integral es un servicio técnico de aclarado que trabaja toda la melena, desde la raíz hasta las puntas, para conseguir una base más clara sobre la que crear el color deseado.","För en stor färgförändring ljusar vi upp håret från rötter till toppar för att förbereda det för önskad nyans."],
+        includesText: ["Decoloración del cabello para aclarar su base y preparar la melena para un cambio importante de color. Valoramos previamente el estado del cabello y adaptamos la técnica y el proceso de aclarado a sus necesidades. Incluye lavado profesional.","Vi bedömer hårets skick i förväg och anpassar uppljusningstekniken och processen. Professionell tvätt ingår."],
+        achievedText: ["Una base de cabello aclarada, preparada para conseguir el tono final deseado mediante la coloración o tonalización correspondiente, siempre dentro de las posibilidades de tu cabello.","En ljusare bas, redo för färg eller nyansering till önskad slutton, inom vad håret tål."],
+        forWhomText: ["Si quieres pasar de un tono oscuro a uno mucho más claro, conseguir un rubio global o preparar tu cabello para un color que necesita una base previamente decolorada.","För att gå från mörkt till mycket ljusare hår, bli helblond eller förbereda för en färg som kräver blekt bas."],
+        conditionsText: ["Incluye decoloración y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado y resistencia del cabello.","Blekning och tvätt ingår. Nyansering, styling och behandlingar kostar extra. Lämpligheten beror på hårets skick och styrka."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ Välj styling efter hårlängd för att komplettera behandlingen."],
+      },
+      variants: {
+        "v_m_1792248914460": {"name":["Decoloración Medio","Helblekning · Mellanlångt"]},
+        "v_l_1792248914460": {"name":["Decoloración Largo","Helblekning · Långt"]},
+        "v_xl_1792248914460": {"name":["Decoloración Extra-largo","Helblekning · Extra långt"]},
+      },
+    },
+  },
+  ar: {
+    "s4": {
+      fields: {
+        name: ["Tus raíces te están delatando.","هل تكشف الجذور لون شعرك؟"],
+        slogan: ["Tu color de siempre. Como recién hecho.","لونك المعتاد وكأنه صُبغ للتو."],
+        description: ["Renueva tu color y devuelve la uniformidad a toda tu melena.","جددي لونك واستعيدي تجانسه على كامل الشعر."],
+        includesText: ["Aplicación de coloración en el crecimiento de la raíz, hasta un máximo de 2 cm, para cubrir las canas o igualar el color existente. Incluye lavado profesional después de la coloración.","نصبغ حتى ٢ سم من الجذور النامية لتغطية الشيب أو مطابقة اللون الحالي. يشمل غسل الشعر في الصالون."],
+        achievedText: ["Un color uniforme desde la raíz, con las canas cubiertas según el resultado acordado y sin necesidad de volver a colorear toda la melena.","لون متجانس من الجذور وتغطية للشيب حسب الاتفاق من دون إعادة صبغ الشعر بالكامل."],
+        forWhomText: ["Si ya llevas el cabello teñido y quieres retocar el crecimiento, cubrir las canas o mantener tu tono habitual sin modificar el color de medios y puntas.","للشعر المصبوغ إذا أردتِ تجديد الجذور أو تغطية الشيب أو الحفاظ على درجتك من دون تغيير لون الأطراف والأطوال."],
+        conditionsText: ["Solo raíces de hasta 2 cm; si el crecimiento es mayor, corresponde Color Integral. Incluye lavado, no peinado.","للجذور حتى ٢ سم. للنمو الأطول اختاري الصبغة الكاملة. غسل الشعر مشمول والتصفيف منفصل."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ لإكمال الخدمة اختاري التصفيف حسب طول شعرك."],
+      },
+      variants: {
+      },
+    },
+    "1792247910592": {
+      fields: {
+        name: ["De la raíz a las puntas. Sin medias tintas.","من الجذور إلى الأطراف، لون على كامل الشعر."],
+        slogan: ["Un solo color. Toda una declaración.","درجة واحدة تعبّر عن أسلوبك."],
+        description: ["¿Tu color necesita algo más que un retoque? Es hora de darle protagonismo a toda tu melena. Coloración de raíz a puntas para renovar tu tono, recuperar la uniformidad y conseguir un acabado lleno de personalidad.","هل يحتاج لونك إلى أكثر من تجديد الجذور؟ الصبغة الكاملة تجدد الدرجة وتوحد اللون وتمنح شعرك لمسة مميزة."],
+        includesText: ["Aplicación de coloración uniforme desde la raíz hasta las puntas para renovar, intensificar o cambiar el tono de toda la melena. Incluye asesoramiento sobre el color, aplicación y lavado profesional.","صبغة من الجذور إلى الأطراف لتجديد الدرجة أو تكثيفها أو تغييرها. تشمل استشارة اللون وتطبيق الصبغة وغسل الشعر في الصالون."],
+        achievedText: ["Un color renovado y uniforme en toda la melena, con mayor intensidad, brillo y un acabado de tono más homogéneo desde la raíz hasta las puntas.","لون متجدد ومتجانس من الجذور إلى الأطراف، بلمعان ودرجة أكثر وضوحًا."],
+        forWhomText: ["Si quieres teñir toda tu melena, recuperar un color apagado, igualar el tono de raíces y puntas o cambiar a un nuevo color sin realizar mechas ni decoloración.","لصبغ الشعر بالكامل أو إحياء لون باهت أو توحيد الجذور مع الأطراف أو تغيير الدرجة من دون خصل أو تفتيح."],
+        conditionsText: ["Incluye coloración integral y lavado. No incluye peinado, mechas, decoloración ni tratamientos adicionales. Precio según longitud y cantidad de cabello.","تشمل الصبغة الكاملة وغسل الشعر. التصفيف والخصل والتفتيح والعلاجات الإضافية منفصلة. السعر حسب طول الشعر وكثافته."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ لإكمال الخدمة اختاري التصفيف حسب طول شعرك."],
+      },
+      variants: {
+        "v_m_1792247922296": {"name":["Color Corto","صبغة كاملة للشعر · قصير"],"description":["Coloración completa cabello corto, estilo pixie","صبغة كاملة تناسب الشعر القصير بقصة بيكسي."]},
+        "v_l_1792247922296": {"name":["Color Medio","صبغة كاملة للشعر · متوسط"],"description":["Coloración completa cabello hasta los hombros estilo Bob, media melena.","صبغة كاملة تناسب الشعر حتى الكتفين أو بقصة بوب."]},
+        "v_xl_1792247922296": {"name":["Color Largo","صبغة كاملة للشعر · طويل"],"description":["Coloración cpmpleta cabellos largos, desde hombros hasta media espalda.","صبغة كاملة تناسب الشعر من الكتفين إلى منتصف الظهر."]},
+        "v_1792248011383": {"name":["Color Extra-largo","صبغة كاملة للشعر · طويل جدًا"],"description":["Coloración completa extra larga, cabellos desde media espalda hasta cintura.","صبغة كاملة تناسب الشعر من منتصف الظهر إلى الخصر."]},
+      },
+    },
+    "1792248340199": {
+      fields: {
+        name: ["¿Tu rubio ya no es el que era?","هل فقد لونك الأشقر درجته؟"],
+        slogan: ["El tono correcto lo cambia todo.","الدرجة المناسبة تغيّر النتيجة."],
+        description: ["¿Tu rubio se ha puesto amarillo? ¿Tus reflejos se han vuelto anaranjados? ¿O simplemente tu color ha perdido ese matiz que tanto te gustaba? No necesitas empezar de cero. La matización & tonalización permiten corregir reflejos no deseados, ajustar la tonalidad y refrescar el color existente sin realizar un nuevo trabajo de mechas.","جددي الأشقر المائل إلى الأصفر أو البرتقالي، أو استعيدي الدرجة التي أحببتِها من دون خصل جديدة."],
+        includesText: ["Aplicamos una tonalización personalizada para corregir o suavizar reflejos no deseados, como amarillos, anaranjados o cobrizos, y ajustar el matiz del cabello teñido o con mechas, sin realizar una nueva decoloración.","نضبط التونر ليناسب الشعر المصبوغ أو ذي الخصل، لتخفيف الدرجات الصفراء أو البرتقالية أو النحاسية من دون إعادة التفتيح."],
+        achievedText: ["Un color con los reflejos más equilibrados y el matiz renovado, recuperando el tono frío, neutro o cálido que buscas, según las posibilidades de tu base actual.","انعكاسات أكثر توازنًا ودرجة متجددة باردة أو محايدة أو دافئة حسب لونك الأساسي."],
+        forWhomText: ["Si tus mechas han perdido el tono, tu rubio se ha vuelto amarillo o anaranjado, o quieres refrescar los reflejos de tu color sin volver a teñir o decolorar el cabello.","للخصل الباهتة أو الأشقر المائل إلى الأصفر أو البرتقالي أو لتجديد الدرجة من دون صبغ أو تفتيح جديد."],
+        conditionsText: ["No incluye mechas, decoloración ni peinado. El resultado depende de la base y del estado del cabello.","الخصل والتفتيح والتصفيف منفصلة. النتيجة تعتمد على اللون الأساسي وحالة الشعر."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ لإكمال الخدمة اختاري التصفيف حسب طول شعرك."],
+      },
+      variants: {
+        "v_m_1792248344062": {"name":["Matiz Corto/Medio","تعديل درجة اللون وتصحيح الانعكاسات · قصير إلى متوسط"],"description":["Técnica en cabello corto para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","تحييد الدرجات غير المرغوب فيها في الشعر القصير إلى المتوسط بعد التفتيح أو الصبغ أو تغيّر اللون مع الوقت."]},
+        "v_l_1792248344062": {"name":["Matiz Largo","تعديل درجة اللون وتصحيح الانعكاسات · طويل"],"description":["Técnica en cabello largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","تحييد الدرجات غير المرغوب فيها في الشعر الطويل بعد التفتيح أو الصبغ أو تغيّر اللون مع الوقت."]},
+        "v_xl_1792248344062": {"name":["Matiz Extra-largo","تعديل درجة اللون وتصحيح الانعكاسات · طويل جدًا"],"description":["Técnica en cabello Extra-largo para neutralizar los reflejos o subtonos indeseados que aparecen en el cabello, despues de una decoloración, tinte o por el paso del tiempo.","تحييد الدرجات غير المرغوب فيها في الشعر الطويل جدًا بعد التفتيح أو الصبغ أو تغيّر اللون مع الوقت."]},
+      },
+    },
+    "1792248673014": {
+      fields: {
+        name: ["Tu pelo tiene derecho a brillar.","شعرك يستحق أن يلمع."],
+        slogan: ["Más brillo. Menos aspecto apagado.","لمعان أكثر للشعر الباهت."],
+        description: ["Hay días en los que tu pelo no necesita un cambio de color. Necesita recuperar su mejor versión. Gloss Protein es un servicio de brillo y cuidado capilar pensado para mejorar el aspecto de una melena apagada y devolverle luminosidad, suavidad y un acabado más pulido.","Gloss Protein عناية تمنح الشعر الباهت إشراقًا ونعومة ومظهرًا أكثر ترتيبًا."],
+        includesText: ["Incluye lavado profesional. El secado y peinado no están incluidos y se cobran por separado. Si deseas salir peinada, añade Styling & Peinados a tu reserva. No incluye nuevas mechas ni decoloración.","يشمل غسل الشعر في الصالون. التجفيف والتصفيف برسوم منفصلة. أضيفي خدمة التصفيف إلى حجزك إن رغبتِ فيها. الخصل الجديدة والتفتيح منفصلان."],
+        achievedText: ["Una melena de aspecto más cuidado, suave y brillante. De esas que apetece tocar.","شعر أكثر نعومة ولمعانًا، بمظهر معتنى به وملمس لطيف."],
+        forWhomText: ["Si notas el cabello apagado, sin brillo o con un aspecto poco cuidado y quieres darle un extra de luminosidad sin cambiar necesariamente tu color.","للشعر الباهت الذي يحتاج إلى المزيد من اللمعان حتى إذا أردتِ الاحتفاظ بلونه."],
+      },
+      variants: {
+        "v_m_1792248677261": {"name":["Gloss Corto/Medio","Gloss Protein · قصير إلى متوسط"],"description":["Refresca el tono y aporta brillo a tu cabello corto o media melena. Su proteína de trigo aporta cuerpo y vitalidad.","يجدد الدرجة ويمنح الشعر القصير إلى المتوسط لمعانًا. بروتين القمح يمنح الشعر مظهرًا أكثر كثافة."]},
+        "v_l_1792248677261": {"name":["Gloss largo","Gloss Protein · طويل"],"description":["Revitaliza el color y el brillo de tu melena larga, con proteína de trigo que ayuda a que el cabello se sienta más grueso y con cuerpo.","يجدد الدرجة ويمنح الشعر الطويل لمعانًا. بروتين القمح يمنح الشعر مظهرًا أكثر كثافة."]},
+        "v_xl_1792248677261": {"name":["Gloss Extra.largo","Gloss Protein · طويل جدًا"],"description":["Realza el tono y el brillo de tu melena extralarga. Su proteína de trigo aporta cuerpo y una apariencia más llena de vitalidad.","يجدد الدرجة ويمنح الشعر الطويل جدًا لمعانًا. بروتين القمح يمنح الشعر مظهرًا أكثر كثافة."]},
+      },
+    },
+    "1792248852621": {
+      fields: {
+        name: ["¿Tu rubio empieza a tener raíces?","هل بدأت الجذور بالظهور في شعرك الأشقر؟"],
+        slogan: ["Recuperamos la luz desde el principio.","استعيدي الإشراق من الجذور."],
+        description: ["Tu rubio sigue siendo tu rubio. Pero las raíces tienen otros planes. La decoloración de raíces es un servicio técnico destinado a aclarar el crecimiento natural del cabello para mantener un rubio global o un color previamente decolorado, trabajando únicamente la zona de raíz.","نفتح نمو الجذور الطبيعي فقط للحفاظ على الأشقر الكامل أو اللون المفتّح سابقًا."],
+        includesText: ["Aplicamos decoloración sobre el crecimiento natural de la raíz para aclararlo y mantener la continuidad de un cabello previamente decolorado. Adaptamos el proceso al estado del cabello y finalizamos con lavado profesional.","نفتح الجذور النامية ونكيّف العملية حسب حالة الشعر ثم نغسله في الصالون."],
+        achievedText: ["Las raíces aclaradas para recuperar la continuidad de tu rubio o color decolorado, dejando el cabello preparado para aplicar el matiz necesario y conseguir el tono final deseado.","جذور أفتح تنسجم مع الأطوال المفتّحة، وجاهزة للتونر اللازم للحصول على الدرجة النهائية."],
+        forWhomText: ["Si llevas una decoloración global o un rubio muy claro y necesitas aclarar el crecimiento de la raíz para mantener tu color. No es un servicio para cubrir canas ni para realizar mechas.","للشعر المفتّح بالكامل أو الأشقر الفاتح جدًا الذي يحتاج إلى تفتيح الجذور. اختاري خدمة أخرى لتغطية الشيب أو عمل الخصل."],
+        conditionsText: ["Incluye decoloración de raíces y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado del cabello.","يشمل تفتيح الجذور وغسل الشعر. التونر والتصفيف والعلاجات برسوم منفصلة. الملاءمة تعتمد على حالة الشعر."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ لإكمال الخدمة اختاري التصفيف حسب طول شعرك."],
+      },
+      variants: {
+      },
+    },
+    "1792248908557": {
+      fields: {
+        name: ["¿Quieres llevar tu color a otro nivel?","هل أنتِ مستعدة لتغيير أكبر في لون شعرك؟"],
+        slogan: ["Los grandes cambios empiezan aclarando el camino.","التغييرات الكبيرة تبدأ بقاعدة أفتح."],
+        description: ["¿Sueñas con un cambio radical de color? Antes de elegir el tono, hay que preparar el lienzo. La decoloración integral es un servicio técnico de aclarado que trabaja toda la melena, desde la raíz hasta las puntas, para conseguir una base más clara sobre la que crear el color deseado.","لتغيير اللون بشكل واضح، نفتح الشعر من الجذور إلى الأطراف لتهيئته للدرجة المطلوبة."],
+        includesText: ["Decoloración del cabello para aclarar su base y preparar la melena para un cambio importante de color. Valoramos previamente el estado del cabello y adaptamos la técnica y el proceso de aclarado a sus necesidades. Incluye lavado profesional.","نقيّم حالة الشعر أولًا ونكيّف تقنية التفتيح وطريقته وفقًا لها. يشمل غسل الشعر في الصالون."],
+        achievedText: ["Una base de cabello aclarada, preparada para conseguir el tono final deseado mediante la coloración o tonalización correspondiente, siempre dentro de las posibilidades de tu cabello.","قاعدة أفتح جاهزة للصبغة أو التونر المناسبين للدرجة النهائية ضمن ما يتحمله الشعر."],
+        forWhomText: ["Si quieres pasar de un tono oscuro a uno mucho más claro, conseguir un rubio global o preparar tu cabello para un color que necesita una base previamente decolorada.","للانتقال من لون داكن إلى لون أفتح بكثير، أو للحصول على أشقر كامل، أو للتحضير للون يحتاج إلى قاعدة مفتّحة."],
+        conditionsText: ["Incluye decoloración y lavado. Matiz, peinado y tratamientos se cobran aparte. Su realización depende del estado y resistencia del cabello.","يشمل التفتيح وغسل الشعر. التونر والتصفيف والعلاجات برسوم منفصلة. الملاءمة تعتمد على حالة الشعر وقوته."],
+        alertText: ["⚠️ Para completar el servicio, selecciona el peinado según el largo de tu cabello.","⚠️ لإكمال الخدمة اختاري التصفيف حسب طول شعرك."],
+      },
+      variants: {
+        "v_m_1792248914460": {"name":["Decoloración Medio","تفتيح كامل للشعر · متوسط"]},
+        "v_l_1792248914460": {"name":["Decoloración Largo","تفتيح كامل للشعر · طويل"]},
+        "v_xl_1792248914460": {"name":["Decoloración Extra-largo","تفتيح كامل للشعر · طويل جدًا"]},
+      },
+    },
+  },
+};
+
 function resolveCopy(copy: Copy | undefined, original: string | undefined): string {
   return copy && original?.trim().replace(/\s+/g, ' ') === copy[0] ? copy[1] : '';
 }
 
 export function catalogServiceCopy(language: string, id: string, field: keyof ServiceTranslation, original: string | undefined): string {
   const copy = language === 'it' ? italianCatalog[id]?.fields : catalogByLanguage[language]?.[id];
-  return resolveCopy(copy?.[field], original);
+  return resolveCopy(copy?.[field], original)
+    || resolveCopy(localizedColorCatalog[language]?.[id]?.fields[field], original);
 }
 
 export function catalogVariantCopy(language: string, serviceId: string, variantId: string, field: VariantField, original: string | undefined): string {
-  return language === 'it' ? resolveCopy(italianCatalog[serviceId]?.variants[variantId]?.[field], original) : '';
+  const catalogs = language === 'it' ? italianCatalog : localizedColorCatalog[language];
+  return resolveCopy(catalogs?.[serviceId]?.variants[variantId]?.[field], original);
 }
 
 const serviceCardLabels = {
