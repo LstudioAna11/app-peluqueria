@@ -69,7 +69,12 @@ export function applySetup(service:SubService,cells:Cell[]):SubService{
   return {...base,id:c.id,name:c.length+' · '+c.intensity,description:c.intensity==='SOFT'?'Iluminación sutil en zonas seleccionadas.':'Iluminación completa con mayor cantidad de mechas.',price:c.price.trim(),duration:Number(c.minutes)+' min'};
  })};
 }
-function Editor({service,onApply,initial}:{service:SubService;onApply:(service:SubService)=>void;initial:Cell[]}){
+type EditorProps = {
+ service: SubService;
+ onApply: (service: SubService) => void;
+ renderBreakdown?: (variant: ServiceVariant) => React.ReactNode;
+};
+function Editor({service,onApply,initial,renderBreakdown}:EditorProps & {initial:Cell[]}){
  const [cells,setCells]=useState(initial),[error,setError]=useState(''),[done,setDone]=useState(false);
  const [tabs,setTabs]=useState<Record<Length,Intensity>>({Medio:'SOFT',Largo:'SOFT',Extralargo:'SOFT'});
  const change=(i:number,key:'price'|'minutes',value:string)=>{setDone(false);setCells(previous=>previous.map((cell,index)=>index===i?{...cell,[key]:value}:cell));};
@@ -82,11 +87,13 @@ function Editor({service,onApply,initial}:{service:SubService;onApply:(service:S
   {!matrixReady(service)&&<p>Las opciones actuales se conservan como FULL, con sus identificadores, precios y tiempos. SOFT queda pendiente de completar. Revisa los importes antes de aplicar.</p>}
   <div className="lst-highlights-editor-grid lst-highlights-editor-by-length">{lengths.map(length=>{
    const intensity=tabs[length],i=cells.findIndex(cell=>cell.length===length&&cell.intensity===intensity),cell=cells[i];
+   const variant=service.variants?.find(option=>option.id===cell.id);
    return <section key={length}>
     <strong>{technique} {length}</strong>
     <div className="lst-highlights-editor-tabs" role="group" aria-label={'Opciones de '+technique+' '+length}>{intensities.map(value=><button key={value} type="button" aria-pressed={intensity===value} onClick={()=>setTabs(previous=>({...previous,[length]:value}))}>{value}</button>)}</div>
     <div className="lst-highlights-editor-fields" aria-label={length+' · '+intensity}>
      <label>Precio · {intensity}<input type="text" value={cell.price} onChange={event=>change(i,'price',event.target.value)} placeholder="Precio de esta opción"/></label>
+     {variant && renderBreakdown?.(variant)}
      <label>Duración · {intensity} · minutos<input type="number" min={5} max={1440} step={1} value={cell.minutes} onChange={event=>change(i,'minutes',event.target.value)} placeholder="Completar"/></label>
     </div>
    </section>;
@@ -96,9 +103,9 @@ function Editor({service,onApply,initial}:{service:SubService;onApply:(service:S
  <HighlightComparisonEditor key={service.id} service={service} onApply={onApply}/>
  </details>;
 }
-export function HighlightsVariantEditor({service,onApply}:{service:SubService;onApply:(service:SubService)=>void}){
+export function HighlightsVariantEditor({service,onApply,renderBreakdown}:EditorProps){
  const [initial]=useState(()=>setupDraft(service));
  if(!isHighlights(service))return null;
  if(!initial)return <p className="lst-highlights-setup-note">SOFT/FULL: las opciones deben ser Medio, Largo y Extralargo, o las seis combinaciones de largo e intensidad. Revisa sus nombres antes de configurar.</p>;
- return <Editor service={service} onApply={onApply} initial={initial}/>;
+ return <Editor service={service} onApply={onApply} initial={initial} renderBreakdown={renderBreakdown}/>;
 }
