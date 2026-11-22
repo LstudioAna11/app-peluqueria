@@ -444,7 +444,30 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
    {v.status!=='active'?<p style={{fontSize:12}}>{v.status==='cancelled'?t('voucherCancelledNoBalance'):t('voucherActivateOnPayment')}</p>:(v.kind==='gift'?<><strong className="vb-amount">{voucherMoney(Math.max(0,v.price_cents-v.used_cents))}</strong><small>{t('voucherBalanceLeft')}{v.held_cents>0?' · '+t('voucherHeldForAppointments').replace('{amount}',voucherMoney(v.held_cents)):''}</small></>:<><div className="vb-dots" aria-label={t('voucherDotsAria').replace('{used}',String(v.used_sessions)).replace('{held}',String(v.held_sessions)).replace('{available}',String(Math.max(0,available)))}>{Array.from({length:v.sessions},(_,i)=><span key={i} aria-hidden="true" className={'vb-dot '+(i<v.used_sessions?'used':i<v.used_sessions+v.held_sessions?'held':'')}/>)}</div><p>{t('voucherSessionsDone').replace('{used}',String(v.used_sessions)).replace('{total}',String(v.sessions)).replace('{held}',String(v.held_sessions))}</p><small>{t('voucherSessionsAvailability').replace('{count}',String(Math.max(0,available)))}</small></>)}
    {v.dedication&&<p style={{fontStyle:'italic',fontSize:12}}>{v.dedication}</p>}
    {v.status==='pending'&&<><p>{t('voucherAmount')} <strong>{voucherMoney(v.price_cents)}</strong></p><p>Bizum: <strong>{data.bizumNumber}</strong></p><p>{t('voucherConcept')}: <strong>{v.payment_reference}</strong></p>{v.payment_reported_at&&<small>{t('voucherPaymentSent')}</small>}
-     <div className="vb-actions">{!admin&&<button type="button" disabled={writing} onClick={()=>void act(()=>studioApi.reportVoucherPayment(voucherToken(),v.id)+t('voucherReportSent'))}>{t('voucherBizumDone')}</button>}{admin&&<button type="button" disabled={writing} onClick={()=>{setConfirming(v.id);setAmount((v.price_cents/100).toFixed(2));setChecked(false);}}}>{t('voucherCheckActivate')}</button>}<button type="button" disabled={writing} onClick={()=>setPendingCancel(p=>p===v.id?null:v.id)}}>{t('voucherCancelRequest')}</button></div>
+    <div className="vb-actions">
+  {!admin && (
+    <button type="button" disabled={writing}
+      onClick={() => void act(
+        () => studioApi.reportVoucherPayment(voucherToken(), v.id),
+        t('voucherReportSent')
+      )}>
+      {t('voucherBizumDone')}
+    </button>
+  )}
+  {admin && (
+    <button type="button" disabled={writing} onClick={() => {
+      setConfirming(v.id)
+      setAmount((v.price_cents / 100).toFixed(2))
+      setChecked(false)
+    }}>
+      {t('voucherCheckActivate')}
+    </button>
+  )}
+  <button type="button" disabled={writing}
+    onClick={() => setPendingCancel(p => p === v.id ? null : v.id)}>
+    {t('voucherCancelRequest')}
+  </button>
+</div>
      {pendingCancel===v.id&&<div><p>{t('voucherCancelWarn')}</p><button type="button" disabled={writing} onClick={()=>void act(()=>studioApi.cancelVoucherOrder(voucherToken(),v.id)+t('voucherCancelDone'))}>{t('voucherConfirmCancel')}</button></div>}
      {admin&&confirming===v.id&&<div><label>{t('voucherAmountReceived')}<input type="number" min="0" step="0.01" value={amount} disabled={writing} onChange={e=>setAmount(e.target.value)}/></label><label className="vb-check"><input type="checkbox" checked={checked} disabled={writing} onChange={e=>setChecked(e.target.checked)}/>{t('voucherPaymentChecked')}</label><button type="button" disabled={writing||!checked||Math.round(Number(amount)*100)!==v.price_cents} onClick={()=>void act(()=>studioApi.activateVoucher(voucherToken(),v.id,Math.round(Number(amount)*100))+t('voucherConfirmPayment'))}>{t('voucherConfirmPayment')}</button></div>}
    </>}
