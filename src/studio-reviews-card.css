@@ -1,27 +1,55 @@
-.sr-card { color:#FFF8EE; border:1px solid #947749; border-radius:14px; padding:20px; background:linear-gradient(140deg,#382D23,#26201B); box-sizing:border-box; scroll-margin-top:24px; }
-.sr-card:focus { outline:2px solid #E4C687; outline-offset:4px; }
-.sr-heading { display:flex; gap:12px; align-items:center; }
-.sr-heading small { color:#D8C29A; font-size:10px; letter-spacing:.12em; }
-.sr-heading h2 { font-family:Georgia,serif; font-size:21px; font-weight:400; margin:5px 0 0; line-height:1.3; }
-.sr-icon { color:#E4C687; display:flex; flex-shrink:0; }
-.sr-card > p { color:#D6CBB8; font-size:13px; line-height:1.6; margin:12px 0 16px; }
-.sr-primary { display:flex; justify-content:center; align-items:center; gap:8px; background:#C49A58; color:#29231F; border-radius:8px; min-height:48px; padding:10px 12px; box-sizing:border-box; font-size:13px; font-weight:600; text-decoration:none; text-align:center; }
-.sr-links { display:flex; flex-wrap:wrap; column-gap:18px; margin-top:7px; }
-.sr-links a,.sr-links button { display:inline-flex; align-items:center; min-height:44px; background:none; border:0; color:#E4C687; font:inherit; font-size:12px; padding:4px 0; cursor:pointer; text-decoration:underline; text-underline-offset:4px; }
-.sr-links button:disabled { cursor:default; opacity:.7; }
-.sr-card a:focus-visible,.sr-card button:focus-visible { outline:2px solid #F0D89E; outline-offset:3px; }
-.sr-note { font-size:12px; color:#D6CBB8; line-height:1.6; }
-.sr-note a,.sr-all,.sr-review a { color:#E4C687; }
-.sr-reviews { margin-top:14px; border-top:1px solid #655039; padding-top:16px; }
-.sr-rating { display:flex; gap:10px; align-items:baseline; flex-wrap:wrap; }
-.sr-rating strong { font-size:24px; color:#E4C687; }.sr-rating span { font-size:12px; }
-.sr-review { padding:14px 0; border-top:1px solid #655039; }.sr-review header { display:flex; justify-content:space-between; gap:12px; font-size:13px; }.sr-review small { display:block; color:#C9BCA9; margin-top:6px; font-size:11px; }.sr-review p { font-size:13px; line-height:1.65; white-space:pre-wrap; overflow-wrap:anywhere; }
-.sr-attribution { display:inline-block; white-space:nowrap; font-family:Roboto,sans-serif; font-style:normal; font-weight:400; font-size:12px; color:#FFF; padding:10px 10px 5px; }.sr-all { display:block; padding:12px 0; font-size:12px; }
-.sr-dialog { width:calc(100% - 24px); max-width:520px; max-height:85dvh; box-sizing:border-box; overflow:auto; padding:20px; border:1px solid #947749; border-radius:14px; background:#29231F; color:#FFF8EE; }.sr-dialog::backdrop { background:#000b; }.sr-dialog-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }.sr-dialog-head h2 { margin:0; font-family:Georgia,serif; font-weight:400; font-size:22px; }.sr-dialog-head button { min-width:44px; min-height:44px; display:grid; place-items:center; color:#E4C687; background:transparent; border:1px solid #655039; border-radius:8px; cursor:pointer; }.sr-dialog details { border:0!important; padding:0!important; background:transparent!important; }.sr-dialog details > summary { display:none; }
-@media(max-width:380px) { .sr-card { padding:16px; }.sr-heading h2 { font-size:19px; } }
-
-/* lst-opinion-experiencia-v1 */
-.sr-dialog .sr-score-grid { grid-template-columns:repeat(11,minmax(0,1fr)); }
-.sr-dialog .sr-score-grid button { min-width:0; }
-.sr-dialog #studio-nps-survey > div { padding-top:0!important; }
-@media(max-width:520px) { .sr-dialog .sr-score-grid { grid-template-columns:repeat(6,minmax(0,1fr)); } }
+// lst-opinion-experiencia-v1
+import React,{useEffect,useRef,useState} from 'react';
+import {MessageSquare,ArrowUpRight,X} from 'lucide-react';
+import './studio-reviews-card.css';
+import spanish from './portalSpanish';
+type Review={rating?:number;text?:string;relativePublishTimeDescription?:string;authorAttribution?:{displayName?:string;uri?:string;photoURI?:string}};
+type PlaceData={rating?:number;userRatingCount?:number;reviews?:Review[]};
+type PlacesLibrary={Place:new(options:{id:string})=>PlaceData&{fetchFields:(options:{fields:string[]})=>Promise<unknown>}};
+type MapsWindow=Window&{google?:{maps?:{importLibrary:(name:string)=>Promise<PlacesLibrary>}};__lstGoogleReviewsReady?:()=>void};
+const safeLink=(value:string|undefined)=>{try{const url=new URL(value||'');return url.protocol==='https:'?url.href:'';}catch{return '';}};
+let loading:Promise<PlacesLibrary>|null=null;
+export function loadReviewLibrary(key:string):Promise<PlacesLibrary>{
+ const win=window as MapsWindow;
+ if(win.google?.maps?.importLibrary)return win.google.maps.importLibrary('places');
+ if(loading)return loading;
+ loading=new Promise<PlacesLibrary>((resolve,reject)=>{
+  // Never insert a second loader when another integration owns Google Maps.
+  if(document.querySelector('script[src*="maps.googleapis.com/maps/api/js"]')){reject(Error('Google Maps ya se está cargando.'));return;}
+  const script=document.createElement('script');script.async=true;
+  let finished=false;
+  const fail=()=>{if(finished)return;finished=true;clearTimeout(timer);script.remove();delete win.__lstGoogleReviewsReady;reject(Error('No se pudo conectar con Google.'));};
+  const timer=window.setTimeout(fail,15000);
+  win.__lstGoogleReviewsReady=()=>{
+   if(finished)return;finished=true;clearTimeout(timer);delete win.__lstGoogleReviewsReady;
+   const maps=win.google?.maps;if(!maps){reject(Error('Google Maps no está disponible.'));return;}
+   maps.importLibrary('places').then(resolve,reject);
+  };
+  script.onerror=fail;
+  script.src='https://maps.googleapis.com/maps/api/js?'+new URLSearchParams({key,loading:'async',libraries:'places',v:'weekly',language:'es',callback:'__lstGoogleReviewsReady'}).toString();
+  document.head.appendChild(script);
+ });
+ loading.catch(()=>{loading=null;});return loading;
+}
+export default function StudioReviewsCard({googleUrl,mapsUrl,saving=false,children,t=(key)=>spanish[key],locale='es-ES'}:{t?:(key:string)=>string;locale?:string;googleUrl:string;mapsUrl:string;saving?:boolean;children:React.ReactNode}){
+ const dialog=useRef<HTMLDialogElement>(null),alive=useRef(true),lock=useRef(false);
+ const [data,setData]=useState<PlaceData|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState('');
+ const apiKey=String(import.meta.env.VITE_GOOGLE_MAPS_BROWSER_KEY||'').trim(),placeId=String(import.meta.env.VITE_GOOGLE_PLACE_ID||'').trim();
+ const ready=!!apiKey&&!!placeId,writeUrl=safeLink(googleUrl),readUrl=safeLink('https://www.google.com/maps/place//data=!4m4!3m3!1s0xd63b74c640bef21:0x1880a470fcd5f112!9m1!1b1')||safeLink(mapsUrl);
+ useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
+ const read=async()=>{
+  if(lock.current||data)return;lock.current=true;setBusy(true);setError('');
+  try{const {Place}=await loadReviewLibrary(apiKey);const place=new Place({id:placeId});await place.fetchFields({fields:['rating','userRatingCount','reviews']});if(alive.current)setData({rating:place.rating,userRatingCount:place.userRatingCount,reviews:place.reviews||[]});}
+  catch{if(alive.current)setError('reviewsUnavailable');}
+  finally{lock.current=false;if(alive.current)setBusy(false);}
+ };
+ return <section id="studio-google-reviews" tabIndex={-1} className="sr-card" aria-labelledby="sr-title">
+  <div className="sr-heading"><span className="sr-icon"><MessageSquare size={23} strokeWidth={1.5} aria-hidden="true"/></span><div><small>{t('reviewsReal')}</small><h2 id="sr-title">{t('reviewsShare')}</h2></div></div>
+  <p>{t('reviewsIntro')}</p>
+  {writeUrl&&<a className="sr-primary" href={writeUrl} target="_blank" rel="noopener noreferrer">{t('reviewsWrite')} <ArrowUpRight size={17} aria-hidden="true"/></a>}
+  <div className="sr-links">{ready?<button type="button" disabled={busy||!!data} onClick={()=>void read()}>{busy?t('portalLoading'):data?t('reviewsGoogle'):t('reviewsRead')}</button>:readUrl&&<a href={readUrl} target="_blank" rel="noopener noreferrer">{t('reviewsReadGoogle')} ↗</a>}<button type="button" onClick={()=>dialog.current?.showModal()}>{t('reviewsPrivate')}</button></div>
+  {error&&<p role="status" className="sr-note">{t(error)} {readUrl&&<a href={readUrl} target="_blank" rel="noopener noreferrer">{t('reviewsReadGoogle')} ↗</a>}</p>}
+  {data&&<section className="sr-reviews" aria-label={t('reviewsGoogle')}><div className="sr-rating">{Number.isFinite(data.rating)&&<strong aria-label={t('reviewsAverage').replace('{score}',data.rating?.toLocaleString(locale)??'')}>{data.rating?.toLocaleString(locale)} / 5</strong>}{Number.isFinite(data.userRatingCount)&&<span>{t('reviewsCount').replace('{count}',data.userRatingCount?.toLocaleString(locale)??'')}</span>}</div><p className="sr-note">{t('reviewsGoogleSelection')}</p>{data.reviews?.map((review,index)=><article key={index} className="sr-review"><header>{safeLink(review.authorAttribution?.uri)?<a href={safeLink(review.authorAttribution?.uri)} target="_blank" rel="noopener noreferrer">{review.authorAttribution?.displayName||t('reviewsGoogleUser')}</a>:<strong>{review.authorAttribution?.displayName||t('reviewsGoogleUser')}</strong>}{Number.isFinite(review.rating)&&<span>{review.rating} / 5</span>}</header>{review.relativePublishTimeDescription&&<small>{review.relativePublishTimeDescription}</small>}{review.text&&<p>{review.text}</p>}</article>)}{!data.reviews?.length&&<p className="sr-note">{t('reviewsEmpty')}</p>}<span className="sr-attribution" translate="no">Google Maps</span>{readUrl&&<a className="sr-all" href={readUrl} target="_blank" rel="noopener noreferrer">{t('reviewsReadGoogle')} ↗</a>}</section>}
+  <dialog ref={dialog} className="sr-dialog" aria-labelledby="sr-private-title" onCancel={e=>{if(saving)e.preventDefault();}}><header className="sr-dialog-head"><h2 id="sr-private-title">{t('reviewsPrivateTitle')}</h2><button type="button" disabled={saving} aria-label={t('portalClose')} onClick={()=>dialog.current?.close()}><X size={21} aria-hidden="true"/></button></header><p className="sr-note">{t('reviewsIntro')}</p>{children}<p className="sr-note">{t('reviewsPrivacy')}</p></dialog>
+ </section>;
+}
