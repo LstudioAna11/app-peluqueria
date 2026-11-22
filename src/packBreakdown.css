@@ -14,7 +14,8 @@
   font-size: .82rem;
 }
 .studio-pack-breakdown-title { display: block; margin-block-end: 5px; color: #e4c687; }
-.lst-highlights-editor-fields > .studio-pack-breakdown { width: 100%; }
+.lst-highlights-breakdown > .studio-pack-breakdown { width: 100%; }
+.lst-highlights-breakdown[hidden] { display: none; }
 .studio-pack-breakdown dl { margin: 4px 0 7px; }
 .studio-pack-breakdown dl > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; padding: 2px 0; }
 .studio-pack-breakdown dt { overflow-wrap: anywhere; }
