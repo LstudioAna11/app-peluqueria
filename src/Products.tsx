@@ -1,4 +1,4 @@
-import { productDescriptionCopy } from './productDescriptionCopy';
+import { productDescriptionCopy, productNameCopy } from './productDescriptionCopy';
 import spanish from './portalSpanish';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
@@ -284,27 +284,28 @@ function ProductRecommendationPreview({ product, onClose }: { product: ProductCa
 type Translate = (key: string) => string;
 const spanishText: Translate = (key) => spanish[key];
 
-function ProductPhoto({ product, onOpen, t = spanishText }: { product: ProductCard; onOpen: () => void; t?: Translate }) {
+function ProductPhoto({ product, onOpen, t = spanishText, name = product.name }: { product: ProductCard; onOpen: () => void; t?: Translate; name?: string }) {
   if (!product.imageUrl) return <ProductThumbnail product={product} />;
 
   return <button type="button" className="lst-product-photo-button" aria-haspopup="dialog"
-    aria-label={t('productZoomNamed').replace('{name}', () => product.name)} title={t('productZoom')} onClick={onOpen}>
+    aria-label={t('productZoomNamed').replace('{name}', () => name)} title={t('productZoom')} onClick={onOpen}>
     <ProductThumbnail product={product} />
     <span className="lst-product-photo-icon"><ZoomIn size={14} aria-hidden="true" /></span>
   </button>;
 }
 
-function ProductPhotoDialog({ product, onClose, t = spanishText }: { product: ProductCard; onClose: () => void; t?: Translate }) {
+function ProductPhotoDialog({ product, onClose, t = spanishText, name = product.name }: { product: ProductCard; onClose: () => void; t?: Translate; name?: string }) {
   if (!product.imageUrl) return null;
-  return <ProductDialog title={product.name} closeLabel={t('productClosePhoto')} onClose={onClose} photo>
-    <img className="lst-product-photo-enlarged" src={product.imageUrl} alt={`${product.name} · ${product.brand}`} />
+  return <ProductDialog title={name} closeLabel={t('productClosePhoto')} onClose={onClose} photo>
+    <img className="lst-product-photo-enlarged" src={product.imageUrl} alt={`${name} · ${product.brand}`} />
   </ProductDialog>;
 }
 
 function ProductRecommendationDetail({ item, onClose, t, locale }: { item: RoutineItem; onClose: () => void; t: Translate; locale?: string }) {
   const [photoOpen, setPhotoOpen] = useState(false);
-  return <ProductDialog title={item.product.name} closeLabel={t('productCloseDetails')} onClose={onClose}>
-    <div className="lst-product-desc"><ProductPhoto product={item.product} t={t} onOpen={() => setPhotoOpen(true)} /><small>{item.product.brand}</small></div>
+  const name = productNameCopy(item.product.name, item.product.brand, locale);
+  return <ProductDialog title={name} closeLabel={t('productCloseDetails')} onClose={onClose}>
+    <div className="lst-product-desc"><ProductPhoto product={item.product} t={t} name={name} onOpen={() => setPhotoOpen(true)} /><small>{item.product.brand}</small></div>
     <section className="lst-recommendation-info">
       <h3>{t('productApply')}</h3>
       <p>{item.note.trim() || t('productApplyFallback')}</p>
@@ -313,7 +314,7 @@ function ProductRecommendationDetail({ item, onClose, t, locale }: { item: Routi
       <h3>{t('productResults')}</h3>
       <p>{productDescriptionCopy(item.product.microtext, locale).trim() || t('productResultsFallback')}</p>
     </section>
-    {photoOpen && <ProductPhotoDialog product={item.product} t={t} onClose={() => setPhotoOpen(false)} />}
+    {photoOpen && <ProductPhotoDialog product={item.product} t={t} name={name} onClose={() => setPhotoOpen(false)} />}
   </ProductDialog>;
 }
 
@@ -333,15 +334,17 @@ function RoutineList({ items, interactive = false, showArchived = false, onEdit,
   const openItem = interactive ? items.find(item => item.product.id === openId) : undefined;
   const openPhoto = interactive ? items.find(item => item.product.id === photoId)?.product : undefined;
 
+  const displayName = (product: ProductCard) => productNameCopy(product.name, product.brand, locale);
+
   return <>
     <ul className="lst-routine-list">{items.map(item => <li key={item.product.id} className={interactive ? 'lst-routine-clickable' : undefined}>
       {interactive ? <div className="lst-recommendation-row">
-        <ProductPhoto product={item.product} t={t} onOpen={() => setPhotoId(item.product.id)} />
+        <ProductPhoto product={item.product} t={t} name={displayName(item.product)} onOpen={() => setPhotoId(item.product.id)} />
         <button type="button" className="lst-recommendation-card" aria-haspopup="dialog"
-          aria-label={t('productUseNamed').replace('{name}', () => item.product.name)} onClick={() => setOpenId(item.product.id)}>
+          aria-label={t('productUseNamed').replace('{name}', () => displayName(item.product))} onClick={() => setOpenId(item.product.id)}>
           <span className="lst-recommendation-summary">
             <small>{item.product.brand}</small>
-            <strong>{item.product.name}</strong>
+            <strong>{displayName(item.product)}</strong>
             {item.product.microtext && <span>{productDescriptionCopy(item.product.microtext, locale)}</span>}
             <span className="lst-recommendation-link">{t('productUse')} <ChevronRight size={15} aria-hidden="true" /></span>
           </span>
@@ -357,7 +360,7 @@ function RoutineList({ items, interactive = false, showArchived = false, onEdit,
       </>}
     </li>)}</ul>
     {openItem && <ProductRecommendationDetail item={openItem} t={t} locale={locale} onClose={() => setOpenId(null)} />}
-    {openPhoto && <ProductPhotoDialog product={openPhoto} t={t} onClose={() => setPhotoId(null)} />}
+    {openPhoto && <ProductPhotoDialog product={openPhoto} t={t} name={displayName(openPhoto)} onClose={() => setPhotoId(null)} />}
   </>;
 }
 
