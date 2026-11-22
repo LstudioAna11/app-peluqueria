@@ -5012,7 +5012,7 @@ function StudioApp() {
       )}
 
       {/* 2. PORTAL CLIENTE */}
-      {currentScreen === 'clientVouchersPage' && <section className="lst-bonos-page" aria-label={t('voucherAdminHeading')}><VoucherPanel t={t} logoSrc={brandLogoSrc} services={voucherServiceOptions(catalog)} onReserve={(voucher,serviceId)=>{
+      {currentScreen === 'clientVouchersPage' && <section className="lst-bonos-page" aria-label={t('voucherAdminHeading')}><VoucherPanel t={t} locale={portalLocale} logoSrc={brandLogoSrc} services={voucherServiceOptions(catalog)} onReserve={(voucher,serviceId)=>{
             setSelectedVoucherId(voucher.id);setSelectedPromotionId(null);setSelectedPromotionOrigin(null);
             const cat=serviceId?catalog.find(c=>c.subservices.some(s=>s.id===serviceId&&s.active!==false)):undefined;
             const sub=cat?.subservices.find(s=>s.id===serviceId&&s.active!==false);
@@ -5614,7 +5614,7 @@ function StudioApp() {
             {renderClientPushPanel()}
             {visualBookingError && <p role="alert" style={{ color: '#FFC4B5', fontSize: 13, lineHeight: 1.5 }}>{visualBookingError}</p>}
             {visualBookingBusy && <p role="status" style={{ color: '#E4C687', fontSize: 13 }}>{t('bookingSaving')}</p>}
-            <BookingVoucher t={t} selectedId={selectedVoucherId} onChange={setSelectedVoucherId} services={selectedServicesToBook} dateKey={formatDateKey(bookingDate)} promotionId={selectedPromotionId}/>
+            <BookingVoucher t={t} locale={portalLocale} selectedId={selectedVoucherId} onChange={setSelectedVoucherId} services={selectedServicesToBook} dateKey={formatDateKey(bookingDate)} promotionId={selectedPromotionId}/>
             <button type="button" onClick={handleConfirmarCitaVisual} disabled={visualBookingBusy || (!portalTimes.includes(selectedVisualTime) && visualBookingAttemptRef.current?.signature !== visualBookingSignature())} style={{ width: '100%', minHeight: '54px', padding: '14px', backgroundColor: portalTimes.includes(selectedVisualTime) ? '#C49A58' : '#322A25', color: portalTimes.includes(selectedVisualTime) ? '#29231F' : '#C9BCA9', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>{visualBookingBusy ? t('bookingSaving') : visualBookingError && visualBookingAttemptRef.current?.signature === visualBookingSignature() ? t('bookingCheckRetry') : !selectedVisualTime ? t('chooseHour') : getApprovalReason(selectedServicesToBook, formatDateKey(bookingDate)) ? t('requestAppointment') : t('continueBooking')}</button>
           </div>
         </fieldset>
