@@ -266,9 +266,19 @@ export function StudioNews({admin=false,serviceOptions=[],onService,promotionCar
 
 
 
-const voucherDisplayTitle=(item:{product_id?:string;id?:string;title:string})=>{const id=item.product_id||item.id;return id==='intensive5'?'Bono tratamientos intensivos · 5×4':id==='men5'?'Bono corte caballero · 5×4':item.title;};
+type VoucherTranslate = (key:string)=>string;
+const voucherDisplayTitle=(item:{product_id?:string;id?:string;title:string},t:VoucherTranslate)=>{
+ const id=item.product_id||item.id;
+ return id==='intensive5'?t('voucherGiftTitle'):id==='men5'?t('voucherMenTitle'):id==='gift50'||id==='gift100'?t('voucherKindGift'):item.title;
+};
+const voucherCurrency=(cents:number,locale:string)=>new Intl.NumberFormat(locale,{style:'currency',currency:'EUR'}).format(cents/100);
 
-const voucherDate=(date:string|null)=>date?date.slice(0,10).split('-').reverse().join('/'):'Al activar';
+const voucherDate=(date:string|null,locale:string,t:VoucherTranslate)=>{
+ if(!date)return t('voucherOnActivation');
+ const day=date.slice(0,10);
+ const value=new Date(day+'T12:00:00Z');
+ return Number.isFinite(value.getTime())?new Intl.DateTimeFormat(locale,{dateStyle:'short',timeZone:'UTC'}).format(value):day;
+};
 const voucherToday=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 
 const voucherAvailable=(v:studioApi.StudioVoucher)=>v.kind==='gift'?v.price_cents-v.used_cents-v.held_cents:v.sessions-v.used_sessions-v.held_sessions;
@@ -324,24 +334,25 @@ function GiftCardBrand({logoSrc}:{logoSrc?:string}){
  const [failedSrc,setFailedSrc]=useState<string|null>(null);
  return <div className="vb-gift-brand">{failedSrc!==resolved?<img src={resolved} alt="L’Studio Ana" loading="lazy" decoding="async" onError={()=>setFailedSrc(resolved)}/>:<span>L’Studio Ana</span>}</div>;
 }
-const VOUCHER_ART:Record<string,{image:string;alt:string;position:string;eyebrow:string;description:string}>= {
- gift50:{image:'regalo-50.webp',alt:'Cuidado profesional de una melena larga',position:'50% 38%',eyebrow:'El arte de regalar',description:'Un detalle para disfrutar del cuidado y elegir su próxima experiencia.'},
- gift100:{image:'regalo-100.webp',alt:'Retrato editorial de una mujer con cabello castaño',position:'50% 37%',eyebrow:'Un regalo para recordar',description:'Tiempo para cuidarse. Una experiencia con el sello de L’Studio Ana.'},
- intensive5:{image:'intensivos.webp',alt:'Lavado y cuidado del cabello en un salón',position:'50% 45%',eyebrow:'El ritual de volver',description:'Cinco encuentros con el cuidado intensivo de tu cabello.'},
- men5:{image:'caballero.webp',alt:'Profesional realizando un corte de caballero',position:'50% 42%',eyebrow:'Precisión y carácter',description:'Tu corte, tu estilo y cinco momentos para mantenerlo.'},
+const VOUCHER_ART:Record<string,{image:string;position:string;eyebrow:string;description:string}>= {
+ gift50:{image:'regalo-50.webp',position:'50% 38%',eyebrow:'voucherGift50Caption',description:'voucherGift50Description'},
+ gift100:{image:'regalo-100.webp',position:'50% 37%',eyebrow:'voucherGift100Caption',description:'voucherGift100Description'},
+ intensive5:{image:'intensivos.webp',position:'50% 45%',eyebrow:'voucherIntensiveCaption',description:'voucherIntensiveDescription'},
+ men5:{image:'caballero.webp',position:'50% 42%',eyebrow:'voucherMenCaption',description:'voucherMenDescription'},
 };
-function VoucherVisual({productId,logoSrc}:{productId:string;logoSrc?:string}){
+function VoucherVisual({productId,logoSrc,t}:{productId:string;logoSrc?:string;t:VoucherTranslate}){
  const art=VOUCHER_ART[productId]||VOUCHER_ART.gift50;
  const [failed,setFailed]=useState(false);
- return <div className="vl-visual">{!failed&&<img className="vl-photo" src={'/voucher-images/'+art.image} alt={art.alt} loading="lazy" decoding="async" style={{objectPosition:art.position}} onError={()=>setFailed(true)}/>}<div className="vl-photo-shade"/><div className="vl-logo"><GiftCardBrand logoSrc={logoSrc}/></div><span className="vl-eyebrow">{art.eyebrow}</span></div>;
+ return <div className="vl-visual">{!failed&&<img className="vl-photo" src={'/voucher-images/'+art.image} alt="" loading="lazy" decoding="async" style={{objectPosition:art.position}} onError={()=>setFailed(true)}/>}<div className="vl-photo-shade"/><div className="vl-logo"><GiftCardBrand logoSrc={logoSrc}/></div><span className="vl-eyebrow">{t(art.eyebrow)}</span></div>;
 }
 
-export function VoucherHub(props:{logoSrc?:string;services:VoucherServiceOption[];onReserve?:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void;t?:(key:string)=>string}){
+export function VoucherHub(props:{logoSrc?:string;services:VoucherServiceOption[];onReserve?:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void;t?:VoucherTranslate;locale?:string}){
  const [opened,setOpened]=useState(false);
- const t=props.t||(key=>spanish[key]);return <section className="lst-bonos"><VoucherStyles/><button type="button" className="vb-entry" aria-expanded={opened} onClick={()=>setOpened(v=>!v)}><span><strong>{t('voucherAdminHeading')}</strong><small>{t('voucherHubSub')}</small></span><Sparkles size={21}/></button>{opened&&<VoucherPanel logoSrc={props.logoSrc} services={props.services} onReserve={props.onReserve} t={t}/>}</section>;
+ const t=props.t||(key=>spanish[key]);return <section className="lst-bonos"><VoucherStyles/><button type="button" className="vb-entry" aria-expanded={opened} onClick={()=>setOpened(v=>!v)}><span><strong>{t('voucherAdminHeading')}</strong><small>{t('voucherHubSub')}</small></span><Sparkles size={21}/></button>{opened&&<VoucherPanel logoSrc={props.logoSrc} services={props.services} onReserve={props.onReserve} t={t} locale={props.locale}/>}</section>;
 }
 function portalVoucherIsActive(v:studioApi.StudioVoucher){return v.status==='active'&&(!v.expires_on||v.expires_on>=voucherToday())&&(voucherAvailable(v)>0||v.held_cents>0||v.held_sessions>0);}
-export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoSrc,t=(key)=>spanish[key]}:{admin?:boolean;logoSrc?:string;services:VoucherServiceOption[];clients?:VoucherClientOption[];onReserve?:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void;t?:(key:string)=>string}){
+export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoSrc,t=(key)=>spanish[key],locale='es-ES'}:{admin?:boolean;logoSrc?:string;services:VoucherServiceOption[];clients?:VoucherClientOption[];onReserve?:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void;t?:VoucherTranslate;locale?:string}){
+ const formatMoney=(value:number)=>voucherCurrency(value,locale);
  const [data,setData]=useState<studioApi.VoucherPage|null>(null),[page,setPage]=useState(0),[client,setClient]=useState('');
  const [busy,setBusy]=useState(false),[writing,setWriting]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const [pendingDelete,setPendingDelete]=useState<string|null>(null);
@@ -409,41 +420,41 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
  return <section className={admin?'lst-bonos':'lst-bonos vpc-compact'}><VoucherStyles/><header className="vb-header"><div><h2>{admin?t('voucherAdminHeading'):t('voucherHeading')}</h2><small>{admin?t('voucherAdminSub'):''}</small></div><button type="button" disabled={busy||writing} onClick={()=>void load()}>{t('portalRefresh')}</button></header>
   {error&&<p role="alert" className="vb-error">{error}</p>}{message&&<p role="status" className="vb-message">{message}</p>}{busy&&<p role="status">{t('voucherLoading')}</p>}
   {admin&&<label>Clienta · filtrar y emitir<select disabled={writing} value={client} onChange={e=>{setClient(e.target.value);setPage(0);}}><option value="">Todas · elige una para emitir</option>{clients.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</select></label>}
-  {admin&&data&&<details className="vb-panel"><summary>Servicios incluidos en los bonos 5×4</summary><p className="vb-note">Elige por categoría y nombre. Para incluirlo debe estar activo y tener precio fijo de {voucherMoney(3800)} en intensivos o {voucherMoney(2000)} en caballero. Los servicios que no cumplen aparecen con el motivo para que puedas revisarlos en Catálogo.</p>{data.products.filter(p=>p.kind==='sessions').map(p=>{
+  {admin&&data&&<details className="vb-panel"><summary>Servicios incluidos en los bonos 5×4</summary><p className="vb-note">Elige por categoría y nombre. Para incluirlo debe estar activo y tener precio fijo de {formatMoney(3800)} en intensivos o {formatMoney(2000)} en caballero. Los servicios que no cumplen aparecen con el motivo para que puedas revisarlos en Catálogo.</p>{data.products.filter(p=>p.kind==='sessions').map(p=>{
     const match=(s:VoucherServiceOption)=>s.active&&(s.price===p.unit_cents/100||s.variantPrices.includes(p.unit_cents/100));
     const normal=(text:string)=>text.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim();
     const query=normal(serviceSearch[p.id]||'');
     const options=services.filter(s=>normal(s.category+' '+s.label+' '+s.portalName).includes(query)).sort((a,b)=>Number(match(b))-Number(match(a))||(a.category+' '+a.label).localeCompare(b.category+' '+b.label,'es'));
-    return <div key={p.id} style={{display:'grid',gap:10,marginBottom:12}}><h3>{voucherDisplayTitle(p)}</h3><label>Buscar por nombre o categoría<input type="search" value={serviceSearch[p.id]||''} onChange={e=>setServiceSearch(current=>({...current,[p.id]:e.target.value}))} placeholder="Corte, masculino, intensivos…"/></label><div className="vb-eligible" style={{maxHeight:350}}>{options.map(s=>{
+    return <div key={p.id} style={{display:'grid',gap:10,marginBottom:12}}><h3>{voucherDisplayTitle(p,t)}</h3><label>Buscar por nombre o categoría<input type="search" value={serviceSearch[p.id]||''} onChange={e=>setServiceSearch(current=>({...current,[p.id]:e.target.value}))} placeholder="Corte, masculino, intensivos…"/></label><div className="vb-eligible" style={{maxHeight:350}}>{options.map(s=>{
       const eligible=match(s),checked=(config[p.id]||[]).includes(s.id);
-      return <label className="vb-check" key={s.id} style={{alignItems:'flex-start',padding:'10px 3px',borderBottom:'1px solid rgba(195,161,106,.18)'}}><input type="checkbox" disabled={writing||(!eligible&&!checked)} checked={checked} onChange={e=>setConfig(current=>({...current,[p.id]:e.target.checked?[...(current[p.id]||[]),s.id]:(current[p.id]||[]).filter(id=>id!==s.id)}))}/><span style={{display:'grid',gap:3}}><small style={{color:'#DDC49B',fontSize:10,letterSpacing:'.05em'}}>{s.category}</small><strong style={{fontSize:12,fontWeight:500}}>{s.label}</strong>{normal(s.portalName)!==normal(s.label)&&<small>En el portal: {s.portalName}</small>}<small>{s.displayPrice||'Precio sin indicar'}</small>{!eligible&&<small style={{color:'#E4B99A'}}>{!s.active?'Inactivo: actívalo en Catálogo para ofrecerlo en el portal.':'Revisa en Catálogo: necesita precio fijo de '+voucherMoney(p.unit_cents)+' o una variante de ese importe.'}</small>}</span></label>;
+      return <label className="vb-check" key={s.id} style={{alignItems:'flex-start',padding:'10px 3px',borderBottom:'1px solid rgba(195,161,106,.18)'}}><input type="checkbox" disabled={writing||(!eligible&&!checked)} checked={checked} onChange={e=>setConfig(current=>({...current,[p.id]:e.target.checked?[...(current[p.id]||[]),s.id]:(current[p.id]||[]).filter(id=>id!==s.id)}))}/><span style={{display:'grid',gap:3}}><small style={{color:'#DDC49B',fontSize:10,letterSpacing:'.05em'}}>{s.category}</small><strong style={{fontSize:12,fontWeight:500}}>{s.label}</strong>{normal(s.portalName)!==normal(s.label)&&<small>En el portal: {s.portalName}</small>}<small>{s.displayPrice||'Precio sin indicar'}</small>{!eligible&&<small style={{color:'#E4B99A'}}>{!s.active?'Inactivo: actívalo en Catálogo para ofrecerlo en el portal.':'Revisa en Catálogo: necesita precio fijo de '+formatMoney(p.unit_cents)+' o una variante de ese importe.'}</small>}</span></label>;
     })}</div>{options.length===0&&<p className="vb-note">No hay coincidencias. Prueba con la categoría o el nombre que aparece en el catálogo.</p>}<button type="button" disabled={writing} onClick={()=>void act(()=>studioApi.configureVoucher(voucherToken(),p.id,config[p.id]||[]),'Servicios incluidos guardados.')}>Guardar servicios de este bono</button></div>;
   })}</details>}
   {(['gift','sessions'] as const).map(kind=><details key={kind} className="vb-panel"><summary>{!admin&&(kind==='gift'?<VoucherGiftIcon size={20} strokeWidth={1.5} aria-hidden="true"/>:<VoucherTicketIcon size={20} strokeWidth={1.5} aria-hidden="true"/>)}{kind==='gift'?(admin?t('voucherGiftCta'):t('voucherGiftExperience')):(admin?t('voucherSessionsCta'):t('voucherSessionsHeading'))}</summary><h3>{kind==='gift'?t('voucherGiftEyebrow'):t('voucherSessionsEyebrow')}</h3><p className="vb-note">{kind==='gift'?t('voucherGiftIntro'):t('voucherSessionsIntro')}</p><div className="vb-grid">{data?.products.filter(p=>p.kind===kind).map(p=>{
     const ready=p.enabled&&(p.kind==='gift'||p.service_ids.length>0)&&!!data.bizumNumber;
     const art=VOUCHER_ART[p.id]||VOUCHER_ART.gift50;
     return <article key={p.id} className={'vb-card vl-card vl-'+p.id+(p.kind==='gift'?' vb-gift':'')}>
-      <VoucherVisual productId={p.id} logoSrc={logoSrc}/><small className="vb-kicker">{p.kind==='gift'?t('voucherKindGift'):t('voucherKindSessions')}</small>
+      <VoucherVisual productId={p.id} logoSrc={logoSrc} t={t}/><small className="vb-kicker">{p.kind==='gift'?t('voucherKindGift'):t('voucherKindSessions')}</small>
       <h3>{p.kind==='gift'?t('voucherGiftBrand'):p.id==='men5'?t('voucherMen'):t('voucherIntensive')}</h3>
-      <strong className="vb-amount">{(p.price_cents/100).toLocaleString('es-ES')} €</strong><p className="vl-description">{art.description}</p>
+      <strong className="vb-amount">{formatMoney(p.price_cents)}</strong><p className="vl-description">{t(art.description)}</p>
       <div className="vl-benefits"><span>{p.kind==='gift'?t('voucherBalance'):t('voucherFiveSessions')}</span><span>{p.valid_months===12?t('voucherValidity12'):t('voucherValidity6')}</span></div>
       {p.kind==='sessions'&&<small>{t('voucherSessionsRule')}</small>}
       <button type="button" className="vl-cta" disabled={!ready||writing||busy} onClick={()=>openPurchase(p)}>{ready?(p.kind==='gift'?(admin?t('voucherGiftCta'):t('voucherGiftCta2')):(admin?t('voucherPrepareBono'):t('voucherChooseBono'))):t('voucherCheckAvailability')}<ArrowRight size={15} aria-hidden="true"/></button><small className="vl-pay-note">{t('voucherBizumNote')}</small>
     </article>;
   })}</div></details>)}
   {!admin&&<details className="vb-panel"><summary><VoucherPlusIcon size={20} strokeWidth={1.5} aria-hidden="true"/>{t('voucherAddGift')}</summary><label>{t('voucherCodeLabel')}<input autoComplete="off" maxLength={35} placeholder={t('voucherCodePlaceholder')} value={code} disabled={writing} onChange={e=>setCode(e.target.value.toUpperCase())}/></label><small>{t('voucherCodeHelp')}</small><button type="button" disabled={writing||!code.trim()} onClick={()=>void act(async()=>{await studioApi.claimGiftVoucher(voucherToken(),code);setCode('');},t('voucherClaimed'))}>{t('voucherClaimCta')}</button></details>}
-{!admin&&<GiftPurchaseReceipts refreshKey={data} t={t}/>}
+{!admin&&<GiftPurchaseReceipts refreshKey={data} t={t} locale={locale}/>}
   {!busy&&data?.vouchers.length===0&&<p className={admin?'vb-note':'vb-note vpc-empty'}>{admin?t('voucherEmptyFiltered'):t('voucherEmptyAll')}</p>}
   {(admin?[null]:[true,false]).flatMap(onlyActive=>(['gift','sessions'] as const).map(kind=>{
     if(!data)return null;
     const group=data.vouchers.filter(v=>v.kind===kind&&(admin||portalVoucherIsActive(v)===onlyActive));
     if(!group.length)return null;
     return <section key={kind+'-'+String(onlyActive)} className="vpc-wallet-group" data-wallet-active={onlyActive===true?'true':'false'}><h3 className="vb-wallet-heading">{kind==='gift'?(admin?t('voucherGiftsRegistered'):onlyActive?t('voucherMyGifts'):t('voucherOtherGifts')):(admin?t('voucherSessionsRegistered'):onlyActive?t('voucherMySessions'):t('voucherOtherSessions'))}</h3>
-<div className="vb-grid">{group.map(v=>{const expired=!!v.expires_on&&v.expires_on<voucherToday(),available=voucherAvailable(v);const label=v.status==='pending'?t('voucherPendingBizum'):v.status==='cancelled'?t('voucherRequestCancelled'):expired?t('voucherExpired'):available<=0?t('voucherNoAvailability'):v.kind==='gift'?t('voucherCardActive'):t('voucherCardActiveSessions');return <article key={v.id} className={'vb-card vl-card vl-owned vl-'+v.product_id+(v.kind==='gift'?' vb-gift':'')}><VoucherVisual productId={v.product_id} logoSrc={logoSrc}/>
-   <small className="vb-kicker">L’STUDIO ANA · {label}</small><h3>{voucherDisplayTitle(v)}</h3>{admin&&(v.kind==='gift'?<GiftRecipientAdmin voucher={v} clients={clients} disabled={writing||busy} run={act}/>:<small>{clients.find(c=>c.id===v.client_id)?.label||t('giftRegistered')}</small>)}
-   {v.status!=='active'?<p style={{fontSize:12}}>{v.status==='cancelled'?t('voucherCancelledNoBalance'):t('voucherActivateOnPayment')}</p>:(v.kind==='gift'?<><strong className="vb-amount">{voucherMoney(Math.max(0,v.price_cents-v.used_cents))}</strong><small>{t('voucherBalanceLeft')}{v.held_cents>0?' · '+t('voucherHeldForAppointments').replace('{amount}',voucherMoney(v.held_cents)):''}</small></>:<><div className="vb-dots" aria-label={t('voucherDotsAria').replace('{used}',String(v.used_sessions)).replace('{held}',String(v.held_sessions)).replace('{available}',String(Math.max(0,available)))}>{Array.from({length:v.sessions},(_,i)=><span key={i} aria-hidden="true" className={'vb-dot '+(i<v.used_sessions?'used':i<v.used_sessions+v.held_sessions?'held':'')}/>)}</div><p>{t('voucherSessionsDone').replace('{used}',String(v.used_sessions)).replace('{total}',String(v.sessions)).replace('{held}',String(v.held_sessions))}</p><small>{t('voucherSessionsAvailability').replace('{count}',String(Math.max(0,available)))}</small></>)}
+<div className="vb-grid">{group.map(v=>{const expired=!!v.expires_on&&v.expires_on<voucherToday(),available=voucherAvailable(v);const label=v.status==='pending'?t('voucherPendingBizum'):v.status==='cancelled'?t('voucherRequestCancelled'):expired?t('voucherExpired'):available<=0?t('voucherNoAvailability'):v.kind==='gift'?t('voucherCardActive'):t('voucherCardActiveSessions');return <article key={v.id} className={'vb-card vl-card vl-owned vl-'+v.product_id+(v.kind==='gift'?' vb-gift':'')}><VoucherVisual productId={v.product_id} logoSrc={logoSrc} t={t}/>
+   <small className="vb-kicker">L’STUDIO ANA · {label}</small><h3>{voucherDisplayTitle(v,t)}</h3>{admin&&(v.kind==='gift'?<GiftRecipientAdmin voucher={v} clients={clients} disabled={writing||busy} run={act}/>:<small>{clients.find(c=>c.id===v.client_id)?.label||t('giftRegistered')}</small>)}
+   {v.status!=='active'?<p style={{fontSize:12}}>{v.status==='cancelled'?t('voucherCancelledNoBalance'):t('voucherActivateOnPayment')}</p>:(v.kind==='gift'?<><strong className="vb-amount">{formatMoney(Math.max(0,v.price_cents-v.used_cents))}</strong><small>{t('voucherBalanceLeft')}{v.held_cents>0?' · '+t('voucherHeldForAppointments').replace('{amount}',formatMoney(v.held_cents)):''}</small></>:<><div className="vb-dots" aria-label={t('voucherDotsAria').replace('{used}',String(v.used_sessions)).replace('{held}',String(v.held_sessions)).replace('{available}',String(Math.max(0,available)))}>{Array.from({length:v.sessions},(_,i)=><span key={i} aria-hidden="true" className={'vb-dot '+(i<v.used_sessions?'used':i<v.used_sessions+v.held_sessions?'held':'')}/>)}</div><p>{t('voucherSessionsDone').replace('{used}',String(v.used_sessions)).replace('{total}',String(v.sessions)).replace('{held}',String(v.held_sessions))}</p><small>{t('voucherSessionsAvailability').replace('{count}',String(Math.max(0,available)))}</small></>)}
    {v.dedication&&<p style={{fontStyle:'italic',fontSize:12}}>{v.dedication}</p>}
-   {v.status==='pending'&&<><p>{t('voucherAmount')} <strong>{voucherMoney(v.price_cents)}</strong></p><p>Bizum: <strong>{data.bizumNumber}</strong></p><p>{t('voucherConcept')}: <strong>{v.payment_reference}</strong></p>{v.payment_reported_at&&<small>{t('voucherPaymentSent')}</small>}
+   {v.status==='pending'&&<><p>{t('voucherAmount')} <strong>{formatMoney(v.price_cents)}</strong></p><p>Bizum: <strong>{data.bizumNumber}</strong></p><p>{t('voucherConcept')}: <strong>{v.payment_reference}</strong></p>{v.payment_reported_at&&<small>{t('voucherPaymentSent')}</small>}
     <div className="vb-actions">
   {!admin && (
     <button type="button" disabled={writing}
@@ -482,7 +493,7 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
    {admin&&v.status==='active'&&<div style={{marginTop:10}}>
     <button type="button" disabled={writing||busy} onClick={()=>{setPendingDelete(current=>current==='test:'+v.id?null:'test:'+v.id);setTestDeleteConfirmed(false);}}>Eliminar {v.kind==='gift'?'tarjeta':'bono'} de prueba</button>
     {pendingDelete==='test:'+v.id&&<div role="group" aria-label="Eliminar bono ficticio" style={{marginTop:10,padding:12,border:'1px solid #B49161',borderRadius:10,background:'#F3E8D5',color:'#3D3024'}}>
-      <strong>{voucherDisplayTitle(v)}</strong><p style={{fontSize:11,overflowWrap:'anywhere'}}>{v.code}</p>
+      <strong>{voucherDisplayTitle(v,t)}</strong><p style={{fontSize:11,overflowWrap:'anywhere'}}>{v.code}</p>
       <p style={{fontSize:12,lineHeight:1.6}}>Se eliminará definitivamente este registro de prueba de la intranet y del portal. Esta acción no realiza ningún reembolso.</p>
       <label style={{display:'flex',alignItems:'center',gap:8,fontSize:12,color:'#3D3024'}}><input type="checkbox" checked={testDeleteConfirmed} disabled={writing||busy} onChange={event=>setTestDeleteConfirmed(event.target.checked)} style={{width:18,height:18,minHeight:18,flexShrink:0}}/>Confirmo que es un bono ficticio de prueba.</label>
       <div className="vb-actions" style={{marginTop:10}}><button type="button" disabled={writing||busy||!testDeleteConfirmed} onClick={async()=>{
@@ -496,28 +507,28 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
     {!admin&&reserveId===v.id&&<div className="vb-actions">{services.filter(s=>data.products.find(p=>p.id===v.product_id)?.service_ids.includes(s.id)).map(s=><button type="button" key={s.id} onClick={()=>onReserve?.(v,s.id)}>{s.label}</button>)}</div>}
     {v.kind==='gift'&&v.client_id===v.buyer_id&&v.used_cents===0&&v.held_cents===0&&<small>{t('voucherSharePrivate')}</small>}
    </>}
-   <div className="vb-meta"><span>{v.activated_at?t('voucherPurchased'):t('voucherAmountRequested')} · {voucherMoney(v.price_cents)}</span><span>{t('voucherExpires')} · {v.status==='cancelled'&&!v.expires_on?'—':voucherDate(v.expires_on)}</span></div>
-   {v.history.length>0&&<details><summary>{t('voucherMovements')}</summary>{v.history.map((u,i)=><p key={i}>{voucherDate(u.booked_for)} · {u.state==='held'?t('voucherHistHeld'):u.state==='consumed'?t('voucherHistConsumed'):t('voucherHistReleased')} · {v.kind==='gift'?voucherMoney(u.amount_cents):t('voucherOneSession')}{u.service_text?' · '+u.service_text:''}</p>)}</details>}
+   <div className="vb-meta"><span>{v.activated_at?t('voucherPurchased'):t('voucherAmountRequested')} · {formatMoney(v.price_cents)}</span><span>{t('voucherExpires')} · {v.status==='cancelled'&&!v.expires_on?'—':voucherDate(v.expires_on,locale,t)}</span></div>
+   {v.history.length>0&&<details><summary>{t('voucherMovements')}</summary>{v.history.map((u,i)=><p key={i}>{voucherDate(u.booked_for,locale,t)} · {u.state==='held'?t('voucherHistHeld'):u.state==='consumed'?t('voucherHistConsumed'):t('voucherHistReleased')} · {v.kind==='gift'?formatMoney(u.amount_cents):t('voucherOneSession')}{u.service_text?' · '+u.service_text:''}</p>)}</details>}
   </article>;})}</div></section>;
   }))}
   {data&&data.total>12&&<div className="vb-pager"><button type="button" disabled={page===0||writing||busy} onClick={()=>setPage(p=>p-1)}>{t('giftPrev')}</button><span>{page+1} / {Math.ceil(data.total/12)}</span><button type="button" disabled={(page+1)*12>=data.total||writing||busy} onClick={()=>setPage(p=>p+1)}>{t('giftNext')}</button></div>}
   {checkoutProduct&&<div className="vl-backdrop" onClick={event=>{if(event.target===event.currentTarget)closePurchase();}}><div ref={checkoutRef} className="vl-dialog" role="dialog" aria-modal="true" aria-labelledby="voucher-checkout-title" aria-busy={writing}>
    <button type="button" className="vl-close" disabled={writing} onClick={closePurchase} aria-label={t('portalClose')}>×</button>
-   <VoucherVisual productId={checkoutProduct.id} logoSrc={logoSrc}/>
+   <VoucherVisual productId={checkoutProduct.id} logoSrc={logoSrc} t={t}/>
    <h3 id="voucher-checkout-title" ref={checkoutHeading} tabIndex={-1}>{checkoutOrder?t('voucherCheckoutHeading'):checkoutProduct.kind==='gift'?t('voucherCheckoutGift'):t('voucherCheckoutSessions')}</h3>
    {purchaseError&&<p className="vl-error" role="alert">{purchaseError}</p>}{purchaseInfo&&<p className="vl-info" role="status">{purchaseInfo}</p>}
    {!checkoutOrder?<form onSubmit={submitPurchase}>
-    <p className="vl-muted">{voucherDisplayTitle(checkoutProduct)} · {checkoutProduct.valid_months===12?t('voucherValidFrom12'):t('voucherValidFrom6')}</p>
+    <p className="vl-muted">{voucherDisplayTitle(checkoutProduct,t)} · {checkoutProduct.valid_months===12?t('voucherValidFrom12'):t('voucherValidFrom6')}</p>
     {admin&&<label>Clienta<select required value={client} disabled={writing} onChange={event=>{setClient(event.target.value);setPage(0);}}><option value="">{t('voucherSelectCard')}</option>{clients.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</select></label>}
     {checkoutProduct.kind==='gift'&&<><label>{t('voucherRecipientLabel')}<input maxLength={80} value={recipient} disabled={writing} autoComplete="off" placeholder={t('voucherRecipientPlaceholder')} onChange={event=>setRecipient(event.target.value)}/></label><label>{t('voucherDedicationLabel')}<textarea maxLength={210} rows={3} value={dedication} disabled={writing} placeholder={t('voucherDedicationPlaceholder')} onChange={event=>setDedication(event.target.value)}/></label><p className="vl-muted">{t('voucherGiftShareAfter')}</p></>}
     {checkoutProduct.kind==='sessions'&&<p className="vl-muted">{t('voucherSessionsCheckoutNote')}</p>}
-    <div className="vl-total"><span>{t('voucherAmountLabel')}</span><strong>{voucherMoney(checkoutProduct.price_cents)}</strong></div>
+    <div className="vl-total"><span>{t('voucherAmountLabel')}</span><strong>{formatMoney(checkoutProduct.price_cents)}</strong></div>
     <button type="submit" className="vl-action" disabled={writing}>{writing?t('voucherPreparing'):t('voucherContinueBizum')} <ArrowRight size={16}/></button>
     <p className="vl-muted">{t('voucherBizumNext')}</p>
    </form>:<div className="vl-checkout-body">
-    <p className="vl-muted">{checkoutOrder.title}</p>
+    <p className="vl-muted">{checkoutProduct? voucherDisplayTitle(checkoutProduct,t) : checkoutOrder.title}</p>
     {checkoutOrder.existingRequest&&<p className="vl-muted">{t('voucherDuplicateRecovered')}</p>}
-    {checkoutOrder.status==='pending'&&<><div className="vl-bizum"><div><span>{t('voucherExactAmount')}</span><strong>{voucherMoney(checkoutOrder.priceCents)}</strong></div><div><span>{t('voucherBizumTo')}</span><strong>{checkoutOrder.bizumNumber}</strong><button type="button" onClick={()=>void copyPurchase(checkoutOrder.bizumNumber)}>{t('voucherCopyNumber')}</button></div><div><span>{t('voucherConcept')}</span><strong className="vl-reference">{checkoutOrder.paymentReference}</strong><button type="button" onClick={()=>void copyPurchase(checkoutOrder.paymentReference)}>{t('voucherCopyConcept')}</button></div></div>
+    {checkoutOrder.status==='pending'&&<><div className="vl-bizum"><div><span>{t('voucherExactAmount')}</span><strong>{formatMoney(checkoutOrder.priceCents)}</strong></div><div><span>{t('voucherBizumTo')}</span><strong>{checkoutOrder.bizumNumber}</strong><button type="button" onClick={()=>void copyPurchase(checkoutOrder.bizumNumber)}>{t('voucherCopyNumber')}</button></div><div><span>{t('voucherConcept')}</span><strong className="vl-reference">{checkoutOrder.paymentReference}</strong><button type="button" onClick={()=>void copyPurchase(checkoutOrder.paymentReference)}>{t('voucherCopyConcept')}</button></div></div>
      <p className="vl-muted">{t('voucherBizumInstructions')}</p>
      {checkoutOrder.dedication&&<p className="vl-muted" style={{whiteSpace:'pre-wrap'}}>{t('voucherDedicationSaved')}<br/>{checkoutOrder.dedication}</p>}
      <button type="button" className="vl-action" disabled={writing||checkoutOrder.paymentReported} onClick={()=>void reportPurchasePayment()}>{writing?t('voucherReporting'):checkoutOrder.paymentReported?t('voucherBizumComunicated'):t('voucherBizumDone2')}</button>
@@ -527,17 +538,18 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
   </div></div>}
  </section>;
 }
-export function BookingVoucher({selectedId,onChange,services,dateKey,promotionId,clientId,appointmentId,onSaved,compact=false}:{selectedId:string|null;onChange:(id:string|null)=>void;services:unknown;dateKey:string;promotionId?:string|null;clientId?:string;appointmentId?:string;onSaved?:()=>Promise<unknown>;compact?:boolean}){
+export function BookingVoucher({selectedId,onChange,services,dateKey,promotionId,clientId,appointmentId,onSaved,compact=false,t=(key)=>spanish[key],locale='es-ES'}:{t?:VoucherTranslate;locale?:string;selectedId:string|null;onChange:(id:string|null)=>void;services:unknown;dateKey:string;promotionId?:string|null;clientId?:string;appointmentId?:string;onSaved?:()=>Promise<unknown>;compact?:boolean}){
+ const formatMoney=(value:number)=>voucherCurrency(value,locale);
  const [data,setData]=useState<studioApi.VoucherPage|null>(null),[page,setPage]=useState(0),[quote,setQuote]=useState<studioApi.VoucherQuote|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false),[writing,setWriting]=useState(false);
  const live=useRef(false),gen=useRef(0),lock=useRef(false);const signature=JSON.stringify([selectedId,services,dateKey,promotionId,clientId,appointmentId]);
  useEffect(()=>{live.current=true;return()=>{live.current=false;gen.current++;};},[]);
  useEffect(()=>{let valid=true;Promise.resolve().then(()=>studioApi.fetchVouchers(voucherToken(),clientId,page,true)).then(result=>{if(valid)setData(result);}).catch(e=>{if(valid)setError(e instanceof Error?e.message:'No se pudieron consultar los bonos.');});return()=>{valid=false;};},[clientId,page,appointmentId]);
  useEffect(()=>{const request=++gen.current;setQuote(null);setError('');setBusy(false);if(!selectedId||appointmentId)return;setBusy(true);Promise.resolve().then(()=>studioApi.quoteVoucher(voucherToken(),{voucherId:selectedId,clientId,services,dateKey,promotionId})).then(({quote})=>{if(live.current&&request===gen.current)setQuote(quote);}).catch(e=>{if(live.current&&request===gen.current)setError(e instanceof Error?e.message:'No se pudo aplicar el bono.');}).finally(()=>{if(live.current&&request===gen.current)setBusy(false);});},[signature]);
  const attach=async()=>{if(!appointmentId||lock.current)return;lock.current=true;setWriting(true);setError('');try{await studioApi.attachAppointmentVoucher(voucherToken(),appointmentId,selectedId);await onSaved?.();}catch(e){if(live.current)setError(e instanceof Error?e.message:'No se pudo aplicar el bono.');}finally{lock.current=false;if(live.current)setWriting(false);}};
- return <section className="lst-bonos"><VoucherStyles/><details className={'vb-panel'+(compact?' vb-compact':'')} open={compact?false:!!selectedId||!!appointmentId}><summary>Usar tarjeta regalo o bono</summary><label>Elige tu bono<select disabled={writing} value={selectedId||''} onChange={e=>onChange(e.target.value||null)}><option value="">Reservar sin bono</option>{selectedId&&!data?.vouchers.some(v=>v.id===selectedId)&&<option value={selectedId}>Bono seleccionado · se comprobará al guardar</option>}{data?.vouchers.map(v=><option key={v.id} value={v.id}>{v.title} · {v.kind==='gift'?voucherMoney(voucherAvailable(v)):voucherAvailable(v)+' sesiones disponibles'}</option>)}</select></label>
- {data&&data.total>12&&<div className="vb-actions"><button type="button" disabled={page===0} onClick={()=>setPage(p=>p-1)}>Anteriores</button><button type="button" disabled={(page+1)*12>=data.total} onClick={()=>setPage(p=>p+1)}>Más bonos</button></div>}
- {busy&&<p role="status">Comprobando cobertura…</p>}{error&&<p role="alert" className="vb-error">{error}</p>}{quote&&<div className="vb-current"><strong>{quote.title}</strong><p>{quote.kind==='gift'?'Saldo que se apartará: '+voucherMoney(quote.amountCents):'Incluye 1 sesión de '+quote.coveredServiceName}</p><p>{quote.dueCents===null?'Los complementos se confirman en el estudio.':'Resto por abonar: '+voucherMoney(quote.dueCents)}</p></div>}
- <small>Se aparta al reservar y se consume al finalizar la cita. Una sesión por cita; los complementos se cobran aparte. La fecha de la cita debe estar dentro de la validez.</small>{appointmentId&&<button type="button" disabled={writing} onClick={()=>void attach()}>{writing?'Guardando…':selectedId?'Aplicar bono a esta cita':'Guardar cita sin bono'}</button>}</details></section>;
+ return <section className="lst-bonos"><VoucherStyles/><details className={'vb-panel'+(compact?' vb-compact':'')} open={compact?false:!!selectedId||!!appointmentId}><summary>{t('voucherReservedCta')}</summary><label>{t('voucherChooseYours')}<select disabled={writing} value={selectedId||''} onChange={e=>onChange(e.target.value||null)}><option value="">{t('voucherReserveWithout')}</option>{selectedId&&!data?.vouchers.some(v=>v.id===selectedId)&&<option value={selectedId}>{t('voucherSelectedCheck')}</option>}{data?.vouchers.map(v=><option key={v.id} value={v.id}>{voucherDisplayTitle(v,t)} · {v.kind==='gift'?formatMoney(voucherAvailable(v)):t('voucherSessionsCount').replace('{count}',voucherAvailable(v).toLocaleString(locale))}</option>)}</select></label>
+ {data&&data.total>12&&<div className="vb-actions"><button type="button" disabled={page===0} onClick={()=>setPage(p=>p-1)}>{t('portalPrevious')}</button><button type="button" disabled={(page+1)*12>=data.total} onClick={()=>setPage(p=>p+1)}>{t('voucherMore')}</button></div>}
+ {busy&&<p role="status">{t('voucherCheckingCoverage')}</p>}{error&&<p role="alert" className="vb-error">{error}</p>}{quote&&<div className="vb-current"><strong>{quote.title}</strong><p>{quote.kind==='gift'?t('voucherWillHold')+formatMoney(quote.amountCents):t('voucherIncludesSession')+quote.coveredServiceName}</p><p>{quote.dueCents===null?t('voucherExtrasAtStudio'):t('voucherRestToPay')+formatMoney(quote.dueCents)}</p></div>}
+ <small>{t('voucherHoldRules')}</small>{appointmentId&&<button type="button" disabled={writing} onClick={()=>void attach()}>{writing?t('portalSaving'):selectedId?t('voucherApply'):t('voucherSaveWithout')}</button>}</details></section>;
 }
 
 export function AppointmentVoucherTools({appointment,onSaved}:{appointment:Appointment;onSaved:()=>Promise<unknown>}){
