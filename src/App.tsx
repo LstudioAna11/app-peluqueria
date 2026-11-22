@@ -51,6 +51,7 @@ import { promotionServiceIds } from './promotions';
 import { calculatePromotionDiscount, exactPrice } from './promotionPricing';
 import type { PromotionDiscount } from './promotionPricing';
 import { getBookingName, getAppointmentServiceNames, compactServiceText } from './serviceNames';
+import { catalogServiceCopy, catalogVariantCopy, serviceCardLabel } from './portalServiceCopy';
 import * as studioApi from './studioApi';
 function clientDisplayNumber(client: {registroId?: string} | null | undefined): string {
   const match = /^LSTUDIO-(\d+)$/.exec(client?.registroId || '');
@@ -434,7 +435,7 @@ const DEFAULT_BRAND_LOGO = '/studio-brand-default.webp';
 
 export interface ServiceVariant {
   description?: string;
-  translations?: Record<string, { name?: string }>; 
+  translations?: Record<string, { name?: string; description?: string }>;
   id: string;
   name: string;
   price: string;
@@ -517,7 +518,7 @@ const FINISH_COPY: Record<StylingPolicy, string> = {
   not_applicable: 'Este servicio no necesita este complemento. No impide reservarlo con otros servicios.'
 };
 
-export type ServiceTranslation = Partial<Pick<SubService, 'name' | 'slogan' | 'description' | 'includesText' | 'achievedText' | 'forWhomText' | 'conditionsText' | 'alertText'>>;
+export type ServiceTranslation = Partial<Pick<SubService, 'bookingName' | 'name' | 'slogan' | 'description' | 'includesText' | 'achievedText' | 'forWhomText' | 'conditionsText' | 'alertText'>>;
 
 export interface SubService {
   staffSupplementFor?: string;
@@ -3625,7 +3626,15 @@ function StudioApp() {
   const [catalogTranslationLang, setCatalogTranslationLang] = useState('en');
   const serviceText = (sub: SubService, field: keyof ServiceTranslation) => {
     const language = currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang;
-    return (language !== 'es' ? sub.translations?.[language]?.[field]?.trim() : '') || sub[field] || '';
+    return (language !== 'es' ? sub.translations?.[language]?.[field]?.trim() : '')
+      || catalogServiceCopy(language, sub.id, field, sub[field]) || sub[field] || '';
+  };
+  const portalServiceTitle = (sub: SubService) => {
+    if (currentLang === 'es') return bookingName(sub);
+    const translation = sub.translations?.[currentLang];
+    return translation?.bookingName?.trim() || translation?.name?.trim()
+      || catalogServiceCopy(currentLang, sub.id, 'bookingName', sub.bookingName)
+      || catalogServiceCopy(currentLang, sub.id, 'name', sub.name) || bookingName(sub);
   };
   const chooseServiceLabel = ({ es: 'Elegir este servicio', en: 'Choose this service', fr: 'Choisir ce service', it: 'Scegli questo servizio', pt: 'Escolher este serviço', de: 'Diese Leistung wählen', nl: 'Deze behandeling kiezen', pl: 'Wybierz tę usługę', cs: 'Vybrat tuto službu', nb: 'Velg denne behandlingen', sv: 'Välj denna behandling', ar: 'اختاري هذه الخدمة' } as Record<string, string>)[currentLang] || 'Elegir este servicio';
   const categoryText = (category: CatalogCategory) => localizedCategoryTitle(category, currentLang, t);
@@ -3633,9 +3642,11 @@ function StudioApp() {
   const categoryPosition = (position: number, total: number) => tf('categoryPosition', {
     position: position.toLocaleString(portalLocale), total: total.toLocaleString(portalLocale)
   });
-  const variantText = (variant: ServiceVariant, service?: SubService) => {
+  const variantText = (variant: ServiceVariant, service?: SubService, field: 'name' | 'description' = 'name') => {
     const latest = service ? catalog.flatMap(category => category.subservices).find(item => item.id === service.id)?.variants?.find(item => item.id === variant.id) || variant : variant;
-    return latest.translations?.[currentLang]?.name?.trim() || latest.name;
+    return latest.translations?.[currentLang]?.[field]?.trim()
+      || (service ? catalogVariantCopy(currentLang, service.id, latest.id, field, latest[field]) : '')
+      || latest[field] || '';
   };
   const [portalSearch, setPortalSearch] = useState('');
   const portalSearchQuery = normalizeServiceSearch(portalSearch);
@@ -3645,7 +3656,7 @@ function StudioApp() {
     if (!portalSearchQuery) return true;
     return matchCatalogService(portalSearch,
       [categoryText(category), category.title],
-      [bookingName(service), serviceText(service, 'name'), service.name],
+      [portalServiceTitle(service), bookingName(service), serviceText(service, 'name'), service.name],
       (service.variants || []).map(variant => variantText(variant, service)));
   };
   const portalSearchCount = catalog.reduce((total, category) => total + category.subservices.filter(service => portalServiceMatches(category, service)).length, 0);
@@ -3691,7 +3702,7 @@ function StudioApp() {
     return (
       <article key={sub.id} id={`portal-service-${sub.id}`} className="lst-card" style={{ boxShadow: '0 6px 18px rgba(60, 50, 40, 0.05)' }}>
         {(serviceImage
-          ? <button type="button" style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'zoom-in' }} onClick={() => setLightboxImage(serviceImage)} aria-label="Ampliar imagen"><img className="lst-card-media" style={{ objectPosition: `${sub.imagePosition?.x ?? 50}% ${sub.imagePosition?.y ?? 50}%` }} src={optimizedImageUrl(serviceImage)} alt={serviceText(sub, 'name') || sub.name} loading="lazy" />{sub.imageIsAiPlaceholder && <span className="lst-ai-tag">Imagen ilustrativa</span>}</button>
+          ? <button type="button" style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'zoom-in' }} onClick={() => setLightboxImage(serviceImage)} aria-label="Ampliar imagen"><img className="lst-card-media" style={{ objectPosition: `${sub.imagePosition?.x ?? 50}% ${sub.imagePosition?.y ?? 50}%` }} src={optimizedImageUrl(serviceImage)} alt={serviceText(sub, 'name') || sub.name} loading="lazy" />{sub.imageIsAiPlaceholder && <span className="lst-ai-tag">{serviceCardLabel(currentLang, 'imageIllustrative')}</span>}</button>
           : <div className="studio-service-media studio-service-media-empty" aria-hidden="true"><span>LS</span><small>{bizConfig.name}</small></div>)}
         <div className="lst-card-footer">
           <div style={{ minWidth: 0 }}>
@@ -5215,8 +5226,8 @@ function StudioApp() {
             <div style={{ display: 'grid', gap: 10 }}>{catalog.flatMap(category => category.subservices.filter(service => portalServiceMatches(category, service)).map(service => <button key={category.id + ':' + service.id} type="button" onClick={() => { setActiveCatalogTab(category.id); setViewServiceDetail({ cat: category, sub: service }); setCurrentScreen('serviceDetail'); window.scrollTo({ top: 0 }); }} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: 14, textAlign: 'start', background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255,248,238,.12)', borderRadius: 12, cursor: 'pointer', minHeight: 70 }}>
               <span style={{ flex: 1, minWidth: 0 }}>
                 <small style={{ display: 'block', color: '#D6CBB8', fontSize: 11, marginBottom: 5 }}>{categoryText(category)}</small>
-                <strong style={{ display: 'block', fontSize: 15, lineHeight: 1.5 }}>{bookingName(service)}</strong>
-                {bookingName(service) !== serviceText(service, 'name') && <span style={{ display: 'block', color: '#D6CBB8', fontSize: 12, marginTop: 4 }}>{serviceText(service, 'name')}</span>}
+                <strong style={{ display: 'block', fontSize: 15, lineHeight: 1.5 }}>{portalServiceTitle(service)}</strong>
+                {portalServiceTitle(service) !== serviceText(service, 'name') && <span style={{ display: 'block', color: '#D6CBB8', fontSize: 12, marginTop: 4 }}>{serviceText(service, 'name')}</span>}
                 <span style={{ display: 'block', color: '#E4C687', fontSize: 12, marginTop: 6 }}>{service.hasVariants ? t('chooseOption') : (portalShowsPrices ? service.price + ' · ' : '') + service.duration}</span>
               </span>
               <ChevronRight size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
@@ -5349,19 +5360,20 @@ function StudioApp() {
                 }}>
                 {activeServices.map(sub => {
                   const name = serviceText(sub, 'name') || sub.name;
+                  const title = portalServiceTitle(sub);
                   return (
                     <article key={sub.id} id={"portal-service-" + sub.id} className="lst-c-card">
-                      <button type="button" className="lst-c-media" onClick={() => openDetail(sub)} aria-label={name + ' · ' + t('viewService')}>
+                      <button type="button" className="lst-c-media" onClick={() => openDetail(sub)} aria-label={title + ' · ' + t('viewService')}>
                         {sub.imageUrl
                           ? <>
-                            <img src={optimizedImageUrl(sub.imageUrl)} alt={name} loading="lazy" decoding="async" style={{ objectPosition: `${sub.imagePosition?.x ?? 50}% ${sub.imagePosition?.y ?? 50}%` }} />
-                            {sub.imageIsAiPlaceholder && <span className="lst-ai-tag">Imagen ilustrativa</span>}
+                            <img src={optimizedImageUrl(sub.imageUrl)} alt={title} loading="lazy" decoding="async" style={{ objectPosition: `${sub.imagePosition?.x ?? 50}% ${sub.imagePosition?.y ?? 50}%` }} />
+                            {sub.imageIsAiPlaceholder && <span className="lst-ai-tag">{serviceCardLabel(currentLang, 'imageIllustrative')}</span>}
                           </>
                           : <span className="lst-c-media-fallback"><strong>LS</strong><small>{bizConfig.name}</small></span>}
                       </button>
                       <div className="lst-c-body">
-                        <h2 className="lst-c-name" style={{ margin: '0 0 8px', color: '#E4C687', fontSize: 19, lineHeight: 1.3, cursor: 'default' }}>{bookingName(sub)}</h2>
-                        {name.trim() !== bookingName(sub).trim() && <p style={{ color: '#F0E6D2', fontSize: 14, lineHeight: 1.5, margin: '0 0 8px' }}>{name}</p>}
+                        <h2 className="lst-c-name" style={{ margin: '0 0 8px', color: '#E4C687', fontSize: 19, lineHeight: 1.3, cursor: 'default' }}>{title}</h2>
+                        {name.trim() !== title.trim() && <p style={{ color: '#F0E6D2', fontSize: 14, lineHeight: 1.5, margin: '0 0 8px' }}>{name}</p>}
                         {!!serviceText(sub, 'slogan').trim() && <p className="lst-c-desc" style={{ color: '#BFCDB9', fontSize: 13, lineHeight: 1.5 }}>{serviceText(sub, 'slogan')}</p>}
                         <div className="lst-c-meta" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: '6px 12px', width: '100%' }}>
                           {portalShowsPrices && <span>{sub.price}</span>}
@@ -5379,7 +5391,7 @@ function StudioApp() {
             </div>
             <div id="lst-carousel-dots" style={{ display: 'flex', justifyContent: 'center', gap: 8 }}>
               {activeServices.map((sub, index) => (
-                <button key={sub.id} type="button" aria-label={t('viewService') + ' · ' + (serviceText(sub, 'name') || sub.name)}
+                <button key={sub.id} type="button" aria-label={t('viewService') + ' · ' + portalServiceTitle(sub)}
                   onClick={() => { const el = carouselScrollerRef.current; if (!el) return; const card = el.querySelector('.lst-c-card') as HTMLElement | null; if (card) el.scrollTo({ left: index * (card.offsetWidth + 14), behavior: 'smooth' }); }}
                   style={{ width: 10, height: 10, minWidth: 10, padding: 0, borderRadius: '50%', border: 'none', background: '#B8863B', opacity: index === 0 ? 1 : 0.35, cursor: 'pointer' }} />
               ))}
@@ -5405,6 +5417,7 @@ function StudioApp() {
         // Every service keeps its own configured variants, independently of add-ons.
         const detailSub = originalDetailSub;
         const detailDescription = serviceText(detailSub, 'description');
+        const detailTitle = portalServiceTitle(detailSub);
         const detailNames = [detailSub.name, bookingName(detailSub)];
         const isViabilityTest = detailNames.some(name => /test.*viabilidad|viabilidad.*resistencia/i.test(name));
         const isVisagismStudy = detailNames.some(name => /estudio.*visagismo/i.test(name));
@@ -5440,20 +5453,20 @@ function StudioApp() {
             <span style={{ width: 40, display: 'block' }} aria-hidden="true" />
           </div>
           {detailImage
-            ? <button type="button" style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'zoom-in', position: 'relative' }} onClick={() => setLightboxImage(detailImage)} aria-label="Ampliar imagen"><img className="lst-card-media" style={{ height: 280, borderRadius: 14, objectPosition: `${viewServiceDetail.sub.imagePosition?.x ?? 50}% ${viewServiceDetail.sub.imagePosition?.y ?? 50}%` }} src={optimizedImageUrl(detailImage)} alt={serviceText(detailSub, 'name') || detailSub.name} />{viewServiceDetail.sub.imageIsAiPlaceholder && <span className="lst-ai-tag">Imagen ilustrativa</span>}</button>
+            ? <button type="button" style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'none', cursor: 'zoom-in', position: 'relative' }} onClick={() => setLightboxImage(detailImage)} aria-label={serviceCardLabel(currentLang, 'imageEnlarge')}><img className="lst-card-media" style={{ height: 280, borderRadius: 14, objectPosition: `${viewServiceDetail.sub.imagePosition?.x ?? 50}% ${viewServiceDetail.sub.imagePosition?.y ?? 50}%` }} src={optimizedImageUrl(detailImage)} alt={serviceText(detailSub, 'name') || detailSub.name} />{viewServiceDetail.sub.imageIsAiPlaceholder && <span className="lst-ai-tag">{serviceCardLabel(currentLang, 'imageIllustrative')}</span>}</button>
             : <div className="studio-service-media studio-service-media-empty" style={{ height: 280, borderRadius: 14 }} aria-hidden="true"><span>LS</span><small>{bizConfig.name}</small></div>}
           <header style={{ display: 'flex', flexDirection: 'column' }}>
             <span className="lst-detail-eyebrow">{categoryText(viewServiceDetail.cat)}</span>
-            <h1 className="lst-detail-title">{bookingName(detailSub)}</h1>
-            {(serviceText(detailSub, 'name') || detailSub.name).trim() !== bookingName(detailSub).trim() && <p style={{ color: '#F0E6D2', fontSize: 14, lineHeight: 1.5, margin: '8px 0' }}>{serviceText(detailSub, 'name') || detailSub.name}</p>}
+            <h1 className="lst-detail-title">{detailTitle}</h1>
+            {(serviceText(detailSub, 'name') || detailSub.name).trim() !== detailTitle.trim() && <p style={{ color: '#F0E6D2', fontSize: 14, lineHeight: 1.5, margin: '8px 0' }}>{serviceText(detailSub, 'name') || detailSub.name}</p>}
             {!!visibleDescription && <p className="lst-detail-desc">{visibleDescription}</p>}
             {imageCredit && !hideImageCredit && <p style={{ fontSize: 10, color: '#D6CBB8', lineHeight: 1.5 }}>{imageCredit}</p>}
           </header>
           {([
-            { field: 'includesText', title: '¿Qué incluye?', icon: Scissors },
-            { field: 'achievedText', title: '¿Qué te llevas?', icon: Sparkles },
-            { field: 'forWhomText', title: '¿Es para ti?', icon: UserRoundSearch },
-            { field: 'conditionsText', title: 'Condiciones del servicio', icon: Info },
+            { field: 'includesText', title: t('serviceIncludesTitle'), icon: Scissors },
+            { field: 'achievedText', title: t('resultsLabel'), icon: Sparkles },
+            { field: 'forWhomText', title: serviceCardLabel(currentLang, 'suitableFor'), icon: UserRoundSearch },
+            { field: 'conditionsText', title: t('serviceConditionsTitle'), icon: Info },
           ] as const).map(({ field, title, icon: Icon }) => {
             const text = serviceText(detailSub, field).trim();
             if (!text) return null;
@@ -5465,10 +5478,10 @@ function StudioApp() {
           {(detailSub.requiresAssessment || tonerLabel(detailSub) || stylingLabel(detailSub) || detailSub.showAlertBadge) && (
             <section className="studio-ficha-section">
               <h2>{t('serviceConditionsTitle')}</h2>
-              {detailSub.requiresAssessment && <div className="studio-ficha-condition"><strong>Valoración previa</strong><span>Reserva bajo confirmación de Ana</span></div>}
-              {tonerLabel(detailSub) && <div className="studio-ficha-condition"><strong>Matiz</strong><span>{tonerLabel(detailSub)}</span></div>}
-              {stylingLabel(detailSub) && <div className="studio-ficha-condition"><strong>Peinado</strong><span>{stylingLabel(detailSub)}</span></div>}
-              {detailSub.showAlertBadge && <div className="studio-ficha-condition"><strong>Aviso</strong><span>{detailSub.alertText || 'Recuerda añadir tu peinado para asegurar el tiempo en agenda.'}</span></div>}
+              {detailSub.requiresAssessment && <div className="studio-ficha-condition"><strong>{serviceCardLabel(currentLang, 'assessment')}</strong><span>{serviceCardLabel(currentLang, 'approval')}</span></div>}
+              {tonerLabel(detailSub) && <div className="studio-ficha-condition"><strong>{serviceCardLabel(currentLang, 'toner')}</strong><span>{tonerLabel(detailSub)}</span></div>}
+              {stylingLabel(detailSub) && <div className="studio-ficha-condition"><strong>{serviceCardLabel(currentLang, 'styling')}</strong><span>{stylingLabel(detailSub)}</span></div>}
+              {detailSub.showAlertBadge && <div className="studio-ficha-condition"><strong>{serviceCardLabel(currentLang, 'notice')}</strong><span>{serviceText(detailSub, 'alertText') || serviceCardLabel(currentLang, 'addStyling')}</span></div>}
             </section>
           )}
           <div className="lst-price-box"><Info size={17} strokeWidth={1.7} aria-hidden="true" /> {portalShowsPrices ? (detailSelection?.variant?.price || detailSub.price) + ' · ' : ''} {detailSelection?.variant?.duration || detailSub.duration}</div>
@@ -5481,7 +5494,7 @@ function StudioApp() {
                     onClick={() => setSelectedServicesToBook(previous => previous.some(item => item.sub.id === detailSub.id) ? previous.map(item => item.sub.id === detailSub.id ? { ...item, sub:detailSub, variant } : item) : [...previous, { sub: detailSub, variant }])}
                     className={detailSelection?.variant?.id === variant.id ? 'studio-variant-chip studio-variant-chip-active' : 'studio-variant-chip'}>
                     <strong>{variantText(variant, detailSub)}</strong>
-                    {variant.description && <span>{variant.description}</span>}
+                    {variantText(variant, detailSub, 'description') && <span>{variantText(variant, detailSub, 'description')}</span>}
                     <span>{portalShowsPrices ? variant.price + ' · ' : ''}{variant.duration}</span>
                   </button>
                 ))}
