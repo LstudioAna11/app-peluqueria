@@ -33,8 +33,8 @@ const field:React.CSSProperties={width:'100%',boxSizing:'border-box',padding:12,
 const LazyReservationQr=React.lazy(()=>import('./ReservationQr'));
 const names:Record<BookingPlatform,string>={google:'Google',facebook:'Facebook',instagram:'Instagram'};
 function LinkPreview({config,onContinue,busy=false}:{config:BookingLinkConfig;onContinue?:()=>void;busy?:boolean}){
- return <div style={{textAlign:'center',padding:'24px 12px',background:'#322A25',borderRadius:12,color:'#FFF8EE'}}>
-  {config.logo?<img src={config.logo} alt="L’Studio Ana" style={{width:90,height:90,objectFit:'contain'}} onError={e=>{e.currentTarget.style.display='none';}}/>:<div style={{fontFamily:'Georgia,serif',fontSize:42,color:'#D6B77B'}}>L’A</div>}
+ return <div style={{textAlign:'center',padding:'24px 12px',background:'#322A25',borderRadius:12,color:'#FFF8EE',isolation:'isolate'}}>
+  {config.logo?<img src={config.logo} alt="L’Studio Ana" style={{display:'block',marginInline:'auto',width:90,height:90,objectFit:'contain',mixBlendMode:'screen'}} onError={e=>{e.currentTarget.style.display='none';}}/>:<div style={{fontFamily:'Georgia,serif',fontSize:42,color:'#D6B77B'}}>L’A</div>}
   <div style={{fontFamily:'Georgia,serif',fontSize:24,color:'#D6B77B',marginTop:8}}>L’Studio Ana</div><small style={{letterSpacing:3,color:'#D6CBB8'}}>HAIR EXPERIENCE</small>
   <h3 style={{fontFamily:'Georgia,serif',fontWeight:400,fontSize:28,margin:'30px 0 22px'}}>{config.enabled?'Tu próximo momento, para ti.':'Volvemos pronto'}</h3>
   {config.enabled?<><button type="button" style={primary} disabled={busy} onClick={onContinue}>{busy?'Comprobando…':config.title} {!busy&&'↗'}</button><p style={{fontSize:13,color:'#D6CBB8'}}>Accede al portal para elegir tus servicios.</p></>:<p style={{lineHeight:1.7,color:'#D6CBB8',overflowWrap:'anywhere',whiteSpace:'pre-wrap'}}>{config.pausedMessage}</p>}
