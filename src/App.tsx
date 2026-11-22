@@ -690,28 +690,28 @@ export function NpsSummary({period,onPeriodChange}:{period:NpsPeriod;onPeriodCha
   </section>;
 }
 
-function NpsFeedbackForm({score,comment,saving,error,submitted,googleUrl,contactUrl,onScore,onComment,onSubmit,onRestart}:{score:number|null;comment:string;saving:boolean;error:string;submitted:boolean;googleUrl:string;contactUrl:string|null;onScore:(score:number)=>void;onComment:(comment:string)=>void;onSubmit:(event:React.FormEvent)=>void;onRestart?:()=>void}){
+function NpsFeedbackForm({score,comment,saving,error,submitted,googleUrl,contactUrl,onScore,onComment,onSubmit,onRestart,t,locale}:{t:(key:string)=>string;locale:string;score:number|null;comment:string;saving:boolean;error:string;submitted:boolean;googleUrl:string;contactUrl:string|null;onScore:(score:number)=>void;onComment:(comment:string)=>void;onSubmit:(event:React.FormEvent)=>void;onRestart?:()=>void}){
   const linkStyle:React.CSSProperties={display:'inline-flex',alignItems:'center',justifyContent:'center',minHeight:44,padding:'11px 15px',border:'1px solid #B9955F',borderRadius:7,color:'#E4C687',textDecoration:'none',fontSize:13};
   return <details id="studio-nps-survey" style={{background:'linear-gradient(160deg,#221D19,#322A25)',border:'1px solid #846A45',borderRadius:12,padding:16}} open>
-    <summary style={{color:'#E4C687',fontSize:15,cursor:'pointer',fontFamily:'Georgia,serif'}}>Tu experiencia en L’Studio</summary>
+    <summary style={{color:'#E4C687',fontSize:15,cursor:'pointer',fontFamily:'Georgia,serif'}}>{t('reviewsPrivateTitle')}</summary>
     <div style={{paddingTop:14,display:'grid',gap:12}}>
 
-      {submitted?<section aria-label="Gracias por tu valoración" style={{display:'grid',gap:12}}>
-        <h3 style={{color:'#E4C687',fontFamily:'Georgia,serif',fontWeight:400,fontSize:20,margin:0}}>Gracias por compartir tu opinión</h3>
-        <p style={{color:'#FFF8EE',fontSize:13,lineHeight:1.7,margin:0}}>Tu valoración de {score}/10 está registrada. El equipo de L’Studio podrá leerla para seguir cuidando tu experiencia.</p>
-        <p style={{color:'#D6CBB8',fontSize:12,lineHeight:1.7,margin:0}}>Si lo deseas, también puedes compartir tu experiencia en Google o hablar directamente con el Studio.</p>
-        <div style={{display:'flex',gap:9,flexWrap:'wrap'}}>{googleUrl&&<a href={googleUrl} target="_blank" rel="noopener noreferrer" style={linkStyle}>Opinar en Google ↗</a>}{contactUrl&&<a href={contactUrl} target="_blank" rel="noopener noreferrer" style={linkStyle}>Contactar con el Studio ↗</a>}</div>
-      {onRestart&&<button type="button" disabled={saving} onClick={onRestart} style={{minHeight:44,padding:9,background:'transparent',color:'#D6CBB8',border:'1px solid #846A45',borderRadius:6,fontSize:12}}>Valorar otra visita</button>}
+      {submitted?<section aria-label={t('feedbackThanks')} style={{display:'grid',gap:12}}>
+        <h3 style={{color:'#E4C687',fontFamily:'Georgia,serif',fontWeight:400,fontSize:20,margin:0}}>{t('feedbackThanks')}</h3>
+        <p style={{color:'#FFF8EE',fontSize:13,lineHeight:1.7,margin:0}}>{t('feedbackSaved').replace('{score}',score?.toLocaleString(locale)??'')}</p>
+        <p style={{color:'#D6CBB8',fontSize:12,lineHeight:1.7,margin:0}}>{t('feedbackOptions')}</p>
+        <div style={{display:'flex',gap:9,flexWrap:'wrap'}}>{googleUrl&&<a href={googleUrl} target="_blank" rel="noopener noreferrer" style={linkStyle}>{t('reviewsWrite')} ↗</a>}{contactUrl&&<a href={contactUrl} target="_blank" rel="noopener noreferrer" style={linkStyle}>{t('feedbackContact')} ↗</a>}</div>
+      {onRestart&&<button type="button" disabled={saving} onClick={onRestart} style={{minHeight:44,padding:9,background:'transparent',color:'#D6CBB8',border:'1px solid #846A45',borderRadius:6,fontSize:12}}>{t('feedbackAnother')}</button>}
       </section>:<>
         <form onSubmit={onSubmit} style={{display:'grid',gap:13}}>
-          <p id="nps-question" style={{fontSize:15,lineHeight:1.6,color:'#FFF8EE',margin:0}}>Del 0 al 10, ¿nos recomendarías?</p>
-          <div role="group" aria-labelledby="nps-question" className="sr-score-grid" style={{display:'grid',gap:6}}>{Array.from({length:11},(_,value)=><button key={value} type="button" disabled={saving} aria-pressed={score===value} aria-label={value+' de 10'} onClick={()=>onScore(value)} style={{minHeight:44,padding:'8px 4px',border:'1px solid #9A7C50',borderRadius:6,background:score===value?'#D0AA71':'#302820',color:score===value?'#29231F':'#F4EADB',fontSize:14,fontWeight:score===value?600:400}}>{value}</button>)}</div>
-          <div style={{display:'flex',justifyContent:'space-between',gap:12,fontSize:11,color:'#C9B79D'}}><span>0 · Nada probable</span><span>10 · Muy probable</span></div>
-          <label style={{display:'grid',gap:7,color:'#E4C687',fontSize:13}}>Cuéntanos tu experiencia <span style={{fontSize:11,color:'#C9B79D'}}>Comentario opcional.</span><textarea maxLength={3000} disabled={saving} value={comment} onChange={event=>onComment(event.target.value)} rows={3} placeholder="Me he realizado… Mi experiencia ha sido…" style={{width:'100%',boxSizing:'border-box',resize:'vertical',padding:11,background:'#302820',color:'#FFF8EE',border:'1px solid #846A45',borderRadius:8,fontSize:13,lineHeight:1.6}}/></label>
-          {error&&<p role="alert" style={{fontSize:12,color:'#FFC3B0',margin:0}}>{error}</p>}
-          <button type="submit" disabled={saving} style={{minHeight:46,padding:12,border:0,borderRadius:7,background:'#C99E52',color:'#29231F',fontSize:13,fontWeight:600}}>{saving?'Guardando tu opinión…':'Enviar mi opinión'}</button>
+          <p id="nps-question" style={{fontSize:15,lineHeight:1.6,color:'#FFF8EE',margin:0}}>{t('feedbackQuestion')}</p>
+          <div role="group" aria-labelledby="nps-question" className="sr-score-grid" style={{display:'grid',gap:6}}>{Array.from({length:11},(_,value)=><button key={value} type="button" disabled={saving} aria-pressed={score===value} aria-label={value.toLocaleString(locale)+' / 10'} onClick={()=>onScore(value)} style={{minHeight:44,padding:'8px 4px',border:'1px solid #9A7C50',borderRadius:6,background:score===value?'#D0AA71':'#302820',color:score===value?'#29231F':'#F4EADB',fontSize:14,fontWeight:score===value?600:400}}>{value}</button>)}</div>
+          <div style={{display:'flex',justifyContent:'space-between',gap:12,fontSize:11,color:'#C9B79D'}}><span>0 · {t('feedbackUnlikely')}</span><span>10 · {t('feedbackLikely')}</span></div>
+          <label style={{display:'grid',gap:7,color:'#E4C687',fontSize:13}}>{t('reviewsShare')} <span style={{fontSize:11,color:'#C9B79D'}}>{t('bookingOptional')}</span><textarea maxLength={3000} disabled={saving} value={comment} onChange={event=>onComment(event.target.value)} rows={3} placeholder={t('feedbackPlaceholder')} style={{width:'100%',boxSizing:'border-box',resize:'vertical',padding:11,background:'#302820',color:'#FFF8EE',border:'1px solid #846A45',borderRadius:8,fontSize:13,lineHeight:1.6}}/></label>
+          {error&&<p role="alert" style={{fontSize:12,color:'#FFC3B0',margin:0}}>{locale==='es-ES'?error:t('feedbackError')}</p>}
+          <button type="submit" disabled={saving} style={{minHeight:46,padding:12,border:0,borderRadius:7,background:'#C99E52',color:'#29231F',fontSize:13,fontWeight:600}}>{saving?t('portalSaving'):t('sendReview')}</button>
         </form>
-        {googleUrl&&<a href={googleUrl} target="_blank" rel="noopener noreferrer" style={{color:'#D6CBB8',fontSize:12,minHeight:44,display:'flex',alignItems:'center'}}>También puedes opinar directamente en Google ↗</a>}
+        {googleUrl&&<a href={googleUrl} target="_blank" rel="noopener noreferrer" style={{color:'#D6CBB8',fontSize:12,minHeight:44,display:'flex',alignItems:'center'}}>{t('reviewsWrite')} ↗</a>}
       </>}
     </div>
   </details>;
@@ -4806,25 +4806,25 @@ function StudioApp() {
       </div>}
 
       {!['clientPin', 'clientRegistration', 'adminLogin', 'adminPanel'].includes(currentScreen) && (
-        <nav className="lst-bottom-nav lst-with-bonos" aria-label="Navegación principal" onClickCapture={event => { if (visualBookingBusyRef.current) { event.preventDefault(); event.stopPropagation(); } }} style={visualBookingBusy ? { pointerEvents: 'none', opacity: 0.6 } : undefined}>
+        <nav className="lst-bottom-nav lst-with-bonos" aria-label={t('navMain')} onClickCapture={event => { if (visualBookingBusyRef.current) { event.preventDefault(); event.stopPropagation(); } }} style={visualBookingBusy ? { pointerEvents: 'none', opacity: 0.6 } : undefined}>
           <button type="button" className={currentScreen === 'clientPortal' ? 'lst-bottom-active' : ''} onClick={() => { setViewServiceDetail(null); setCurrentScreen('clientPortal'); }}>
-            <Home size={20} strokeWidth={1.7} aria-hidden="true" /><span>Inicio</span>
+            <Home size={20} strokeWidth={1.7} aria-hidden="true" /><span>{t('navHome')}</span>
           </button>
           <button type="button" className={currentScreen === 'catalogBooking' || currentScreen === 'categoryScreen' || currentScreen === 'serviceDetail' ? 'lst-bottom-active' : ''} onClick={() => { setViewServiceDetail(null); setCurrentScreen('catalogBooking'); }}>
-            <Scissors size={20} strokeWidth={1.7} aria-hidden="true" /><span>Servicios</span>
+            <Scissors size={20} strokeWidth={1.7} aria-hidden="true" /><span>{t('navServices')}</span>
           </button>
           <button type="button" className={currentScreen === 'myAppointmentsPage' ? 'lst-bottom-active' : ''} onClick={() => { setViewServiceDetail(null); setCurrentScreen('myAppointmentsPage'); }}>
-            <CalendarDays size={20} strokeWidth={1.7} aria-hidden="true" /><span>Mis citas</span>
+            <CalendarDays size={20} strokeWidth={1.7} aria-hidden="true" /><span>{t('navAppointments')}</span>
           </button>
-          <button type="button" aria-label="Mis notificaciones" aria-expanded={pushPanelOpen} onClick={() => { setPushPanelOpen(true); setPushError(null); setPushTestResult(null); void refreshPushStatus(); }}>
-            <Bell size={20} strokeWidth={1.7} aria-hidden="true" /><span>Avisos</span>
+          <button type="button" aria-label={t('navAlerts')} aria-expanded={pushPanelOpen} onClick={() => { setPushPanelOpen(true); setPushError(null); setPushTestResult(null); void refreshPushStatus(); }}>
+            <Bell size={20} strokeWidth={1.7} aria-hidden="true" /><span>{t('navAlerts')}</span>
           </button>
           
           <button type="button" className={currentScreen === 'clientVouchersPage' ? 'lst-bottom-active' : ''} aria-current={currentScreen === 'clientVouchersPage' ? 'page' : undefined} onClick={() => { setViewServiceDetail(null); setCurrentScreen('clientVouchersPage'); window.scrollTo({top:0,behavior:'smooth'}); }}>
- <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v9h14v-9M12 8v13"/><path d="M12 8H7.5A2.5 2.5 0 1 1 10 5.5L12 8Zm0 0h4.5A2.5 2.5 0 1 0 14 5.5L12 8Z"/></svg><span className="lst-voucher-label">Bonos y tarjetas</span>
+ <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v9h14v-9M12 8v13"/><path d="M12 8H7.5A2.5 2.5 0 1 1 10 5.5L12 8Zm0 0h4.5A2.5 2.5 0 1 0 14 5.5L12 8Z"/></svg><span className="lst-voucher-label">{t('voucherHeading')}</span>
  </button>
 <button type="button" className={currentScreen === 'clientHistoryPage' ? 'lst-bottom-active' : ''} onClick={() => setCurrentScreen('clientHistoryPage')}>
-            <User size={20} strokeWidth={1.7} aria-hidden="true" /><span>Perfil</span>
+            <User size={20} strokeWidth={1.7} aria-hidden="true" /><span>{t('navProfile')}</span>
           </button>
         </nav>
       )}
@@ -4998,7 +4998,7 @@ function StudioApp() {
             <figure style={{ margin: 0, borderRadius: '18px', overflow: 'hidden', boxShadow: '0 12px 32px rgba(0, 0, 0, 0.3)', lineHeight: 0 }}>
               <img
                 src={optimizedImageUrl(bizConfig.homeHeroImage)}
-                alt="Interior de L’Studio Ana"
+                alt={t('homeInterior')}
                 decoding="async"
                 fetchPriority="high"
                 style={{ width: '100%', height: 'min(58vw, 340px)', objectFit: 'cover', objectPosition: `${bizConfig.homeHeroImagePosition?.x ?? 50}% ${bizConfig.homeHeroImagePosition?.y ?? 62}%`, display: 'block' }}
@@ -5006,7 +5006,7 @@ function StudioApp() {
             </figure>
           )}
           <div style={{ padding: '6px 0 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <p style={{ color: '#FFF8EE', fontSize: '30px', lineHeight: 1.2, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em', margin: 0 }}>Bienvenida a tu espacio L’Studio.</p>
+            <p style={{ color: '#FFF8EE', fontSize: '30px', lineHeight: 1.2, fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.04em', margin: 0 }}>{t('homeWelcome')}</p>
             <p style={{ color: '#D6CBB8', fontSize: '15px', lineHeight: 1.6, margin: 0 }}>{currentLang === 'es' ? t('careIntro') : `${t('hello')}, ${currentClientRecord?.nombre || t('welcome')}. ${t('careIntro')}`}</p>
             <details style={{ color: '#FFF8EE', fontSize: '12px', marginTop: '6px' }}>
               <summary style={{ cursor: 'pointer', padding: '6px 0' }}>{t('myDetails')}</summary>
@@ -5016,12 +5016,12 @@ function StudioApp() {
           <AppointmentCountdown visits={clientCountdownAppointments} onView={()=>setCurrentScreen('myAppointmentsPage')} serviceName={id=>{const appointment=clientCountdownAppointments.find(item=>item.id===id);return appointment?appointmentServiceNames(appointment):'';}}/>
           <React.Suspense fallback={null}><LazyClubClient key={currentClientRecord?.serverId||'client-club'} lang={currentLang}/></React.Suspense>
           
-          <section aria-label="Reserva tu cita" style={{ background: 'linear-gradient(135deg, #221D19 0%, #322A25 100%)', border: '1px solid rgba(212, 175, 55, 0.45)', borderRadius: '14px', padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <section aria-label={t('homeBook')} style={{ background: 'linear-gradient(135deg, #221D19 0%, #322A25 100%)', border: '1px solid rgba(212, 175, 55, 0.45)', borderRadius: '14px', padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <span style={{ width: 40, height: 40, minWidth: 40, borderRadius: '50%', background: 'rgba(201, 158, 82, 0.14)', border: '1px solid rgba(212, 175, 55, 0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#E4C687' }}><Scissors size={19} strokeWidth={1.7} aria-hidden="true" /></span>
               <div>
-                <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.03em', fontSize: '19px', fontWeight: 'normal', margin: 0 }}>Reserva tu cita</h3>
-                <p style={{ color: '#D6CBB8', fontSize: '12px', margin: '2px 0 0', lineHeight: 1.5 }}>Elige tus servicios y tu momento en el Studio.</p>
+                <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.03em', fontSize: '19px', fontWeight: 'normal', margin: 0 }}>{t('homeBook')}</h3>
+                <p style={{ color: '#D6CBB8', fontSize: '12px', margin: '2px 0 0', lineHeight: 1.5 }}>{t('homeBookIntro')}</p>
               </div>
             </div>
             <button type="button" onClick={() => { setViewServiceDetail(null); setPortalSearch(''); setPortalSearchExpanded({}); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ width: '100%', minHeight: '52px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>{t('bookNext')} <ArrowRight size={17} strokeWidth={2} aria-hidden="true" /></button>
@@ -5055,19 +5055,19 @@ function StudioApp() {
               window.setTimeout(() => document.getElementById('booking-selection-summary')?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
               return true;
             }} promotionServiceOptions={catalog.flatMap(cat => cat.subservices.filter(sub => sub.active !== false).map(sub => ({ id: sub.id, label: bookingName(sub) })))} />
-          <StudioVisitLinks phone={bizConfig.phone} whatsapp={bizConfig.studioWhatsapp||bizConfig.phone} mapsUrl={bizConfig.googleMapsUrl} address={bizConfig.location} hoursLabel={t('studioHours')} callLabel={t('callStudio')} heading={<h3 style={{ color: '#FFF8EE', fontSize: '19px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>Nos vemos en el Studio</h3>}><div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column' }}>
-              {STUDIO_WEEK_DAYS.map(({key,label})=>({day:label,time:studioScheduleLabel(bizConfig,Number(key))})).map((row, index) => (
+          <StudioVisitLinks t={t} phone={bizConfig.phone} whatsapp={bizConfig.studioWhatsapp||bizConfig.phone} mapsUrl={bizConfig.googleMapsUrl} address={bizConfig.location} hoursLabel={t('studioHours')} callLabel={t('callStudio')} heading={<h3 style={{ color: '#FFF8EE', fontSize: '19px', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', fontWeight: 'normal', margin: 0 }}>{t('homeSeeYou')}</h3>}><div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column' }}>
+              {STUDIO_WEEK_DAYS.map(({key})=>({day:new Intl.DateTimeFormat(portalLocale,{weekday:'long',timeZone:'UTC'}).format(new Date(Date.UTC(2024,0,7+Number(key)))),time:studioScheduleLabel(bizConfig,Number(key))})).map((row, index) => (
                 <div key={row.day} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: '16px', padding: '13px 0', borderTop: index === 0 ? 'none' : '1px solid rgba(255, 248, 238, 0.08)' }}>
                   <span style={{ color: '#FFF8EE', fontSize: '14px', lineHeight: 1.5 }}>{row.day}</span>
                   <span style={{ color: '#FFF8EE', fontSize: '14px', lineHeight: 1.5, textAlign: 'right', whiteSpace: 'normal' }}>
-                    {row.time}
+                    {row.time==='Cerrado'?t('studioClosed'):row.time}
                   </span>
                 </div>
               ))}
             </div></StudioVisitLinks>
           
           
-          <StudioReviewsCard googleUrl={bizConfig.googleReviewUrl||''} mapsUrl={bizConfig.googleMapsUrl||''} saving={feedbackSaving}><NpsFeedbackForm score={selectedRating} comment={feedbackComment} saving={feedbackSaving} error={feedbackError} submitted={feedbackSubmitted}
+          <StudioReviewsCard t={t} locale={portalLocale} googleUrl={bizConfig.googleReviewUrl||''} mapsUrl={bizConfig.googleMapsUrl||''} saving={feedbackSaving}><NpsFeedbackForm t={t} locale={portalLocale} score={selectedRating} comment={feedbackComment} saving={feedbackSaving} error={feedbackError} submitted={feedbackSubmitted}
             googleUrl={bizConfig.googleReviewUrl||''} contactUrl={(()=>{const digits=String(bizConfig.studioWhatsapp||bizConfig.phone||'').replace(/\D/g,'');return /^\d{9,15}$/.test(digits)?'https://wa.me/'+(digits.length===9?'34':'')+digits+'?text='+encodeURIComponent('Hola Ana, me gustaría comentar mi experiencia en L’Studio Ana.'):null;})()}
             onScore={handleRatingSelect} onComment={setFeedbackComment} onSubmit={handleSendFeedback} onRestart={()=>{setSelectedRating(null);setFeedbackComment('');setFeedbackError('');setFeedbackSubmitted(false);feedbackRequestId.current=null;}}/></StudioReviewsCard>
           <footer aria-label="Contacto y redes sociales" style={{ borderTop: '1px solid #302f29', paddingTop: '22px', paddingBottom: '96px' }}>
@@ -5092,7 +5092,7 @@ function StudioApp() {
           <div className="lst-app-header">
             <button type="button" onClick={() => setCurrentScreen('clientPortal')} aria-label="Volver" style={{ width: 44, height: 44, minWidth: 44, minHeight: 44, background: '#221D19', border: '1px solid rgba(212, 175, 55, 0.4)', borderRadius: '999px', color: '#E4C687', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ArrowLeft size={20} strokeWidth={1.7} aria-hidden="true" /></button>
             <div style={{ textAlign: 'center' }}>
-              <h2 className="lst-app-header-title">Mis citas</h2>
+              <h2 className="lst-app-header-title">{t('navAppointments')}</h2>
               <p className="lst-app-header-sub">{bizConfig.name}</p>
             </div>
             <span style={{ width: 44, display: 'block' }} aria-hidden="true" />
@@ -5142,8 +5142,8 @@ function StudioApp() {
             const config={...bizConfigRef.current,...draft.settings} as BusinessConfig;
             setBizConfig(config);bizConfigRef.current=config;setCatalog(draft.catalog);setRepeatPortalDraft(draft);
           }} onCatalog={() => { setViewServiceDetail(null); setPortalSearch(''); setPortalSearchExpanded({}); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}><section aria-label="Reservar otra cita" style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '14px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.03em', fontSize: '17px', fontWeight: 'normal', margin: 0 }}>Reserva tu cita</h3>
-            <p style={{ color: '#E0E8D9', fontSize: '12px', margin: '2px 0 0', lineHeight: 1.5 }}>Elige tus servicios y tu momento en el Studio.</p>
+            <h3 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.03em', fontSize: '17px', fontWeight: 'normal', margin: 0 }}>{t('homeBook')}</h3>
+            <p style={{ color: '#E0E8D9', fontSize: '12px', margin: '2px 0 0', lineHeight: 1.5 }}>{t('homeBookIntro')}</p>
             <button type="button" onClick={() => { setViewServiceDetail(null); setPortalSearch(''); setPortalSearchExpanded({}); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ width: '100%', minHeight: '52px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>{t('bookNext')} <ArrowRight size={17} strokeWidth={2} aria-hidden="true" /></button>
           </section></AppointmentRepeatCard>
         </div>
