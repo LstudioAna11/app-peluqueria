@@ -43,13 +43,13 @@ export function ClientPhotoGallery({clientId,editable=false,t=(key)=>spanish[key
   const load=async(target=page)=>{
     const run=++generation.current;loadBusy.current=true;setLoading(true);setError('');
     try{
-      const token=studioApi.currentToken();if(!token)throw new Error('Inicia sesión para ver tus fotos.');
-      if(editable&&!clientId)throw new Error('Guarda primero la ficha para añadir fotografías.');
+      const token=studioApi.currentToken();if(!token)throw new Error(t('photoLogin'));
+      if(editable&&!clientId)throw new Error(t('photoSaveFirst'));
       const result=await studioApi.fetchClientPhotos(token,clientId,target);
       if(!mounted.current||generation.current!==run)return;
       if(target>0&&!result.photos.length&&result.total>0){setPage(Math.max(0,target-1));return;}
       setPhotos(result.photos);setTotal(result.total);setPage(target);
-    }catch(value){if(mounted.current&&generation.current===run){setPhotos([]);setSelected(null);setError(value instanceof Error?value.message:'No se pudo abrir la galería.');}}
+    }catch(value){if(mounted.current&&generation.current===run){setPhotos([]);setSelected(null);setError(value instanceof Error?value.message:t('photoGalleryError'));}}
     finally{if(mounted.current&&generation.current===run){loadBusy.current=false;setLoading(false);}}
   };
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;generation.current++;};},[]);
@@ -60,38 +60,38 @@ export function ClientPhotoGallery({clientId,editable=false,t=(key)=>spanish[key
   };
   const upload=async(event:React.FormEvent)=>{
     event.preventDefault();if(locked.current)return;setError('');setMessage('');
-    if(!canEdit||!clientId||!file){setError('Selecciona una foto y una ficha guardada.');return;}
+    if(!canEdit||!clientId||!file){setError(t('photoSelectFirst'));return;}
     const today=new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
     const expiry=privatePhotoExpiry(takenOn);
-    if(!expiry||takenOn>today){setError('Revisa la fecha de toma de la fotografía. No puede ser futura.');return;}
-    if(expiry<=today){setError('Esta fotografía ya cumple 12 meses desde su toma. Selecciona una foto más reciente para el seguimiento privado.');return;}
+    if(!expiry||takenOn>today){setError(t('photoDateFuture'));return;}
+    if(expiry<=today){setError(t('photoTooOld'));return;}
     locked.current=true;setBusy(true);
     try{
-      const token=studioApi.currentToken();if(!token||studioApi.storedRole()!=='admin')throw new Error('Entra de nuevo en la intranet para subir la foto.');
+      const token=studioApi.currentToken();if(!token||studioApi.storedRole()!=='admin')throw new Error(t('photoSessionAgain'));
       const signature=JSON.stringify([takenOn,label,note.trim()]);
       if(!attempt.current||attempt.current.file!==file||attempt.current.signature!==signature){
-        setMessage('Optimizando la foto…');const prepared=await prepareCatalogImage(file,true);
+        setMessage(t('photoOptimizing'));const prepared=await prepareCatalogImage(file,true);
         attempt.current={file,signature,id:crypto.randomUUID(),dataUrl:prepared.dataUrl};
       }
       if(!mounted.current)return;
-      setMessage('Guardando en la ficha…');
+      setMessage(t('photoSaving'));
       const result=await studioApi.uploadClientPhoto(token,{clientId,takenOn,label,note:note.trim(),dataUrl:attempt.current.dataUrl,requestId:attempt.current.id});
-      if(!result.ok)throw new Error('No se confirmó el guardado. Conservamos la selección para reintentar.');
+      if(!result.ok)throw new Error(t('photoSaveUnconfirmed'));
       if(!mounted.current)return;
       attempt.current=null;setFile(null);setNote('');if(fileInput.current)fileInput.current.value='';
-      setSelected(null);setMessage('Foto guardada. Ya está disponible para la clienta en su portal.');await load(0);
-    }catch(value){if(mounted.current){setMessage('');setError(value instanceof Error?value.message:'No se pudo guardar la foto.');}}
+      setSelected(null);setMessage(t('photoSaved'));await load(0);
+    }catch(value){if(mounted.current){setMessage('');setError(value instanceof Error?value.message:t('photoSaveError'));}}
     finally{locked.current=false;if(mounted.current)setBusy(false);}
   };
   const remove=async(id:string)=>{
     if(locked.current||!canEdit||!clientId)return;locked.current=true;setBusy(true);setError('');setMessage('');
     try{
-      const token=studioApi.currentToken();if(!token)throw new Error('Inicia sesión de nuevo.');
+      const token=studioApi.currentToken();if(!token)throw new Error(t('photoLoginAgain'));
       const result=await studioApi.deleteClientPhoto(token,clientId,id);
-      if(!result.ok)throw new Error('No se confirmó la eliminación.');
+      if(!result.ok)throw new Error(t('photoDeleteUnconfirmed'));
       if(!mounted.current)return;
-      setPendingDelete(null);setSelected(null);setMessage(result.cleanupPending?'La foto se ha retirado de la ficha. La limpieza del archivo sigue pendiente; se reintentará en la siguiente gestión de fotos.':'Foto eliminada de la ficha y del portal.');await load(page);
-    }catch(value){if(mounted.current)setError(value instanceof Error?value.message:'No se pudo eliminar la foto.');}
+      setPendingDelete(null);setSelected(null);setMessage(result.cleanupPending?t('photoCleanupPending'):t('photoDeleted'));await load(page);
+    }catch(value){if(mounted.current)setError(value instanceof Error?value.message:t('photoDeleteError'));}
     finally{locked.current=false;if(mounted.current)setBusy(false);}
   };
   const input:React.CSSProperties={display:'block',width:'100%',boxSizing:'border-box',padding:10,marginTop:6,border:'1px solid #8C6A4B',borderRadius:6,background:'#29231F',color:'#FFF8EE',fontSize:13};
@@ -99,16 +99,16 @@ export function ClientPhotoGallery({clientId,editable=false,t=(key)=>spanish[key
   return <section style={{padding:14,border:'1px solid #655039',borderRadius:10,background:'#322A25',color:'#FFF8EE',minWidth:0}} aria-busy={busy||loading}>
     <button type="button" onClick={()=>setOpened(value=>!value)} disabled={busy} aria-expanded={opened} style={{background:'none',border:0,color:'#E4C687',padding:'4px 0',minHeight:36,fontSize:16,cursor:'pointer',textAlign:'left',width:'100%'}}>{t('photoGallery')} <span aria-hidden="true">{opened?'▴':'▾'}</span></button>
     {opened&&<>
-      <p style={{fontSize:12,lineHeight:1.6,color:'#D6CBB8',margin:'8px 0 12px'}}>{canEdit?'Estas fotos y sus notas serán visibles para esta clienta en su portal.':t('photoGalleryIntro')}</p>
+      <p style={{fontSize:12,lineHeight:1.6,color:'#D6CBB8',margin:'8px 0 12px'}}>{canEdit?t('photoClientNote'):t('photoGalleryIntro')}</p>
       {canEdit&&<form onSubmit={upload} style={{display:'flex',flexDirection:'column',gap:10,marginBottom:16}}>
-        <label style={{fontSize:12}}>Foto<input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={event=>{setFile(event.target.files?.[0]||null);attempt.current=null;setError('');setMessage('');}} style={input}/></label>
+        <label style={{fontSize:12}}>{t('photoFileLabel')}<input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={event=>{setFile(event.target.files?.[0]||null);attempt.current=null;setError('');setMessage('');}} style={input}/></label>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:10}}>
-          <label style={{fontSize:12}}>Fecha<input type="date" required disabled={busy} max={new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())} value={takenOn} onChange={event=>setTakenOn(event.target.value)} style={input}/></label>
-          <label style={{fontSize:12}}>Tipo<select disabled={busy} value={label} onChange={event=>setLabel(event.target.value)} style={input}><option value="antes">Antes</option><option value="despues">Después</option><option value="seguimiento">Seguimiento</option></select></label>
+          <label style={{fontSize:12}}>{t('photoDateLabel')}<input type="date" required disabled={busy} max={new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())} value={takenOn} onChange={event=>setTakenOn(event.target.value)} style={input}/></label>
+          <label style={{fontSize:12}}>{t('photoTypeLabel')}<select disabled={busy} value={label} onChange={event=>setLabel(event.target.value)} style={input}><option value="antes">{t('photoBefore')}</option><option value="despues">{t('photoAfter')}</option><option value="seguimiento">{t('photoProgress')}</option></select></label>
         </div>
-        <small style={{color:'#D6CBB8',fontSize:11}}>Conservación del seguimiento privado: máximo de 12 meses desde la toma de cada foto.</small>
-        <label style={{fontSize:12}}>Nota visible a la clienta · opcional<textarea disabled={busy} maxLength={1000} rows={2} value={note} onChange={event=>setNote(event.target.value)} style={input}/></label>
-        <button type="submit" disabled={busy||!file||!clientId} style={{...button,background:'#C99E52',color:'#29231F',fontWeight:600}}>{busy?'Guardando…':'Subir foto a la ficha'}</button>
+        <small style={{color:'#D6CBB8',fontSize:11}}>{t('photoRetention')}</small>
+        <label style={{fontSize:12}}>{t('photoNoteLabel')}<textarea disabled={busy} maxLength={1000} rows={2} value={note} onChange={event=>setNote(event.target.value)} style={input}/></label>
+        <button type="submit" disabled={busy||!file||!clientId} style={{...button,background:'#C99E52',color:'#29231F',fontWeight:600}}>{busy?t('portalSaving'):t('photoUpload')}</button>
       </form>}
       <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'center',marginBottom:12}}><span style={{fontSize:12,color:'#D6CBB8'}}>{loading?t('portalLoading'):t('photoCount').replace('{count}', String(total))}</span><button type="button" disabled={busy||loading} onClick={()=>{setSelected(null);void load(page);}} style={button}>{t('photoRefresh')}</button></div>
       {message&&<p role="status" aria-live="polite" style={{fontSize:12,color:'#E4C687',lineHeight:1.6}}>{message}</p>}
@@ -118,7 +118,7 @@ export function ClientPhotoGallery({clientId,editable=false,t=(key)=>spanish[key
         {photos.map(photo=><article key={photo.id} style={{minWidth:0,border:'1px solid #655039',borderRadius:8,overflow:'hidden',background:'#29231F'}}>
           <button type="button" onClick={()=>setSelected(photo)} style={{display:'block',width:'100%',padding:0,border:0,background:'none',cursor:'pointer'}} aria-label={t('productZoom')+' · '+name(photo.label)}><img src={photo.url} alt={name(photo.label)+' · '+photo.taken_on} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={()=>expired(photo)} style={{display:'block',width:'100%',height:180,objectFit:'cover'}}/></button>
           <div style={{padding:10,fontSize:12,lineHeight:1.6}}><strong style={{color:'#E4C687'}}>{name(photo.label)}</strong><br/>{formatPhotoDate(photo.taken_on)}{photo.note&&<p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',margin:'6px 0'}}>{photo.note}</p>}
-            {canEdit&&(pendingDelete===photo.id?<div role="group" aria-label="Confirmar eliminación"><p>¿Eliminarla de ambos sitios?</p><button type="button" disabled={busy} onClick={()=>void remove(photo.id)} style={button}>Sí, eliminar</button> <button type="button" disabled={busy} onClick={()=>setPendingDelete(null)} style={button}>Volver</button></div>:<button type="button" disabled={busy} onClick={()=>setPendingDelete(photo.id)} style={{...button,color:'#FFC4B5',marginTop:8}}>Eliminar foto</button>)}
+            {canEdit&&(pendingDelete===photo.id?<div role="group" aria-label={t('newsConfirmDelete')}><p>{t('photoDeleteAsk')}</p><button type="button" disabled={busy} onClick={()=>void remove(photo.id)} style={button}>{t('newsYesDelete')}</button> <button type="button" disabled={busy} onClick={()=>setPendingDelete(null)} style={button}>{t('portalBack')}</button></div>:<button type="button" disabled={busy} onClick={()=>setPendingDelete(photo.id)} style={{...button,color:'#FFC4B5',marginTop:8}}>Eliminar foto</button>)}
           </div>
         </article>)}
       </div>
@@ -132,7 +132,7 @@ const NEWS_CATEGORIES:Record<string,string>={servicios:'Nuevos servicios',cuidad
 type NewsOption={id:string;label:string};
 const newsToday=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
 const newsDate=(date:string,locale='es-ES')=>new Intl.DateTimeFormat(locale,{day:'numeric',month:'long',year:'numeric',timeZone:'Europe/Madrid'}).format(new Date(date.slice(0,10)+'T12:00:00Z'));
-function newsState(item:studioApi.StudioNewsSummary){return item.status==='draft'?'Borrador':item.start_date&&item.start_date>newsToday()?'Programada':item.end_date&&item.end_date<newsToday()?'Finalizada':'Publicada';}
+function newsState(item:studioApi.StudioNewsSummary){return item.status==='draft'?'newsStateDraft':item.start_date&&item.start_date>newsToday()?'newsStateScheduled':item.end_date&&item.end_date<newsToday()?'newsStateEnded':'newsStatePublished';}
 const emptyNews=():studioApi.StudioNews=>({id:crypto.randomUUID(),title:'',summary:'',body:'',category:'studio',image_url:'',status:'draft',start_date:null,end_date:null,action:'none',service_id:null,created_at:'',updated_at:''});
 export function StudioNews({admin=false,serviceOptions=[],onService,promotionCards,t=(key)=>spanish[key],locale}:{t?:(key:string)=>string;locale?:string;admin?:boolean;serviceOptions?:NewsOption[];onService?:(id:string,action:'service'|'booking')=>void;promotionCards?:React.ReactNode}){
   const newsCategory=(category:studioApi.StudioNews['category'])=>admin?NEWS_CATEGORIES[category]:t(({servicios:'newsServices',cuidados:'newsCare',studio:'newsLife',avisos:'newsNotices'})[category]);
@@ -142,8 +142,8 @@ export function StudioNews({admin=false,serviceOptions=[],onService,promotionCar
   const [busy,setBusy]=useState(false),[writing,setWriting]=useState(false),[uploading,setUploading]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
   const mounted=useRef(false),generation=useRef(0),writeLock=useRef(false),photoLock=useRef(false);
   useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;generation.current++;};},[]);
-  const token=()=>{const t=studioApi.currentToken();if(!t)throw new Error('Vuelve a iniciar sesión para consultar las novedades.');return t;};
-  const report=(value:unknown)=>setError(value instanceof Error?value.message:'No se pudo completar la operación.');
+  const token=()=>{const value=studioApi.currentToken();if(!value)throw new Error(t('newsLoginAgain'));return value;};
+  const report=(value:unknown)=>setError(value instanceof Error?value.message:t('newsGenericError'));
   const load=async()=>{
     const request=++generation.current;setBusy(true);setError('');
     try{const data=await studioApi.fetchNews(token(),page,!admin&&view==='latest');if(mounted.current&&request===generation.current)setList(data);}
@@ -162,30 +162,30 @@ export function StudioNews({admin=false,serviceOptions=[],onService,promotionCar
   const change=(patch:Partial<studioApi.StudioNews>)=>setDraft(current=>current?{...current,...patch}:current);
   const save=async(event:React.FormEvent)=>{
     event.preventDefault();if(!draft||writeLock.current||photoLock.current)return;writeLock.current=true;setWriting(true);setError('');setMessage('');
-    try{const {item}=await studioApi.saveNews(token(),draft);if(!mounted.current)return;setDraft(item);setMessage(item.status==='draft'?'Borrador guardado. Solo se ve en intranet.':newsState(item)==='Programada'?'Publicación programada. Aparecerá en la fecha indicada.':newsState(item)==='Finalizada'?'Guardada fuera de las fechas de publicación. No se muestra en el portal.':'Publicación guardada. Ya está disponible en el portal.');await load();}
+    try{const {item}=await studioApi.saveNews(token(),draft);if(!mounted.current)return;setDraft(item);setMessage(item.status==='draft'?t('newsSavedDraft'):newsState(item)==='newsStateScheduled'?t('newsSavedScheduled'):newsState(item)==='newsStateEnded'?t('newsSavedOffRange'):t('newsSavedPublished'));await load();}
     catch(e){if(mounted.current)report(e);}
     finally{writeLock.current=false;if(mounted.current)setWriting(false);}
   };
   const remove=async(item:studioApi.StudioNewsSummary)=>{
     if(writeLock.current||photoLock.current)return;writeLock.current=true;setWriting(true);setError('');setMessage('');
-    try{await studioApi.deleteNews(token(),item.id,item.updated_at);if(!mounted.current)return;if(draft?.id===item.id)setDraft(null);setDeleting(null);setMessage('Publicación eliminada.');if(page>0&&list?.items.length===1)setPage(p=>p-1);else await load();}
+    try{await studioApi.deleteNews(token(),item.id,item.updated_at);if(!mounted.current)return;if(draft?.id===item.id)setDraft(null);setDeleting(null);setMessage(t('newsDeleted'));if(page>0&&list?.items.length===1)setPage(p=>p-1);else await load();}
     catch(e){if(mounted.current)report(e);}
     finally{writeLock.current=false;if(mounted.current)setWriting(false);}
   };
   const upload=async(file:File|undefined)=>{
     if(!file||!draft||writeLock.current||photoLock.current)return;photoLock.current=true;setUploading(true);setError('');setMessage('');const id=draft.id;
-    try{const prepared=await prepareCatalogImage(file,true);const result=await studioApi.uploadServiceImage(token(),prepared.dataUrl);await verifyCatalogPhotoUrl(result.url);if(mounted.current){setDraft(current=>current?.id===id?{...current,image_url:result.url}:current);setMessage('Foto preparada. Guarda la publicación para conservarla.');}}
+    try{const prepared=await prepareCatalogImage(file,true);const result=await studioApi.uploadServiceImage(token(),prepared.dataUrl);await verifyCatalogPhotoUrl(result.url);if(mounted.current){setDraft(current=>current?.id===id?{...current,image_url:result.url}:current);setMessage(t('newsPhotoReady'));}}
     catch(e){if(mounted.current)report(e);}
     finally{photoLock.current=false;if(mounted.current)setUploading(false);}
   };
   const article=(item:studioApi.StudioNews,forPreview=false)=><article className="lst-news-article">
     {item.image_url&&<img src={item.image_url} alt={item.title} loading="lazy" decoding="async" className="lst-news-cover"/>}
-    <div className="lst-news-inner"><small>{newsCategory(item.category)}</small><h3>{item.title||(admin?'Título de la novedad':t('portalNews'))}</h3><p className="lst-news-lead">{item.summary}</p><p className="lst-news-body">{item.body||(admin?'Aquí aparecerá el texto completo.':'')}</p>
+    <div className="lst-news-inner"><small>{newsCategory(item.category)}</small><h3>{item.title||(admin?t('newsTitleLabel'):t('portalNews'))}</h3><p className="lst-news-lead">{item.summary}</p><p className="lst-news-body">{item.body||(admin?t('newsBodyPlaceholder'):'')}</p>
       {item.action!=='none'&&item.service_id&&(forPreview||serviceOptions.some(s=>s.id===item.service_id))&&<button type="button" disabled={forPreview} className="lst-news-primary" onClick={()=>{if(!forPreview)onService?.(item.service_id!,item.action as 'service'|'booking');}}>{item.action==='booking'?t('chooseAndBook'):t('viewService')} <ArrowRight size={15}/></button>}
     </div></article>;
   // No empty placeholder or loading flash on the portal home. Keep all hooks above this return.
   if(!admin&&view==='latest'&&!error&&!promotionCards&&(!list||list.items.length===0))return null;
-  return <section className={`lst-news ${admin?'lst-news-admin':'lst-news-portal'}`} aria-label={admin?'El universo L’Studio':t('portalNews')}>
+  return <section className={`lst-news ${admin?'lst-news-admin':'lst-news-portal'}`} aria-label={admin?t('newsAdminHeading'):t('portalNews')}>
     <style>{`
       .lst-news{color:#302822;min-width:0;font-size:13px;line-height:1.6;overflow-wrap:anywhere}
       .lst-news *{box-sizing:border-box}.lst-news h2,.lst-news h3,.lst-news p{margin:0}.lst-news h2{font-family:Georgia,serif;font-size:23px;font-weight:400;color:#E4C687;line-height:1.3}.lst-news h3{font-family:Georgia,serif;font-size:21px;font-weight:400;color:#876431;line-height:1.3}
@@ -221,28 +221,28 @@ export function StudioNews({admin=false,serviceOptions=[],onService,promotionCar
       .lst-news-footer{display:flex;justify-content:flex-end;margin-top:3px}
       @media(max-width:420px){.lst-news-portal h2{font-size:20px}.lst-news-feature{min-height:245px}.lst-news-feature-content{padding:58px 18px 16px}.lst-news-feature-content>h3{font-size:23px}.lst-news-portal .lst-news-article .lst-news-inner{padding:18px}}
     `}</style>
-    <header className="lst-news-header"><div><h2>{admin?'El universo L’Studio':t('portalNews')}</h2><p className="lst-news-sub">{admin?'Novedades, inspiración y cuidados para tu cabello.':t('newsIntro')}</p></div><div className="lst-news-actions">
-      {admin&&<button type="button" disabled={writing||uploading||busy} className="lst-news-primary" onClick={()=>{setDraft(emptyNews());setPreview(false);setError('');setMessage('');setDeleting(null);}}>+ Nueva publicación</button>}
+    <header className="lst-news-header"><div><h2>{admin?t('newsAdminHeading'):t('portalNews')}</h2><p className="lst-news-sub">{admin?t('newsAdminIntro'):t('newsIntro')}</p></div><div className="lst-news-actions">
+      {admin&&<button type="button" disabled={writing||uploading||busy} className="lst-news-primary" onClick={()=>{setDraft(emptyNews());setPreview(false);setError('');setMessage('');setDeleting(null);}}>{t('newsNew')}</button>}
       {!admin&&view!=='latest'&&<button type="button" onClick={()=>{setDetail(null);setView(view==='detail'?'list':'latest');setPage(0);setError('');}}> <ArrowLeft size={15}/> {view==='detail'?t('portalNews'):t('backAction')}</button>}
-      {admin&&view!=='detail'&&<button type="button" disabled={busy||writing||uploading} onClick={()=>void load()} aria-label="Actualizar novedades">Actualizar</button>}
+      {admin&&view!=='detail'&&<button type="button" disabled={busy||writing||uploading} onClick={()=>void load()} aria-label={t('newsRefresh')}>{t('newsRefresh')}</button>}
     </div></header>
     {!admin&&view!=='detail'&&promotionCards}
 
     {error&&<div className="lst-news-error"><p role="alert">{admin||!locale||locale==='es-ES'?error:t('newsError')}</p>{!admin&&<button type="button" disabled={busy} onClick={()=>void load()}>{t('portalRetry')}</button>}</div>}{message&&<p role="status" className="lst-news-message">{message}</p>}
-    {admin&&draft&&<form onSubmit={save} className="lst-news-editor"><h3>{draft.updated_at?'Editar publicación':'Nueva publicación'}</h3><fieldset disabled={writing||uploading}>
-      <label>Título<input required maxLength={100} value={draft.title} onChange={e=>change({title:e.target.value})} placeholder="Una novedad para tu cabello"/></label>
-      <label>Resumen de la tarjeta<textarea required maxLength={240} rows={2} value={draft.summary} onChange={e=>change({summary:e.target.value})}/></label>
-      <label>Texto completo<textarea required maxLength={6000} rows={7} value={draft.body} onChange={e=>change({body:e.target.value})}/></label>
+    {admin&&draft&&<form onSubmit={save} className="lst-news-editor"><h3>{draft.updated_at?t('newsEdit'):t('newsNew')}</h3><fieldset disabled={writing||uploading}>
+      <label>{t('newsTitleLabel')}<input required maxLength={100} value={draft.title} onChange={e=>change({title:e.target.value})} placeholder={t('newsTitlePlaceholder')}/></label>
+      <label>{t('newsSummaryLabel')}<textarea required maxLength={240} rows={2} value={draft.summary} onChange={e=>change({summary:e.target.value})}/></label>
+      <label>{t('newsBodyLabel')}<textarea required maxLength={6000} rows={7} value={draft.body} onChange={e=>change({body:e.target.value})}/></label>
       <div className="lst-news-fields"><label>Sección<select value={draft.category} onChange={e=>change({category:e.target.value as studioApi.StudioNews['category']})}>{Object.entries(NEWS_CATEGORIES).map(([id,name])=><option key={id} value={id}>{name}</option>)}</select></label><label>Visibilidad<select value={draft.status} onChange={e=>change({status:e.target.value as 'draft'|'published'})}><option value="draft">Borrador · solo intranet</option><option value="published">Publicar en el portal</option></select></label></div>
-      <div className="lst-news-fields"><label>Publicar desde (opcional)<input type="date" value={draft.start_date||''} onChange={e=>change({start_date:e.target.value||null})}/></label><label>Mostrar hasta (opcional)<input type="date" min={draft.start_date||undefined} value={draft.end_date||''} onChange={e=>change({end_date:e.target.value||null})}/></label></div>
-      <small>Las fechas siguen el horario de Elche. La fecha final está incluida. Sin fechas, una publicación activa se muestra hasta que la retires.</small>
-      <label>Foto pública de la novedad (opcional)<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{const file=e.target.files?.[0];e.target.value='';void upload(file);}}/></label>
-      {draft.image_url&&<div className="lst-news-actions"><img src={draft.image_url} alt="Foto elegida" style={{width:120,height:85,objectFit:'cover',borderRadius:8}}/><button type="button" onClick={()=>change({image_url:''})}>Quitar de la publicación</button></div>}
-      <div className="lst-news-fields"><label>Botón al final<select value={draft.action} onChange={e=>change({action:e.target.value as studioApi.StudioNews['action'],service_id:e.target.value==='none'?null:draft.service_id})}><option value="none">Sin botón</option><option value="service">Ver servicio</option><option value="booking">Elegir y reservar</option></select></label>
-      {draft.action!=='none'&&<label>Servicio del botón<select required value={draft.service_id||''} onChange={e=>change({service_id:e.target.value||null})}><option value="">Selecciona un servicio</option>{draft.service_id&&!serviceOptions.some(s=>s.id===draft.service_id)&&<option value={draft.service_id}>Servicio no disponible · elige otro</option>}{serviceOptions.map(s=><option key={s.id} value={s.id}>{s.label}</option>)}</select></label>}</div>
-      {draft.action==='booking'&&<small>El botón abre la ficha del servicio para elegir sus opciones y complementos antes de reservar.</small>}
-      <div className="lst-news-actions"><button type="submit" className="lst-news-primary">{writing?'Guardando…':draft.status==='draft'?'Guardar borrador':'Guardar publicación'}</button><button type="button" onClick={()=>setPreview(v=>!v)}>{preview?'Ocultar vista previa':'Vista previa'}</button><button type="button" onClick={()=>{setDraft(null);setPreview(false);setMessage('');}}>Cerrar editor</button></div>
-    </fieldset>{uploading&&<p role="status">Optimizando y preparando la foto…</p>}{preview&&<div className="lst-news-preview"><small>Vista previa del portal</small>{article(draft,true)}</div>}</form>}
+      <div className="lst-news-fields"><label>{t('newsStartLabel')}<input type="date" value={draft.start_date||''} onChange={e=>change({start_date:e.target.value||null})}/></label><label>{t('newsEndLabel')}<input type="date" min={draft.start_date||undefined} value={draft.end_date||''} onChange={e=>change({end_date:e.target.value||null})}/></label></div>
+      <small>{t('newsDatesHelp')}</small>
+      <label>{t('newsImageLabel')}<input type="file" accept="image/jpeg,image/png,image/webp" onChange={e=>{const file=e.target.files?.[0];e.target.value='';void upload(file);}}/></label>
+      {draft.image_url&&<div className="lst-news-actions"><img src={draft.image_url} alt={t('newsImageChosen')} style={{width:120,height:85,objectFit:'cover',borderRadius:8}}/><button type="button" onClick={()=>change({image_url:''})}>{t('newsImageRemove')}</button></div>}
+      <div className="lst-news-fields"><label>{t('newsButtonHead')}<select value={draft.action} onChange={e=>change({action:e.target.value as studioApi.StudioNews['action'],service_id:e.target.value==='none'?null:draft.service_id})}><option value="none">{t('newsButtonNone')}</option><option value="service">{t('newsButtonView')}</option><option value="booking">{t('newsButtonBook')}</option></select></label>
+      {draft.action!=='none'&&<label>Servicio del botón<select required value={draft.service_id||''} onChange={e=>change({service_id:e.target.value||null})}><option value="">{t('newsButtonSelect')}</option>{draft.service_id&&!serviceOptions.some(s=>s.id===draft.service_id)&&<option value={draft.service_id}>{t('newsButtonMissing')}</option>}{serviceOptions.map(s=><option key={s.id} value={s.id}>{s.label}</option>)}</select></label>}</div>
+      {draft.action==='booking'&&<small>{t('newsButtonHelp')}</small>}
+      <div className="lst-news-actions"><button type="submit" className="lst-news-primary">{writing?t('portalSaving'):draft.status==='draft'?t('newsSaveDraft'):t('newsSavePublish')}</button><button type="button" onClick={()=>setPreview(v=>!v)}>{preview?t('newsHidePreview'):t('newsPreview')}</button><button type="button" onClick={()=>{setDraft(null);setPreview(false);setMessage('');}}>{t('newsCloseEditor')}</button></div>
+    </fieldset>{uploading&&<p role="status">{t('newsPreparingPhoto')}</p>}{preview&&<div className="lst-news-preview"><small>{t('newsPortalPreview')}</small>{article(draft,true)}</div>}</form>}
     {busy&&<p role="status" className="lst-news-status">{t('portalLoading')}</p>}
     {view==='detail'&&detail?article(detail):!admin&&view==='latest'?<>
       {list?.items.slice(0,1).map(item=><article key={item.id} className="lst-news-feature">
@@ -253,11 +253,11 @@ export function StudioNews({admin=false,serviceOptions=[],onService,promotionCar
       </article>)}
       {!!list?.total&&<div className="lst-news-footer"><button type="button" onClick={()=>{setPage(0);setView('list');}}>{t('newsAll')} <ArrowRight size={14}/></button></div>}
     </>:<>
-      {!busy&&list?.items.length===0&&<p className="lst-news-empty">{admin?'Todavía no hay publicaciones. Crea la primera novedad del estudio.':t('newsEmpty')}</p>}
+      {!busy&&list?.items.length===0&&<p className="lst-news-empty">{admin?t('newsAdminEmpty'):t('newsEmpty')}</p>}
       <div className="lst-news-grid">{list?.items.map(item=><article key={item.id} className="lst-news-card">
-        {item.image_url&&<img src={item.image_url} alt={item.title} loading="lazy" decoding="async" className="lst-news-cover"/>}<div className="lst-news-inner"><small>{newsCategory(item.category)}{admin?' · '+newsState(item):''}</small><h3>{item.title}</h3><p className="lst-news-lead">{item.summary}</p><small>{newsDate(item.start_date||item.created_at,locale)}</small>
-        <div className="lst-news-actions"><button type="button" disabled={busy||writing||uploading} onClick={()=>void open(item.id,admin)}>{admin?'Editar':t('newsRead')} <ArrowRight size={14}/></button>{admin&&<button type="button" disabled={writing||uploading||busy} onClick={()=>setDeleting(deleting===item.id?null:item.id)}>Eliminar</button>}</div>
-        {admin&&deleting===item.id&&<div role="group" aria-label="Confirmar eliminación"><p>¿Eliminar esta publicación del estudio?</p><div className="lst-news-actions"><button type="button" disabled={writing||uploading} onClick={()=>void remove(item)}>Sí, eliminar</button><button type="button" disabled={writing} onClick={()=>setDeleting(null)}>Conservar</button></div></div>}
+        {item.image_url&&<img src={item.image_url} alt={item.title} loading="lazy" decoding="async" className="lst-news-cover"/>}<div className="lst-news-inner"><small>{newsCategory(item.category)}{admin?' · '+t(newsState(item)):''}</small><h3>{item.title}</h3><p className="lst-news-lead">{item.summary}</p><small>{newsDate(item.start_date||item.created_at,locale)}</small>
+        <div className="lst-news-actions"><button type="button" disabled={busy||writing||uploading} onClick={()=>void open(item.id,admin)}>{admin?t('newsEdit'):t('newsRead')} <ArrowRight size={14}/></button>{admin&&<button type="button" disabled={writing||uploading||busy} onClick={()=>setDeleting(deleting===item.id?null:item.id)}>Eliminar</button>}</div>
+        {admin&&deleting===item.id&&<div role="group" aria-label={t('newsConfirmDelete')}><p>{t('newsDeleteAsk')}</p><div className="lst-news-actions"><button type="button" disabled={writing||uploading} onClick={()=>void remove(item)}>{t('newsYesDelete')}</button><button type="button" disabled={writing} onClick={()=>setDeleting(null)}>{t('newsKeep')}</button></div></div>}
       </div></article>)}</div>
       {view==='list'&&list&&list.total>8&&<div className="lst-news-pagination"><button type="button" disabled={page===0||busy||writing||uploading} onClick={()=>setPage(p=>p-1)}>{t('portalPrevious')}</button><span>{page+1} / {Math.max(1,Math.ceil(list.total/8))}</span><button type="button" disabled={(page+1)*8>=list.total||busy||writing||uploading} onClick={()=>setPage(p=>p+1)}>{t('portalNext')}</button></div>}
     </>}
@@ -336,12 +336,13 @@ function VoucherVisual({productId,logoSrc}:{productId:string;logoSrc?:string}){
  return <div className="vl-visual">{!failed&&<img className="vl-photo" src={'/voucher-images/'+art.image} alt={art.alt} loading="lazy" decoding="async" style={{objectPosition:art.position}} onError={()=>setFailed(true)}/>}<div className="vl-photo-shade"/><div className="vl-logo"><GiftCardBrand logoSrc={logoSrc}/></div><span className="vl-eyebrow">{art.eyebrow}</span></div>;
 }
 
-export function VoucherHub(props:{logoSrc?:string;services:VoucherServiceOption[];onReserve?:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void}){
+export function VoucherHub(props:{logoSrc?:string;services:VoucherServiceOption[];onReserve?:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void;t?:(key:string)=>string}){
  const [opened,setOpened]=useState(false);
- return <section className="lst-bonos"><VoucherStyles/><button type="button" className="vb-entry" aria-expanded={opened} onClick={()=>setOpened(v=>!v)}><span><strong>Tarjetas regalo y bonos</strong><small>Regala cuidado. Reserva tu próximo ritual.</small></span><Sparkles size={21}/></button>{opened&&<VoucherPanel logoSrc={props.logoSrc} services={props.services} onReserve={props.onReserve}/>}</section>;
+ const t=props.t||(key=>spanish[key]);return <section className="lst-bonos"><VoucherStyles/><button type="button" className="vb-entry" aria-expanded={opened} onClick={()=>setOpened(v=>!v)}><span><strong>{t('voucherAdminHeading')}</strong><small>{t('voucherHubSub')}</small></span><Sparkles size={21}/></button>{opened&&<VoucherPanel logoSrc={props.logoSrc} services={props.services} onReserve={props.onReserve} t={t}/>}</section>;
 }
 function portalVoucherIsActive(v:studioApi.StudioVoucher){return v.status==='active'&&(!v.expires_on||v.expires_on>=voucherToday())&&(voucherAvailable(v)>0||v.held_cents>0||v.held_sessions>0);}
-export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoSrc}:{admin?:boolean;logoSrc?:string;services:VoucherServiceOption[];clients?:VoucherClientOption[];onReserve?:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void}){
+export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoSrc,t=undefined as unknown as (key:string)=>string|undefined}:{admin?:boolean;logoSrc?:string;services:VoucherServiceOption[];clients?:VoucherClientOption[];onReserve?:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void;t?:(key:string)=>string}){
+ const t=t||(key=>spanish[key]);
  const [data,setData]=useState<studioApi.VoucherPage|null>(null),[page,setPage]=useState(0),[client,setClient]=useState('');
  const [busy,setBusy]=useState(false),[writing,setWriting]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
  const [pendingDelete,setPendingDelete]=useState<string|null>(null);
@@ -351,9 +352,9 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
  const [config,setConfig]=useState<Record<string,string[]>>({}),[reserveId,setReserveId]=useState<string|null>(null),[pendingCancel,setPendingCancel]=useState<string|null>(null);
  const lock=useRef(false),mounted=useRef(false),gen=useRef(0),attempt=useRef<{key:string;id:string}|null>(null);
  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;gen.current++;};},[]);
- const load=async()=>{const request=++gen.current;setBusy(true);setError('');try{const result=await studioApi.fetchVouchers(voucherToken(),admin?client||undefined:undefined,page);if(mounted.current&&request===gen.current){setData(result);setConfig(Object.fromEntries(result.products.map(p=>[p.id,p.service_ids])));}}catch(e){if(mounted.current&&request===gen.current)setError(e instanceof Error?e.message:'No se pudieron cargar los bonos.');}finally{if(mounted.current&&request===gen.current)setBusy(false);}};
+ const load=async()=>{const request=++gen.current;setBusy(true);setError('');try{const result=await studioApi.fetchVouchers(voucherToken(),admin?client||undefined:undefined,page);if(mounted.current&&request===gen.current){setData(result);setConfig(Object.fromEntries(result.products.map(p=>[p.id,p.service_ids])));}}catch(e){if(mounted.current&&request===gen.current)setError(e instanceof Error?e.message:t('voucherLoadError'));}finally{if(mounted.current&&request===gen.current)setBusy(false);}};
  useEffect(()=>{void load();},[page,client,admin]);
- const act=async(action:()=>Promise<unknown>,success:string)=>{if(lock.current)return;lock.current=true;setWriting(true);setError('');setMessage('');try{await action();if(mounted.current){setMessage(success);setConfirming(null);setChecked(false);setPendingCancel(null);await load();}}catch(e){if(mounted.current)setError(e instanceof Error?e.message:'No se pudo completar la operación.');}finally{lock.current=false;if(mounted.current)setWriting(false);}};
+ const act=async(action:()=>Promise<unknown>,success:string)=>{if(lock.current)return;lock.current=true;setWriting(true);setError('');setMessage('');try{await action();if(mounted.current){setMessage(success);setConfirming(null);setChecked(false);setPendingCancel(null);await load();}}catch(e){if(mounted.current)setError(e instanceof Error?e.message:t('voucherGenericError'));}finally{lock.current=false;if(mounted.current)setWriting(false);}};
  const [checkoutProduct,setCheckoutProduct]=useState<studioApi.VoucherProduct|null>(null),[checkoutOrder,setCheckoutOrder]=useState<studioApi.VoucherCheckout|null>(null);
  const [purchaseError,setPurchaseError]=useState(''),[purchaseInfo,setPurchaseInfo]=useState(''),[recipient,setRecipient]=useState('');
  const checkoutRef=useRef<HTMLDivElement|null>(null),checkoutHeading=useRef<HTMLHeadingElement|null>(null),checkoutTrigger=useRef<HTMLElement|null>(null);
@@ -380,34 +381,34 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
  const closePurchase=()=>{if(lock.current)return;setCheckoutProduct(null);setCheckoutOrder(null);setPurchaseError('');setPurchaseInfo('');};
  const submitPurchase=async(event:React.FormEvent)=>{
   event.preventDefault();if(!checkoutProduct||lock.current)return;
-  if(admin&&!client){setPurchaseError('Selecciona la clienta a la que asignarás esta compra.');return;}
+  if(admin&&!client){setPurchaseError(t('voucherSelectClient'));return;}
   const savedDedication=checkoutProduct.kind==='gift'?[recipient.trim()?'Para '+recipient.trim():'',dedication.trim()].filter(Boolean).join('\n\n'):'';
-  if(savedDedication.length>300){setPurchaseError('La dedicatoria completa debe tener un máximo de 300 caracteres.');return;}
+  if(savedDedication.length>300){setPurchaseError(t('voucherDedicationLong'));return;}
   const key=JSON.stringify([client,checkoutProduct.id,savedDedication]);
   if(attempt.current?.key!==key)attempt.current={key,id:crypto.randomUUID()};
   const requestId=attempt.current.id;
   lock.current=true;setWriting(true);setPurchaseError('');setPurchaseInfo('');
   try{
    const result=await studioApi.orderVoucher(voucherToken(),{id:requestId,productId:checkoutProduct.id,clientId:admin?client:undefined,dedication:savedDedication});
-   if(!result.checkout||!result.checkout.paymentReference||!result.checkout.bizumNumber)throw new Error('La solicitud puede haberse guardado. Actualiza studio-api con el archivo de este paquete y pulsa Continuar de nuevo para recuperarla.');
+   if(!result.checkout||!result.checkout.paymentReference||!result.checkout.bizumNumber)throw new Error(t('voucherRecoverable'));
    if(!mounted.current)return;
    setCheckoutOrder(result.checkout);attempt.current=null;
-   setPurchaseInfo(result.checkout.status==='pending'?'Solicitud guardada. Completa el Bizum con estos datos.':result.checkout.status==='active'?'Esta compra ya está activada. Puedes consultarla en tus tarjetas y bonos.':'Esta solicitud está anulada. Puedes volver al listado para preparar una nueva.');
+   setPurchaseInfo(result.checkout.status==='pending'?t('voucherSavedBizum'):result.checkout.status==='active'?t('voucherAlreadyActive'):t('voucherCancelled'));
    await load();
-  }catch(e){if(mounted.current)setPurchaseError(e instanceof Error?e.message:'No se pudo preparar la compra. Conservamos tus datos para reintentar.');}
+  }catch(e){if(mounted.current)setPurchaseError(e instanceof Error?e.message:t('voucherPrepareError'));}
   finally{lock.current=false;if(mounted.current)setWriting(false);}
  };
  const reportPurchasePayment=async()=>{
   if(!checkoutOrder||checkoutOrder.status!=='pending'||lock.current)return;
   lock.current=true;setWriting(true);setPurchaseError('');
-  try{await studioApi.reportVoucherPayment(voucherToken(),checkoutOrder.id);if(mounted.current){setCheckoutOrder(order=>order?{...order,paymentReported:true}:order);setPurchaseInfo('Has comunicado el Bizum. El estudio activará la compra después de comprobar el ingreso.');await load();}}
-  catch(e){if(mounted.current)setPurchaseError(e instanceof Error?e.message:'No se pudo comunicar el pago. Puedes reintentarlo.');}
+  try{await studioApi.reportVoucherPayment(voucherToken(),checkoutOrder.id);if(mounted.current){setCheckoutOrder(order=>order?{...order,paymentReported:true}:order);setPurchaseInfo(t('voucherBizumSent'));await load();}}
+  catch(e){if(mounted.current)setPurchaseError(e instanceof Error?e.message:t('voucherPayError'));}
   finally{lock.current=false;if(mounted.current)setWriting(false);}
  };
- const copyPurchase=async(text:string)=>{try{await navigator.clipboard.writeText(text);setPurchaseInfo('Dato copiado.');}catch{setPurchaseInfo('Selecciona el dato mostrado para copiarlo manualmente.');}};
- const copy=async(text:string)=>{try{await navigator.clipboard.writeText(text);setMessage('Código copiado.');}catch{setMessage('Selecciona el código mostrado para copiarlo manualmente.');}};
- return <section className={admin?'lst-bonos':'lst-bonos vpc-compact'}><VoucherStyles/><header className="vb-header"><div><h2>{admin?'Tarjetas regalo y bonos':'Bonos y tarjetas'}</h2><small>{admin?'Compras, cobros y sesiones del estudio.':''}</small></div><button type="button" disabled={busy||writing} onClick={()=>void load()}>Actualizar</button></header>
-  {error&&<p role="alert" className="vb-error">{error}</p>}{message&&<p role="status" className="vb-message">{message}</p>}{busy&&<p role="status">Consultando tus bonos…</p>}
+ const copyPurchase=async(text:string)=>{try{await navigator.clipboard.writeText(text);setPurchaseInfo(t('voucherCopied'));}catch{setPurchaseInfo(t('voucherCopyManual'));}};
+ const copy=async(text:string)=>{try{await navigator.clipboard.writeText(text);setMessage(t('voucherCodeCopied'));}catch{setMessage(t('voucherCodeCopyManual'));}};
+ return <section className={admin?'lst-bonos':'lst-bonos vpc-compact'}><VoucherStyles/><header className="vb-header"><div><h2>{admin?t('voucherAdminHeading'):t('voucherHeading')}</h2><small>{admin?t('voucherAdminSub'):''}</small></div><button type="button" disabled={busy||writing} onClick={()=>void load()}>{t('portalRefresh')}</button></header>
+  {error&&<p role="alert" className="vb-error">{error}</p>}{message&&<p role="status" className="vb-message">{message}</p>}{busy&&<p role="status">{t('voucherLoading')}</p>}
   {admin&&<label>Clienta · filtrar y emitir<select disabled={writing} value={client} onChange={e=>{setClient(e.target.value);setPage(0);}}><option value="">Todas · elige una para emitir</option>{clients.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</select></label>}
   {admin&&data&&<details className="vb-panel"><summary>Servicios incluidos en los bonos 5×4</summary><p className="vb-note">Elige por categoría y nombre. Para incluirlo debe estar activo y tener precio fijo de {voucherMoney(3800)} en intensivos o {voucherMoney(2000)} en caballero. Los servicios que no cumplen aparecen con el motivo para que puedas revisarlos en Catálogo.</p>{data.products.filter(p=>p.kind==='sessions').map(p=>{
     const match=(s:VoucherServiceOption)=>s.active&&(s.price===p.unit_cents/100||s.variantPrices.includes(p.unit_cents/100));
@@ -419,41 +420,41 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
       return <label className="vb-check" key={s.id} style={{alignItems:'flex-start',padding:'10px 3px',borderBottom:'1px solid rgba(195,161,106,.18)'}}><input type="checkbox" disabled={writing||(!eligible&&!checked)} checked={checked} onChange={e=>setConfig(current=>({...current,[p.id]:e.target.checked?[...(current[p.id]||[]),s.id]:(current[p.id]||[]).filter(id=>id!==s.id)}))}/><span style={{display:'grid',gap:3}}><small style={{color:'#DDC49B',fontSize:10,letterSpacing:'.05em'}}>{s.category}</small><strong style={{fontSize:12,fontWeight:500}}>{s.label}</strong>{normal(s.portalName)!==normal(s.label)&&<small>En el portal: {s.portalName}</small>}<small>{s.displayPrice||'Precio sin indicar'}</small>{!eligible&&<small style={{color:'#E4B99A'}}>{!s.active?'Inactivo: actívalo en Catálogo para ofrecerlo en el portal.':'Revisa en Catálogo: necesita precio fijo de '+voucherMoney(p.unit_cents)+' o una variante de ese importe.'}</small>}</span></label>;
     })}</div>{options.length===0&&<p className="vb-note">No hay coincidencias. Prueba con la categoría o el nombre que aparece en el catálogo.</p>}<button type="button" disabled={writing} onClick={()=>void act(()=>studioApi.configureVoucher(voucherToken(),p.id,config[p.id]||[]),'Servicios incluidos guardados.')}>Guardar servicios de este bono</button></div>;
   })}</details>}
-  {(['gift','sessions'] as const).map(kind=><details key={kind} className="vb-panel"><summary>{!admin&&(kind==='gift'?<VoucherGiftIcon size={20} strokeWidth={1.5} aria-hidden="true"/>:<VoucherTicketIcon size={20} strokeWidth={1.5} aria-hidden="true"/>)}{kind==='gift'?(admin?'Preparar tarjeta regalo':'Regalar una experiencia'):(admin?'Preparar bono 5×4':'Bonos de sesiones')}</summary><h3>{kind==='gift'?'El arte de regalar L’Studio':'Tu ritual, con continuidad'}</h3><p className="vb-note">{kind==='gift'?'50 € o 100 € para elegir una experiencia.':'Corte caballero y tratamientos intensivos · 5 sesiones por el precio de 4.'}</p><div className="vb-grid">{data?.products.filter(p=>p.kind===kind).map(p=>{
+  {(['gift','sessions'] as const).map(kind=><details key={kind} className="vb-panel"><summary>{!admin&&(kind==='gift'?<VoucherGiftIcon size={20} strokeWidth={1.5} aria-hidden="true"/>:<VoucherTicketIcon size={20} strokeWidth={1.5} aria-hidden="true"/>)}{kind==='gift'?(admin?t('voucherGiftCta'):t('voucherGiftExperience')):(admin?t('voucherSessionsCta'):t('voucherSessionsHeading'))}</summary><h3>{kind==='gift'?t('voucherGiftEyebrow'):t('voucherSessionsEyebrow')}</h3><p className="vb-note">{kind==='gift'?t('voucherGiftIntro'):t('voucherSessionsIntro')}</p><div className="vb-grid">{data?.products.filter(p=>p.kind===kind).map(p=>{
     const ready=p.enabled&&(p.kind==='gift'||p.service_ids.length>0)&&!!data.bizumNumber;
     const art=VOUCHER_ART[p.id]||VOUCHER_ART.gift50;
     return <article key={p.id} className={'vb-card vl-card vl-'+p.id+(p.kind==='gift'?' vb-gift':'')}>
-      <VoucherVisual productId={p.id} logoSrc={logoSrc}/><small className="vb-kicker">{p.kind==='gift'?'Tarjeta regalo':'Bono de sesiones · 5×4'}</small>
-      <h3>{p.kind==='gift'?'Regala L’Studio':p.id==='men5'?'Corte caballero':'Tratamientos intensivos'}</h3>
+      <VoucherVisual productId={p.id} logoSrc={logoSrc}/><small className="vb-kicker">{p.kind==='gift'?t('voucherKindGift'):t('voucherKindSessions')}</small>
+      <h3>{p.kind==='gift'?t('voucherGiftBrand'):p.id==='men5'?t('voucherMen'):t('voucherIntensive')}</h3>
       <strong className="vb-amount">{(p.price_cents/100).toLocaleString('es-ES')} €</strong><p className="vl-description">{art.description}</p>
-      <div className="vl-benefits"><span>{p.kind==='gift'?'Saldo para elegir':'5 sesiones · pagas 4'}</span><span>{p.valid_months===12?'1 año de validez':'6 meses de validez'}</span></div>
-      {p.kind==='sessions'&&<small>Una sesión por cita. Complementos aparte. No acumulable a otra promoción.</small>}
-      <button type="button" className="vl-cta" disabled={!ready||writing||busy} onClick={()=>openPurchase(p)}>{ready?(p.kind==='gift'?(admin?'Preparar tarjeta regalo':'Regalar esta experiencia'):(admin?'Preparar bono':'Elegir mi bono')):'Consultar disponibilidad'}<ArrowRight size={15} aria-hidden="true"/></button><small className="vl-pay-note">Pago por Bizum · activación al comprobar el ingreso.</small>
+      <div className="vl-benefits"><span>{p.kind==='gift'?t('voucherBalance'):t('voucherFiveSessions')}</span><span>{p.valid_months===12?t('voucherValidity12'):t('voucherValidity6')}</span></div>
+      {p.kind==='sessions'&&<small>{t('voucherSessionsRule')}</small>}
+      <button type="button" className="vl-cta" disabled={!ready||writing||busy} onClick={()=>openPurchase(p)}>{ready?(p.kind==='gift'?(admin?t('voucherGiftCta'):t('voucherGiftCta2')):(admin?t('voucherPrepareBono'):t('voucherChooseBono'))):t('voucherCheckAvailability')}<ArrowRight size={15} aria-hidden="true"/></button><small className="vl-pay-note">{t('voucherBizumNote')}</small>
     </article>;
   })}</div></details>)}
-  {!admin&&<details className="vb-panel"><summary><VoucherPlusIcon size={20} strokeWidth={1.5} aria-hidden="true"/>Añadir tarjeta regalo</summary><label>Código completo<input autoComplete="off" maxLength={35} placeholder="LS-…" value={code} disabled={writing} onChange={e=>setCode(e.target.value.toUpperCase())}/></label><small>Una tarjeta activa y sin uso puede asignarse una vez a quien la recibe. Al añadirla, quedará en tu perfil.</small><button type="button" disabled={writing||!code.trim()} onClick={()=>void act(async()=>{await studioApi.claimGiftVoucher(voucherToken(),code);setCode('');},'Tarjeta regalo añadida a tu perfil.')}>Añadir mi tarjeta regalo</button></details>}
-{!admin&&<GiftPurchaseReceipts refreshKey={data}/>}
-  {!busy&&data?.vouchers.length===0&&<p className={admin?'vb-note':'vb-note vpc-empty'}>{admin?'No hay tarjetas ni bonos para esta selección.':'Todavía no tienes bonos ni tarjetas.'}</p>}
+  {!admin&&<details className="vb-panel"><summary><VoucherPlusIcon size={20} strokeWidth={1.5} aria-hidden="true"/>{t('voucherAddGift')}</summary><label>{t('voucherCodeLabel')}<input autoComplete="off" maxLength={35} placeholder={t('voucherCodePlaceholder')} value={code} disabled={writing} onChange={e=>setCode(e.target.value.toUpperCase())}/></label><small>{t('voucherCodeHelp')}</small><button type="button" disabled={writing||!code.trim()} onClick={()=>void act(async()=>{await studioApi.claimGiftVoucher(voucherToken(),code);setCode('');},t('voucherClaimed'))}>{t('voucherClaimCta')}</button></details>}
+{!admin&&<GiftPurchaseReceipts refreshKey={data} t={t}/>}
+  {!busy&&data?.vouchers.length===0&&<p className={admin?'vb-note':'vb-note vpc-empty'}>{admin?t('voucherEmptyFiltered'):t('voucherEmptyAll')}</p>}
   {(admin?[null]:[true,false]).flatMap(onlyActive=>(['gift','sessions'] as const).map(kind=>{
     const group=data?.vouchers.filter(v=>v.kind===kind&&(admin||portalVoucherIsActive(v)===onlyActive))||[];
     if(!group.length)return null;
-    return <section key={kind+'-'+String(onlyActive)} className="vpc-wallet-group" data-wallet-active={onlyActive===true?'true':'false'}><h3 className="vb-wallet-heading">{kind==='gift'?(admin?'Tarjetas regalo registradas':onlyActive?'Mis tarjetas regalo':'Otras tarjetas regalo'):(admin?'Bonos de sesiones registrados':onlyActive?'Mis bonos de sesiones':'Otros bonos de sesiones')}</h3>
-<div className="vb-grid">{group.map(v=>{const expired=!!v.expires_on&&v.expires_on<voucherToday(),available=voucherAvailable(v);const label=v.status==='pending'?'Pendiente de comprobar Bizum':v.status==='cancelled'?'Solicitud cancelada':expired?'Caducado':available<=0?'Sin disponibilidad':v.kind==='gift'?'Tarjeta activa':'Bono activo';return <article key={v.id} className={'vb-card vl-card vl-owned vl-'+v.product_id+(v.kind==='gift'?' vb-gift':'')}><VoucherVisual productId={v.product_id} logoSrc={logoSrc}/>
-   <small className="vb-kicker">L’STUDIO ANA · {label}</small><h3>{voucherDisplayTitle(v)}</h3>{admin&&(v.kind==='gift'?<GiftRecipientAdmin voucher={v} clients={clients} disabled={writing||busy} run={act}/>:<small>{clients.find(c=>c.id===v.client_id)?.label||'Ficha registrada'}</small>)}
-   {v.status!=='active'?<p style={{fontSize:12}}>{v.status==='cancelled'?'Solicitud anulada · sin saldo ni sesiones activadas.':'El saldo o las sesiones se activarán al confirmar el pago.'}</p>:(v.kind==='gift'?<><strong className="vb-amount">{voucherMoney(Math.max(0,v.price_cents-v.used_cents))}</strong><small>Saldo sin consumir{v.held_cents>0?` · ${voucherMoney(v.held_cents)} apartado para citas`:''}</small></>:<><div className="vb-dots" aria-label={`${v.used_sessions} usadas, ${v.held_sessions} reservadas, ${Math.max(0,available)} disponibles`}>{Array.from({length:v.sessions},(_,i)=><span key={i} aria-hidden="true" className={'vb-dot '+(i<v.used_sessions?'used':i<v.used_sessions+v.held_sessions?'held':'')}/>)}</div><p>{v.used_sessions} de {v.sessions} realizadas · {v.held_sessions} reservadas</p><small>{Math.max(0,available)} sesiones disponibles para reservar.</small></>)}
+    return <section key={kind+'-'+String(onlyActive)} className="vpc-wallet-group" data-wallet-active={onlyActive===true?'true':'false'}><h3 className="vb-wallet-heading">{kind==='gift'?(admin?t('voucherGiftsRegistered'):onlyActive?t('voucherMyGifts'):t('voucherOtherGifts')):(admin?t('voucherSessionsRegistered'):onlyActive?t('voucherMySessions'):t('voucherOtherSessions'))}</h3>
+<div className="vb-grid">{group.map(v=>{const expired=!!v.expires_on&&v.expires_on<voucherToday(),available=voucherAvailable(v);const label=v.status==='pending'?t('voucherPendingBizum'):v.status==='cancelled'?t('voucherRequestCancelled'):expired?t('voucherExpired'):available<=0?t('voucherNoAvailability'):v.kind==='gift'?t('voucherCardActive'):t('voucherCardActiveSessions');return <article key={v.id} className={'vb-card vl-card vl-owned vl-'+v.product_id+(v.kind==='gift'?' vb-gift':'')}><VoucherVisual productId={v.product_id} logoSrc={logoSrc}/>
+   <small className="vb-kicker">L’STUDIO ANA · {label}</small><h3>{voucherDisplayTitle(v)}</h3>{admin&&(v.kind==='gift'?<GiftRecipientAdmin voucher={v} clients={clients} disabled={writing||busy} run={act}/>:<small>{clients.find(c=>c.id===v.client_id)?.label||t('giftRegistered')}</small>)}
+   {v.status!=='active'?<p style={{fontSize:12}}>{v.status==='cancelled'?t('voucherCancelledNoBalance'):t('voucherActivateOnPayment')}</p>:(v.kind==='gift'?<><strong className="vb-amount">{voucherMoney(Math.max(0,v.price_cents-v.used_cents))}</strong><small>{t('voucherBalanceLeft')}{v.held_cents>0?' · '+t('voucherHeldForAppointments').replace('{amount}',voucherMoney(v.held_cents)):''}</small></>:<><div className="vb-dots" aria-label={t('voucherDotsAria').replace('{used}',String(v.used_sessions)).replace('{held}',String(v.held_sessions)).replace('{available}',String(Math.max(0,available)))}>{Array.from({length:v.sessions},(_,i)=><span key={i} aria-hidden="true" className={'vb-dot '+(i<v.used_sessions?'used':i<v.used_sessions+v.held_sessions?'held':'')}/>)}</div><p>{t('voucherSessionsDone').replace('{used}',String(v.used_sessions)).replace('{total}',String(v.sessions)).replace('{held}',String(v.held_sessions))}</p><small>{t('voucherSessionsAvailability').replace('{count}',String(Math.max(0,available)))}</small></>)}
    {v.dedication&&<p style={{fontStyle:'italic',fontSize:12}}>{v.dedication}</p>}
-   {v.status==='pending'&&<><p>Importe: <strong>{voucherMoney(v.price_cents)}</strong></p><p>Bizum: <strong>{data.bizumNumber}</strong></p><p>Concepto: <strong>{v.payment_reference}</strong></p>{v.payment_reported_at&&<small>Pago comunicado · pendiente de comprobar el ingreso.</small>}
-     <div className="vb-actions">{!admin&&<button type="button" disabled={writing} onClick={()=>void act(()=>studioApi.reportVoucherPayment(voucherToken(),v.id),'Aviso enviado al estudio. El bono se activará cuando se compruebe el ingreso.')}>Ya he hecho el Bizum</button>}{admin&&<button type="button" disabled={writing} onClick={()=>{setConfirming(v.id);setAmount((v.price_cents/100).toFixed(2));setChecked(false);}}>Comprobar y activar</button>}<button type="button" disabled={writing} onClick={()=>setPendingCancel(p=>p===v.id?null:v.id)}>Cancelar solicitud</button></div>
-     {pendingCancel===v.id&&<div><p>Si ya has enviado el Bizum, contacta con el estudio antes de cancelar.</p><button type="button" disabled={writing} onClick={()=>void act(()=>studioApi.cancelVoucherOrder(voucherToken(),v.id),'Solicitud cancelada. No se ha realizado ningún reembolso automático.')}>Confirmar cancelación</button></div>}
-     {admin&&confirming===v.id&&<div><label>Importe recibido en euros<input type="number" min="0" step="0.01" value={amount} disabled={writing} onChange={e=>setAmount(e.target.value)}/></label><label className="vb-check"><input type="checkbox" checked={checked} disabled={writing} onChange={e=>setChecked(e.target.checked)}/>He comprobado el ingreso y su referencia.</label><button type="button" disabled={writing||!checked||Math.round(Number(amount)*100)!==v.price_cents} onClick={()=>void act(()=>studioApi.activateVoucher(voucherToken(),v.id,Math.round(Number(amount)*100)),'Pago confirmado. Bono activado con código y caducidad.')}>Confirmar pago y activar</button></div>}
+   {v.status==='pending'&&<><p>{t('voucherAmount')} <strong>{voucherMoney(v.price_cents)}</strong></p><p>Bizum: <strong>{data.bizumNumber}</strong></p><p>{t('voucherConcept')}: <strong>{v.payment_reference}</strong></p>{v.payment_reported_at&&<small>{t('voucherPaymentSent')}</small>}
+     <div className="vb-actions">{!admin&&<button type="button" disabled={writing} onClick={()=>void act(()=>studioApi.reportVoucherPayment(voucherToken(),v.id)+t('voucherReportSent'))}>{t('voucherBizumDone')}</button>}{admin&&<button type="button" disabled={writing} onClick={()=>{setConfirming(v.id);setAmount((v.price_cents/100).toFixed(2));setChecked(false);}}}>{t('voucherCheckActivate')}</button>}<button type="button" disabled={writing} onClick={()=>setPendingCancel(p=>p===v.id?null:v.id)}}>{t('voucherCancelRequest')}</button></div>
+     {pendingCancel===v.id&&<div><p>{t('voucherCancelWarn')}</p><button type="button" disabled={writing} onClick={()=>void act(()=>studioApi.cancelVoucherOrder(voucherToken(),v.id)+t('voucherCancelDone'))}>{t('voucherConfirmCancel')}</button></div>}
+     {admin&&confirming===v.id&&<div><label>{t('voucherAmountReceived')}<input type="number" min="0" step="0.01" value={amount} disabled={writing} onChange={e=>setAmount(e.target.value)}/></label><label className="vb-check"><input type="checkbox" checked={checked} disabled={writing} onChange={e=>setChecked(e.target.checked)}/>{t('voucherPaymentChecked')}</label><button type="button" disabled={writing||!checked||Math.round(Number(amount)*100)!==v.price_cents} onClick={()=>void act(()=>studioApi.activateVoucher(voucherToken(),v.id,Math.round(Number(amount)*100))+t('voucherConfirmPayment'))}>{t('voucherConfirmPayment')}</button></div>}
    </>}
    {admin&&v.status==='cancelled'&&!v.activated_at&&!v.expires_on&&v.used_cents===0&&v.held_cents===0&&v.used_sessions===0&&v.held_sessions===0&&<div>
-    <button type="button" disabled={writing||busy} onClick={()=>setPendingDelete(current=>current===v.id?null:v.id)}>Eliminar solicitud anulada</button>
-    {pendingDelete===v.id&&<div style={{marginTop:10}}><p style={{fontSize:12}}>Se eliminará esta solicitud que no llegó a activarse. Si se envió un Bizum, revisa antes el ingreso en el banco.</p><div className="vb-actions"><button type="button" disabled={writing||busy} onClick={async()=>{
+    <button type="button" disabled={writing||busy} onClick={()=>setPendingDelete(current=>current===v.id?null:v.id)}}>{t('voucherDeleteCancelled')}</button>
+    {pendingDelete===v.id&&<div style={{marginTop:10}}><p style={{fontSize:12}}>{t('voucherDeleteCancelledHelp')}</p><div className="vb-actions"><button type="button" disabled={writing||busy} onClick={async()=>{
       let removed=false;
-      await act(async()=>{await studioApi.deleteCancelledVoucher(voucherToken(),v.id);removed=true;setPendingDelete(null);},'Solicitud anulada eliminada.');
+      await act(async()=>{await studioApi.deleteCancelledVoucher(voucherToken(),v.id);removed=true;setPendingDelete(null);}},t('voucherYesDelete'))
       if(removed&&page>0&&data.vouchers.length===1)setPage(p=>p-1);
-    }}>Sí, eliminar solicitud</button><button type="button" disabled={writing} onClick={()=>setPendingDelete(null)}>Conservar</button></div></div>}
+    }}}>{t('voucherYesDelete')}</button><button type="button" disabled={writing} onClick={()=>setPendingDelete(null)}>{t('newsKeep')}</button></div></div>}
    </div>}
    {admin&&v.status==='active'&&<div style={{marginTop:10}}>
     <button type="button" disabled={writing||busy} onClick={()=>{setPendingDelete(current=>current==='test:'+v.id?null:'test:'+v.id);setTestDeleteConfirmed(false);}}>Eliminar {v.kind==='gift'?'tarjeta':'bono'} de prueba</button>
@@ -468,37 +469,37 @@ export function VoucherPanel({admin=false,services=[],clients=[],onReserve,logoS
       }} style={{background:'#7F3429',borderColor:'#7F3429',color:'#FFF8EE'}}>Sí, eliminar definitivamente</button><button type="button" disabled={writing} onClick={()=>{setPendingDelete(null);setTestDeleteConfirmed(false);}}>Conservar</button></div>
     </div>}
    </div>}
-   {v.status==='active'&&<><div className="vb-code">{v.code}</div><div className="vb-actions"><button type="button" onClick={()=>void copy(v.code)}>Copiar código</button>{!admin&&voucherUsable(v)&&<button type="button" className="vb-primary" onClick={()=>v.kind==='gift'?onReserve?.(v):setReserveId(reserveId===v.id?null:v.id)}>Reservar con mi bono</button>}</div>
+   {v.status==='active'&&<><div className="vb-code">{v.code}</div><div className="vb-actions"><button type="button" onClick={()=>void copy(v.code)}>{t('voucherCopyCode')}</button>{!admin&&voucherUsable(v)&&<button type="button" className="vb-primary" onClick={()=>v.kind==='gift'?onReserve?.(v):setReserveId(reserveId===v.id?null:v.id)}}>{t('voucherReserve')}</button>}</div>
     {!admin&&reserveId===v.id&&<div className="vb-actions">{services.filter(s=>data.products.find(p=>p.id===v.product_id)?.service_ids.includes(s.id)).map(s=><button type="button" key={s.id} onClick={()=>onReserve?.(v,s.id)}>{s.label}</button>)}</div>}
-    {v.kind==='gift'&&v.client_id===v.buyer_id&&v.used_cents===0&&v.held_cents===0&&<small>Para regalarla, comparte este código en privado. Quien la reciba podrá añadirla a su perfil una sola vez.</small>}
+    {v.kind==='gift'&&v.client_id===v.buyer_id&&v.used_cents===0&&v.held_cents===0&&<small>{t('voucherSharePrivate')}</small>}
    </>}
-   <div className="vb-meta"><span>{v.activated_at?'Compra':'Importe solicitado'} · {voucherMoney(v.price_cents)}</span><span>Caduca · {v.status==='cancelled'&&!v.expires_on?'—':voucherDate(v.expires_on)}</span></div>
-   {v.history.length>0&&<details><summary>Últimos movimientos</summary>{v.history.map((u,i)=><p key={i}>{voucherDate(u.booked_for)} · {u.state==='held'?'Reservado':u.state==='consumed'?'Realizado':'Liberado'} · {v.kind==='gift'?voucherMoney(u.amount_cents):'1 sesión'}{u.service_text?' · '+u.service_text:''}</p>)}</details>}
+   <div className="vb-meta"><span>{v.activated_at?t('voucherPurchased'):t('voucherAmountRequested')} · {voucherMoney(v.price_cents)}</span><span>{t('voucherExpires')} · {v.status==='cancelled'&&!v.expires_on?'—':voucherDate(v.expires_on)}</span></div>
+   {v.history.length>0&&<details><summary>{t('voucherMovements')}</summary>{v.history.map((u,i)=><p key={i}>{voucherDate(u.booked_for)} · {u.state==='held'?t('voucherHistHeld'):u.state==='consumed'?t('voucherHistConsumed'):t('voucherHistReleased')} · {v.kind==='gift'?voucherMoney(u.amount_cents):t('voucherOneSession')}{u.service_text?' · '+u.service_text:''}</p>)}</details>}
   </article>;})}</div></section>;
   }))}
-  {data&&data.total>12&&<div className="vb-pager"><button type="button" disabled={page===0||writing||busy} onClick={()=>setPage(p=>p-1)}>Anterior</button><span>{page+1} / {Math.ceil(data.total/12)}</span><button type="button" disabled={(page+1)*12>=data.total||writing||busy} onClick={()=>setPage(p=>p+1)}>Siguiente</button></div>}
+  {data&&data.total>12&&<div className="vb-pager"><button type="button" disabled={page===0||writing||busy} onClick={()=>setPage(p=>p-1)}}>{t('giftPrev')}</button><span>{page+1} / {Math.ceil(data.total/12)}</span><button type="button" disabled={(page+1)*12>=data.total||writing||busy} onClick={()=>setPage(p=>p+1)}}>{t('giftNext')}</button></div>}
   {checkoutProduct&&<div className="vl-backdrop" onClick={event=>{if(event.target===event.currentTarget)closePurchase();}}><div ref={checkoutRef} className="vl-dialog" role="dialog" aria-modal="true" aria-labelledby="voucher-checkout-title" aria-busy={writing}>
-   <button type="button" className="vl-close" disabled={writing} onClick={closePurchase} aria-label="Cerrar compra">×</button>
+   <button type="button" className="vl-close" disabled={writing} onClick={closePurchase} aria-label={t('portalClose')}>×</button>
    <VoucherVisual productId={checkoutProduct.id} logoSrc={logoSrc}/>
-   <h3 id="voucher-checkout-title" ref={checkoutHeading} tabIndex={-1}>{checkoutOrder?'Tu experiencia, un paso más cerca':checkoutProduct.kind==='gift'?'Regala un momento L’Studio':'Tu próximo ritual L’Studio'}</h3>
+   <h3 id="voucher-checkout-title" ref={checkoutHeading} tabIndex={-1}>{checkoutOrder?t('voucherCheckoutHeading'):checkoutProduct.kind==='gift'?t('voucherCheckoutGift'):t('voucherCheckoutSessions')}</h3>
    {purchaseError&&<p className="vl-error" role="alert">{purchaseError}</p>}{purchaseInfo&&<p className="vl-info" role="status">{purchaseInfo}</p>}
    {!checkoutOrder?<form onSubmit={submitPurchase}>
-    <p className="vl-muted">{voucherDisplayTitle(checkoutProduct)} · {checkoutProduct.valid_months===12?'1 año':'6 meses'} de validez desde la activación.</p>
-    {admin&&<label>Clienta<select required value={client} disabled={writing} onChange={event=>{setClient(event.target.value);setPage(0);}}><option value="">Selecciona una ficha</option>{clients.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</select></label>}
-    {checkoutProduct.kind==='gift'&&<><label>Para quién es · opcional<input maxLength={80} value={recipient} disabled={writing} autoComplete="off" placeholder="Su nombre" onChange={event=>setRecipient(event.target.value)}/></label><label>Tu dedicatoria · opcional<textarea maxLength={210} rows={3} value={dedication} disabled={writing} placeholder="Un momento para ti. Con el sello de L’Studio Ana." onChange={event=>setDedication(event.target.value)}/></label><p className="vl-muted">Tras confirmar el ingreso, tendrás un código para compartir en privado con quien reciba el regalo. También puedes disfrutarlo tú.</p></>}
-    {checkoutProduct.kind==='sessions'&&<p className="vl-muted">Incluye 5 sesiones por el precio de 4. Una sesión por cita. Complementos aparte. No acumulable a otra promoción.</p>}
-    <div className="vl-total"><span>Importe de la compra</span><strong>{voucherMoney(checkoutProduct.price_cents)}</strong></div>
-    <button type="submit" className="vl-action" disabled={writing}>{writing?'Preparando tu compra…':'Continuar con Bizum'} <ArrowRight size={16}/></button>
-    <p className="vl-muted">A continuación verás el número y el concepto del pago. La activación se realiza al comprobar el ingreso en el estudio.</p>
+    <p className="vl-muted">{voucherDisplayTitle(checkoutProduct)} · {checkoutProduct.valid_months===12?t('voucherValidFrom12'):t('voucherValidFrom6')}</p>
+    {admin&&<label>Clienta<select required value={client} disabled={writing} onChange={event=>{setClient(event.target.value);setPage(0);}}><option value="">{t('voucherSelectCard')}</option>{clients.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}</select></label>}
+    {checkoutProduct.kind==='gift'&&<><label>{t('voucherRecipientLabel')}<input maxLength={80} value={recipient} disabled={writing} autoComplete="off" placeholder={t('voucherRecipientPlaceholder')} onChange={event=>setRecipient(event.target.value)}/></label><label>{t('voucherDedicationLabel')}<textarea maxLength={210} rows={3} value={dedication} disabled={writing} placeholder={t('voucherDedicationPlaceholder')} onChange={event=>setDedication(event.target.value)}/></label><p className="vl-muted">{t('voucherGiftShareAfter')}</p></>}
+    {checkoutProduct.kind==='sessions'&&<p className="vl-muted">{t('voucherSessionsCheckoutNote')}</p>}
+    <div className="vl-total"><span>{t('voucherAmountLabel')}</span><strong>{voucherMoney(checkoutProduct.price_cents)}</strong></div>
+    <button type="submit" className="vl-action" disabled={writing}>{writing?t('voucherPreparing'):t('voucherContinueBizum')} <ArrowRight size={16}/></button>
+    <p className="vl-muted">{t('voucherBizumNext')}</p>
    </form>:<div className="vl-checkout-body">
     <p className="vl-muted">{checkoutOrder.title}</p>
-    {checkoutOrder.existingRequest&&<p className="vl-muted">Ya tenías una solicitud de este modelo. Hemos recuperado su referencia para evitar una compra duplicada.</p>}
-    {checkoutOrder.status==='pending'&&<><div className="vl-bizum"><div><span>Importe exacto</span><strong>{voucherMoney(checkoutOrder.priceCents)}</strong></div><div><span>Bizum al</span><strong>{checkoutOrder.bizumNumber}</strong><button type="button" onClick={()=>void copyPurchase(checkoutOrder.bizumNumber)}>Copiar número</button></div><div><span>Concepto</span><strong className="vl-reference">{checkoutOrder.paymentReference}</strong><button type="button" onClick={()=>void copyPurchase(checkoutOrder.paymentReference)}>Copiar concepto</button></div></div>
-     <p className="vl-muted">Abre tu banco, envía el Bizum con ese concepto y vuelve para comunicar el pago. La compra seguirá pendiente hasta que el estudio compruebe el ingreso.</p>
-     {checkoutOrder.dedication&&<p className="vl-muted" style={{whiteSpace:'pre-wrap'}}>Dedicatoria guardada:<br/>{checkoutOrder.dedication}</p>}
-     <button type="button" className="vl-action" disabled={writing||checkoutOrder.paymentReported} onClick={()=>void reportPurchasePayment()}>{writing?'Comunicando…':checkoutOrder.paymentReported?'Bizum comunicado · pendiente de comprobación':'Ya he realizado el Bizum'}</button>
+    {checkoutOrder.existingRequest&&<p className="vl-muted">{t('voucherDuplicateRecovered')}</p>}
+    {checkoutOrder.status==='pending'&&<><div className="vl-bizum"><div><span>{t('voucherExactAmount')}</span><strong>{voucherMoney(checkoutOrder.priceCents)}</strong></div><div><span>{t('voucherBizumTo')}</span><strong>{checkoutOrder.bizumNumber}</strong><button type="button" onClick={()=>void copyPurchase(checkoutOrder.bizumNumber)}}>{t('voucherCopyNumber')}</button></div><div><span>{t('voucherConcept')}</span><strong className="vl-reference">{checkoutOrder.paymentReference}</strong><button type="button" onClick={()=>void copyPurchase(checkoutOrder.paymentReference)}}>{t('voucherCopyConcept')}</button></div></div>
+     <p className="vl-muted">{t('voucherBizumInstructions')}</p>
+     {checkoutOrder.dedication&&<p className="vl-muted" style={{whiteSpace:'pre-wrap'}}>{t('voucherDedicationSaved')}<br/>{checkoutOrder.dedication}</p>}
+     <button type="button" className="vl-action" disabled={writing||checkoutOrder.paymentReported} onClick={()=>void reportPurchasePayment()}>{writing?t('voucherReporting'):checkoutOrder.paymentReported?t('voucherBizumComunicated'):t('voucherBizumDone2')}</button>
     </>}
-    <button type="button" disabled={writing} onClick={()=>{closePurchase();if(page===0)void load();else setPage(0);}}>Ver mis tarjetas y bonos</button>
+    <button type="button" disabled={writing} onClick={()=>{closePurchase();if(page===0)void load();else setPage(0);}}}>{t('voucherSeeMine')}</button>
    </div>}
   </div></div>}
  </section>;
@@ -582,9 +583,9 @@ function RepeatLastAppointment({clientId,showPrices,onProceed,onCatalog,buttonLa
       <ul style={{paddingLeft:18,margin:'8px 0'}}>{draft.items.map(item=><li key={item.sub.id}><strong>{item.sub.bookingName?.trim()||item.sub.name}</strong>{item.variant&&' · '+item.variant.name}{showPrices&&draft.settings.showPrices!==false&&<span style={{display:'block',color:'#C8B79E'}}>{item.variant?.price||item.sub.price} · {item.variant?.duration||item.sub.duration}</span>}</li>)}</ul>
       <p style={{fontSize:11,color:'#C8B79E'}}>Se aplican los precios y las condiciones actuales. Revisaremos el anticipo al reservar.</p>
       {draft.warnings.map((warning,i)=><p key={i} style={{color:'#E4C687',fontSize:11,marginTop:6}}>{warning}</p>)}
-      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:10}}><button type="button" onClick={proceed} style={{minHeight:44,padding:'9px 12px',background:'#D0AA71',color:'#2C2219',border:0,borderRadius:6,fontSize:12}}>{draft.items.some(item=>item.sub.hasVariants&&!item.variant)?'Elegir opciones del servicio':'Elegir nueva fecha y hora'}</button><button type="button" onClick={()=>setDraft(null)} style={{minHeight:44,padding:9,background:'transparent',color:'#DDC29A',border:'1px solid #6C583D',borderRadius:6,fontSize:12}}>Cerrar</button></div>
+      <div style={{display:'flex',gap:8,flexWrap:'wrap',marginTop:10}}><button type="button" onClick={proceed} style={{minHeight:44,padding:'9px 12px',background:'#D0AA71',color:'#2C2219',border:0,borderRadius:6,fontSize:12}}>{draft.items.some(item=>item.sub.hasVariants&&!item.variant)?tt('repeatPickOptions'):tt('repeatPickDate')}</button><button type="button" onClick={()=>setDraft(null)} style={{minHeight:44,padding:9,background:'transparent',color:'#DDC29A',border:'1px solid #6C583D',borderRadius:6,fontSize:12}}>{tt('portalClose')}</button></div>
     </div>}
-    {error&&<div role="alert" style={{marginTop:8,fontSize:12,color:'#FFC3B0'}}><p>{error}</p><button type="button" onClick={onCatalog} style={{minHeight:44,marginTop:7,padding:8,background:'transparent',color:'#E4C687',border:'1px solid #846A45',borderRadius:6}}>Ir al catálogo</button></div>}
+    {error&&<div role="alert" style={{marginTop:8,fontSize:12,color:'#FFC3B0'}}><p>{error}</p><button type="button" onClick={onCatalog} style={{minHeight:44,marginTop:7,padding:8,background:'transparent',color:'#E4C687',border:'1px solid #846A45',borderRadius:6}}>{tt('repeatToCatalog')}</button></div>}
   </section>;
 }
 

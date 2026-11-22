@@ -1,7 +1,9 @@
 import React,{useEffect,useRef,useState} from 'react';
 import * as api from './studioApi';
 import {giftAssignmentEvent,readGiftAssignmentPending,saveGiftAssignment} from './giftAssignmentPending';
+import spanish from './portalSpanish';
 type Client={id:string;label:string};
+type TFn=(key:string)=>string;
 const money=(c:number)=>(c/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
 const date=(s:string|null)=>s?new Date(s.length===10?s+'T12:00:00':s).toLocaleDateString('es-ES',{timeZone:'Europe/Madrid'}):'—';
 const normal=(s:string)=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase();
@@ -29,13 +31,13 @@ export default function GiftRecipientAdmin({voucher:v,clients,disabled,run}:{vou
   </details>:<small>La asignación solo se cambia en tarjetas activas, vigentes y sin usos ni saldo reservado.</small>}
  </div>;
 }
-export function GiftPurchaseReceipts({refreshKey}:{refreshKey:unknown}){
+export function GiftPurchaseReceipts({refreshKey,t=(key:string)=>spanish[key]}:{refreshKey:unknown;t?:TFn}){
  const [open,setOpen]=useState(false),[page,setPage]=useState(0),[data,setData]=useState<{purchases:api.GiftPurchaseReceipt[];total:number}|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[refresh,setRefresh]=useState(0);
- useEffect(()=>{if(!open)return;let alive=true;const token=api.currentToken();setBusy(true);setError('');setData(null);if(!token||api.storedRole()!=='client'){setData(null);setBusy(false);setError('Entra en tu perfil para consultar las compras.');return;}
- api.fetchGiftPurchases(token,page).then(result=>{if(!alive)return;if(api.currentToken()!==token||api.storedRole()!=='client'){setData(null);setError('La sesión ha cambiado. Vuelve a entrar en tu perfil.');return;}if(!Array.isArray(result.purchases)||typeof result.total!=='number')throw Error('No se pudieron comprobar tus compras.');setData(result);}).catch(e=>{if(alive){setData(null);setError((e as Error).message);}}).finally(()=>{if(alive)setBusy(false);});return()=>{alive=false;};},[open,page,refreshKey,refresh]);
- return <details className="vb-panel" open={open} onToggle={e=>setOpen(e.currentTarget.open)}><summary>Regalos que has comprado</summary><p className="vb-note">Justificantes de tarjetas que compraste y ya están asignadas a otra persona. Su saldo y sus citas se consultan desde el perfil de quien las recibe.</p>
- {busy&&<p role="status">Consultando compras…</p>}{error&&<p role="alert">{error}</p>}{data?.purchases.length===0&&<p>Todavía no hay tarjetas regaladas asignadas a otra ficha.</p>}
- {data?.purchases.map(p=><article key={p.id} style={{borderTop:'1px solid #655039',padding:'10px 0',fontSize:12,lineHeight:1.6}}><strong>{p.title} · {money(p.price_cents)}</strong><p style={{margin:'4px 0'}}>Pago confirmado: {date(p.activated_at)}<br/>Referencia: {p.payment_reference}<br/>Caducidad de la tarjeta: {date(p.expires_on)}</p><small>Compra conservada · tarjeta asignada a su destinataria.</small></article>)}
- <div className="vb-actions"><button type="button" disabled={busy} onClick={()=>setRefresh(n=>n+1)}>Actualizar compras</button>{!!data&&data.total>12&&<><button type="button" disabled={busy||page===0} onClick={()=>setPage(n=>n-1)}>Anterior</button><span>{page+1} / {Math.ceil(data.total/12)}</span><button type="button" disabled={busy||(page+1)*12>=data.total} onClick={()=>setPage(n=>n+1)}>Siguiente</button></>}</div>
+ useEffect(()=>{if(!open)return;let alive=true;const token=api.currentToken();setBusy(true);setError('');setData(null);if(!token||api.storedRole()!=='client'){setData(null);setBusy(false);setError(t('giftPurchasesLogin'));return;}
+ api.fetchGiftPurchases(token,page).then(result=>{if(!alive)return;if(api.currentToken()!==token||api.storedRole()!=='client'){setData(null);setError(t('giftPurchasesSessionChanged'));return;}if(!Array.isArray(result.purchases)||typeof result.total!=='number')throw Error(t('giftPurchasesError'));setData(result);}).catch(e=>{if(alive){setData(null);setError((e as Error).message);}}).finally(()=>{if(alive)setBusy(false);});return()=>{alive=false;};},[open,page,refreshKey,refresh]);
+ return <details className="vb-panel" open={open} onToggle={e=>setOpen(e.currentTarget.open)}><summary>{t('giftPurchasesHeading')}</summary><p className="vb-note">{t('giftPurchasesNote')}</p>
+ {busy&&<p role="status">{t('giftPurchasesLoading')}</p>}{error&&<p role="alert">{error}</p>}{data?.purchases.length===0&&<p>{t('giftPurchasesEmpty')}</p>}
+ {data?.purchases.map(p=><article key={p.id} style={{borderTop:'1px solid #655039',padding:'10px 0',fontSize:12,lineHeight:1.6}}><strong>{p.title} · {money(p.price_cents)}</strong><p style={{margin:'4px 0'}}>{t('giftPaymentConfirmed')}{date(p.activated_at)}<br/>{t('giftReference')}{p.payment_reference}<br/>{t('giftExpiry')}{date(p.expires_on)}</p><small>{t('giftKeptAssigned')}</small></article>)}
+ <div className="vb-actions"><button type="button" disabled={busy} onClick={()=>setRefresh(n=>n+1)}>{t('giftRefreshPurchases')}</button>{!!data&&data.total>12&&<><button type="button" disabled={busy||page===0} onClick={()=>setPage(n=>n-1)}>{t('giftPrev')}</button><span>{page+1} / {Math.ceil(data.total/12)}</span><button type="button" disabled={busy||(page+1)*12>=data.total} onClick={()=>setPage(n=>n+1)}>{t('giftNext')}</button></>}</div>
  </details>;
 }

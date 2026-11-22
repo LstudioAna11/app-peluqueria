@@ -3,11 +3,13 @@
 import React,{useEffect,useRef,useState} from 'react';
 import * as studioApi from './studioApi';
 import {offlineConsultation} from './offlineSession';
+import spanish from './portalSpanish';
 export type Purpose='privacy_notice'|'photo_private'|'image_publicity'|'scalp_health';
 type Doc={id:string;purpose:Purpose;version:number;title:string;body:string;published_at:string};
 type RecordState={purpose:Purpose;document_id:string;granted:boolean;revision:number;updated_at:string;document_version:number;document_title:string;document_body:string};
 type State={documents:Doc[];records:RecordState[]};
 type Change={purpose:Purpose;documentId:string;granted:boolean;revision:number};
+type TFn=(key:string)=>string;
 const purposes:Purpose[]=['privacy_notice','photo_private','image_publicity','scalp_health'];
 const titles:Record<Purpose,string>={privacy_notice:'Información de privacidad',photo_private:'Fotos para seguimiento privado',image_publicity:'Imagen en web y redes sociales',scalp_health:'Información para mi cuidado del cuero cabelludo'};
 const templates:Record<Purpose,string>={privacy_notice:'',photo_private:'Autorizo a L’Studio Ana a tomar y conservar fotografías y vídeos de mi cabello para documentar los servicios realizados y llevar mi seguimiento privado. Este permiso no autoriza su publicación. Puedo retirarlo desde el portal o contactar con el Studio para ejercer mis derechos conforme a la información de privacidad.',image_publicity:'Autorizo a L’Studio Ana a utilizar fotografías y vídeos de los servicios realizados en los que pueda ser reconocible mi imagen, para mostrar resultados y promocionar el trabajo del Studio en su página web y en sus perfiles de Instagram y Facebook. Es opcional y no condiciona mis reservas. No autoriza la cesión a otros negocios ni otros usos. Puedo retirar esta autorización desde el portal o contactar con el Studio conforme a la información de privacidad.',scalp_health:"Consiento expresamente que Ana Moreno Fernández, titular de L’Studio Ana, registre y utilice en mi ficha la información que facilite y las observaciones necesarias sobre descamación, caída, caspa y sensibilidad de mi cuero cabelludo, que pueden revelar información de salud, para adaptar los productos y servicios de cuidado capilar y realizar el seguimiento que solicite.\n\nSolo se recogerá la información pertinente para esa finalidad. No se solicita un historial médico completo. Esta información no se utilizará para publicidad ni se publicará mediante esta autorización. Las fotografías requieren además su permiso específico.\n\nLa información será accesible para el personal autorizado que la necesite, con la intervención de los proveedores técnicos y las garantías descritas en la política de privacidad. Se conservará mientras sea necesaria para el seguimiento autorizado. No se le aplica automáticamente el plazo de un año de las fotografías ni se conservará indefinidamente por el solo hecho de existir una ficha.\n\nPuedo retirar este consentimiento desde Privacidad y permisos o escribiendo a lstudioana@gmail.com. Se dejará de utilizar la información para este seguimiento y se atenderá su supresión cuando proceda, salvo la conservación mínima y restringida exigible por obligaciones o responsabilidades. La retirada no afecta al tratamiento lícito anterior.\n\nNo autorizar este tratamiento no impide realizar una reserva ordinaria. Si falta información necesaria para valorar con seguridad un servicio concreto, el Studio explicará las alternativas antes de realizarlo. Este seguimiento no sustituye una valoración médica.\n\nResponsable y contacto: Ana Moreno Fernández · C/ Port d’Alacant, 11, 1-AC, 03202 Elche (Alicante) · lstudioana@gmail.com. Puedo ejercer mis derechos conforme a la política de privacidad y reclamar ante la AEPD."};
@@ -15,6 +17,8 @@ const button:React.CSSProperties={padding:'10px 14px',minHeight:44,border:'1px s
 const primary:React.CSSProperties={...button,background:'#D6B77B',color:'#29231F'};
 const field:React.CSSProperties={width:'100%',boxSizing:'border-box',padding:12,border:'1px solid #806340',borderRadius:8,background:'#221D19',color:'#FFF8EE',fontSize:16};
 const date=(value:string)=>new Date(value).toLocaleString('es-ES',{timeZone:'Europe/Madrid'});
+const permKey=(p:Purpose)=>p==='privacy_notice'?'permPrivacyNotice':p==='photo_private'?'permPhotoPrivate':p==='image_publicity'?'permImagePublicity':'permScalpHealth';
+const confirmKey=(p:Purpose)=>p==='privacy_notice'?'permConfirmPrivacy':p==='photo_private'?'permConfirmPhotos':p==='scalp_health'?'permConfirmScalp':'permConfirmImage';
 export async function permissionRequest<T>(action:string,body:unknown={},signal?:AbortSignal):Promise<T>{
  if(offlineConsultation())throw new Error('Conecta para consultar o guardar estos permisos.');
  const isPublic=action==='documents',token=isPublic?null:studioApi.currentToken(),expected=['mine','save'].includes(action)?'client':'admin';
@@ -41,16 +45,16 @@ function usePermissionData<T>(action:string,body:Record<string,string>={}){
 }
 export function permissionLabel(purpose:Purpose,state:State):string{
  const doc=state.documents.find(d=>d.purpose===purpose),record=state.records.find(r=>r.purpose===purpose);
- if(!record)return purpose==='privacy_notice'?'Sin confirmación registrada':'Sin autorización registrada';
- if(!record.granted)return 'No autoriza / permiso retirado';
- if(!doc||doc.id!==record.document_id)return purpose==='privacy_notice'?'Información anterior · nueva versión pendiente':'Autorización anterior · requiere renovación';
- return purpose==='privacy_notice'?'Información recibida':'Autorizado para el texto vigente';
+ if(!record)return purpose==='privacy_notice'?spanish.permNoRecord:spanish.permNoAuth;
+ if(!record.granted)return spanish.permWithdrawn;
+ if(!doc||doc.id!==record.document_id)return purpose==='privacy_notice'?spanish.permOldInfo:spanish.permOldAuth;
+ return purpose==='privacy_notice'?spanish.permInfoReceived:spanish.permAuthCurrent;
 }
-export function PrivacyPermissionsEntry(){
+export function PrivacyPermissionsEntry({t=(key:string)=>spanish[key]}:{t?:TFn}){
  const [open,setOpen]=useState(false);
- return <details open={open} onToggle={e=>setOpen(e.currentTarget.open)} style={{border:'1px solid #806340',borderRadius:10,padding:12,marginBottom:16}}><summary style={{cursor:'pointer',color:'#E4C687',minHeight:32}}>Privacidad y permisos</summary>{open&&<ClientPermissions/>}</details>;
+ return <details open={open} onToggle={e=>setOpen(e.currentTarget.open)} style={{border:'1px solid #806340',borderRadius:10,padding:12,marginBottom:16}}><summary style={{cursor:'pointer',color:'#E4C687',minHeight:32}}>{t('permEntryLabel')}</summary>{open&&<ClientPermissions t={t}/>}</details>;
 }
-export function ClientPermissions(){
+export function ClientPermissions({t=(key:string)=>spanish[key]}:{t?:TFn}){
  const remote=usePermissionData<State>('mine');const state=remote.data;
  const [choices,setChoices]=useState<Partial<Record<Purpose,boolean>>>({}),[saving,setSaving]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState('');
  const pending=useRef<{requestId:string;changes:Change[]}|null>(null),lock=useRef(false),mounted=useRef(false);
@@ -59,8 +63,8 @@ export function ClientPermissions(){
  const send=async(changes:Change[])=>{
   if(lock.current||!changes.length)return;lock.current=true;setSaving(true);setError('');setNotice('');
   if(!pending.current||JSON.stringify(pending.current.changes)!==JSON.stringify(changes))pending.current={requestId:crypto.randomUUID(),changes};
-  try{const data=await permissionRequest<State>('save',pending.current);if(!Array.isArray(data.documents)||!Array.isArray(data.records))throw new Error('No se recibió la confirmación completa. Reintenta.');if(mounted.current){remote.setData(data);pending.current=null;setNotice('Preferencias guardadas en tu cuenta.');}}
-  catch(value){if(mounted.current)setError(value instanceof Error?value.message:'No se ha podido confirmar el guardado. Puedes reintentar.');}
+  try{const data=await permissionRequest<State>('save',pending.current);if(!Array.isArray(data.documents)||!Array.isArray(data.records))throw new Error(t('permConfirmIncomplete'));if(mounted.current){remote.setData(data);pending.current=null;setNotice(t('permSaved'));}}
+  catch(value){if(mounted.current)setError(value instanceof Error?value.message:t('permSaveError'));}
   finally{lock.current=false;if(mounted.current)setSaving(false);}
  };
  const save=()=>{
@@ -74,43 +78,43 @@ export function ClientPermissions(){
    if(old?.document_id===documentId&&old.granted===granted)continue;
    changes.push({purpose,documentId,granted,revision:old?.revision||0});
   }
-  if(!changes.length){setNotice('Tus preferencias ya están guardadas.');return;}void send(changes);
+  if(!changes.length){setNotice(t('permAlreadySaved'));return;}void send(changes);
  };
  return <div style={{display:'grid',gap:14,paddingTop:14,color:'#FFF8EE'}}>
-  <p style={{fontSize:13,lineHeight:1.6,margin:0}}>Consulta la información sobre tus datos y decide por separado los permisos de fotografías, publicación e información del cuero cabelludo. Estas autorizaciones no son necesarias para una reserva ordinaria.</p>
-  <div><button type="button" style={button} disabled={remote.busy||saving} onClick={()=>void remote.load()}>Actualizar permisos</button></div>
+  <p style={{fontSize:13,lineHeight:1.6,margin:0}}>{t('permIntro')}</p>
+  <div><button type="button" style={button} disabled={remote.busy||saving} onClick={()=>void remote.load()}>{t('permRefresh')}</button></div>
   {(remote.error||error)&&<p role="alert" style={{color:'#FFB4A9',margin:0}}>{error||remote.error}</p>}
-  {!state&&remote.busy&&<p role="status">Consultando tus permisos…</p>}
+  {!state&&remote.busy&&<p role="status">{t('permLoading')}</p>}
   {state&&purposes.map(purpose=>{
    const doc=state.documents.find(d=>d.purpose===purpose),old=state.records.find(r=>r.purpose===purpose),isCurrent=old?.document_id===doc?.id&&old?.granted;
    return <section key={purpose} style={{borderTop:'1px solid #655039',paddingTop:12,display:'grid',gap:10}}>
-    <strong style={{color:'#E4C687',fontSize:14}}>{titles[purpose]}</strong><small>{permissionLabel(purpose,state)}{old?' · '+date(old.updated_at):''}</small>
-    {doc?<><details><summary style={{cursor:'pointer'}}>Leer texto · versión {doc.version}</summary><p style={{fontSize:13,lineHeight:1.7,whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{doc.body}</p></details>
-      {purpose==='privacy_notice'&&isCurrent?<span style={{fontSize:13}}>Ya consta que recibiste esta información.</span>:<label style={{display:'flex',gap:10,fontSize:13,lineHeight:1.6,alignItems:'flex-start'}}><input type="checkbox" checked={choices[purpose]===true} disabled={saving||remote.busy||(purpose!=='privacy_notice'&&!state.documents.some(d=>d.purpose==='privacy_notice'))} onChange={e=>{pending.current=null;setChoices({...choices,[purpose]:e.target.checked});setNotice('');}} style={{marginTop:4,width:18,height:18,flexShrink:0}}/>{purpose==='privacy_notice'?'Confirmo que he sido informado sobre el tratamiento de mis datos conforme al texto anterior.':purpose==='photo_private'?'Autorizo las fotografías para mi seguimiento privado según el texto anterior.':purpose==='scalp_health'?'Consiento expresamente el tratamiento de la información sobre mi cuero cabelludo para adaptar mi cuidado y seguimiento según el texto anterior.':'Autorizo el uso de mi imagen en la web y redes indicadas en el texto anterior.'}</label>}</>:<p style={{fontSize:13,margin:0}}>El Studio todavía no ha publicado este texto. No se recogerá este permiso hasta que esté disponible.</p>}
-    {old&&<details><summary style={{cursor:'pointer',fontSize:12}}>Ver texto de mi registro · versión {old.document_version}</summary><p style={{fontSize:12,lineHeight:1.7,whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{old.document_body}</p></details>}
-    {purpose!=='privacy_notice'&&old?.granted&&<button type="button" style={{...button,justifySelf:'start'}} disabled={saving||remote.busy} onClick={()=>void send([{purpose,documentId:old.document_id,granted:false,revision:old.revision}])}>Retirar este permiso</button>}
+    <strong style={{color:'#E4C687',fontSize:14}}>{t(permKey(purpose))}</strong><small>{permissionLabel(purpose,state)}{old?' · '+date(old.updated_at):''}</small>
+    {doc?<><details><summary style={{cursor:'pointer'}}>{t('permReadText').replace('{version}',String(doc.version))}</summary><p style={{fontSize:13,lineHeight:1.7,whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{doc.body}</p></details>
+      {purpose==='privacy_notice'&&isCurrent?<span style={{fontSize:13}}>{t('permAlreadyInformed')}</span>:<label style={{display:'flex',gap:10,fontSize:13,lineHeight:1.6,alignItems:'flex-start'}}><input type="checkbox" checked={choices[purpose]===true} disabled={saving||remote.busy||(purpose!=='privacy_notice'&&!state.documents.some(d=>d.purpose==='privacy_notice'))} onChange={e=>{pending.current=null;setChoices({...choices,[purpose]:e.target.checked});setNotice('');}} style={{marginTop:4,width:18,height:18,flexShrink:0}}/>{t(confirmKey(purpose))}</label>}</>:<p style={{fontSize:13,margin:0}}>{t('permNotPublished')}</p>}
+    {old&&<details><summary style={{cursor:'pointer',fontSize:12}}>{t('permViewRegistered').replace('{version}',String(old.document_version))}</summary><p style={{fontSize:12,lineHeight:1.7,whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{old.document_body}</p></details>}
+    {purpose!=='privacy_notice'&&old?.granted&&<button type="button" style={{...button,justifySelf:'start'}} disabled={saving||remote.busy} onClick={()=>void send([{purpose,documentId:old.document_id,granted:false,revision:old.revision}])}>{t('permWithdraw')}</button>}
    </section>;
   })}
-  {state?.documents.length?<button type="button" style={primary} disabled={saving||remote.busy} onClick={save}>{saving?'Guardando…':'Guardar mis preferencias'}</button>:null}
+  {state?.documents.length?<button type="button" style={primary} disabled={saving||remote.busy} onClick={save}>{saving?t('permSaving'):t('permSave')}</button>:null}
   <div role="status" aria-live="polite" style={{fontSize:13,color:'#E4C687'}}>{notice}</div>
-  <p style={{fontSize:12,lineHeight:1.6,color:'#D6CBB8',margin:0}}>Retirar un permiso no borra automáticamente los datos, fotos ni publicaciones existentes. La retirada queda registrada para que el Studio revise su uso y atienda tu solicitud. Puedes contactar con el Studio mediante los datos de la información de privacidad.</p>
+  <p style={{fontSize:12,lineHeight:1.6,color:'#D6CBB8',margin:0}}>{t('permWithdrawNote')}</p>
  </div>;
 }
-export function ClientPermissionStatus({clientId}:{clientId?:string}){return clientId?<PermissionStatusFold key={clientId} clientId={clientId}/>:<p style={{fontSize:13}}>Guarda primero la ficha en el servidor para consultar sus permisos.</p>;}
+export function ClientPermissionStatus({clientId}:{clientId?:string}){return clientId?<PermissionStatusFold key={clientId} clientId={clientId}/>:<p style={{fontSize:13}}>{spanish.permSaveFirst}</p>;}
 function PermissionStatusFold({clientId}:{clientId:string}){
  const [expanded,setExpanded]=useState(false);
- return <details open={expanded} onToggle={e=>setExpanded(e.currentTarget.open)} style={{border:'1px solid #806340',borderRadius:10,marginBottom:16,color:'#FFF8EE'}}><summary style={{display:'list-item',padding:'12px 14px',minHeight:46,boxSizing:'border-box',cursor:'pointer',color:'#E4C687',fontSize:14,lineHeight:1.6}}><strong>Privacidad y autorizaciones</strong></summary>{expanded&&<PermissionStatusInner key={clientId} clientId={clientId}/>}</details>;
+ return <details open={expanded} onToggle={e=>setExpanded(e.currentTarget.open)} style={{border:'1px solid #806340',borderRadius:10,marginBottom:16,color:'#FFF8EE'}}><summary style={{display:'list-item',padding:'12px 14px',minHeight:46,boxSizing:'border-box',cursor:'pointer',color:'#E4C687',fontSize:14,lineHeight:1.6}}><strong>{spanish.permFoldHeading}</strong></summary>{expanded&&<PermissionStatusInner key={clientId} clientId={clientId}/>}</details>;
 }
 
 function PermissionStatusInner({clientId}:{clientId:string}){
  const remote=usePermissionData<State>('client',{clientId}),state=remote.data;
- return <section style={{padding:'0 14px 14px',display:'grid',gap:10}} aria-label="Permisos de la clienta">
-  <button type="button" style={{...button,justifySelf:'start'}} disabled={remote.busy} onClick={()=>void remote.load()}>Actualizar permisos</button>
-  {remote.error&&<p role="alert">No se pudo comprobar el permiso. {remote.error}</p>}
-  {!state&&<p style={{fontSize:13}}>Permisos sin comprobar. Consulta el estado antes de publicar.</p>}
-  {state&&<small>Estado consultado: {date(remote.checkedAt)}. Actualiza antes de publicar.</small>}
-  {state&&purposes.map(p=>{const record=state.records.find(r=>r.purpose===p);return <div key={p} style={{fontSize:13,lineHeight:1.6}}><strong>{titles[p]}:</strong> {permissionLabel(p,state)}{record&&<><br/><small>{date(record.updated_at)} · versión {record.document_version}</small><details><summary style={{cursor:'pointer'}}>Texto registrado</summary><p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{record.document_body}</p></details></>}</div>;})}
-  <small>Solo la clienta puede registrar o retirar estos permisos desde su cuenta. Comprueba la autorización vigente antes de utilizar información del cuero cabelludo o imágenes.</small>
+ return <section style={{padding:'0 14px 14px',display:'grid',gap:10}} aria-label={spanish.permPanelLabel}>
+  <button type="button" style={{...button,justifySelf:'start'}} disabled={remote.busy} onClick={()=>void remote.load()}>{spanish.permRefresh}</button>
+  {remote.error&&<p role="alert">{spanish.permCheckError}{remote.error}</p>}
+  {!state&&<p style={{fontSize:13}}>{spanish.permUnchecked}</p>}
+  {state&&<small>{spanish.permCheckedAt}{date(remote.checkedAt)}{spanish.permCheckedHint}</small>}
+  {state&&purposes.map(p=>{const record=state.records.find(r=>r.purpose===p);return <div key={p} style={{fontSize:13,lineHeight:1.6}}><strong>{titles[p]}:</strong> {permissionLabel(p,state)}{record&&<><br/><small>{date(record.updated_at)} · versión {record.document_version}</small><details><summary style={{cursor:'pointer'}}>{spanish.permRegisteredText}</summary><p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{record.document_body}</p></details></>}</div>;})}
+  <small>{spanish.permClientOnlyNote}</small>
  </section>;
 }
 export function PrivacyDocumentsPanel(){
@@ -143,9 +147,9 @@ export function PrivacyDocumentsPanel(){
  </section>;
 }
 
-export function RegistrationPrivacyNotice(){
+export function RegistrationPrivacyNotice({t=(key:string)=>spanish[key]}:{t?:TFn}){
  const remote=usePermissionData<{documents:Doc[]}>('documents');
  const doc=remote.data?.documents.find(d=>d.purpose==='privacy_notice');
- if(!doc)return <p style={{fontSize:12,lineHeight:1.6,color:'#D6CBB8'}}>Información de privacidad: {remote.busy?'cargando…':remote.error?'no se pudo consultar; solicítala al Studio antes de facilitar tus datos.':'pendiente de publicar por el Studio.'}</p>;
- return <details style={{fontSize:13,lineHeight:1.7,color:'#D6CBB8'}}><summary style={{cursor:'pointer',color:'#E4C687'}}>Información sobre tus datos · versión {doc.version}</summary><p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{doc.body}</p><p>Las autorizaciones de fotografías, publicación e información del cuero cabelludo se gestionan por separado en Avisos → Privacidad y permisos.</p></details>;
+ if(!doc)return <p style={{fontSize:12,lineHeight:1.6,color:'#D6CBB8'}}>{t('permDataInfo')}{remote.busy?t('permDataLoading'):remote.error?t('permDataError'):t('permDataPending')}</p>;
+ return <details style={{fontSize:13,lineHeight:1.7,color:'#D6CBB8'}}><summary style={{cursor:'pointer',color:'#E4C687'}}>{t('permDataHeading').replace('{version}',String(doc.version))}</summary><p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere'}}>{doc.body}</p><p>{t('permDataWhere')}</p></details>;
 }

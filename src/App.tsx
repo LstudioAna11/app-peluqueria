@@ -4931,7 +4931,7 @@ function StudioApp() {
           <img src={optimizedImageUrl(brandLogoSrc)} onError={fallbackBrandLogo} decoding="async" alt="L’A · Hair Experience" style={{ width: '150px', height: 'auto', mixBlendMode: 'screen', display: 'block', margin: '0 auto 12px' }} />
           <h2 style={{ color: '#FFF8EE', fontSize: '25px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0, textAlign: 'center' }}>{t('clientRegistrationTitle')}</h2>
           <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.7, textAlign: 'center', margin: '0 0 10px 0' }}>{t('clientRegistrationDesc')}</p>
-          <RegistrationPrivacyNotice />
+          <RegistrationPrivacyNotice t={t} />
           <form aria-busy={registrationBusy} onSubmit={handleRegistroClientaPortalSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <fieldset disabled={registrationBusy} style={{border:0,padding:0,margin:0,display:'contents'}}>
 
@@ -4974,7 +4974,7 @@ function StudioApp() {
       )}
 
       {/* 2. PORTAL CLIENTE */}
-      {currentScreen === 'clientVouchersPage' && <section className="lst-bonos-page" aria-label="Tarjetas regalo y bonos"><VoucherPanel logoSrc={brandLogoSrc} services={voucherServiceOptions(catalog)} onReserve={(voucher,serviceId)=>{
+      {currentScreen === 'clientVouchersPage' && <section className="lst-bonos-page" aria-label={t('voucherAdminHeading')}><VoucherPanel t={t} logoSrc={brandLogoSrc} services={voucherServiceOptions(catalog)} onReserve={(voucher,serviceId)=>{
             setSelectedVoucherId(voucher.id);setSelectedPromotionId(null);setSelectedPromotionOrigin(null);
             const cat=serviceId?catalog.find(c=>c.subservices.some(s=>s.id===serviceId&&s.active!==false)):undefined;
             const sub=cat?.subservices.find(s=>s.id===serviceId&&s.active!==false);
@@ -5572,7 +5572,7 @@ function StudioApp() {
             {renderClientPushPanel()}
             {visualBookingError && <p role="alert" style={{ color: '#FFC4B5', fontSize: 13, lineHeight: 1.5 }}>{visualBookingError}</p>}
             {visualBookingBusy && <p role="status" style={{ color: '#E4C687', fontSize: 13 }}>{t('bookingSaving')}</p>}
-            <BookingVoucher selectedId={selectedVoucherId} onChange={setSelectedVoucherId} services={selectedServicesToBook} dateKey={formatDateKey(bookingDate)} promotionId={selectedPromotionId}/>
+            <BookingVoucher t={t} selectedId={selectedVoucherId} onChange={setSelectedVoucherId} services={selectedServicesToBook} dateKey={formatDateKey(bookingDate)} promotionId={selectedPromotionId}/>
             <button type="button" onClick={handleConfirmarCitaVisual} disabled={visualBookingBusy || (!portalTimes.includes(selectedVisualTime) && visualBookingAttemptRef.current?.signature !== visualBookingSignature())} style={{ width: '100%', minHeight: '54px', padding: '14px', backgroundColor: portalTimes.includes(selectedVisualTime) ? '#C49A58' : '#322A25', color: portalTimes.includes(selectedVisualTime) ? '#29231F' : '#C9BCA9', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>{visualBookingBusy ? t('bookingSaving') : visualBookingError && visualBookingAttemptRef.current?.signature === visualBookingSignature() ? t('bookingCheckRetry') : !selectedVisualTime ? t('chooseHour') : getApprovalReason(selectedServicesToBook, formatDateKey(bookingDate)) ? t('requestAppointment') : t('continueBooking')}</button>
           </div>
         </fieldset>
@@ -6058,7 +6058,7 @@ function StudioApp() {
             <button type="button" aria-label="Cerrar notificaciones" onClick={() => setPushPanelOpen(false)} style={{ minWidth: 44, minHeight: 44, background: 'transparent', color: '#E4C687', border: '1px solid #67543C', borderRadius: 8 }}>✕</button>
           </div>
           <p style={{ color: '#D6CBB8', fontSize: 13, lineHeight: 1.6 }}>Activa los avisos de tus citas en este dispositivo. No necesitas hacer una reserva para probarlos.</p>
-          <PrivacyPermissionsEntry />
+          <PrivacyPermissionsEntry t={t} />
           
           {renderClientPushPanel()}
           <p style={{ color: '#D6CBB8', fontSize: 12, lineHeight: 1.6 }}>Un envío aceptado por el servidor no confirma la entrega. Comprueba si la prueba aparece en las notificaciones de tu móvil.</p>
