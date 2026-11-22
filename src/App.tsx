@@ -570,7 +570,7 @@ export interface SubService {
 export interface CatalogCategory {
   portalTitle?: string;
   slogan?: string;
-  translations?: Record<string, { title?: string }>; 
+  translations?: Record<string, { title?: string; slogan?: string }>;
   id: string;
   code: string;
   title: string;
@@ -1195,6 +1195,47 @@ function AppointmentArrivalTools({id,onCancel}:{id:string;onCancel:()=>void}){
 
 export default function App() {
   return <TimeClockEntry><SocialBookingEntry><PrivateSessionGate><PortalErrorBoundary><StudioApp /></PortalErrorBoundary></PrivateSessionGate></SocialBookingEntry></TimeClockEntry>;
+}
+
+const categoryLocaleKey = (title: string) => title.normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+
+const catalogCategoryLabels: Record<string, string> = {
+  DIAGNOSTICOASESORIA: 'categoryDiagnosis', VISAGISMODIAGNOSTICO: 'categoryDiagnosis',
+  CORTESLSTUDIO: 'categoryCuts', VISAGISMOCORTE: 'categoryCuts',
+  STYLINGACABADO: 'categoryStyling', STYLYNGACABADO: 'categoryStyling',
+  COLORATELIER: 'categoryColor', COLORCOLLECTIONLSTUDIO: 'categoryColor', COLORLSTUDIOCOLLECTION: 'categoryColor',
+  METODODEAUTORILUMINACION: 'categoryBlond', MECHASBLONDCOLLECTIONLSTUDIO: 'categoryBlond', MECHASLSTUDIOBLONDCOLLECTION: 'categoryBlond',
+  SALUDCAPILARRECONSTRUCCION: 'categoryHealth',
+  TEXTURAMOLDEADOORGANICO: 'categoryTexture',
+  GROOMINGMAN: 'categoryMen',
+  ADDONSCOMPLEMENTOS: 'categoryExtras',
+};
+
+const catalogCategorySlogans: Record<string, string> = {
+  ANTESDECAMBIARTUCABELLOVAMOSACONOCERLO: 'categorySloganDiagnosis',
+  TUCOLORDESIEMPRENOTIENEPORQUESERPARASIEMPRE: 'categorySloganColor',
+  NOESSERRUBIAESSERESARUBIA: 'categorySloganBlond',
+  TUPELOTIENEPLANESYPIENSADESTACAR: 'categorySloganStyling',
+};
+
+function localizedCategoryTitle(category: CatalogCategory, language: string, t: (key: string) => string) {
+  const portalTitle = category.portalTitle?.trim();
+  const original = portalTitle || category.title;
+  const custom = category.translations?.[language]?.title?.trim();
+  if (custom) return custom;
+  if (language === 'es') return original;
+  const key = catalogCategoryLabels[categoryLocaleKey(original)] || catalogCategoryLabels[categoryLocaleKey(category.title)];
+  return key ? t(key) : original;
+}
+
+function localizedCategorySlogan(category: CatalogCategory, language: string, t: (key: string) => string) {
+  const custom = category.translations?.[language]?.slogan?.trim();
+  if (custom) return custom;
+  const original = category.slogan?.trim() || '';
+  if (language === 'es') return original;
+  const key = catalogCategorySlogans[categoryLocaleKey(original)];
+  return key ? t(key) : original;
 }
 
 function StudioApp() {
@@ -3587,25 +3628,11 @@ function StudioApp() {
     return (language !== 'es' ? sub.translations?.[language]?.[field]?.trim() : '') || sub[field] || '';
   };
   const chooseServiceLabel = ({ es: 'Elegir este servicio', en: 'Choose this service', fr: 'Choisir ce service', it: 'Scegli questo servizio', pt: 'Escolher este serviço', de: 'Diese Leistung wählen', nl: 'Deze behandeling kiezen', pl: 'Wybierz tę usługę', cs: 'Vybrat tuto službu', nb: 'Velg denne behandlingen', sv: 'Välj denna behandling', ar: 'اختاري هذه الخدمة' } as Record<string, string>)[currentLang] || 'Elegir este servicio';
-  const categoryText = (category: CatalogCategory) => {
-    const custom = category.translations?.[currentLang]?.title?.trim();
-    if (custom) return custom;
-    if (category.portalTitle?.trim()) return category.portalTitle.trim();
-    if (currentLang === 'es') return category.title;
-    const normalized = category.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[’']/g, '').replace(/\s+/g, ' ').trim().toUpperCase();
-    const known: Record<string, string> = {
-      'MECHAS BLOND COLLECTION LSTUDIO': 'categoryBlond', 'MECHAS BLOND COLLECTION L STUDIO': 'categoryBlond', 'METODO DE AUTOR & ILUMINACION': 'categoryBlond',
-      'SALUD CAPILAR & RECONSTRUCCION': 'categoryHealth',
-      'TEXTURA & MOLDEADO ORGANICO': 'categoryTexture',
-      'GROOMING & MAN': 'categoryMen',
-      'ADD-ONS & COMPLEMENTOS': 'categoryExtras',
-      'DIAGNOSTICO & ASESORIA': 'categoryDiagnosis', 'VISAGISMO & DIAGNOSTICO': 'categoryDiagnosis',
-      'CORTES LSTUDIO': 'categoryCuts', 'CORTES L STUDIO': 'categoryCuts', 'VISAGISMO & CORTE': 'categoryCuts',
-      'STYLING & ACABADO': 'categoryStyling',
-      'COLOR COLLECTION LSTUDIO': 'categoryColor', 'COLOR COLLECTION L STUDIO': 'categoryColor', 'COLOR ATELIER': 'categoryColor'
-    };
-    return known[normalized] ? t(known[normalized]) : category.title;
-  };
+  const categoryText = (category: CatalogCategory) => localizedCategoryTitle(category, currentLang, t);
+  const categorySlogan = (category: CatalogCategory) => localizedCategorySlogan(category, currentLang, t);
+  const categoryPosition = (position: number, total: number) => tf('categoryPosition', {
+    position: position.toLocaleString(portalLocale), total: total.toLocaleString(portalLocale)
+  });
   const variantText = (variant: ServiceVariant, service?: SubService) => {
     const latest = service ? catalog.flatMap(category => category.subservices).find(item => item.id === service.id)?.variants?.find(item => item.id === variant.id) || variant : variant;
     return latest.translations?.[currentLang]?.name?.trim() || latest.name;
@@ -5198,10 +5225,11 @@ function StudioApp() {
 
           {!portalSearchQuery && <>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '20px', fontWeight: 400, margin: '4px 0 2px' }}>Elige una categoría</h2>
+            <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '20px', fontWeight: 400, margin: '4px 0 2px' }}>{t('categoryChoose')}</h2>
             {catalog.map(cat => {
                 const count = cat.subservices.filter(sub => sub.active !== false).length;
                 const firstService = cat.subservices.find(sub => sub.active !== false);
+                const slogan = categorySlogan(cat);
                 return (
                   <button key={cat.id} type="button" className="lst-cat-card" onClick={() => { setActiveCatalogTab(cat.id); setViewServiceDetail(null); setCurrentScreen('categoryScreen'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}>
                     <span className="lst-cat-thumb" aria-hidden="true">
@@ -5211,8 +5239,8 @@ function StudioApp() {
                     </span>
                     <span className="lst-cat-info">
                       <strong>{categoryText(cat)}</strong>
-                      {!!cat.slogan?.trim() && <span style={{ display: 'block', color: '#E5D7BF', fontSize: 12, lineHeight: 1.5, marginTop: 5, whiteSpace: 'normal' }}>{cat.slogan}</span>}
-                      <small>{count === 1 ? '1 servicio' : count + ' servicios'}</small>
+                      {!!slogan && <span style={{ display: 'block', color: '#E5D7BF', fontSize: 12, lineHeight: 1.5, marginTop: 5, whiteSpace: 'normal' }}>{slogan}</span>}
+                      <small>{count.toLocaleString(portalLocale)} {t(count === 1 ? 'categoryServiceSingular' : 'servicesCount')}</small>
                     </span>
                     <ChevronRight size={20} strokeWidth={1.7} aria-hidden="true" />
                   </button>
@@ -5279,6 +5307,7 @@ function StudioApp() {
       {currentScreen === 'categoryScreen' && (() => {
         const activeCategory = catalog.find(cat => cat.id === activeCatalogTab) || catalog[0];
         const activeServices = activeCategory ? activeCategory.subservices.filter(sub => sub.active !== false) : [];
+        const activeSlogan = activeCategory ? categorySlogan(activeCategory) : '';
         const openDetail = (sub: SubService) => { setViewServiceDetail({ cat: activeCategory!, sub }); setCurrentScreen('serviceDetail'); window.scrollTo({ top: 0, behavior: 'smooth' }); };
         return (
         <div className="lst-page" style={{ maxWidth: '520px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -5294,10 +5323,10 @@ function StudioApp() {
             <header style={{ padding: '2px 0 0' }}>
               <p style={{ color: '#D8C29A', fontSize: '11px', letterSpacing: '1.5px', margin: '0 0 4px' }}>{t('experienceTitle')}</p>
               <h1 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', color: '#FFF8EE', fontSize: '27px', fontWeight: 400, lineHeight: 1.2, margin: 0 }}>{categoryText(activeCategory)}</h1>
-              {!!activeCategory.slogan?.trim() && <p style={{ color: '#E5D7BF', fontSize: 14, lineHeight: 1.5, margin: '8px 0 0' }}>{activeCategory.slogan}</p>}
+              {!!activeSlogan && <p style={{ color: '#E5D7BF', fontSize: 14, lineHeight: 1.5, margin: '8px 0 0' }}>{activeSlogan}</p>}
             </header>
-            {activeServices.length === 0 ? <p style={{ color: '#F0E6D2', fontSize: '13px', margin: 0 }}>Actualmente no hay servicios activos en esta categoría.</p> : <>
-            <p style={{ color: '#D6CBB8', fontSize: '13px', margin: 0, textAlign: 'center' }}><span id="lst-carousel-count" role="status">1 de {activeServices.length}</span></p>
+            {activeServices.length === 0 ? <p style={{ color: '#F0E6D2', fontSize: '13px', margin: 0 }}>{t('categoryEmpty')}</p> : <>
+            <p style={{ color: '#D6CBB8', fontSize: '13px', margin: 0, textAlign: 'center' }}><span id="lst-carousel-count" role="status">{categoryPosition(1, activeServices.length)}</span></p>
             <div className="lst-carousel-shell">
               <button type="button" className="lst-carousel-arrow" aria-label={t('previousWeek')} onClick={() => scrollCarousel(-1)}><ChevronLeft size={18} strokeWidth={2} aria-hidden="true" /></button>
               <div className="lst-carousel" tabIndex={0} role="region" aria-label={categoryText(activeCategory)}
@@ -5310,7 +5339,7 @@ function StudioApp() {
                   const step = card.offsetWidth + 14 || 1;
                   const index = Math.min(activeServices.length - 1, Math.max(0, Math.round(el.scrollLeft / step)));
                   const counter = document.getElementById('lst-carousel-count');
-                  if (counter) counter.textContent = (index + 1) + ' de ' + activeServices.length;
+                  if (counter) counter.textContent = categoryPosition(index + 1, activeServices.length);
                   const dots = document.querySelectorAll('#lst-carousel-dots button');
                   dots.forEach((dot, dotIndex) => { (dot as HTMLElement).style.opacity = dotIndex === index ? '1' : '0.35'; });
                 }}
