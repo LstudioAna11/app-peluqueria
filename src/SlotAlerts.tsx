@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { slotAlert } from './studioApi';
+import spanish from './portalSpanish';
 import './lostDemand.css';
 import './slotAlerts.css';
 
@@ -13,18 +14,19 @@ type AlertRow = {
   studio_clients: { first_name: string; last_name: string | null; phone: string | null };
 };
 
-const formatDay = (day: string) => new Intl.DateTimeFormat('es-ES', {
+const formatDay = (day: string, locale = 'es-ES') => new Intl.DateTimeFormat(locale, {
   dateStyle: 'long', timeZone: 'Europe/Madrid',
 }).format(new Date(day + 'T12:00:00Z'));
 
-export function SlotAlertRequest({ day, selection, allowRequest }: {
-  day: string; selection: Selection[]; allowRequest: boolean;
+export function SlotAlertRequest({ day, selection, allowRequest, t = (key) => spanish[key], locale }: {
+  day: string; selection: Selection[]; allowRequest: boolean; t?: (key: string) => string; locale?: string;
 }) {
+  const labelDate = (key: string) => t(key).replace('{date}', () => formatDay(day, locale));
   const [saved, setSaved] = useState<string | null>();
   const [confirm, setConfirm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<{key: string; detail?: string}>();
 
   useEffect(() => {
     let active = true;
@@ -37,7 +39,7 @@ export function SlotAlertRequest({ day, selection, allowRequest }: {
 
   async function update(operation: 'save' | 'cancel') {
     setBusy(true);
-    setError('');
+    setError(undefined);
     try {
       const result = await slotAlert<RequestStatus>(operation === 'save'
         ? { operation, day, whatsapp: true, services: selection.map(({ id, variantId }) => ({ id, variantId })) }
@@ -45,31 +47,32 @@ export function SlotAlertRequest({ day, selection, allowRequest }: {
       setSaved(result.services);
       setConfirm(false);
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'No se pudo actualizar el aviso.');
+      const detail = reason instanceof Error ? reason.message : undefined;
+      setError({ key: detail === spanish.slotAlertPhone ? 'slotAlertPhone' : 'slotAlertFailure', detail });
     } finally {
       setBusy(false);
     }
   }
 
   if (!saved && !allowRequest) return null;
-  return <section className="slot-alert-card" aria-label="Aviso si se libera un hueco">
+  return <section className="slot-alert-card" aria-label={t('slotAlertLabel')}>
     {saved && !confirm ? <>
-      <strong role="status">Aviso solicitado para el {formatDay(day)}</strong>
+      <strong role="status">{labelDate('slotAlertSaved')}</strong>
       <p>{saved}</p>
-      <button type="button" className="studio-btn-ghost" disabled={busy} onClick={() => void update('cancel')}>Retirar aviso</button>
+      <button type="button" className="studio-btn-ghost" disabled={busy} onClick={() => void update('cancel')}>{t('slotAlertWithdraw')}</button>
     </> : confirm ? <>
-      <strong>Aviso para el {formatDay(day)}</strong>
+      <strong>{labelDate('slotAlertDate')}</strong>
       <p>{selection.map(service => service.name).join(' + ')}</p>
-      <p>Al confirmar, pides que te contactemos por WhatsApp al número de tu ficha si aparece un hueco para estos servicios.</p>
+      <p>{t('slotAlertConsent')}</p>
       <div className="slot-alert-actions">
-        <button type="button" className="studio-btn-ghost" disabled={busy} onClick={() => setConfirm(false)}>Volver</button>
-        <button type="button" className="studio-btn-ghost" disabled={busy || !allowRequest} onClick={() => void update('save')}>Confirmar aviso por WhatsApp</button>
+        <button type="button" className="studio-btn-ghost" disabled={busy} onClick={() => setConfirm(false)}>{t('backAction')}</button>
+        <button type="button" className="studio-btn-ghost" disabled={busy || !allowRequest} onClick={() => void update('save')}>{t('slotAlertConfirm')}</button>
       </div>
     </> : <>
-      <p>¿Te interesa esta fecha? Puedes pedirnos que te avisemos por WhatsApp si se libera un hueco.</p>
-      <button type="button" className="slot-alert-primary" disabled={loading} onClick={() => setConfirm(true)}>Avísame si hay un hueco</button>
+      <p>{t('slotAlertInvite')}</p>
+      <button type="button" className="slot-alert-primary" disabled={loading} onClick={() => setConfirm(true)}>{t('slotAlertAsk')}</button>
     </>}
-    {error && <p role="alert">{error}</p>}
+    {error && <p role="alert">{(!locale || locale === 'es-ES') && error.detail ? error.detail : t(error.key)}</p>}
   </section>;
 }
 
