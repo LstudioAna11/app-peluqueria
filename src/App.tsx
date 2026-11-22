@@ -435,7 +435,7 @@ const DEFAULT_BRAND_LOGO = '/studio-brand-default.webp';
 
 export interface ServiceVariant {
   description?: string;
-  translations?: Record<string, { name?: string; description?: string }>;
+  translations?: Record<string, { name?: string; description?: string }>; 
   id: string;
   name: string;
   price: string;
@@ -2782,10 +2782,10 @@ function StudioApp() {
   const contactNumber=contactPhone.length===9?'34'+contactPhone:contactPhone;
   const policyContact=/^\d{10,15}$/.test(contactNumber)?'https://wa.me/'+contactNumber:undefined;
   const policyNotice=()=> <aside role="status" style={{background:'#29231F',border:'1px solid #C5A059',borderRadius:10,padding:16,color:'#FFF8EE',fontSize:13,lineHeight:1.65}}>
-    <strong style={{display:'block',color:'#E4C687',fontSize:15,marginBottom:8}}>Esta cita ya no admite cambios ni cancelaciones online</strong>
-    <p style={{margin:'0 0 8px'}}>Por nuestra política de reservas, los cambios y cancelaciones deben realizarse con un mínimo de <strong>24 horas de antelación</strong> respecto al inicio de la cita.</p>
-    <p style={{margin:0}}>El plazo de gestión online ha finalizado. Para solicitar un cambio o una cancelación, contacta directamente con L’Studio Ana. Tu cita sigue reservada.</p>
-    {policyContact&&<a href={policyContact} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',minHeight:44,color:'#E4C687',textDecoration:'underline',marginTop:8}}>Contactar con el Studio</a>}
+    <strong style={{display:'block',color:'#E4C687',fontSize:15,marginBottom:8}}>{t('appointmentManageClosed')}</strong>
+    <p style={{margin:'0 0 8px'}}>{t('appointmentPolicy24h')}</p>
+    <p style={{margin:0}}>{t('appointmentManageContact')}</p>
+    {policyContact&&<a href={policyContact} target="_blank" rel="noopener noreferrer" style={{display:'inline-flex',alignItems:'center',minHeight:44,color:'#E4C687',textDecoration:'underline',marginTop:8}}>{t('feedbackContact')}</a>}
   </aside>;
   const handleConfirmCancelAppointment = async (appointment: Appointment) => {
     if(cancellationBusyRef.current)return;
@@ -2928,13 +2928,13 @@ function StudioApp() {
       setPushError(error instanceof Error ? error.message : 'No se pudo iniciar sesión.');
     } finally { setPushBusy(false); }
   };
-  const pushStatusLabel = () => ({
-    unsupported: 'No disponibles en este navegador',
-    'config-pending': 'Pendiente de configuración del Studio',
-    denied: 'Permiso bloqueado en este dispositivo',
-    subscribed: 'Activadas en este dispositivo',
-    default: 'Desactivadas en este dispositivo',
-  } as Record<string, string>)[pushStatus];
+  const pushStatusLabel = () => t(({
+    unsupported: 'pushStatusUnsupported',
+    'config-pending': 'pushStatusPending',
+    denied: 'pushStatusDenied',
+    subscribed: 'pushStatusOn',
+    default: 'pushStatusOff',
+  } as Record<string, string>)[pushStatus] || 'pushStatusOff');
 
   useEffect(() => {
     const checkPWA = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
@@ -4725,16 +4725,16 @@ function StudioApp() {
   };
 
   const renderClientPushPanel = () => (<section style={{ padding: '12px', background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px' }}>
-              <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: '0 0 10px' }}>Notificaciones push: <strong style={{ color: pushStatus === 'subscribed' ? '#8FC98F' : '#E4C687' }}>{pushStatusLabel()}</strong></p>
+              <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: '0 0 10px' }}>{t('navAlerts')}: <strong style={{ color: pushStatus === 'subscribed' ? '#8FC98F' : '#E4C687' }}>{pushStatusLabel()}</strong></p>
               {pushNeedsLogin && <div style={{ marginBottom: '12px', color: '#FFF8EE' }}>
-                <label htmlFor="push-login-pin">Confirma tu PIN para activar los avisos</label>
+                <label htmlFor="push-login-pin">{t('pushPanelPin')}</label>
                 <input id="push-login-pin" type="password" inputMode="numeric" maxLength={4} autoComplete="off" value={pushLoginPin} onChange={event => setPushLoginPin(event.target.value.replace(/[^0-9]/g, '').slice(0, 4))} style={{ display: 'block', margin: '8px 0', padding: '10px', color: '#2C2521', background: '#EADCC7' }} />
-                <button type="button" onClick={handlePushLogin} disabled={pushBusy || pushLoginPin.length !== 4}>Recuperar sesión sin perder mi reserva</button>
+                <button type="button" onClick={handlePushLogin} disabled={pushBusy || pushLoginPin.length !== 4}>{t('pushPanelRecover')}</button>
               </div>}
-              {(pushStatus === 'default' || pushStatus === 'subscribed' || pushStatus === 'denied') && !pushNeedsLogin && <button type="button" onClick={handleEnablePush} disabled={pushBusy} style={{ width: '100%', minHeight: '46px', padding: '12px', background: 'transparent', color: '#E4C687', border: '1px solid #C49A58', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: pushBusy ? 'wait' : 'pointer' }}>{pushBusy ? 'Comprobando…' : pushStatus === 'subscribed' ? 'Enviar notificación de prueba' : pushStatus === 'denied' ? 'Comprobar permisos' : 'Activar notificaciones'}</button>}
-              {pushStatus === 'config-pending' && <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>El Studio todavía no tiene activas las notificaciones. Prueba de nuevo más tarde.</p>}
-              {pushStatus === 'denied' && <p style={{color:'#F2B8AC',fontSize:12,lineHeight:1.6,margin:'10px 0 0'}}>Permite los avisos en los ajustes de tu móvil o navegador. Después pulsa «Comprobar permisos».</p>}
-              <PushSetupHelp/>
+              {(pushStatus === 'default' || pushStatus === 'subscribed' || pushStatus === 'denied') && !pushNeedsLogin && <button type="button" onClick={handleEnablePush} disabled={pushBusy} style={{ width: '100%', minHeight: '46px', padding: '12px', background: 'transparent', color: '#E4C687', border: '1px solid #C49A58', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: pushBusy ? 'wait' : 'pointer' }}>{pushBusy ? t('pushChecking') : pushStatus === 'subscribed' ? t('pushSendTest') : pushStatus === 'denied' ? t('pushCheckPermission') : t('pushEnable')}</button>}
+              {pushStatus === 'config-pending' && <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>{t('pushStatusPending')}</p>}
+              {pushStatus === 'denied' && <p style={{color:'#F2B8AC',fontSize:12,lineHeight:1.6,margin:'10px 0 0'}}>{t('pushPermissionHelp')}</p>}
+              <PushSetupHelp t={t}/>
               {pushTestResult && <p role="status" style={{ color: '#8FC98F', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>{pushTestResult}</p>}
               {pushError && <p role="alert" style={{ color: '#F2B8AC', fontSize: '12px', lineHeight: 1.6, margin: '10px 0 0' }}>{pushError}</p>}
             </section>);
@@ -5147,11 +5147,11 @@ function StudioApp() {
                 <span style={{ color: '#E4C687' }}> · {clientNextAppointment.time}</span>
               </div>
               <p style={{ color: '#E0E8D9', margin: 0, lineHeight: 1.5, fontSize: '13px', overflowWrap: 'anywhere' }}>{appointmentServiceNames(clientNextAppointment)}</p>
-              <p style={{ color: '#E0E8D9', margin: 0, fontSize: '12px' }}>Estilista: Ana · L’Studio Ana — Hair Experience</p>
-              <p style={{color:'#E0E8D9',fontSize:12,lineHeight:1.6,margin:0}}>Cambios y cancelaciones online con un mínimo de 24 horas de antelación.</p>
+              <p style={{ color: '#E0E8D9', margin: 0, fontSize: '12px' }}>{tf('appointmentStylist',{name:'Ana · L’Studio Ana — Hair Experience'})}</p>
+              <p style={{color:'#E0E8D9',fontSize:12,lineHeight:1.6,margin:0}}>{t('appointmentPolicy24h')}</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', paddingTop: '2px' }}>
                 <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(clientNextAppointment); setNewRescheduleTime(clientNextAppointment.time); setNewRescheduleDate(clientNextAppointment.dateKey); }} style={{ background: 'transparent', border: '1px solid #88927B', color: '#F0D89E', minHeight: '44px', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px' }}>{t('changeDate')}</button>
-                <button type="button" onClick={() => {setCancellationError('');setCancelApptModal(clientNextAppointment);}} style={{ background: 'transparent', border: '1px solid #D58D7C', color: '#FFC4B5', minHeight: '44px', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>Cancelar cita</button>
+                <button type="button" onClick={() => {setCancellationError('');setCancelApptModal(clientNextAppointment);}} style={{ background: 'transparent', border: '1px solid #D58D7C', color: '#FFC4B5', minHeight: '44px', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '12px', fontWeight: 600 }}>{t('appointmentCancel')}</button>
                 <a href={`https://wa.me/34${(bizConfig.studioWhatsapp || bizConfig.phone).replace(/\s+/g, '')}?text=${encodeURIComponent(`Hola Ana, quiero consultar mi cita del ${clientNextAppointment.dateKey.split('-').reverse().join('/')} a las ${clientNextAppointment.time}.`)}`} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', color: '#E4C687', padding: '10px 0', minHeight: '44px', fontSize: '12px' }}>{t('askAppointment')}</a>
               </div>
             </> : <>
@@ -5160,8 +5160,8 @@ function StudioApp() {
             </>}
           </section>
           {clientUpcomingAppointments.length > 1 && (
-            <section aria-label="Otras citas próximas" style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '14px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <span style={{ color: '#E4C687', fontSize: '11px', letterSpacing: '1px' }}>OTRAS CITAS PRÓXIMAS ({clientUpcomingAppointments.length - 1})</span>
+            <section aria-label={t('appointmentOtherUpcoming')} style={{ background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '14px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <span style={{ color: '#E4C687', fontSize: '11px', letterSpacing: '1px' }}>{t('appointmentOtherUpcoming')} ({(clientUpcomingAppointments.length - 1).toLocaleString(portalLocale)})</span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {clientUpcomingAppointments.slice(1).map(appointment => <article key={appointment.id} style={{ background: '#344239', border: '1px solid #64745D', borderRadius: '8px', padding: '10px' }}>
                   {renderPromotionBadge(appointment)}
@@ -5169,7 +5169,7 @@ function StudioApp() {
                   <p style={{ color: '#E0E8D9', fontSize: '11px', margin: '4px 0 8px', overflowWrap: 'anywhere' }}>{appointmentServiceNames(appointment)}</p>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                     <button type="button" onClick={() => { setRepeatAppointmentMode(false); setRescheduleModalAppt(appointment); setNewRescheduleTime(appointment.time); setNewRescheduleDate(appointment.dateKey); }} style={{ background: 'transparent', border: '1px solid #88927B', color: '#F0D89E', minHeight: '40px', padding: '6px 12px', borderRadius: '7px', cursor: 'pointer', fontSize: '11px' }}>{t('changeDate')}</button>
-                    <button type="button" onClick={() => {setCancellationError('');setCancelApptModal(appointment);}} style={{ background: 'transparent', border: '1px solid #D58D7C', color: '#FFC4B5', minHeight: '40px', padding: '6px 12px', borderRadius: '7px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>Cancelar cita</button>
+                    <button type="button" onClick={() => {setCancellationError('');setCancelApptModal(appointment);}} style={{ background: 'transparent', border: '1px solid #D58D7C', color: '#FFC4B5', minHeight: '40px', padding: '6px 12px', borderRadius: '7px', cursor: 'pointer', fontSize: '11px', fontWeight: 600 }}>{t('appointmentCancel')}</button>
                   </div>
                 </article>)}
               </div>
@@ -6094,16 +6094,16 @@ function StudioApp() {
       )}
 
       {pushPanelOpen && !['clientPin', 'clientRegistration', 'adminLogin', 'adminPanel'].includes(currentScreen) && <div style={{ position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(0,0,0,.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-        <div role="dialog" aria-modal="true" aria-label="Mis notificaciones" style={{ width: '100%', maxWidth: 460, maxHeight: '85dvh', overflowY: 'auto', background: '#221D19', color: '#FFF8EE', padding: 20, borderRadius: 14, border: '1px solid #C49A58', boxSizing: 'border-box' }}>
+        <div role="dialog" aria-modal="true" aria-label={t('pushPanelTitle')} style={{ width: '100%', maxWidth: 460, maxHeight: '85dvh', overflowY: 'auto', background: '#221D19', color: '#FFF8EE', padding: 20, borderRadius: 14, border: '1px solid #C49A58', boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', marginBottom: 12 }}>
-            <h2 style={{ fontSize: 22, color: '#E4C687', margin: 0 }}>Mis notificaciones</h2>
-            <button type="button" aria-label="Cerrar notificaciones" onClick={() => setPushPanelOpen(false)} style={{ minWidth: 44, minHeight: 44, background: 'transparent', color: '#E4C687', border: '1px solid #67543C', borderRadius: 8 }}>✕</button>
+            <h2 style={{ fontSize: 22, color: '#E4C687', margin: 0 }}>{t('pushPanelTitle')}</h2>
+            <button type="button" aria-label={t('portalClose')} onClick={() => setPushPanelOpen(false)} style={{ minWidth: 44, minHeight: 44, background: 'transparent', color: '#E4C687', border: '1px solid #67543C', borderRadius: 8 }}>✕</button>
           </div>
-          <p style={{ color: '#D6CBB8', fontSize: 13, lineHeight: 1.6 }}>Activa los avisos de tus citas en este dispositivo. No necesitas hacer una reserva para probarlos.</p>
+          <p style={{ color: '#D6CBB8', fontSize: 13, lineHeight: 1.6 }}>{t('pushPanelIntro')}</p>
           <PrivacyPermissionsEntry t={t} />
           
           {renderClientPushPanel()}
-          <p style={{ color: '#D6CBB8', fontSize: 12, lineHeight: 1.6 }}>Un envío aceptado por el servidor no confirma la entrega. Comprueba si la prueba aparece en las notificaciones de tu móvil.</p>
+          <p style={{ color: '#D6CBB8', fontSize: 12, lineHeight: 1.6 }}>{t('pushPanelDelivery')}</p>
         </div>
       </div>}
       {/* MODAL DETALLE CITA */}
@@ -6513,27 +6513,27 @@ function StudioApp() {
         </div>
       )}
       {cancelApptModal && (
-        <div role="dialog" aria-modal="true" aria-label="Cancelar cita" style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(28, 22, 18, 0.78)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+        <div role="dialog" aria-modal="true" aria-label={t('appointmentCancel')} style={{ position: 'fixed', inset: 0, zIndex: 70, background: 'rgba(28, 22, 18, 0.78)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
           <div style={{ background: '#221D19', border: '1px solid rgba(212, 175, 55, 0.45)', borderRadius: '16px', padding: '24px', maxWidth: '420px', width: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '14px', maxHeight: '88vh', overflowY: 'auto' }}>
-            <h3 style={{ color: '#C99E52', fontSize: '24px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>Cancelar cita</h3>
+            <h3 style={{ color: '#C99E52', fontSize: '24px', fontWeight: 'normal', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.05em', margin: 0 }}>{t('appointmentCancel')}</h3>
             <div style={{ backgroundColor: 'rgba(255, 248, 238, 0.06)', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '9px', padding: '14px', color: '#FFF8EE', fontSize: '13px', lineHeight: 1.7 }}>
-              {cancelApptModal.dateKey.split('-').reverse().join('/')} · {cancelApptModal.time}<br />
-              <span style={{ color: '#D6CBB8' }}>{(cancelApptModal.services?.length ? cancelApptModal.services.map(item => bookingName(item.sub) + (item.variant ? ` (${item.variant.name})` : '')).join(' + ') : appointmentServiceNames(cancelApptModal))}</span>
+              {new Date(cancelApptModal.dateKey+'T12:00:00').toLocaleDateString(portalLocale)} · {cancelApptModal.time}<br />
+              <span style={{ color: '#D6CBB8' }}>{(cancelApptModal.services?.length ? cancelApptModal.services.map(item => (staffCanManageAppointments ? bookingName(item.sub) : portalServiceTitle(item.sub)) + (item.variant ? ` (${staffCanManageAppointments ? item.variant.name : variantText(item.variant,item.sub)})` : '')).join(' + ') : appointmentServiceNames(cancelApptModal))}</span>
             </div>
             {!canManageAppointment(cancelApptModal)&&policyNotice()}
             {cancellationError&&<p role="alert" style={{fontSize:13,color:'#FFB4A9',lineHeight:1.6}}>{cancellationError}</p>}
             {cancelApptModal.advancePayment?.status === 'pending' && (
               <p style={{ color: '#E4C687', fontSize: '12px', lineHeight: 1.6, margin: 0, background: 'rgba(201, 158, 82, 0.1)', border: '1px solid rgba(212, 175, 55, 0.3)', borderRadius: '8px', padding: '10px 12px' }}>
-                Esta cita tiene un anticipo pendiente de {cancelApptModal.advancePayment.amount} € (ref. {cancelApptModal.advancePayment.reference}). Al cancelar, la reserva queda liberada; el tratamiento del anticipo se ajusta a la política de reservas del Studio y lo revisa Ana. No se aplica ningún reembolso automático.
+                {tf('appointmentCancelDeposit',{amount:new Intl.NumberFormat(portalLocale,{style:'currency',currency:'EUR'}).format(cancelApptModal.advancePayment.amount),reference:cancelApptModal.advancePayment.reference})}
               </p>
             )}
             {canManageAppointment(cancelApptModal)&&<>
-            <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>La cita pasará a “Cancelada” en tu historial y se liberará el hueco en la agenda del Studio. Los recordatorios programados quedan anulados.</p>
-            {!staffCanManageAppointments&&<p style={{fontSize:12,color:'#E4C687',lineHeight:1.6,margin:0}}>Política de reservas: cambios y cancelaciones con un mínimo de <strong>24 horas de antelación</strong>.</p>}
+            <p style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6, margin: 0 }}>{t('appointmentCancelEffect')}</p>
+            {!staffCanManageAppointments&&<p style={{fontSize:12,color:'#E4C687',lineHeight:1.6,margin:0}}>{t('appointmentPolicy24h')}</p>}
             </>}
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap', marginTop: '4px' }}>
-              <button type="button" disabled={cancellationBusy} onClick={() => {setCancelApptModal(null);setCancellationError('');}} style={{ background: 'none', border: '1px solid rgba(212, 175, 55, 0.4)', color: '#FFF8EE', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>Mantener mi cita</button>
-              {canManageAppointment(cancelApptModal)&&<button type="button" disabled={cancellationBusy||!canManageAppointment(cancelApptModal)} onClick={() => void handleConfirmCancelAppointment(cancelApptModal)} style={{ background: '#9B3C2D', border: 'none', color: '#FFF8EE', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>{cancellationBusy?'Cancelando…':'Confirmar cancelación'}</button>}
+              <button type="button" disabled={cancellationBusy} onClick={() => {setCancelApptModal(null);setCancellationError('');}} style={{ background: 'none', border: '1px solid rgba(212, 175, 55, 0.4)', color: '#FFF8EE', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '13px', cursor: 'pointer' }}>{t('appointmentKeep')}</button>
+              {canManageAppointment(cancelApptModal)&&<button type="button" disabled={cancellationBusy||!canManageAppointment(cancelApptModal)} onClick={() => void handleConfirmCancelAppointment(cancelApptModal)} style={{ background: '#9B3C2D', border: 'none', color: '#FFF8EE', padding: '12px 16px', minHeight: '44px', borderRadius: '8px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}>{cancellationBusy?t('appointmentCancelling'):t('voucherConfirmCancel')}</button>}
             </div>
           </div>
         </div>
