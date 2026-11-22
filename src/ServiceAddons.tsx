@@ -1,4 +1,5 @@
 import React from 'react';
+import { catalogLabel, catalogPrice } from './portalCatalogLabels';
 import type {SubService, ServiceVariant, CatalogCategory} from './App';
 export type AddonGroup = {id:string;title:string;mode:'optional'|'required'|'included';serviceIds:string[]};
 type Item={sub:SubService;variant:ServiceVariant|null};
@@ -43,13 +44,15 @@ export function AddonEditor({sub,catalog,onChange}:{sub:SubService;catalog:Catal
     </>}
   </section>;
 }
-export function AddonChoices({owner,catalog,items,setItems,showPrices}:{owner:SubService;catalog:CatalogCategory[];items:Item[];setItems:React.Dispatch<React.SetStateAction<Item[]>>;showPrices:boolean}){
+export function AddonChoices({owner,catalog,items,setItems,showPrices,language = 'es',serviceTitle = sub => sub.bookingName || sub.name,variantTitle = variant => variant.name}:{language?:string;serviceTitle?:(sub:SubService)=>string;variantTitle?:(variant:ServiceVariant,sub:SubService)=>string;owner:SubService;catalog:CatalogCategory[];items:Item[];setItems:React.Dispatch<React.SetStateAction<Item[]>>;showPrices:boolean}){
   const groups = owner.addonGroups ?? [];
+  const l = (key: Parameters<typeof catalogLabel>[1]) => catalogLabel(language, key);
+  const groupTitle = (title: string) => language !== 'es' && /^peinado$/i.test(title.trim()) ? l('chooseStyling') : title;
   if (!groups.length) return null;
   const available = catalog.flatMap(category => category.subservices).filter(sub => sub.id !== owner.id && sub.active !== false);
   const ordered = [...groups.filter(group => group.mode === 'required'), ...groups.filter(group => group.mode !== 'required')];
   return <div className="lst-addons">{ordered.map(group => {
-    if (group.mode === 'included') return <p className="lst-addon-included" key={group.id}>{group.title} · Incluido en el pack</p>;
+    if (group.mode === 'included') return <p className="lst-addon-included" key={group.id}>{groupTitle(group.title)} · {l('packageIncluded')}</p>;
 
     const required = group.mode === 'required';
     const title = group.title.trim() || (required ? 'Peinado' : 'Otros servicios');
@@ -60,7 +63,7 @@ export function AddonChoices({owner,catalog,items,setItems,showPrices}:{owner:Su
       return !sub?.hasVariants || !sub.variants?.length || sub.variants.some(variant => variant.id === item.variant?.id);
     });
     const cards = <div className="lst-addon-options">{options.map(sub => <div key={sub.id} className="lst-addon-service">
-      <strong>{sub.bookingName || sub.name}</strong>
+      <strong>{serviceTitle(sub)}</strong>
       <div className="lst-addon-choices">
         {(sub.hasVariants && sub.variants?.length ? sub.variants : [null]).map(variant => {
           const selected = items.some(item => item.sub.id === sub.id && (item.variant?.id ?? null) === (variant?.id ?? null));
@@ -69,16 +72,16 @@ export function AddonChoices({owner,catalog,items,setItems,showPrices}:{owner:Su
             const remaining = previous.filter(item => item.sub.id !== sub.id);
             return alreadySelected ? remaining : [...remaining, {sub, variant}];
           })}>
-            <span>{variant?.name || (selected ? 'Quitar' : 'Seleccionar')}</span>
-            <small>{[showPrices ? variant?.price || sub.price : '', variant?.duration || sub.duration].filter(Boolean).join(' · ')}</small>
-            {selected && <small className="lst-addon-selected">✓ Seleccionado</small>}
+            <span>{variant ? variantTitle(variant, sub) : selected ? '✓ ' + l('selected') : l('select')}</span>
+            <small>{[showPrices ? catalogPrice(variant?.price || sub.price, language) : '', variant?.duration || sub.duration].filter(Boolean).join(' · ')}</small>
+            {selected && <small className="lst-addon-selected">✓ {l('selected')}</small>}
           </button>;
         })}
       </div>
     </div>)}</div>;
 
     if (!required) return <details key={group.id} className="lst-addon-optional">
-      <summary><strong>Añadir más servicios</strong><span className="lst-addon-badge">Opcional</span>{chosen.length > 0 && <small>Añadidos: {chosen.length}</small>}</summary>
+      <summary><strong>{l('addMore')}</strong><span className="lst-addon-badge">{l('optional')}</span>{chosen.length > 0 && <small>✓ {chosen.length}</small>}</summary>
       {cards}
     </details>;
 
@@ -86,13 +89,11 @@ export function AddonChoices({owner,catalog,items,setItems,showPrices}:{owner:Su
     return <section key={group.id} className="lst-addon-required" tabIndex={-1}
       data-addon-pending={!complete ? (styling ? 'styling' : 'required') : undefined}>
       <div className="lst-addon-heading">
-        <h3>{styling ? 'Elige tu peinado' : title}</h3>
-        <span className="lst-addon-badge">{complete ? '✓ Seleccionado' : 'Obligatorio'}</span>
+        <h3>{styling ? l('chooseStyling') : title}</h3>
+        <span className="lst-addon-badge">{complete ? '✓ ' + l('selected') : l('required')}</span>
       </div>
-      <p>{complete ? 'Ya tienes una opción seleccionada.' : styling
-        ? 'Selecciona el peinado según el largo de tu cabello para poder elegir fecha y hora.'
-        : 'Selecciona al menos una opción para poder elegir fecha y hora.'}</p>
-      {options.length ? cards : <p role="alert">No hay opciones disponibles. Contacta con el estudio para completar tu cita.</p>}
+      <p>{complete ? l('selected') : l('chooseOptionFirst')}</p>
+      {options.length ? cards : <p role="alert">{l('noOptions')}</p>}
     </section>;
   })}</div>;
 }
