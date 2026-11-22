@@ -1,3 +1,4 @@
+import spanish from './portalSpanish';
 import { ClientProductRoutine } from './Products';
 import GiftRecipientAdmin,{GiftPurchaseReceipts} from './GiftRecipientAdmin'; // lst-gift-recipient-v1
 import './passport-refine.css';
@@ -23,7 +24,7 @@ export function privatePhotoExpiry(date:string):string|null{
  const lastDay=new Date(Date.UTC(nextYear,month,0)).getUTCDate();
  return String(nextYear).padStart(4,'0')+'-'+String(month).padStart(2,'0')+'-'+String(Math.min(day,lastDay)).padStart(2,'0');
 }
-export function ClientPhotoGallery({clientId,editable=false}:{clientId?:string;editable?:boolean}){
+export function ClientPhotoGallery({clientId,editable=false,t=(key)=>spanish[key],locale}:{clientId?:string;editable?:boolean;t?:(key:string)=>string;locale?:string}){
   const [photos,setPhotos]=useState<studioApi.ClientPhoto[]>([]),[total,setTotal]=useState(0),[page,setPage]=useState(0);
   const [loading,setLoading]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState('');
   const [file,setFile]=useState<File|null>(null),[takenOn,setTakenOn]=useState(()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()));
@@ -32,7 +33,13 @@ export function ClientPhotoGallery({clientId,editable=false}:{clientId?:string;e
   const attempt=useRef<{file:File;signature:string;id:string;dataUrl:string}|null>(null);
   const canEdit=editable&&studioApi.storedRole()==='admin';
   const [opened,setOpened]=useState(!editable);
-  const name=(value:string)=>value==='antes'?'Antes':value==='despues'?'Después':'Seguimiento';
+  const name=(value:string)=>t(value==='antes'?'photoBefore':value==='despues'?'photoAfter':'photoProgress');
+  const formatPhotoDate=(day:string)=>{
+    const date=new Date(day+'T12:00:00Z');
+    return locale&&Number.isFinite(date.getTime())
+      ? new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeZone:'UTC'}).format(date)
+      : day.split('-').reverse().join('/');
+  };
   const load=async(target=page)=>{
     const run=++generation.current;loadBusy.current=true;setLoading(true);setError('');
     try{
@@ -49,7 +56,7 @@ export function ClientPhotoGallery({clientId,editable=false}:{clientId?:string;e
   useEffect(()=>{setSelected(null);if(opened)void load(page);},[opened,page,clientId]);
   const expired=(photo:studioApi.ClientPhoto)=>{
     if(Date.parse(photo.expiresAt)<=Date.now()&&!loadBusy.current&&!locked.current&&Date.now()-lastRenew.current>60000){lastRenew.current=Date.now();setSelected(null);void load(page);}
-    else setError('No se pudo abrir una foto. Pulsa «Actualizar fotos» para volver a intentarlo.');
+    else setError('photoOpenError');
   };
   const upload=async(event:React.FormEvent)=>{
     event.preventDefault();if(locked.current)return;setError('');setMessage('');
@@ -90,9 +97,9 @@ export function ClientPhotoGallery({clientId,editable=false}:{clientId?:string;e
   const input:React.CSSProperties={display:'block',width:'100%',boxSizing:'border-box',padding:10,marginTop:6,border:'1px solid #8C6A4B',borderRadius:6,background:'#29231F',color:'#FFF8EE',fontSize:13};
   const button:React.CSSProperties={padding:'10px 12px',minHeight:42,border:'1px solid #8C6A4B',borderRadius:6,background:'#29231F',color:'#E4C687',fontSize:12,cursor:busy?'wait':'pointer'};
   return <section style={{padding:14,border:'1px solid #655039',borderRadius:10,background:'#322A25',color:'#FFF8EE',minWidth:0}} aria-busy={busy||loading}>
-    <button type="button" onClick={()=>setOpened(value=>!value)} disabled={busy} aria-expanded={opened} style={{background:'none',border:0,color:'#E4C687',padding:'4px 0',minHeight:36,fontSize:16,cursor:'pointer',textAlign:'left',width:'100%'}}>Galería de seguimiento <span aria-hidden="true">{opened?'▴':'▾'}</span></button>
+    <button type="button" onClick={()=>setOpened(value=>!value)} disabled={busy} aria-expanded={opened} style={{background:'none',border:0,color:'#E4C687',padding:'4px 0',minHeight:36,fontSize:16,cursor:'pointer',textAlign:'left',width:'100%'}}>{t('photoGallery')} <span aria-hidden="true">{opened?'▴':'▾'}</span></button>
     {opened&&<>
-      <p style={{fontSize:12,lineHeight:1.6,color:'#D6CBB8',margin:'8px 0 12px'}}>{canEdit?'Estas fotos y sus notas serán visibles para esta clienta en su portal.':'Tus fotos de antes, después y seguimiento, añadidas por el Studio.'}</p>
+      <p style={{fontSize:12,lineHeight:1.6,color:'#D6CBB8',margin:'8px 0 12px'}}>{canEdit?'Estas fotos y sus notas serán visibles para esta clienta en su portal.':t('photoGalleryIntro')}</p>
       {canEdit&&<form onSubmit={upload} style={{display:'flex',flexDirection:'column',gap:10,marginBottom:16}}>
         <label style={{fontSize:12}}>Foto<input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} onChange={event=>{setFile(event.target.files?.[0]||null);attempt.current=null;setError('');setMessage('');}} style={input}/></label>
         <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(140px,1fr))',gap:10}}>
@@ -103,20 +110,20 @@ export function ClientPhotoGallery({clientId,editable=false}:{clientId?:string;e
         <label style={{fontSize:12}}>Nota visible a la clienta · opcional<textarea disabled={busy} maxLength={1000} rows={2} value={note} onChange={event=>setNote(event.target.value)} style={input}/></label>
         <button type="submit" disabled={busy||!file||!clientId} style={{...button,background:'#C99E52',color:'#29231F',fontWeight:600}}>{busy?'Guardando…':'Subir foto a la ficha'}</button>
       </form>}
-      <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'center',marginBottom:12}}><span style={{fontSize:12,color:'#D6CBB8'}}>{loading?'Cargando…':`${total} fotos`}</span><button type="button" disabled={busy||loading} onClick={()=>{setSelected(null);void load(page);}} style={button}>Actualizar fotos</button></div>
+      <div style={{display:'flex',justifyContent:'space-between',gap:8,alignItems:'center',marginBottom:12}}><span style={{fontSize:12,color:'#D6CBB8'}}>{loading?t('portalLoading'):t('photoCount').replace('{count}', String(total))}</span><button type="button" disabled={busy||loading} onClick={()=>{setSelected(null);void load(page);}} style={button}>{t('photoRefresh')}</button></div>
       {message&&<p role="status" aria-live="polite" style={{fontSize:12,color:'#E4C687',lineHeight:1.6}}>{message}</p>}
-      {error&&<p role="alert" style={{fontSize:12,color:'#FFB4A9',lineHeight:1.6}}>{error}</p>}
-      {!loading&&!photos.length&&!error&&<p style={{fontSize:13,color:'#D6CBB8'}}>Todavía no hay fotos de seguimiento.</p>}
+      {error&&<p role="alert" style={{fontSize:12,color:'#FFB4A9',lineHeight:1.6}}>{error==='photoOpenError'?t(error):editable?error:t('photoGalleryError')}</p>}
+      {!loading&&!photos.length&&!error&&<p style={{fontSize:13,color:'#D6CBB8'}}>{t('photoEmpty')}</p>}
       <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(150px,1fr))',gap:12}}>
         {photos.map(photo=><article key={photo.id} style={{minWidth:0,border:'1px solid #655039',borderRadius:8,overflow:'hidden',background:'#29231F'}}>
-          <button type="button" onClick={()=>setSelected(photo)} style={{display:'block',width:'100%',padding:0,border:0,background:'none',cursor:'pointer'}} aria-label={'Ampliar foto: '+name(photo.label)}><img src={photo.url} alt={name(photo.label)+' · '+photo.taken_on} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={()=>expired(photo)} style={{display:'block',width:'100%',height:180,objectFit:'cover'}}/></button>
-          <div style={{padding:10,fontSize:12,lineHeight:1.6}}><strong style={{color:'#E4C687'}}>{name(photo.label)}</strong><br/>{photo.taken_on.split('-').reverse().join('/')}{photo.note&&<p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',margin:'6px 0'}}>{photo.note}</p>}
+          <button type="button" onClick={()=>setSelected(photo)} style={{display:'block',width:'100%',padding:0,border:0,background:'none',cursor:'pointer'}} aria-label={t('productZoom')+' · '+name(photo.label)}><img src={photo.url} alt={name(photo.label)+' · '+photo.taken_on} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={()=>expired(photo)} style={{display:'block',width:'100%',height:180,objectFit:'cover'}}/></button>
+          <div style={{padding:10,fontSize:12,lineHeight:1.6}}><strong style={{color:'#E4C687'}}>{name(photo.label)}</strong><br/>{formatPhotoDate(photo.taken_on)}{photo.note&&<p style={{whiteSpace:'pre-wrap',overflowWrap:'anywhere',margin:'6px 0'}}>{photo.note}</p>}
             {canEdit&&(pendingDelete===photo.id?<div role="group" aria-label="Confirmar eliminación"><p>¿Eliminarla de ambos sitios?</p><button type="button" disabled={busy} onClick={()=>void remove(photo.id)} style={button}>Sí, eliminar</button> <button type="button" disabled={busy} onClick={()=>setPendingDelete(null)} style={button}>Volver</button></div>:<button type="button" disabled={busy} onClick={()=>setPendingDelete(photo.id)} style={{...button,color:'#FFC4B5',marginTop:8}}>Eliminar foto</button>)}
           </div>
         </article>)}
       </div>
-      {total>12&&<div style={{display:'flex',gap:10,alignItems:'center',justifyContent:'center',marginTop:14}}><button type="button" disabled={busy||loading||page===0} onClick={()=>setPage(value=>value-1)} style={button}>Anterior</button><span style={{fontSize:12}}>{page+1} / {Math.ceil(total/12)}</span><button type="button" disabled={busy||loading||(page+1)*12>=total} onClick={()=>setPage(value=>value+1)} style={button}>Siguiente</button></div>}
-      {selected&&<div role="dialog" aria-modal="true" aria-label="Foto de seguimiento" style={{position:'fixed',inset:0,zIndex:8000,background:'rgba(10,8,6,.96)',overflowY:'auto',padding:20,boxSizing:'border-box',display:'flex',flexDirection:'column',alignItems:'center',gap:12}}><button type="button" onClick={()=>setSelected(null)} style={{...button,alignSelf:'flex-end'}}>Cerrar foto</button><img src={selected.url} alt={name(selected.label)} referrerPolicy="no-referrer" onError={()=>expired(selected)} style={{maxWidth:'100%',maxHeight:'75vh',objectFit:'contain'}}/><p style={{maxWidth:650,fontSize:13,whiteSpace:'pre-wrap',lineHeight:1.7}}>{name(selected.label)} · {selected.taken_on.split('-').reverse().join('/')}<br/>{selected.note}</p></div>}
+      {total>12&&<div style={{display:'flex',gap:10,alignItems:'center',justifyContent:'center',marginTop:14}}><button type="button" disabled={busy||loading||page===0} onClick={()=>setPage(value=>value-1)} style={button}>{t('portalPrevious')}</button><span style={{fontSize:12}}>{page+1} / {Math.ceil(total/12)}</span><button type="button" disabled={busy||loading||(page+1)*12>=total} onClick={()=>setPage(value=>value+1)} style={button}>{t('portalNext')}</button></div>}
+      {selected&&<div role="dialog" aria-modal="true" aria-label={name(selected.label)} style={{position:'fixed',inset:0,zIndex:8000,background:'rgba(10,8,6,.96)',overflowY:'auto',padding:20,boxSizing:'border-box',display:'flex',flexDirection:'column',alignItems:'center',gap:12}}><button type="button" onClick={()=>setSelected(null)} style={{...button,alignSelf:'flex-end'}}>{t('productClosePhoto')}</button><img src={selected.url} alt={name(selected.label)} referrerPolicy="no-referrer" onError={()=>expired(selected)} style={{maxWidth:'100%',maxHeight:'75vh',objectFit:'contain'}}/><p style={{maxWidth:650,fontSize:13,whiteSpace:'pre-wrap',lineHeight:1.7}}>{name(selected.label)} · {formatPhotoDate(selected.taken_on)}<br/>{selected.note}</p></div>}
     </>}
   </section>;
 }
@@ -581,10 +588,10 @@ function RepeatLastAppointment({clientId,showPrices,onProceed,onCatalog,buttonLa
 }
 
 type PortalProfileTab='hair'|'history'|'photos'|'vouchers'|'memories';
-export function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,onBack,onBook,onReserve,onRepeat,showPrices}:{client?:ClientRecord|null;catalog:CatalogCategory[];logoSrc:string;t:(key:string)=>string;compactVisitText:(text:string)=>string;onBack:()=>void;onBook:()=>void;onReserve:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void;onRepeat:(draft:RepeatPortalDraft)=>void;showPrices:boolean}){
+export function ClientProfileCompact({client,catalog,logoSrc,t,locale,compactVisitText,onBack,onBook,onReserve,onRepeat,showPrices}:{client?:ClientRecord|null;catalog:CatalogCategory[];logoSrc:string;t:(key:string)=>string;locale?:string;compactVisitText:(text:string)=>string;onBack:()=>void;onBook:()=>void;onReserve:(voucher:studioApi.StudioVoucher,serviceId?:string)=>void;onRepeat:(draft:RepeatPortalDraft)=>void;showPrices:boolean}){
  const [tab,setTab]=useState<PortalProfileTab>('hair'),[historyPage,setHistoryPage]=useState(0);
  const [visited,setVisited]=useState<Record<PortalProfileTab,boolean>>({hair:true,history:false,photos:false,vouchers:false,memories:false});
- const tabs:{id:PortalProfileTab;label:string}[]=[{id:'hair',label:'Mi cabello'},{id:'history',label:'Historial'},{id:'photos',label:'Fotos'},{id:'memories',label:'Recuerdos'}];
+ const tabs:{id:PortalProfileTab;label:string}[]=[{id:'hair',label:t('profileHair')},{id:'history',label:t('profileHistory')},{id:'photos',label:t('profilePhotos')},{id:'memories',label:t('profileMemories')}];
  useEffect(()=>{window.scrollTo({top:0,behavior:'auto'});},[]);
  const select=(id:PortalProfileTab)=>{setTab(id);setVisited(previous=>({...previous,[id]:true}));window.scrollTo({top:0,behavior:'auto'});};
  const tabKey=(event:React.KeyboardEvent<HTMLButtonElement>,index:number)=>{
@@ -597,8 +604,8 @@ export function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,
  const hasRealVisit=visits.some(visit=>stamp(visit.date)>0&&stamp(visit.date)<=Date.now()&&String(visit.service||'').trim());
  const recommendation=String(client?.proximaVisitaSugerida||'').trim();
  const placeholder=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[.!]+$/,'').trim();
- const hasRecommendation=!!recommendation&&placeholder(recommendation)!==placeholder(t('pendingRecommendation'))&&!['pendiente','pendiente de agendar','sin recomendacion','nuevo registro'].includes(placeholder(recommendation));
- return <section className="lst-profile-compact" aria-label="Perfil de cliente">
+ const hasRecommendation=!!recommendation&&placeholder(recommendation)!==placeholder(spanish.pendingRecommendation)&&!['pendiente','pendiente de agendar','sin recomendacion','nuevo registro'].includes(placeholder(recommendation));
+ return <section className="lst-profile-compact" aria-label={t('profileLabel')}>
   <style>{`
    .lst-profile-compact{max-width:520px;width:100%;min-width:0;box-sizing:border-box;color:#F4EBDD;padding:0 0 90px;font-size:13px;line-height:1.6}
    .lst-profile-compact *{box-sizing:border-box}.lst-profile-compact h2,.lst-profile-compact h3,.lst-profile-compact p{margin:0}.lst-profile-compact button{font:inherit;cursor:pointer}.lst-profile-compact button:focus-visible,.lst-profile-compact summary:focus-visible{outline:2px solid #E4C687;outline-offset:3px}
@@ -627,18 +634,18 @@ export function ClientProfileCompact({client,catalog,logoSrc,t,compactVisitText,
   `}</style>
   <header className="lp-header"><button className="lp-back" type="button" aria-label={t('backToPortal')} onClick={onBack}><ArrowLeft size={18}/></button><div><h2 title={t('passportTitle')}>{t('passportTitle')}</h2><p>{client?.nombre||'L’Studio Ana'}</p></div></header>
   
-  <nav role="tablist" aria-label="Apartados de tu perfil" className="lp-tabs">{tabs.map((item,index)=><button key={item.id} id={'lp-tab-'+item.id} type="button" role="tab" aria-selected={tab===item.id} aria-controls={'lp-panel-'+item.id} tabIndex={tab===item.id?0:-1} onClick={()=>select(item.id)} onKeyDown={event=>tabKey(event,index)}>{item.label}</button>)}</nav>
+  <nav role="tablist" aria-label={t('profileSections')} className="lp-tabs">{tabs.map((item,index)=><button key={item.id} id={'lp-tab-'+item.id} type="button" role="tab" aria-selected={tab===item.id} aria-controls={'lp-panel-'+item.id} tabIndex={tab===item.id?0:-1} onClick={()=>select(item.id)} onKeyDown={event=>tabKey(event,index)}>{item.label}</button>)}</nav>
   <div className="lp-panel" id="lp-panel-hair" role="tabpanel" aria-labelledby="lp-tab-hair" hidden={tab!=='hair'}>
-   <div className="lp-hair"><section className="lp-next" data-recommendation={hasRecommendation?'true':'false'}><small>{t('recommendedVisit')}</small><p>{hasRecommendation?recommendation:'Ana te indicará cuándo volver.'}</p>{hasRecommendation&&<><button className="lp-book" type="button" onClick={onBook}>Reservar</button><details className="lp-recommend-extra"><summary>Ver orientación de mantenimiento</summary><p>{t('maintenanceNote')}</p></details></>}</section>
+   <div className="lp-hair"><section className="lp-next" data-recommendation={hasRecommendation?'true':'false'}><small>{t('recommendedVisit')}</small><p>{hasRecommendation?recommendation:t('profileReturnHint')}</p>{hasRecommendation&&<><button className="lp-book" type="button" onClick={onBook}>{t('bookNext')}</button><details className="lp-recommend-extra"><summary>{t('profileMaintenance')}</summary><p>{t('maintenanceNote')}</p></details></>}</section>
    <details className="lp-fold"><summary><span className="lp-fold-label"><PassportHairIcon size={19} strokeWidth={1.5} aria-hidden="true"/>{t('hairDna')}</span><ChevronDown size={16} aria-hidden="true"/></summary><div className="lp-fold-body">{client?.dniCapilar||t('emptyDna')}</div></details>
    <details className="lp-fold"><summary><span className="lp-fold-label"><PassportHomeIcon size={19} strokeWidth={1.5} aria-hidden="true"/>{t('homeRitual')}</span><ChevronDown size={16} aria-hidden="true"/></summary><div className="lp-fold-body">{client?.prescripcionCasa||t('emptyCare')}</div></details>
-   <ClientProductRoutine key={client?.serverId || 'own-routine'}/>
-   {client?.ultimaVisita&&stamp(client.ultimaVisita)>0&&stamp(client.ultimaVisita)<=Date.now()&&<p className="lp-quiet">Última visita registrada · {client.ultimaVisita}</p>}
+   <ClientProductRoutine key={client?.serverId || 'own-routine'} t={t}/>
+   {client?.ultimaVisita&&stamp(client.ultimaVisita)>0&&stamp(client.ultimaVisita)<=Date.now()&&<p className="lp-quiet">{t('profileLastVisit')} · {client.ultimaVisita}</p>}
    </div>
   </div>
-  <div className="lp-panel" id="lp-panel-history" role="tabpanel" aria-labelledby="lp-tab-history" hidden={tab!=='history'}>{visited.history&&<><header className="lp-section-head"><h3>{t('visitHistory')}</h3><small>{visits.length} {visits.length===1?'visita':'visitas'}</small></header><div className="lp-history-list">{visits.length?visits.slice(page*4,page*4+4).map((visit,index)=><details className="lp-fold lp-visit" key={page*4+index}><summary><span><time>{visit.date}</time><strong>{compactVisitText(visit.service)}</strong></span><ChevronDown size={16}/></summary><div className="lp-fold-body"><p>{compactVisitText(visit.service)}</p>{visit.stylist&&<p>Con {visit.stylist}</p>}{visit.notes&&<p className="lp-notes">{visit.notes}</p>}</div></details>):<p className="lp-quiet">{t('emptyVisits')}</p>}</div>{pages>1&&<div className="lp-pages"><button type="button" disabled={page===0} onClick={()=>setHistoryPage(page-1)}>Anterior</button><span>{page+1} / {pages}</span><button type="button" disabled={page+1>=pages} onClick={()=>setHistoryPage(page+1)}>Siguiente</button></div>}</>}</div>
-  <div className="lp-panel" id="lp-panel-photos" role="tabpanel" aria-labelledby="lp-tab-photos" hidden={tab!=='photos'}>{visited.photos&&<ClientPhotoGallery key={client?.serverId||'own-gallery'} clientId={client?.serverId}/>}</div>
-  <div className="lp-panel" id="lp-panel-memories" role="tabpanel" aria-labelledby="lp-tab-memories" hidden={tab!=='memories'}>{visited.memories&&<React.Suspense fallback={<p>Cargando recuerdos…</p>}><LazyMemoriesClient key={client?.serverId||'own-memories'}/></React.Suspense>}</div>
+  <div className="lp-panel" id="lp-panel-history" role="tabpanel" aria-labelledby="lp-tab-history" hidden={tab!=='history'}>{visited.history&&<><header className="lp-section-head"><h3>{t('visitHistory')}</h3><small>{t('profileVisitCount').replace('{count}', String(visits.length))}</small></header><div className="lp-history-list">{visits.length?visits.slice(page*4,page*4+4).map((visit,index)=><details className="lp-fold lp-visit" key={page*4+index}><summary><span><time>{visit.date}</time><strong>{compactVisitText(visit.service)}</strong></span><ChevronDown size={16}/></summary><div className="lp-fold-body"><p>{compactVisitText(visit.service)}</p>{visit.stylist&&<p>{t('profileVisitWith').replace('{name}', () => visit.stylist)}</p>}{visit.notes&&<p className="lp-notes">{visit.notes}</p>}</div></details>):<p className="lp-quiet">{t('emptyVisits')}</p>}</div>{pages>1&&<div className="lp-pages"><button type="button" disabled={page===0} onClick={()=>setHistoryPage(page-1)}>{t('portalPrevious')}</button><span>{page+1} / {pages}</span><button type="button" disabled={page+1>=pages} onClick={()=>setHistoryPage(page+1)}>{t('portalNext')}</button></div>}</>}</div>
+  <div className="lp-panel" id="lp-panel-photos" role="tabpanel" aria-labelledby="lp-tab-photos" hidden={tab!=='photos'}>{visited.photos&&<ClientPhotoGallery key={client?.serverId||'own-gallery'} clientId={client?.serverId} t={t} locale={locale}/>}</div>
+  <div className="lp-panel" id="lp-panel-memories" role="tabpanel" aria-labelledby="lp-tab-memories" hidden={tab!=='memories'}>{visited.memories&&<React.Suspense fallback={<p>{t('profileLoadingMemories')}</p>}><LazyMemoriesClient key={client?.serverId||'own-memories'}/></React.Suspense>}</div>
   
  </section>;
 }
