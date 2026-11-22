@@ -62,9 +62,7 @@ export function AddonChoices({owner,catalog,items,setItems,showPrices,language =
       const sub = options.find(option => option.id === item.sub.id);
       return !sub?.hasVariants || !sub.variants?.length || sub.variants.some(variant => variant.id === item.variant?.id);
     });
-    const cards = <div className="lst-addon-options">{options.map(sub => <div key={sub.id} className="lst-addon-service">
-      <strong>{serviceTitle(sub)}</strong>
-      <div className="lst-addon-choices">
+    const renderChoices = (sub: SubService) => <div className="lst-addon-choices">
         {(sub.hasVariants && sub.variants?.length ? sub.variants : [null]).map(variant => {
           const selected = items.some(item => item.sub.id === sub.id && (item.variant?.id ?? null) === (variant?.id ?? null));
           return <button type="button" key={variant?.id ?? sub.id} aria-pressed={selected} onClick={() => setItems(previous => {
@@ -77,12 +75,29 @@ export function AddonChoices({owner,catalog,items,setItems,showPrices,language =
             {selected && <small className="lst-addon-selected">✓ {l('selected')}</small>}
           </button>;
         })}
-      </div>
-    </div>)}</div>;
+      </div>;
 
     if (!required) return <details key={group.id} className="lst-addon-optional">
-      <summary><strong>{l('addMore')}</strong><span className="lst-addon-badge">{l('optional')}</span>{chosen.length > 0 && <small>✓ {chosen.length}</small>}</summary>
-      {cards}
+      <summary>
+        <span className="lst-addon-optional-intro">
+          <span className="lst-addon-optional-title"><strong>{l('addMore')}</strong><span className="lst-addon-badge">{l('optional')}</span>{chosen.length > 0 && <small>✓ {chosen.length}</small>}</span>
+          <small>{l('optionalServicesHint')}</small>
+        </span>
+      </summary>
+      {options.length ? <div className="lst-addon-options">{options.map(sub => {
+        const selected = chosen.some(item => item.sub.id === sub.id);
+        return <details key={sub.id} className="lst-addon-category">
+          <summary>
+            <span className="lst-addon-category-title">
+              <strong>{serviceTitle(sub)}</strong>
+              <small className="lst-addon-category-open">{l('viewOptions')}</small>
+              <small className="lst-addon-category-close">{l('hideOptions')}</small>
+            </span>
+            {selected && <small className="lst-addon-category-selected">✓ {l('selected')}</small>}
+          </summary>
+          {renderChoices(sub)}
+        </details>;
+      })}</div> : <p>{l('noOptions')}</p>}
     </details>;
 
     const styling = /peinad|styling/i.test(title);
@@ -93,7 +108,10 @@ export function AddonChoices({owner,catalog,items,setItems,showPrices,language =
         <span className="lst-addon-badge">{complete ? '✓ ' + l('selected') : l('required')}</span>
       </div>
       <p>{complete ? l('selected') : l('chooseOptionFirst')}</p>
-      {options.length ? cards : <p role="alert">{l('noOptions')}</p>}
+      {options.length ? <div className="lst-addon-options">{options.map(sub => <div key={sub.id} className="lst-addon-service">
+        <strong>{serviceTitle(sub)}</strong>
+        {renderChoices(sub)}
+      </div>)}</div> : <p role="alert">{l('noOptions')}</p>}
     </section>;
   })}</div>;
 }
