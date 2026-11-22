@@ -386,7 +386,5 @@ export const deleteCancelledVoucher=(token:string,id:string)=>call<{ok:true;dele
 export const studioCashRegister = <T>(token: string, body: unknown) =>
   call<T>('cash-register', { token, body });
 
-// Slot alerts and product inventory use dedicated edge functions when present;
-// these wrappers route through the shared studio-api call helper.
-export const slotAlert = <T>(body: unknown) => call<T>('slot-alerts', { token: currentToken() || '', body });
+export const slotAlert = <T>(body: unknown) => call<T>('slot-alert', { token: currentToken() || '', body });
 export const studioProducts = <T>(body: unknown) => call<T>('products', { token: currentToken() || '', body });
