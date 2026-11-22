@@ -83,7 +83,7 @@ const rawCall = async <T = Record<string, unknown>>(
 // Share only identical requests that are currently in flight; never cache appointment results.
 const pendingReads = new Map<string, Promise<unknown>>();
 let readGeneration = 0;
-const readActions = new Set(['voucher-purchases','voucher-list','voucher-quote','news-list','news-detail','client-photos', 'sync', 'public-catalog', 'public-professionals', 'branding', 'official-holidays', 'email-status', 'email-config', 'whatsapp-status', 'whatsapp-config', 'push-status', 'push-public-key']);
+const readActions = new Set(['voucher-list','voucher-quote','news-list','news-detail','client-photos', 'sync', 'public-catalog', 'public-professionals', 'branding', 'official-holidays', 'email-status', 'email-config', 'whatsapp-status', 'whatsapp-config', 'push-status', 'push-public-key']);
 const call = async <T = Record<string, unknown>>(
   action: string,
   opts: {method?: string; token?: string; body?: unknown} = {},
@@ -125,7 +125,7 @@ export const createClientOnServer = (token: string, client: Record<string, unkno
   call<{ ok: true; id: string; legacyId: number; registrationId: string }>("client", { token, body: client });
 
 export const pushPassport = (token: string, passport: Record<string, unknown>) =>
-  call<{ ok: true }>("passport", { method: "PUT", token, body: passport });
+  call<{ ok: true }>("passport", { token, body: passport });
 
 export const createClosure = (token: string, closure: Record<string, unknown>) =>
   call<{ ok: true; id: string }>("closure", { token, body: closure });
@@ -383,23 +383,10 @@ export const deleteCancelledVoucher=(token:string,id:string)=>call<{ok:true;dele
 
 // lst-weekly-hours-installed-v1
 
-// lst-gift-recipient-v1
-export type GiftAssignment={requestId:string;voucherId:string;expectedOwner:string;recipientId:string;reason:string};
-export type GiftPurchaseReceipt={id:string;title:string;price_cents:number;payment_reference:string;activated_at:string;created_at:string;expires_on:string|null};
-export const assignGiftRecipient=(token:string,body:GiftAssignment)=>call<{ok:true;replayed?:boolean;codeRenewed?:boolean}>('voucher-assign-recipient',{token,body});
-export const fetchGiftPurchases=(token:string,page=0)=>call<{purchases:GiftPurchaseReceipt[];total:number;page:number}>('voucher-purchases',{token,body:{page}});
-
 export const studioCashRegister = <T>(token: string, body: unknown) =>
   call<T>('cash-register', { token, body });
 
-export const slotAlert = <T>(body: unknown) => {
-  const token = currentToken();
-  if (!token || offlineConsultation()) return Promise.reject(new Error('Necesitas conexión y una sesión válida.'));
-  return call<T>('slot-alert', { token, body });
-};
-
-export const studioProducts = <T>(body: unknown) => {
-  const token = currentToken();
-  if (!token || offlineConsultation()) return Promise.reject(new Error('Necesitas conexión y una sesión válida.'));
-  return call<T>('products', { token, body });
-};
+// Slot alerts and product inventory use dedicated edge functions when present;
+// these wrappers route through the shared studio-api call helper.
+export const slotAlert = <T>(body: unknown) => call<T>('slot-alerts', { token: currentToken() || '', body });
+export const studioProducts = <T>(body: unknown) => call<T>('products', { token: currentToken() || '', body });
