@@ -87,13 +87,17 @@ function Editor({service,onApply,initial,renderBreakdown}:EditorProps & {initial
   {!matrixReady(service)&&<p>Las opciones actuales se conservan como FULL, con sus identificadores, precios y tiempos. SOFT queda pendiente de completar. Revisa los importes antes de aplicar.</p>}
   <div className="lst-highlights-editor-grid lst-highlights-editor-by-length">{lengths.map(length=>{
    const intensity=tabs[length],i=cells.findIndex(cell=>cell.length===length&&cell.intensity===intensity),cell=cells[i];
-   const variant=service.variants?.find(option=>option.id===cell.id);
    return <section key={length}>
     <strong>{technique} {length}</strong>
     <div className="lst-highlights-editor-tabs" role="group" aria-label={'Opciones de '+technique+' '+length}>{intensities.map(value=><button key={value} type="button" aria-pressed={intensity===value} onClick={()=>setTabs(previous=>({...previous,[length]:value}))}>{value}</button>)}</div>
     <div className="lst-highlights-editor-fields" aria-label={length+' · '+intensity}>
      <label>Precio · {intensity}<input type="text" value={cell.price} onChange={event=>change(i,'price',event.target.value)} placeholder="Precio de esta opción"/></label>
-     {variant && renderBreakdown?.(variant)}
+     {renderBreakdown && cells.filter(option=>option.length===length).map(option=>{
+      const variant=service.variants?.find(item=>item.id===option.id);
+      return variant && <div key={option.id} hidden={option.intensity!==intensity} className="lst-highlights-breakdown">
+       {renderBreakdown(variant)}
+      </div>;
+     })}
      <label>Duración · {intensity} · minutos<input type="number" min={5} max={1440} step={1} value={cell.minutes} onChange={event=>change(i,'minutes',event.target.value)} placeholder="Completar"/></label>
     </div>
    </section>;
