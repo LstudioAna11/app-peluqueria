@@ -1,11 +1,10 @@
 import React,{useEffect,useRef,useState} from 'react';
 import * as api from './studioApi';
-import {giftAssignmentEvent,readGiftAssignmentPending,saveGiftAssignment} from './giftAssignmentPending';
 import spanish from './portalSpanish';
+import {giftAssignmentEvent,readGiftAssignmentPending,saveGiftAssignment} from './giftAssignmentPending';
 type Client={id:string;label:string};
-type TFn=(key:string)=>string;
-const money=(c:number)=>(c/100).toLocaleString('es-ES',{style:'currency',currency:'EUR'});
-const date=(s:string|null)=>s?new Date(s.length===10?s+'T12:00:00':s).toLocaleDateString('es-ES',{timeZone:'Europe/Madrid'}):'—';
+const money=(c:number,locale:string)=>(c/100).toLocaleString(locale,{style:'currency',currency:'EUR'});
+const date=(s:string|null,locale:string)=>s?new Date(s.length===10?s+'T12:00:00':s).toLocaleDateString(locale,{timeZone:'Europe/Madrid'}):'—';
 const normal=(s:string)=>s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase();
 export default function GiftRecipientAdmin({voucher:v,clients,disabled,run}:{voucher:api.StudioVoucher;clients:Client[];disabled:boolean;run:(action:()=>Promise<unknown>,success:string)=>Promise<void>}){
  const [query,setQuery]=useState(''),[recipient,setRecipient]=useState(''),[reason,setReason]=useState(''),[confirmed,setConfirmed]=useState(false),[pending,setPending]=useState<api.GiftAssignment|null>(null),[pendingError,setPendingError]=useState('');const alive=useRef(false),lock=useRef(false);
@@ -31,13 +30,13 @@ export default function GiftRecipientAdmin({voucher:v,clients,disabled,run}:{vou
   </details>:<small>La asignación solo se cambia en tarjetas activas, vigentes y sin usos ni saldo reservado.</small>}
  </div>;
 }
-export function GiftPurchaseReceipts({refreshKey,t=(key:string)=>spanish[key]}:{refreshKey:unknown;t?:TFn}){
+export function GiftPurchaseReceipts({refreshKey,t=(key)=>spanish[key],locale='es-ES'}:{refreshKey:unknown;t?:(key:string)=>string;locale?:string}){
  const [open,setOpen]=useState(false),[page,setPage]=useState(0),[data,setData]=useState<{purchases:api.GiftPurchaseReceipt[];total:number}|null>(null),[busy,setBusy]=useState(false),[error,setError]=useState(''),[refresh,setRefresh]=useState(0);
- useEffect(()=>{if(!open)return;let alive=true;const token=api.currentToken();setBusy(true);setError('');setData(null);if(!token||api.storedRole()!=='client'){setData(null);setBusy(false);setError(t('giftPurchasesLogin'));return;}
- api.fetchGiftPurchases(token,page).then(result=>{if(!alive)return;if(api.currentToken()!==token||api.storedRole()!=='client'){setData(null);setError(t('giftPurchasesSessionChanged'));return;}if(!Array.isArray(result.purchases)||typeof result.total!=='number')throw Error(t('giftPurchasesError'));setData(result);}).catch(e=>{if(alive){setData(null);setError((e as Error).message);}}).finally(()=>{if(alive)setBusy(false);});return()=>{alive=false;};},[open,page,refreshKey,refresh]);
+ useEffect(()=>{if(!open)return;let alive=true;const token=api.currentToken();setBusy(true);setError('');setData(null);if(!token||api.storedRole()!=='client'){setData(null);setBusy(false);setError('giftPurchasesLogin');return;}
+ api.fetchGiftPurchases(token,page).then(result=>{if(!alive)return;if(api.currentToken()!==token||api.storedRole()!=='client'){setData(null);setError('giftPurchasesSessionChanged');return;}if(!Array.isArray(result.purchases)||typeof result.total!=='number')throw Error('No se pudieron comprobar tus compras.');setData(result);}).catch(e=>{if(alive){setData(null);setError('giftPurchasesError');}}).finally(()=>{if(alive)setBusy(false);});return()=>{alive=false;};},[open,page,refreshKey,refresh]);
  return <details className="vb-panel" open={open} onToggle={e=>setOpen(e.currentTarget.open)}><summary>{t('giftPurchasesHeading')}</summary><p className="vb-note">{t('giftPurchasesNote')}</p>
- {busy&&<p role="status">{t('giftPurchasesLoading')}</p>}{error&&<p role="alert">{error}</p>}{data?.purchases.length===0&&<p>{t('giftPurchasesEmpty')}</p>}
- {data?.purchases.map(p=><article key={p.id} style={{borderTop:'1px solid #655039',padding:'10px 0',fontSize:12,lineHeight:1.6}}><strong>{p.title} · {money(p.price_cents)}</strong><p style={{margin:'4px 0'}}>{t('giftPaymentConfirmed')}{date(p.activated_at)}<br/>{t('giftReference')}{p.payment_reference}<br/>{t('giftExpiry')}{date(p.expires_on)}</p><small>{t('giftKeptAssigned')}</small></article>)}
+ {busy&&<p role="status">{t('giftPurchasesLoading')}</p>}{error&&<p role="alert">{t(error)}</p>}{data?.purchases.length===0&&<p>{t('giftPurchasesEmpty')}</p>}
+ {data?.purchases.map(p=><article key={p.id} style={{borderTop:'1px solid #655039',padding:'10px 0',fontSize:12,lineHeight:1.6}}><strong>{p.title} · {money(p.price_cents,locale)}</strong><p style={{margin:'4px 0'}}>{t('giftPaymentConfirmed')}{date(p.activated_at,locale)}<br/>{t('giftReference')}{p.payment_reference}<br/>{t('giftExpiry')} {date(p.expires_on,locale)}</p><small>{t('giftKeptAssigned')}</small></article>)}
  <div className="vb-actions"><button type="button" disabled={busy} onClick={()=>setRefresh(n=>n+1)}>{t('giftRefreshPurchases')}</button>{!!data&&data.total>12&&<><button type="button" disabled={busy||page===0} onClick={()=>setPage(n=>n-1)}>{t('giftPrev')}</button><span>{page+1} / {Math.ceil(data.total/12)}</span><button type="button" disabled={busy||(page+1)*12>=data.total} onClick={()=>setPage(n=>n+1)}>{t('giftNext')}</button></>}</div>
  </details>;
 }
