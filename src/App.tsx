@@ -5027,7 +5027,7 @@ function StudioApp() {
             <button type="button" onClick={() => { setViewServiceDetail(null); setPortalSearch(''); setPortalSearchExpanded({}); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} style={{ width: '100%', minHeight: '52px', background: '#C49A58', color: '#29231F', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>{t('bookNext')} <ArrowRight size={17} strokeWidth={2} aria-hidden="true" /></button>
           </section>
           
-          <StudioPortalNews serviceOptions={catalog.flatMap(cat=>cat.subservices.filter(sub=>sub.active!==false).map(sub=>({id:sub.id,label:bookingName(sub)})))} onService={(id,action)=>{
+          <StudioPortalNews t={t} locale={portalLocale} serviceOptions={catalog.flatMap(cat=>cat.subservices.filter(sub=>sub.active!==false).map(sub=>({id:sub.id,label:bookingName(sub)})))} onService={(id,action)=>{
             const cat=catalog.find(category=>category.subservices.some(sub=>sub.id===id&&sub.active!==false));
             const sub=cat?.subservices.find(service=>service.id===id&&service.active!==false);
             if(!cat||!sub)return;
@@ -5504,16 +5504,16 @@ function StudioApp() {
       {/* AGENDA CLIENTAS · SEMANA Y HORAS DISPONIBLES */}
       {currentScreen === 'visualAgenda' && (
         <fieldset disabled={visualBookingBusy} aria-busy={visualBookingBusy} style={{ margin: 0, minWidth: 0, maxWidth: '520px', width: '100%', backgroundColor: 'transparent', border: 'none', borderRadius: '16px', padding: '0', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          <button type="button" onClick={() => { setReservationPolicyChecked(saturdayNeedsAcceptance && acceptedSaturdayPolicy === saturdayPolicyKey); setReservationPolicyOpen(true); }} style={{ alignSelf: 'flex-end', color: '#E4C687', background: 'none', border: 'none', textDecoration: 'underline', padding: 10, minHeight: 44, cursor: 'pointer' }}>Políticas de reserva · Sábados</button>
+          <button type="button" onClick={() => { setReservationPolicyChecked(saturdayNeedsAcceptance && acceptedSaturdayPolicy === saturdayPolicyKey); setReservationPolicyOpen(true); }} style={{ alignSelf: 'flex-end', color: '#E4C687', background: 'none', border: 'none', textDecoration: 'underline', padding: 10, minHeight: 44, cursor: 'pointer' }}>{t('bookingPolicies')}</button>
           <button type="button" onClick={() => setCurrentScreen('catalogBooking')} style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#D8C29A', padding: '10px 0', cursor: 'pointer' }}>{t('backServices')}</button>
           <div><h2 style={{ fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', color: '#FFF8EE', fontSize: '28px', fontWeight: 'normal', margin: '0 0 8px' }}>{t('chooseMoment')}</h2><p style={{ color: '#D6CBB8', fontSize: '14px', lineHeight: 1.6, margin: 0 }}>{t('fullSlots')} · {getServiceDuration(selectedServicesToBook)} min.</p></div>
-          {<section aria-label="Selecciona profesional" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <h3 style={{ color: '#FFF8EE', fontSize: '15px', margin: 0 }}>Elige profesional</h3>
+          {<section aria-label={t('bookingProfessional')} style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <h3 style={{ color: '#FFF8EE', fontSize: '15px', margin: 0 }}>{t('bookingProfessional')}</h3>
             <div aria-live="polite">
-              {professionalsLoading && <p style={{ color: '#D6CBB8', fontSize: 13 }}>Consultando profesionales…</p>}
+              {professionalsLoading && <p style={{ color: '#D6CBB8', fontSize: 13 }}>{t('bookingProfessionalLoading')}</p>}
               {professionalsError && <p role="alert" style={{ color: '#F5C7B8', fontSize: 13 }}>{professionalsError}</p>}
-              {!professionalsLoading && !professionalsError && !activeEmployees.length && <p style={{ color: '#D6CBB8', fontSize: 13 }}>No hay profesionales disponibles para seleccionar en este momento.</p>}
-              {(professionalsError || (!professionalsLoading && !activeEmployees.length)) && <button type="button" className="studio-btn-ghost" onClick={() => setProfessionalsReload(value => value + 1)}>Reintentar</button>}
+              {!professionalsLoading && !professionalsError && !activeEmployees.length && <p style={{ color: '#D6CBB8', fontSize: 13 }}>{t('bookingNoneAvailable')}</p>}
+              {(professionalsError || (!professionalsLoading && !activeEmployees.length)) && <button type="button" className="studio-btn-ghost" onClick={() => setProfessionalsReload(value => value + 1)}>{t('portalRetry')}</button>}
             </div>
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               {activeEmployees.map(emp => (
@@ -5524,7 +5524,7 @@ function StudioApp() {
               ))}
               <button type="button" aria-pressed={selectedProfessionalId === null} onClick={() => setSelectedProfessionalId(null)} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 14px', background: selectedProfessionalId === null ? '#C49A58' : '#322A25', color: selectedProfessionalId === null ? '#29231F' : '#FFF8EE', border: '1px solid rgba(255,248,238,0.12)', borderRadius: '10px', cursor: 'pointer', fontSize: '13px', minHeight: '48px' }}>
                 <span style={{ width: 36, height: 36, borderRadius: '50%', background: '#3E342C', display: 'grid', placeItems: 'center', fontSize: 13, color: '#E4C687' }}>—</span>
-                <span>Sin preferencia</span>
+                <span>{t('bookingNoPreference')}</span>
               </button>
             </div>
           </section>}
@@ -5557,23 +5557,23 @@ function StudioApp() {
           </section>
           <div style={{ borderTop: '1px solid #3A312A', paddingTop: '18px' }}>
             <p style={{ color: '#D6CBB8', fontSize: '13px', lineHeight: 1.6 }}>{selectedServicesToBook.map(item => serviceText(catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub, 'name') + (item.variant ? ` · ${variantText(item.variant, item.sub)}` : '')).join(' + ')}</p>
-            {(() => { const totalSel = getSelectionTotal(selectedServicesToBook); if (!portalShowsPrices || totalSel.total <= 0) return null; return <p style={{ color: totalSel.orientative ? '#E4C687' : '#FFF8EE', fontSize: '13px', margin: '6px 0 0' }}>{totalSel.orientative ? 'Importe orientativo' : 'Importe total'}: {totalSel.total.toFixed(2).replace('.', ',')} €{totalSel.orientative ? ' · se confirma en el estudio' : ''}</p>; })()}
+            {(() => { const totalSel = getSelectionTotal(selectedServicesToBook); if (!portalShowsPrices || totalSel.total <= 0) return null; return <p style={{ color: totalSel.orientative ? '#E4C687' : '#FFF8EE', fontSize: '13px', margin: '6px 0 0' }}>{totalSel.orientative ? t('bookingEstimate') : t('bookingTotal')}: {new Intl.NumberFormat(portalLocale,{style:'currency',currency:'EUR'}).format(totalSel.total)}{totalSel.orientative ? ' · '+t('bookingConfirmInStudio') : ''}</p>; })()}
             {selectedVisualTime && <p style={{ color: '#FFF8EE', fontSize: '15px' }}>{bookingDate.toLocaleDateString(portalLocale, { day: 'numeric', month: 'long' })} · {selectedVisualTime}</p>}
             <section style={{padding:12,background:'#322A25',border:'1px solid #655039',borderRadius:8}}>
-              <label htmlFor="booking-client-note" style={{display:'block',color:'#E4C687',fontSize:14}}>¿Quieres comentarnos algo? <small style={{color:'#D6CBB8'}}>Opcional</small></label>
-              <textarea id="booking-client-note" maxLength={500} rows={3} value={bookingClientNote} disabled={visualBookingBusy||!!visualBookingAttemptRef.current} onChange={event=>setBookingClientNote(event.target.value)} placeholder="Escribe aquí lo que quieras que tengamos en cuenta para tu cita." aria-describedby="booking-client-note-help" style={{display:'block',width:'100%',boxSizing:'border-box',margin:'8px 0',padding:10,border:'1px solid #806340',borderRadius:6,background:'#29231F',color:'#FFF8EE',fontSize:14,resize:'vertical'}}/>
-              <small id="booking-client-note-help" style={{display:'block',color:'#D6CBB8',lineHeight:1.5}}>{bookingClientNote.length}/500 · Lo leeremos junto a tu reserva.{visualBookingAttemptRef.current?' Comprueba el guardado pendiente antes de cambiar la nota.':''}</small>
+              <label htmlFor="booking-client-note" style={{display:'block',color:'#E4C687',fontSize:14}}>{t('bookingNote')} <small style={{color:'#D6CBB8'}}>{t('bookingOptional')}</small></label>
+              <textarea id="booking-client-note" maxLength={500} rows={3} value={bookingClientNote} disabled={visualBookingBusy||!!visualBookingAttemptRef.current} onChange={event=>setBookingClientNote(event.target.value)} placeholder={t('bookingNotePlaceholder')} aria-describedby="booking-client-note-help" style={{display:'block',width:'100%',boxSizing:'border-box',margin:'8px 0',padding:10,border:'1px solid #806340',borderRadius:6,background:'#29231F',color:'#FFF8EE',fontSize:14,resize:'vertical'}}/>
+              <small id="booking-client-note-help" style={{display:'block',color:'#D6CBB8',lineHeight:1.5}}>{bookingClientNote.length}/500 · {t('bookingNoteHelp')}{visualBookingAttemptRef.current?' '+t('bookingNotePending'):''}</small>
             </section>
             <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '12px', background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: '8px', cursor: 'pointer' }}>
               <input type="checkbox" checked={whatsappConsent} onChange={e => setWhatsappConsent(e.target.checked)} style={{ width: 18, height: 18, marginTop: 2, accentColor: '#C49A58', flexShrink: 0 }} />
-              <span style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6 }}>Autorizo a L'Studio Ana a enviarme avisos de mi cita por WhatsApp al teléfono de mi ficha (confirmaciones y cambios). Puedo retirar el consentimiento cuando quiera en el portal.</span>
+              <span style={{ color: '#D6CBB8', fontSize: '12px', lineHeight: 1.6 }}>{t('bookingWhatsAppConsent')}</span>
             </label>
             {renderPromotionSummary()}
             {renderClientPushPanel()}
             {visualBookingError && <p role="alert" style={{ color: '#FFC4B5', fontSize: 13, lineHeight: 1.5 }}>{visualBookingError}</p>}
-            {visualBookingBusy && <p role="status" style={{ color: '#E4C687', fontSize: 13 }}>Guardando tu reserva en el Studio…</p>}
+            {visualBookingBusy && <p role="status" style={{ color: '#E4C687', fontSize: 13 }}>{t('bookingSaving')}</p>}
             <BookingVoucher selectedId={selectedVoucherId} onChange={setSelectedVoucherId} services={selectedServicesToBook} dateKey={formatDateKey(bookingDate)} promotionId={selectedPromotionId}/>
-            <button type="button" onClick={handleConfirmarCitaVisual} disabled={visualBookingBusy || (!portalTimes.includes(selectedVisualTime) && visualBookingAttemptRef.current?.signature !== visualBookingSignature())} style={{ width: '100%', minHeight: '54px', padding: '14px', backgroundColor: portalTimes.includes(selectedVisualTime) ? '#C49A58' : '#322A25', color: portalTimes.includes(selectedVisualTime) ? '#29231F' : '#C9BCA9', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>{visualBookingBusy ? 'Guardando…' : visualBookingError && visualBookingAttemptRef.current?.signature === visualBookingSignature() ? 'Comprobar y reintentar' : !selectedVisualTime ? t('chooseHour') : getApprovalReason(selectedServicesToBook, formatDateKey(bookingDate)) ? t('requestAppointment') : t('continueBooking')}</button>
+            <button type="button" onClick={handleConfirmarCitaVisual} disabled={visualBookingBusy || (!portalTimes.includes(selectedVisualTime) && visualBookingAttemptRef.current?.signature !== visualBookingSignature())} style={{ width: '100%', minHeight: '54px', padding: '14px', backgroundColor: portalTimes.includes(selectedVisualTime) ? '#C49A58' : '#322A25', color: portalTimes.includes(selectedVisualTime) ? '#29231F' : '#C9BCA9', border: 'none', borderRadius: '10px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer' }}>{visualBookingBusy ? t('bookingSaving') : visualBookingError && visualBookingAttemptRef.current?.signature === visualBookingSignature() ? t('bookingCheckRetry') : !selectedVisualTime ? t('chooseHour') : getApprovalReason(selectedServicesToBook, formatDateKey(bookingDate)) ? t('requestAppointment') : t('continueBooking')}</button>
           </div>
         </fieldset>
       )}
@@ -5813,18 +5813,18 @@ function StudioApp() {
       )}
       {reservationPolicyOpen && <dialog ref={reservationPolicyDialog} aria-labelledby="reservation-policy-title" onCancel={e => { e.preventDefault(); leaveReservationPolicy(); }} style={{ width: 'min(480px, calc(100% - 32px))', maxHeight: '85dvh', overflowY: 'auto', boxSizing: 'border-box', padding: 24, border: '1px solid #C5A059', borderRadius: 16, background: '#29231F', color: '#FFF8EE', boxShadow: '0 20px 80px #0008' }}>
         <style>{`dialog::backdrop { background: rgba(0,0,0,.72); }`}</style>
-        <p style={{ fontSize: 11, letterSpacing: 2, color: '#E4C687', margin: '0 0 10px' }}>L’STUDIO ANA · SÁBADOS</p>
-        <h2 id="reservation-policy-title" style={{ fontFamily: 'Georgia, serif', fontSize: 25, fontWeight: 400, lineHeight: 1.3, margin: '0 0 12px', color: '#FFF8EE' }}>Solo con confirmación de Ana</h2>
-        <p style={{ fontSize: 14, lineHeight: 1.6, color: '#D6CBB8', margin: '0 0 16px' }}>Abrimos bajo petición previa para eventos y servicios de larga duración.</p>
+        <p style={{ fontSize: 11, letterSpacing: 2, color: '#E4C687', margin: '0 0 10px' }}>L’Studio Ana · {t('bookingPolicies')}</p>
+        <h2 id="reservation-policy-title" style={{ fontFamily: 'Georgia, serif', fontSize: 25, fontWeight: 400, lineHeight: 1.3, margin: '0 0 12px', color: '#FFF8EE' }}>{t('bookingSaturdayApproval')}</h2>
+        <p style={{ fontSize: 14, lineHeight: 1.6, color: '#D6CBB8', margin: '0 0 16px' }}>{t('bookingSaturdayIntro')}</p>
         <div style={{ background: '#3A312A', border: '1px solid #C49A58', borderLeft: '4px solid #C49A58', padding: 14, borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
           <Clock3 size={22} aria-hidden="true" style={{ color: '#E4C687', flexShrink: 0, marginTop: 2 }} />
-          <div><strong style={{ display: 'block', color: '#E4C687', fontSize: 16, lineHeight: 1.4 }}>Tu cita quedará pendiente</strong><p style={{ margin: '6px 0 0', fontSize: 14, lineHeight: 1.6, color: '#FFF8EE' }}>Te avisaremos cuando Ana la acepte. Si requiere un anticipo, te lo indicaremos después.</p></div>
+          <div><strong style={{ display: 'block', color: '#E4C687', fontSize: 16, lineHeight: 1.4 }}>{t('bookingPendingApproval')}</strong><p style={{ margin: '6px 0 0', fontSize: 14, lineHeight: 1.6, color: '#FFF8EE' }}>{t('bookingApprovalNotice')}</p></div>
         </div>
-        <details style={{ marginTop: 12, color: '#D6CBB8', fontSize: 12 }}><summary style={{ cursor: 'pointer', padding: '8px 0', minHeight: 28 }}>Ver condiciones del Studio</summary><p style={{ whiteSpace: 'pre-line', fontSize: 13, lineHeight: 1.6, marginTop: 6 }}>{saturdayPolicyText}</p></details>
-        {saturdayNeedsAcceptance && <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, marginTop: 8, background: reservationPolicyChecked ? 'rgba(196,154,88,.12)' : 'transparent', border: '1px solid rgba(196,154,88,.35)', borderRadius: 10, fontSize: 14, lineHeight: 1.5, color: '#FFF8EE', cursor: 'pointer' }}><input autoFocus type="checkbox" checked={reservationPolicyChecked} onChange={e => setReservationPolicyChecked(e.target.checked)} style={{ width: 23, height: 23, flexShrink: 0, accentColor: '#C49A58', margin: 0 }} /> Entiendo que mi cita aún no está confirmada.</label>}
+        <details style={{ marginTop: 12, color: '#D6CBB8', fontSize: 12 }}><summary style={{ cursor: 'pointer', padding: '8px 0', minHeight: 28 }}>{t('serviceConditionsTitle')}</summary><p style={{ whiteSpace: 'pre-line', fontSize: 13, lineHeight: 1.6, marginTop: 6 }}>{saturdayPolicyText}</p></details>
+        {saturdayNeedsAcceptance && <label style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 12, marginTop: 8, background: reservationPolicyChecked ? 'rgba(196,154,88,.12)' : 'transparent', border: '1px solid rgba(196,154,88,.35)', borderRadius: 10, fontSize: 14, lineHeight: 1.5, color: '#FFF8EE', cursor: 'pointer' }}><input autoFocus type="checkbox" checked={reservationPolicyChecked} onChange={e => setReservationPolicyChecked(e.target.checked)} style={{ width: 23, height: 23, flexShrink: 0, accentColor: '#C49A58', margin: 0 }} /> {t('bookingUnderstand')}</label>}
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 12 }}>
-          <button type="button" onClick={leaveReservationPolicy} style={{ flex: 1, minHeight: 48, padding: 12, border: '1px solid #C5A059', borderRadius: 8, background: 'transparent', color: '#FFF8EE', cursor: 'pointer' }}>Cambiar de día</button>
-          <button type="button" disabled={saturdayNeedsAcceptance && !reservationPolicyChecked} onClick={() => { if (saturdayNeedsAcceptance) setAcceptedSaturdayPolicy(saturdayPolicyKey); setReservationPolicyOpen(false); }} style={{ flex: 1, minHeight: 48, padding: 12, border: 'none', borderRadius: 8, background: '#C5A059', color: '#121212', opacity: saturdayNeedsAcceptance && !reservationPolicyChecked ? .45 : 1, cursor: 'pointer' }}>{saturdayNeedsAcceptance ? 'Continuar' : 'Entendido'}</button>
+          <button type="button" onClick={leaveReservationPolicy} style={{ flex: 1, minHeight: 48, padding: 12, border: '1px solid #C5A059', borderRadius: 8, background: 'transparent', color: '#FFF8EE', cursor: 'pointer' }}>{t('otherDate')}</button>
+          <button type="button" disabled={saturdayNeedsAcceptance && !reservationPolicyChecked} onClick={() => { if (saturdayNeedsAcceptance) setAcceptedSaturdayPolicy(saturdayPolicyKey); setReservationPolicyOpen(false); }} style={{ flex: 1, minHeight: 48, padding: 12, border: 'none', borderRadius: 8, background: '#C5A059', color: '#121212', opacity: saturdayNeedsAcceptance && !reservationPolicyChecked ? .45 : 1, cursor: 'pointer' }}>{saturdayNeedsAcceptance ? t('portalContinue') : t('portalUnderstood')}</button>
         </div>
       </dialog>}
 
@@ -5843,7 +5843,7 @@ function StudioApp() {
             <p style={{ color: '#D6CBB8', fontSize: '12px' }}>{t('localRequestNotice')}</p>
             {pendingBookingError && <p role="alert" style={{color:'#F5C7B8',fontSize:13,lineHeight:1.6}}>{pendingBookingError}</p>}
             <button type="button" disabled={pendingBookingBusy} onClick={() => setSaturdayRequestModal(null)} style={{ padding: '10px', marginRight: '10px' }}>{t('backAction')}</button>
-            <button type="button" disabled={pendingBookingBusy} onClick={registerSaturdayRequest} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>{pendingBookingBusy ? 'Enviando al Studio…' : t('registerRequest')}</button>
+            <button type="button" disabled={pendingBookingBusy} onClick={registerSaturdayRequest} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', padding: '12px', border: 'none', borderRadius: '6px', cursor: 'pointer' }}>{pendingBookingBusy ? t('bookingSaving') : t('registerRequest')}</button>
           </div>
         </div>
       )}
@@ -5851,7 +5851,7 @@ function StudioApp() {
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px', zIndex: 2000 }}>
           <div role="dialog" aria-modal="true" aria-labelledby="advance-payment-title" style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '16px', padding: '25px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', maxWidth: '440px', width: '100%', maxHeight: '85vh', overflowY: 'auto', color: '#FFF8EE' }}>
             <h3 id="advance-payment-title" style={{ color: '#E4C687', marginTop: 0 }}>{t('depositTitle')} · {advancePaymentModal.advancePayment?.amount} €</h3>
-            <p>Para completar esta reserva, realiza el anticipo de <strong>{advancePaymentModal.advancePayment?.amount} €</strong> por Bizum al <strong>{bizConfig.bizumNumber}</strong>. Se descontará del precio final del servicio.</p>
+            <p>{tf('bookingPayBizum', {amount: new Intl.NumberFormat(portalLocale,{style:'currency',currency:'EUR'}).format(advancePaymentModal.advancePayment?.amount ?? 0),phone:bizConfig.bizumNumber})}</p>
             <p>{advancePaymentModal.dateKey.split('-').reverse().join('/')} · {advancePaymentModal.time} · {advancePaymentModal.durationMinutes} min</p>
             <p>{t('paymentConceptHelp')}</p>
             <div dir="ltr" style={{ padding: '12px', border: '1px solid #B98A3E', borderRadius: '6px', overflowWrap: 'anywhere' }}>{advancePaymentConcept(advancePaymentModal)}</div>
@@ -5860,7 +5860,7 @@ function StudioApp() {
             {pendingBookingError && <p role="alert" style={{color:'#F5C7B8',fontSize:13,lineHeight:1.6}}>{pendingBookingError}</p>}
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button type="button" disabled={pendingBookingBusy} onClick={() => setAdvancePaymentModal(null)} style={{ padding: '10px', cursor: 'pointer' }}>{t('backAction')}</button>
-              <button type="button" disabled={pendingBookingBusy} onClick={savePendingAdvanceAppointment} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>{pendingBookingBusy ? 'Enviando al Studio…' : t('registerPayment')}</button>
+              <button type="button" disabled={pendingBookingBusy} onClick={savePendingAdvanceAppointment} style={{ background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', padding: '12px', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>{pendingBookingBusy ? t('bookingSaving') : t('registerPayment')}</button>
             </div>
           </div>
         </div>
