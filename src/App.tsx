@@ -35,7 +35,7 @@ import {PrivacyPermissionsEntry,RegistrationPrivacyNotice} from './ClientPermiss
 import {SocialBookingEntry} from './BookingLinks';
 import {markOfflineData, offlineConsultation, OFFLINE_EVENT} from './offlineSession';
 import {privateStorage, PrivateSessionGate, ensureAdminPrivateSession, clearStudioSession, flushPrivateCache} from './PrivateSessionGate';
-import PinRecovery from './PinRecovery';
+import PinRecovery, { pinRecoveryCopy } from './PinRecovery';
 import { calculateServiceDeposit, validateServiceDeposit, type ServiceDepositPolicy } from './serviceDeposits';
 import { rememberCatalogPhoto, restoreCatalogPhotos, clearCatalogPhotos, forgetCatalogPhoto, verifyCatalogPhotoUrl } from './catalogPhotoDrafts';
 import { prepareCatalogImage, catalogImageSizeMessage } from './catalogImage';
@@ -4951,7 +4951,7 @@ function StudioApp() {
         </>;
       })()}
 
-      <PinRecovery open={recoveryOpen} initialToken={recoveryToken}
+      <PinRecovery locale={currentLang} open={recoveryOpen} initialToken={recoveryToken}
         onClose={()=>{setRecoveryOpen(false);setRecoveryToken('');setCurrentScreen('clientPin');}}
         onSuccess={()=>{clearStudioSession();setCurrentClientRecord(null);setListaClientes([]);setAppointments([]);setPin('');setPinError(false);setCurrentScreen('clientPin');}} />
 
@@ -4991,10 +4991,10 @@ function StudioApp() {
           <form onSubmit={handleClientPinSubmit} style={{ maxWidth: '280px', margin: '0 auto' }}>
             <label htmlFor="client-access-pin" style={{ display: 'block', color: '#D6CBB8', fontSize: '13px', marginBottom: '10px' }}>{t('enterPin')}</label>
             <input id="client-access-pin" className="studio-editorial-pin" dir="ltr" type="password" inputMode="numeric" pattern="[0-9]{4}" maxLength={4} autoComplete="off" value={pin} onChange={event => { setPin(event.target.value.replace(/[^0-9]/g, '').slice(0, 4)); setPinError(false); }} aria-invalid={pinError} aria-describedby={pinError ? 'client-pin-error' : undefined} required />
-            {pinError && <p id="client-pin-error" role="alert" style={{ color: '#F2B8AC', fontSize: '13px' }}>PIN incorrecto. Compruébalo o usa «¿Has olvidado tu PIN?» para recuperar el acceso.</p>}
+            {pinError && <p id="client-pin-error" role="alert" style={{ color: '#F2B8AC', fontSize: '13px' }}>{pinRecoveryCopy(currentLang).invalidPin}</p>}
             <button className="studio-editorial-enter" type="submit" disabled={pin.length !== 4} style={{ width: '100%', minHeight: '48px', background: 'linear-gradient(135deg, #C99E52 0%, #B3823B 100%)', color: '#29231F', border: 'none', borderRadius: '3px', padding: '14px', marginTop: '24px', fontSize: '13px', letterSpacing: '1px', cursor: 'pointer', opacity: pin.length === 4 ? 1 : 0.45 }}>{t('enterPortal')}</button>
           </form>
-          <button type="button" onClick={()=>{setRecoveryToken('');setRecoveryOpen(true);}} style={{background:'none',border:0,color:'#E4C687',padding:'14px 4px',minHeight:44,fontSize:12,cursor:'pointer'}}>¿Has olvidado tu PIN?</button>
+          <button type="button" onClick={()=>{setRecoveryToken('');setRecoveryOpen(true);}} style={{background:'none',border:0,color:'#E4C687',padding:'14px 4px',minHeight:44,fontSize:12,cursor:'pointer'}}>{pinRecoveryCopy(currentLang).forgot}</button>
           <div style={{ width: '34px', height: '1px', background: 'rgba(212, 175, 55, 0.5)', margin: '30px auto 20px' }} />
           <button type="button" onClick={() => setCurrentScreen('clientRegistration')} style={{ background: 'none', border: 'none', color: '#D8C29A', padding: '12px 4px', minHeight: '44px', fontSize: '12px', cursor: 'pointer', lineHeight: 1.6 }}>{t('firstTimeRegister')}</button>
           {showInstallBanner && <p style={{ color: '#C9BCA9', fontSize: '11px', lineHeight: 1.7, margin: '16px 0 0' }}>{t('installDesc')}</p>}
