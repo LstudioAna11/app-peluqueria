@@ -51,7 +51,8 @@ import { promotionServiceIds } from './promotions';
 import { calculatePromotionDiscount, exactPrice } from './promotionPricing';
 import type { PromotionDiscount } from './promotionPricing';
 import { getBookingName, getAppointmentServiceNames, compactServiceText } from './serviceNames';
-import { catalogServiceCopy, catalogVariantCopy, serviceCardLabel } from './portalServiceCopy';
+import { catalogServiceCopy, catalogVariantCopy, sameCatalogText, serviceCardLabel } from './portalServiceCopy';
+import { catalogLabel, catalogPrice } from './portalCatalogLabels';
 import * as studioApi from './studioApi';
 function clientDisplayNumber(client: {registroId?: string} | null | undefined): string {
   const match = /^LSTUDIO-(\d+)$/.exec(client?.registroId || '');
@@ -1515,7 +1516,9 @@ function StudioApp() {
     if (activeEmployees.length === 1) setSelectedProfessionalId(activeEmployees[0].id);
     else if (activeEmployees.length === 0) setSelectedProfessionalId(null);
   }, [activeEmployees.length]);
-  const clientPrice = (price: string | undefined) => portalShowsPrices ? (price || '') : '';
+  const catalogLanguage = currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang;
+  const catalogUi = (key: Parameters<typeof catalogLabel>[1]) => catalogLabel(catalogLanguage, key);
+  const clientPrice = (price: string | undefined) => portalShowsPrices ? catalogPrice(price || '', catalogLanguage) : '';
   const updateEmployee = (id: string, patch: Partial<StudioEmployee>) => setTempConfig(previous => ({ ...previous, employees: (previous.employees || []).map(employee => employee.id === id ? { ...employee, ...patch } : employee) }));
   const uploadEmployeePhoto = async (id: string, file?: File) => {
     if (!file || employeePhotoBusyRef.current) return;
@@ -3595,6 +3598,17 @@ function StudioApp() {
     window.scrollTo({top:0,behavior:'smooth'});
   },[repeatPortalDraft,catalog]);
   const finishLabel = (sub: SubService, kind: FinishKind) => {
+    if (catalogLanguage !== 'es') {
+      const label = serviceCardLabel(catalogLanguage, kind);
+      if (isFinish(sub, kind)) return sub.isCutGoService ? 'Cut & Go · ' + catalogUi('noDry') : label + ' · ' + catalogUi('addon');
+      switch (finishPolicy(sub, kind)) {
+        case 'included': return label + ' · ' + catalogUi('included');
+        case 'required': return label + (kind === 'styling' && sub.allowCutGo ? ' / Cut & Go' : '') + ' · ' + catalogUi('required') + ' · ' + catalogUi('chargedSeparately');
+        case 'optional': return label + ' · ' + catalogUi('optional') + ' · ' + catalogUi('chargedSeparately');
+        case 'not_applicable': return label + ' · ' + catalogUi('notNeeded');
+        default: return '';
+      }
+    }
     const label = kind === 'styling' ? 'Peinado' : 'Matiz';
     if (isFinish(sub, kind)) return sub.isCutGoService ? 'Cut & Go · Sin secado' : 'Complemento de ' + label.toLowerCase();
     const policy = finishPolicy(sub, kind);
@@ -3619,7 +3633,7 @@ function StudioApp() {
     });
   };
   const renderFinishChoices = (items: { sub: SubService; variant: ServiceVariant | null }[], onlyKind?: FinishKind) => <>
-    {items.map(item=>latestSub(item.sub)).filter(owner=>owner.addonGroups!==undefined).map(owner=><AddonChoices key={owner.id} owner={owner} catalog={catalog} items={selectedServicesToBook} setItems={setSelectedServicesToBook} showPrices={portalShowsPrices}/>)}
+    {items.map(item=>latestSub(item.sub)).filter(owner=>owner.addonGroups!==undefined).map(owner=><AddonChoices key={owner.id} owner={owner} catalog={catalog} items={selectedServicesToBook} setItems={setSelectedServicesToBook} showPrices={portalShowsPrices} language={catalogLanguage} serviceTitle={portalServiceTitle} variantTitle={variantText}/>)}
 
     {items.map(item => latestSub(item.sub)).map(owner => (['styling', 'toner'] as const).map(kind => {
       if (onlyKind && kind !== onlyKind) return null;
@@ -3627,19 +3641,18 @@ function StudioApp() {
       if (isFinish(owner, kind) || policy !== 'required' && policy !== 'optional') return null;
       const candidates = finishCandidates(owner, kind);
       const message = kind === 'styling' ? owner.stylingMessage : owner.tonerMessage;
-      const label = kind === 'styling' ? 'peinado' : 'matiz';
       return <section key={owner.id + kind} style={{ marginTop: 16, padding: 14, border: '1px solid #C5A059', borderRadius: 10 }}>
-        <h3 style={{ fontSize: 15, color: '#FFF8EE', margin: '0 0 8px' }}>{owner.name} · {label === 'peinado' ? 'Peinado y acabado' : 'Matiz'}</h3>
-        <p style={{ fontSize: 13, color: '#E4C687', lineHeight: 1.5 }}>{message?.trim() || (policy === 'required' ? 'Selecciona una opción para completar tu servicio. Su precio y tiempo se suman a la reserva.' : 'Puedes añadir este acabado o continuar sin él.')}</p>
-        {!candidates.length && <p role="alert" style={{ color: '#FFF8EE', fontSize: 13 }}>No hay opciones disponibles. Contacta con el estudio{policy === 'required' ? ' para completar la reserva' : ''}.</p>}
+        <h3 style={{ fontSize: 15, color: '#FFF8EE', margin: '0 0 8px' }}>{portalServiceTitle(owner)} · {serviceCardLabel(catalogLanguage, kind)}</h3>
+        <p style={{ fontSize: 13, color: '#E4C687', lineHeight: 1.5 }}>{(catalogLanguage === 'es' && message?.trim()) || (policy === 'required' ? catalogUi('chooseOptionFirst') : catalogUi('optional') + ' · ' + catalogUi('chargedSeparately'))}</p>
+        {!candidates.length && <p role="alert" style={{ color: '#FFF8EE', fontSize: 13 }}>{catalogUi('noOptions')}</p>}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 8 }}>
           {candidates.map(sub => <div key={sub.id} style={{ padding: 10, background: '#29231F', borderRadius: 8 }}>
-            <strong style={{ color: '#FFF8EE', fontSize: 14 }}>{sub.name}</strong>
-            <p style={{ fontSize: 12, color: '#D6CBB8' }}>{sub.description}</p>
+            <strong style={{ color: '#FFF8EE', fontSize: 14 }}>{portalServiceTitle(sub)}</strong>
+            <p style={{ fontSize: 12, color: '#D6CBB8' }}>{serviceText(sub, 'description')}</p>
             {(sub.hasVariants && sub.variants?.length ? sub.variants : [null]).map(variant => {
               const selected = selectedServicesToBook.some(i => i.sub.id === sub.id && (i.variant?.id || '') === (variant?.id || ''));
               return <button key={variant?.id || sub.id} type="button" aria-pressed={selected} onClick={() => selectFinish(owner, kind, sub, variant)} style={{ display: 'block', width: '100%', minHeight: 48, padding: 10, marginTop: 6, borderRadius: 8, border: '1px solid #C5A059', background: selected ? '#C5A059' : '#322A25', color: selected ? '#121212' : '#FFF8EE', cursor: 'pointer' }}>
-                {selected ? '✓ ' : ''}{variant?.name || 'Seleccionar'}{portalShowsPrices ? ' · ' + clientPrice(variant?.price || sub.price) : ''} · {variant?.duration || sub.duration}
+                {selected ? '✓ ' : ''}{variant ? variantText(variant, sub) : catalogUi('select')}{portalShowsPrices ? ' · ' + clientPrice(variant?.price || sub.price) : ''} · {variant?.duration || sub.duration}
               </button>;
             })}
           </div>)}
@@ -3650,16 +3663,20 @@ function StudioApp() {
 
   const [catalogTranslationLang, setCatalogTranslationLang] = useState('en');
   const serviceText = (sub: SubService, field: keyof ServiceTranslation) => {
-    const language = currentScreen === 'adminPanel' || currentScreen === 'adminLogin' ? 'es' : currentLang;
-    return (language !== 'es' ? sub.translations?.[language]?.[field]?.trim() : '')
-      || catalogServiceCopy(language, sub.id, field, sub[field]) || sub[field] || '';
+    const original = sub[field] || '';
+    const saved = catalogLanguage === 'es' ? '' : sub.translations?.[catalogLanguage]?.[field]?.trim();
+    return (saved && !sameCatalogText(saved, original) ? saved : '')
+      || catalogServiceCopy(catalogLanguage, sub.id, field, original) || original;
   };
   const portalServiceTitle = (sub: SubService) => {
-    if (currentLang === 'es') return bookingName(sub);
-    const translation = sub.translations?.[currentLang];
-    return translation?.bookingName?.trim() || translation?.name?.trim()
-      || catalogServiceCopy(currentLang, sub.id, 'bookingName', sub.bookingName)
-      || catalogServiceCopy(currentLang, sub.id, 'name', sub.name) || bookingName(sub);
+    if (catalogLanguage === 'es') return bookingName(sub);
+    const saved = sub.translations?.[catalogLanguage];
+    const title = saved?.bookingName?.trim();
+    if (title && !sameCatalogText(title, sub.bookingName || '')) return title;
+    const name = saved?.name?.trim();
+    if (name && !sameCatalogText(name, sub.name)) return name;
+    return catalogServiceCopy(catalogLanguage, sub.id, 'bookingName', sub.bookingName)
+      || catalogServiceCopy(catalogLanguage, sub.id, 'name', sub.name) || bookingName(sub);
   };
   const chooseServiceLabel = ({ es: 'Elegir este servicio', en: 'Choose this service', fr: 'Choisir ce service', it: 'Scegli questo servizio', pt: 'Escolher este serviço', de: 'Diese Leistung wählen', nl: 'Deze behandeling kiezen', pl: 'Wybierz tę usługę', cs: 'Vybrat tuto službu', nb: 'Velg denne behandlingen', sv: 'Välj denna behandling', ar: 'اختاري هذه الخدمة' } as Record<string, string>)[currentLang] || 'Elegir este servicio';
   const categoryText = (category: CatalogCategory) => localizedCategoryTitle(category, currentLang, t);
@@ -3669,9 +3686,11 @@ function StudioApp() {
   });
   const variantText = (variant: ServiceVariant, service?: SubService, field: 'name' | 'description' = 'name') => {
     const latest = service ? catalog.flatMap(category => category.subservices).find(item => item.id === service.id)?.variants?.find(item => item.id === variant.id) || variant : variant;
-    return latest.translations?.[currentLang]?.[field]?.trim()
-      || (service ? catalogVariantCopy(currentLang, service.id, latest.id, field, latest[field]) : '')
-      || latest[field] || '';
+    const original = latest[field] || '';
+    const saved = catalogLanguage === 'es' ? '' : latest.translations?.[catalogLanguage]?.[field]?.trim();
+    return (saved && !sameCatalogText(saved, original) ? saved : '')
+      || (service ? catalogVariantCopy(catalogLanguage, service.id, latest.id, field, original) : '')
+      || original;
   };
   const [portalSearch, setPortalSearch] = useState('');
   const portalSearchQuery = normalizeServiceSearch(portalSearch);
@@ -5253,7 +5272,7 @@ function StudioApp() {
                 <small style={{ display: 'block', color: '#D6CBB8', fontSize: 11, marginBottom: 5 }}>{categoryText(category)}</small>
                 <strong style={{ display: 'block', fontSize: 15, lineHeight: 1.5 }}>{portalServiceTitle(service)}</strong>
                 {portalServiceTitle(service) !== serviceText(service, 'name') && <span style={{ display: 'block', color: '#D6CBB8', fontSize: 12, marginTop: 4 }}>{serviceText(service, 'name')}</span>}
-                <span style={{ display: 'block', color: '#E4C687', fontSize: 12, marginTop: 6 }}>{service.hasVariants ? t('chooseOption') : (portalShowsPrices ? service.price + ' · ' : '') + service.duration}</span>
+                <span style={{ display: 'block', color: '#E4C687', fontSize: 12, marginTop: 6 }}>{service.hasVariants ? t('chooseOption') : (portalShowsPrices ? clientPrice(service.price) + ' · ' : '') + service.duration}</span>
               </span>
               <ChevronRight size={18} aria-hidden="true" style={{ flexShrink: 0 }} />
             </button>))}</div>
@@ -5285,11 +5304,11 @@ function StudioApp() {
             </div>
 
           </>}
-          {selectedServicesToBook.length > 0 && <section id="booking-selection-summary" aria-label="Resumen de tu selección" style={{ backgroundColor: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', padding: '20px', borderRadius: 12 }}>
-            <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '20px', margin: '0 0 14px', fontWeight: 400 }}>Tu selección</h2>
+          {selectedServicesToBook.length > 0 && <section id="booking-selection-summary" aria-label={catalogUi('selection')} style={{ backgroundColor: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', padding: '20px', borderRadius: 12 }}>
+            <h2 style={{ color: '#FFF8EE', fontFamily: "'Royal Hefana', 'Cormorant Garamond', 'Playfair Display', Georgia, serif", letterSpacing: '0.02em', fontSize: '20px', margin: '0 0 14px', fontWeight: 400 }}>{catalogUi('selection')}</h2>
             {renderPromotionSummary()}
             {selectedServicesToBook.map(item => <div key={item.sub.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '10px 0', borderBottom: '1px solid #E4DCCF' }}>
-              <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#E4C687', flex: 1, minWidth: 0 }}>{bookingName(item.sub)}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#E4C687' }}>{item.sub.hasVariants && !item.variant ? t('chooseOption') : (portalShowsPrices ? (item.variant?.price || item.sub.price) + ' · ' : '') + (item.variant?.duration || item.sub.duration)}</span>
+              <div style={{ fontSize: '13px', lineHeight: 1.6, color: '#E4C687', flex: 1, minWidth: 0 }}>{portalServiceTitle(item.sub)}{item.variant && <span> · {variantText(item.variant, item.sub)}</span>}<span style={{ display: 'block', color: '#E4C687' }}>{item.sub.hasVariants && !item.variant ? t('chooseOption') : (portalShowsPrices ? (item.variant?.price || item.sub.price) + ' · ' : '') + (item.variant?.duration || item.sub.duration)}</span>
                 {(() => {
                   const currentSub = catalog.flatMap(category => category.subservices).find(service => service.id === item.sub.id) || item.sub;
                   if (!currentSub.hasVariants || !currentSub.variants?.length) return null;
@@ -5307,7 +5326,7 @@ function StudioApp() {
                     >
                       <option value="">{t('chooseOption')}</option>
                       {currentSub.variants.map(variant => <option key={variant.id} value={variant.id}>
-                        {variantText(variant, currentSub)}{portalShowsPrices ? ' · ' + variant.price : ''} · {variant.duration}
+                        {variantText(variant, currentSub)}{portalShowsPrices ? ' · ' + clientPrice(variant.price) : ''} · {variant.duration}
                       </option>)}
                     </select>
                   </label>;
@@ -5509,18 +5528,18 @@ function StudioApp() {
               {detailSub.showAlertBadge && <div className="studio-ficha-condition"><strong>{serviceCardLabel(currentLang, 'notice')}</strong><span>{serviceText(detailSub, 'alertText') || serviceCardLabel(currentLang, 'addStyling')}</span></div>}
             </section>
           )}
-          <div className="lst-price-box"><Info size={17} strokeWidth={1.7} aria-hidden="true" /> {portalShowsPrices ? (detailSelection?.variant?.price || detailSub.price) + ' · ' : ''} {detailSelection?.variant?.duration || detailSub.duration}</div>
+          <div className="lst-price-box"><Info size={17} strokeWidth={1.7} aria-hidden="true" /> {portalShowsPrices ? clientPrice(detailSelection?.variant?.price || detailSub.price) + ' · ' : ''} {detailSelection?.variant?.duration || detailSub.duration}</div>
           {detailSub.hasVariants && detailSub.variants && detailSub.variants.length > 0 && (
             <section className="studio-ficha-section">
               <h2>{t('serviceOptionsTitle')}</h2>
-              <HighlightOptions key={detailSub.id} service={detailSub} selected={detailSelection?.variant} onSelect={variant => setSelectedServicesToBook(previous => previous.some(item => item.sub.id === detailSub.id) ? previous.map(item => item.sub.id === detailSub.id ? { ...item, sub:detailSub, variant } : item) : [...previous, { sub: detailSub, variant }])}><div className="studio-service-variants-grid">
+              <HighlightOptions key={detailSub.id} service={detailSub} language={catalogLanguage} title={detailTitle} selected={detailSelection?.variant} onSelect={variant => setSelectedServicesToBook(previous => previous.some(item => item.sub.id === detailSub.id) ? previous.map(item => item.sub.id === detailSub.id ? { ...item, sub:detailSub, variant } : item) : [...previous, { sub: detailSub, variant }])}><div className="studio-service-variants-grid">
                 {detailSub.variants.map(variant => (
                   <button key={variant.id} type="button" aria-pressed={detailSelection?.variant?.id === variant.id}
                     onClick={() => setSelectedServicesToBook(previous => previous.some(item => item.sub.id === detailSub.id) ? previous.map(item => item.sub.id === detailSub.id ? { ...item, sub:detailSub, variant } : item) : [...previous, { sub: detailSub, variant }])}
                     className={detailSelection?.variant?.id === variant.id ? 'studio-variant-chip studio-variant-chip-active' : 'studio-variant-chip'}>
                     <strong>{variantText(variant, detailSub)}</strong>
                     {variantText(variant, detailSub, 'description') && <span>{variantText(variant, detailSub, 'description')}</span>}
-                    <span>{portalShowsPrices ? variant.price + ' · ' : ''}{variant.duration}</span>
+                    <span>{portalShowsPrices ? clientPrice(variant.price) + ' · ' : ''}{variant.duration}</span>
                   </button>
                 ))}
               </div></HighlightOptions>
@@ -5530,11 +5549,11 @@ function StudioApp() {
           {detailSelection ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, background: '#322A25', border: '1px solid rgba(255, 248, 238, 0.08)', borderRadius: 10, padding: '12px 14px' }}>
-                <span style={{ color: '#E4C687', fontSize: 13 }}>{selectedServicesToBook.length} {selectedServicesToBook.length === 1 ? 'servicio' : 'servicios'} en tu cita</span>
+                <span style={{ color: '#E4C687', fontSize: 13 }}>{selectedServicesToBook.length.toLocaleString(portalLocale)} {t(selectedServicesToBook.length === 1 ? 'categoryServiceSingular' : 'servicesCount')}</span>
                 <button type="button" onClick={() => setSelectedServicesToBook(previous => previous.filter(item => item.sub.id !== detailSub.id))} style={{ background: 'none', border: 'none', color: '#D6CBB8', fontSize: 12, cursor: 'pointer', padding: '10px', minHeight: 44 }}>{t('remove')}</button>
               </div>
               <div style={{ display: 'flex', gap: 10 }}>
-                <button type="button" onClick={() => { setViewServiceDetail(null); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="lst-cta-full" style={{ flex: 1, background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.16)' }}>Añadir otro servicio</button>
+                <button type="button" onClick={() => { setViewServiceDetail(null); setCurrentScreen('catalogBooking'); window.scrollTo({ top: 0, behavior: 'smooth' }); }} className="lst-cta-full" style={{ flex: 1, background: '#322A25', color: '#FFF8EE', border: '1px solid rgba(255, 248, 238, 0.16)' }}>{catalogUi('addAnother')}</button>
                 <button type="button" onClick={event => {
                   if (addonPending) {
                     const pending = event.currentTarget.closest('.lst-page')?.querySelector<HTMLElement>(
@@ -5545,12 +5564,12 @@ function StudioApp() {
                     return;
                   }
                   const missing = selectedServicesToBook.find(item => item.sub.hasVariants && !!item.sub.variants?.length && !item.variant);
-                  if (missing) { alert(tf('requiredVariant', { service: bookingName(missing.sub) })); return; }
+                  if (missing) { alert(tf('requiredVariant', { service: portalServiceTitle(missing.sub) })); return; }
                   const finishError = getInactiveServiceError(selectedServicesToBook) || getStylingError(selectedServicesToBook) || getTonerError(selectedServicesToBook);
                   if (finishError) { alert(finishError); return; }
                   setCurrentScreen('visualAgenda');
                 }} className={addonPending ? 'lst-cta-full lst-addon-pending-cta' : 'lst-cta-full'} style={{ flex: 1 }}>
-                  {addonPending ? (stylingPending ? 'Selecciona un peinado' : 'Completa la selección obligatoria') : t('chooseDateTime')}
+                  {addonPending ? (stylingPending ? catalogUi('chooseStyling') : catalogUi('completeSelection')) : t('chooseDateTime')}
                   <ArrowRight size={18} strokeWidth={2} aria-hidden="true" />
                 </button>
               </div>
