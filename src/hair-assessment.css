@@ -79,10 +79,50 @@
 .studio-hair-adn-track { margin-top: 4px; height: 5px; border-radius: 99px; background: #4a3a2f; overflow: hidden; }
 .studio-hair-adn-track span { display: block; height: 100%; border-radius: inherit; background: #d5ab70; }
 .studio-hair-adn-message { color: #d6cbb8; font-size: .79rem; }
-.studio-hair-adn-editor { margin: 12px 0 16px; }
+.studio-hair-adn-editor { margin: 12px 0 16px; container: hair-editor / inline-size; }
 .studio-hair-adn-editor summary { min-height: 35px; align-content: center; cursor: pointer; color: #e4c687; }
 .studio-hair-adn-editor p { margin: 8px 0; font-size: .82rem; }
 .studio-hair-adn-editor .studio-hair-adn-groups { margin: 9px 0; }
+.studio-hair-adn-editor-overview {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin: 8px 0 12px;
+}
+.studio-hair-adn-editor-overview .studio-hair-adn-overall { margin: 0; }
+.studio-hair-adn-editor-overview p { flex: 1 1 300px; margin: 0; color: #d6cbb8; }
+.studio-hair-adn-editor-groups {
+  grid-template-columns: repeat(auto-fit,minmax(min(100%, 228px),1fr));
+  gap: 14px;
+}
+.studio-hair-adn-group-switch { display: none; }
+@container hair-editor (width < 470px) {
+  .studio-hair-adn-group-switch {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+  }
+  .studio-hair-adn-group-switch button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    min-height: 44px;
+    padding: 5px 6px;
+    border: 1px solid #806444;
+    border-radius: 8px;
+    background: #352b23;
+    color: #e4c687;
+    font: inherit;
+    font-size: .82rem;
+    cursor: pointer;
+  }
+  .studio-hair-adn-group-switch button svg { flex-shrink: 0; }
+  .studio-hair-adn-group-switch button[aria-pressed="true"] { background: #e4c687; color: #211a15; }
+  .studio-hair-adn-group-switch button:focus-visible { outline: 2px solid #e4c687; outline-offset: 2px; }
+  .studio-hair-adn-editor-groups > [data-active="false"] { display: none; }
+}
 .studio-hair-adn-editor legend { color: #e4c687; font-weight: 600; padding: 0 3px; }
 .studio-hair-adn-editor label { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: .82rem; min-height: 44px; }
 .studio-hair-adn-editor > label { max-width: 250px; }
