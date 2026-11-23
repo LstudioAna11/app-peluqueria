@@ -1,0 +1,173 @@
+.lst-client-record {
+  --record-gold: #e4c687;
+  --record-muted: #d6cbb8;
+  --record-divider: #69523b;
+  --record-panel: #332a23;
+  display: grid;
+  min-width: 0;
+  gap: 14px;
+  padding: clamp(10px, 2vw, 20px);
+  background: #29231f;
+  color: #fff8ee;
+  container: client-record / inline-size;
+}
+
+.lst-client-record-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+}
+
+.lst-client-record-avatar {
+  width: 46px;
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 1px solid #97734a;
+  border-radius: 12px;
+  background: #463628;
+  color: var(--record-gold);
+  font: 1.2rem Georgia, serif;
+}
+
+.lst-client-record-identity { min-width: 0; }
+.lst-client-record-kicker { color: var(--record-gold); font-size: .76rem; }
+.lst-client-record-identity h3 { margin: 2px 0 4px; font: clamp(1.1rem, 2.25vw, 1.55rem) Georgia, serif; overflow-wrap: anywhere; }
+.lst-client-record-status { color: #bde1b8; font-size: .78rem; }
+.lst-client-record-status[data-archived="true"] { color: #ffc4b5; }
+
+.lst-client-record :is(.lst-client-record-primary,.lst-client-record-button,.lst-client-record-close) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 8px 12px;
+  border: 1px solid #8a6c45;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--record-gold);
+  font: inherit;
+  font-size: .85rem;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.lst-client-record .lst-client-record-primary { background: #d9b579; color: #281f17; font-weight: 700; }
+.lst-client-record-close { grid-column: 4; grid-row: 1; }
+.lst-client-record-book { grid-column: 3; grid-row: 1; }
+.lst-client-record .lst-client-record-delete { border-color: #98695b; color: #ffc4b5; }
+.lst-client-record button:disabled { opacity: .55; cursor: default; }
+.lst-client-record :is(button,a,summary,textarea):focus-visible { outline: 2px solid var(--record-gold); outline-offset: 2px; }
+
+.lst-client-record :is(.lst-client-record-visits,.lst-client-record-contact) {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.lst-client-record .lst-client-record-contact { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.lst-client-record :is(.lst-client-record-visits,.lst-client-record-contact) > div {
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid var(--record-divider);
+  border-radius: 8px;
+  background: var(--record-panel);
+}
+
+.lst-client-record-visits > div:first-child { border-color: #aa8351; }
+.lst-client-record :is(.lst-client-record-visits,.lst-client-record-contact) dt { margin-bottom: 4px; color: var(--record-muted); font-size: .75rem; }
+.lst-client-record :is(.lst-client-record-visits,.lst-client-record-contact) dd { margin: 0; overflow-wrap: anywhere; font-size: .88rem; }
+.lst-client-record-contact dd > small { display: block; margin-top: 4px; color: var(--record-gold); }
+
+.lst-client-record-tabs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.lst-client-record-tabs > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 6px;
+  border: 1px solid #806444;
+  border-radius: 8px;
+  background: var(--record-panel);
+  color: var(--record-gold);
+  font: inherit;
+  font-size: .84rem;
+  cursor: pointer;
+}
+.lst-client-record-tabs > button[aria-selected="true"] { border-color: #e4c687; background: #e4c687; color: #281f17; font-weight: 700; }
+.lst-client-record :is(button,summary) > svg { flex-shrink: 0; }
+
+.lst-client-record-panel { display: grid; min-width: 0; gap: 9px; }
+.lst-client-record-panel[hidden] { display: none; }
+
+.lst-client-record-passport {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid #ae8755;
+  border-radius: 8px;
+  background: #453629;
+  color: var(--record-gold);
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+.lst-client-record-passport strong { display: block; }
+.lst-client-record-passport small { display: block; margin-top: 3px; color: var(--record-muted); font-size: .79rem; }
+
+.lst-client-record-fold { border: 1px solid var(--record-divider); border-radius: 8px; background: var(--record-panel); }
+.lst-client-record-fold > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  min-height: 44px;
+  gap: 8px;
+  padding: 9px 12px;
+  list-style: none;
+  color: var(--record-gold);
+  font-size: .86rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lst-client-record-fold > summary::-webkit-details-marker { display: none; }
+.lst-client-record-fold[open] > summary > svg { transform: rotate(180deg); }
+.lst-client-record-fold-content { min-width: 0; padding: 0 12px 12px; }
+.lst-client-record-fold-content > p { font-size: .85rem; }
+.lst-client-record-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.lst-client-record-notes { margin: 0; padding: 12px; border: 1px solid var(--record-divider); border-radius: 8px; background: var(--record-panel); white-space: pre-wrap; overflow-wrap: anywhere; }
+.lst-client-record-note-form { display: grid; gap: 8px; }
+.lst-client-record-note-form > label { color: var(--record-gold); font-weight: 600; }
+.lst-client-record-note-form > textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 10px;
+  resize: vertical;
+  color: inherit;
+  background: var(--record-panel);
+  border: 1px solid var(--record-divider);
+  border-radius: 8px;
+  font: inherit;
+}
+
+@container client-record (width < 500px) {
+  .lst-client-record-header { grid-template-columns: auto minmax(0, 1fr) auto; }
+  .lst-client-record-close { grid-column: 3; }
+  .lst-client-record-close > span { display: none; }
+  .lst-client-record-book { grid-column: 1 / -1; grid-row: auto; }
+  .lst-client-record .lst-client-record-visits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .lst-client-record-visits > div:first-child { grid-column: 1 / -1; }
+  .lst-client-record-tabs { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@container client-record (width < 320px) {
+  .lst-client-record .lst-client-record-contact { grid-template-columns: minmax(0, 1fr); }
+}
