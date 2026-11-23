@@ -53,6 +53,15 @@
 .lst-routine-list > li { background: #251e18; padding: 10px; }
 .lst-routine-note { border-top: 1px solid var(--product-line); padding-top: 8px; white-space: pre-wrap; }
 .lst-routine-note strong { display: block; color: var(--product-gold); }
+.lst-routine:not(.lst-routine-customer) {
+  font-size: .875rem;
+  line-height: 1.45;
+}
+.lst-routine:not(.lst-routine-customer) .lst-product-desc small { font-size: .75rem; }
+.lst-routine:not(.lst-routine-customer) .lst-product-actions button {
+  min-height: 44px;
+  font-size: .8125rem;
+}
 .lst-product-picker button { width: 100%; justify-content: space-between; }
 @media (max-width: 630px) {
   .lst-inventory-list > li { grid-template-columns: minmax(0, 1fr) auto; }
