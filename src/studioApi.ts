@@ -159,8 +159,6 @@ export const fetchHairAssessment = (token: string, clientId?: string) =>
 export const saveHairAssessment = (token: string, clientId: string, revision: string | null, scores: HairScores, details: HairDetails) =>
   call<{ assessment: HairAssessment }>('passport-adn', { token, method: 'PUT', body: { clientId, revision, scores, details } });
 
-  call<{ assessment: HairAssessment }>('passport-adn', { token, method: 'PUT', body: { clientId, revision, scores } });
-
 export const createClosure = (token: string, closure: Record<string, unknown>) =>
   call<{ ok: true; id: string }>("closure", { token, body: closure });
 
