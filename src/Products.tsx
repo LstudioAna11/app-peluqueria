@@ -425,11 +425,11 @@ export function ClientProductRoutine({ clientId, t = spanishText, locale, hideHe
     {offline ? <p>{t('productOffline')}</p> : <>
       {loading && <p role="status">{t('productLoading')}</p>}
       {loadError && <p role="alert">{admin ? loadError : t('productLoadError')} <button type="button" onClick={() => setRevision(value => value + 1)}>{t('portalRetry')}</button></p>}
-      {!loading && !loadError && !items.length && <p>{admin ? 'Aún no hay productos en esta rutina.' :t('productNone')}</p>}
+      {!loading && !loadError && !items.length && <p>{admin ? 'Aún no hay recomendaciones de productos.' :t('productNone')}</p>}
       <RoutineList t={t} locale={admin ? undefined : locale} items={items} interactive={!admin} showArchived={admin} onEdit={admin && !busy ? item => edit(item.product, item.note) : undefined}
         onRemove={admin && !busy ? item => { if (window.confirm(`¿Quitar ${item.product.name} de esta rutina?`)) void change(item.product, true); } : undefined} />
       {admin && <>
-        {!adding && !selection && <button type="button" onClick={() => { setAdding(true); setPage(0); }}>Añadir producto</button>}
+        {!adding && !selection && <button type="button" onClick={() => { setAdding(true); setPage(0); }}>Recomendar producto</button>}
         {adding && <div className="lst-products-panel">
           <label>Buscar en el inventario<input type="search" value={search} onChange={event => { setSearch(event.target.value); setPage(0); }} /></label>
           {catalogue.loading && <p role="status">Buscando…</p>}
