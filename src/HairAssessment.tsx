@@ -5,7 +5,7 @@ import {
   hairCharacteristicKeys, hairChoiceKeys, hairCharacteristicChoices, StudioApiError,
   type HairAssessment, type HairAssessmentKey, type HairScores, type HairDetails, type HairDetailKey, type ChemicalVisit,
 } from './studioApi';
-import { chemicalDates, hairAssessmentLabel, hairCharacteristicLabel, hairCharacteristicValue, scalpIntensityScores } from './hairAssessmentCopy';
+import { chemicalDates, hairAssessmentLabel, hairCharacteristicLabel, hairCharacteristicValue, hairScoreLabel, scalpIntensityScores } from './hairAssessmentCopy';
 import './hair-assessment.css';
 
 const labels = {
@@ -83,11 +83,39 @@ function AssessmentDisclosure({ title, children }: { title: string; children: Re
   </details>;
 }
 
-function ScoreRing({ value, label, locale }: { value: number; label:string; locale:string }) {
-  return <div className="studio-hair-adn-overall">
-    <span className="studio-hair-adn-ring" aria-hidden="true" style={{background:`conic-gradient(#e1b575 ${value}%, #46382f 0)`}} />
-    <div><span>{label}</span><strong>{new Intl.NumberFormat(locale,{style:'percent',maximumFractionDigits:0}).format(value/100)}</strong></div>
+const scoreBands = [
+  { level: 'attention', min: 0, max: 49 },
+  { level: 'caution', min: 50, max: 74 },
+  { level: 'good', min: 75, max: 100 },
+] as const;
+
+function ScoreRing({ value, label, locale, showStatus = false }: {
+  value: number; label?: string; locale: string; showStatus?: boolean;
+}) {
+  const band = showStatus ? scoreBands.find(({max}) => value <= max) : undefined;
+  const percent = new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 });
+  return <div className="studio-hair-adn-overall" data-score-level={band?.level}>
+    <span className="studio-hair-adn-ring" aria-hidden="true"
+      style={{ background: `conic-gradient(var(--hair-score-color, #e1b575) ${value}%, #46382f 0)` }} />
+    <div>
+      {label && <span>{label}</span>}
+      <strong>{percent.format(value / 100)}</strong>
+      {band && <small>{hairScoreLabel(locale,band.level)}</small>}
+    </div>
   </div>;
+}
+
+function ScoreLegend({ locale }: { locale: string }) {
+  const number = new Intl.NumberFormat(locale);
+  const percent = new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 });
+  return <ul className="studio-hair-adn-score-legend">
+    {scoreBands.map(({level,min,max}) => (
+      <li key={level} data-score-level={level}>
+        <span>{hairScoreLabel(locale,level)}</span>
+        <span>{number.format(min)}–{percent.format(max / 100)}</span>
+      </li>
+    ))}
+  </ul>;
 }
 
 function AssessmentCharts({ scores, details, locale }: {
@@ -97,18 +125,19 @@ function AssessmentCharts({ scores, details, locale }: {
   const copy = labels[language] || labels.es;
   const format = new Intl.NumberFormat(locale);
   const overall = globalAssessmentPercentage(scores, details.includeScalp);
+  const groupScores = groups.map(({keys}) => assessmentPercentage(scores,keys));
   return <>
     {overall !== null && <><ScoreRing value={overall} label={copy[2]} locale={locale}/>
       <p className="studio-hair-adn-caption">{hairAssessmentLabel(locale,'scoreExplanation')}</p></>}
     <div className="studio-hair-adn-groups">
       {groups.map(({Icon,keys},index) => {
         const rows=keys.filter(key => scores[key] !== undefined);
-        const groupScore=assessmentPercentage(scores,keys);
+        const groupScore = groupScores[index];
         const allergy=index===0 ? details.allergy : undefined;
         if (groupScore===null && !allergy) return null;
         return <section className="studio-hair-adn-group" key={index}>
           <h4><Icon size={16} aria-hidden="true" /> {copy[index]}</h4>
-          {groupScore!==null && <ScoreRing value={groupScore} label={copy[index]} locale={locale}/>}
+          {groupScore!==null && <ScoreRing value={groupScore} locale={locale} showStatus/>}
           {rows.map(key => <div className="studio-hair-adn-reading" data-intensity={scalpIntensityScores.includes(key)} key={key}>
             <div><span>{metricLabel(locale,key)}</span><span>{format.format(scores[key]!)} / 100</span></div>
             <div aria-hidden="true" className="studio-hair-adn-track"><span style={{width:`${scores[key]}%`}} /></div>
@@ -118,6 +147,7 @@ function AssessmentCharts({ scores, details, locale }: {
         </section>;
       })}
     </div>
+    {groupScores.some(value => value !== null) && <ScoreLegend locale={locale}/>}
   </>;
 }
 
@@ -285,6 +315,7 @@ export function HairAssessmentEditor({ clientId }: { clientId: string }) {
           onChange={event=>setDetail(key,event.target.value)}/>}
   </label>;
   const overall = globalAssessmentPercentage(scores, cleanDetails.includeScalp);
+  const groupScores = groups.map(({keys}) => assessmentPercentage(scores,keys));
   function setVisits(next: ChemicalVisit[]) {
     setNotice('');
     setDetails(previous=>({...previous,chemicalHistory:next}));
@@ -312,7 +343,9 @@ export function HairAssessmentEditor({ clientId }: { clientId: string }) {
             <div className="studio-hair-adn-groups studio-hair-adn-editor-groups">
               {groups.map(({keys},index) => <fieldset id={`${groupId}-${index}`} data-active={activeGroup === index}
                 className="studio-hair-adn-group" key={index}>
-                <legend>{labels.es[index]}</legend>{keys.map(input)}
+                <legend>{labels.es[index]}</legend>
+                {groupScores[index] !== null && <ScoreRing value={groupScores[index]} locale="es-ES" showStatus/>}
+                {keys.map(input)}
                 {index===0 && <>
                   <label className="studio-hair-adn-include-scalp">
                     <input type="checkbox" checked={details.includeScalp === true} disabled={busy} onChange={event => {
@@ -356,6 +389,7 @@ export function HairAssessmentEditor({ clientId }: { clientId: string }) {
                 </AssessmentDisclosure>}
               </fieldset>)}
             </div>
+            {groupScores.some(value => value !== null) && <ScoreLegend locale="es-ES"/>}
           </>,
           habits:<div className="studio-hair-adn-editor-fields">{hairHabitKeys.map(detailInput)}</div>,
           chemistry:<>
