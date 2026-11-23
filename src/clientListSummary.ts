@@ -13,5 +13,7 @@ export function clientVisitSummary(client:ClientRecord, appointments:Appointment
   const usable=related.filter(a=>a.lifecycleStatus!=='cancelled' && a.lifecycleStatus!=='no_show' && a.saturdayApproval?.status!=='rejected' && validDay(a.dateKey));
   const past=[...usable.filter(a=>!!a.completedAt).map(a=>a.dateKey),...(client.pastVisits||[]).map(v=>v.date.slice(0,10))].filter(d=>validDay(d)&&d<=current.slice(0,10)).sort();
   const upcoming=usable.filter(a=>!a.completedAt && /^\d{2}:\d{2}$/.test(a.time) && `${a.dateKey}T${a.time}`>=current).sort((a,b)=>`${a.dateKey}T${a.time}`.localeCompare(`${b.dateKey}T${b.time}`))[0];
-  return {last:past.length?label(past[past.length-1]):client.ultimaVisita?.trim()||'',next:upcoming?`${label(upcoming.dateKey)} · ${upcoming.time}${upcoming.saturdayApproval?.status==='pending'?' · Pendiente de aceptar':upcoming.advancePayment?.status==='pending'?' · Anticipo pendiente':''}`:''};
+  const legacyLast = client.ultimaVisita?.trim() || '';
+  const last = past.length ? label(past[past.length-1]) : legacyLast.toLowerCase() === 'nuevo registro' ? '' : legacyLast;
+  return {last,next:upcoming?`${label(upcoming.dateKey)} · ${upcoming.time}${upcoming.saturdayApproval?.status==='pending'?' · Pendiente de aceptar':upcoming.advancePayment?.status==='pending'?' · Anticipo pendiente':''}`:''};
 }
