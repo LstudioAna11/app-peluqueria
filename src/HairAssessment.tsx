@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown, Fingerprint, Droplet, Sparkles } from 'lucide-react';
 import {
   currentToken, fetchHairAssessment, saveHairAssessment, hairAssessmentKeys, hairHabitKeys, chemicalHistoryKeys, StudioApiError,
@@ -192,6 +192,8 @@ export function HairAssessmentPortal({ title, locale = 'es-ES', notes }: { title
 }
 
 export function HairAssessmentEditor({ clientId }: { clientId: string }) {
+  const groupId = useId();
+  const [activeGroup, setActiveGroup] = useState(0);
   const [saved, setSaved] = useState<HairAssessment | null>();
   const [draft, setDraft] = useState<Draft>({});
   const [details,setDetails] = useState<HairDetails>({});
@@ -282,9 +284,21 @@ export function HairAssessmentEditor({ clientId }: { clientId: string }) {
       : <>
         <AssessmentSections locale="es-ES" content={{
           assessment:<>
-            <p>Valora de 0 a 100 y deja en blanco lo que no hayas evaluado. La sensibilidad, descamación, caspa, porosidad, daño químico y encrespamiento indican intensidad. Los valores altos de esos indicadores reducen el porcentaje.</p>
-            <div className="studio-hair-adn-groups">
-              {groups.map(({keys},index) => <fieldset className="studio-hair-adn-group" key={index}>
+            <div className="studio-hair-adn-editor-overview">
+              {overall!==null && <ScoreRing value={overall} label={labels.es[2]} locale="es-ES"/>}
+              <p>Valora de 0 a 100 y deja en blanco lo que no hayas evaluado. La sensibilidad, descamación, caspa, porosidad, daño químico y encrespamiento indican intensidad. Los valores altos de esos indicadores reducen el porcentaje.</p>
+            </div>
+            <div className="studio-hair-adn-group-switch" role="group" aria-label="Zona de la valoración">
+              {groups.map(({Icon},index) => (
+                <button key={index} type="button" aria-pressed={activeGroup === index} aria-controls={`${groupId}-${index}`}
+                  onClick={() => setActiveGroup(index)}>
+                  <Icon size={16} aria-hidden="true"/>{labels.es[index]}
+                </button>
+              ))}
+            </div>
+            <div className="studio-hair-adn-groups studio-hair-adn-editor-groups">
+              {groups.map(({keys},index) => <fieldset id={`${groupId}-${index}`} data-active={activeGroup === index}
+                className="studio-hair-adn-group" key={index}>
                 <legend>{labels.es[index]}</legend>{keys.map(input)}
                 {index===0 && <>
                   <label className="studio-hair-adn-include-scalp">
@@ -322,7 +336,6 @@ export function HairAssessmentEditor({ clientId }: { clientId: string }) {
             <button type="button" disabled={busy||visits.length>=24} onClick={()=>setVisits([...visits,{...emptyChemicalVisit}])}>+ Añadir trabajo químico</button>
           </>,
         }}/>
-        {overall!==null && <p><strong>Valoración general · {overall}%</strong></p>}
         {(assessmentPercentage(scores)!==null || detailKeys.some(key => cleanDetails[key]) || cleanVisits.length>0) && <details>
           <summary>Vista previa del portal</summary><AssessmentProfile scores={scores} details={cleanDetails} title="ADN Capilar" locale="es-ES"/>
         </details>}
