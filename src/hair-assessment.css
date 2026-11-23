@@ -132,3 +132,11 @@
 .studio-hair-adn-detail-input :is(input,select,textarea) { width:100%; min-height:40px; box-sizing:border-box; padding:7px; text-align:start; color:#fff8ee; background:#29231f; border:1px solid #806444; border-radius:6px; font:inherit; }
 .studio-hair-adn-editor > button { margin-top: 8px; min-height: 44px; padding: 8px 12px; background: #e4c687; color: #211a15; border: 0; border-radius: 6px; font-weight: 600; cursor: pointer; }
 .studio-hair-adn-editor > button:disabled { opacity: .55; cursor: default; }
+
+.studio-hair-adn-characteristics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr));
+  gap: 8px;
+}
+.studio-hair-adn-characteristics > [data-wide="true"] { grid-column: 1 / -1; }
+.studio-hair-adn-characteristics select { min-width: 0; }
