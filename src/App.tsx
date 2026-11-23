@@ -49,6 +49,7 @@ import { PromotionsPortalButton } from './PromotionsView';
 import type { Promotion } from './promotions';
 import { promotionServiceIds } from './promotions';
 import { calculatePromotionDiscount, exactPrice } from './promotionPricing';
+import { cashQuickServices } from './cashQuickServices';
 import type { PromotionDiscount } from './promotionPricing';
 import { getBookingName, getAppointmentServiceNames, compactServiceText } from './serviceNames';
 import { catalogServiceCopy, catalogVariantCopy, sameCatalogText, serviceCardLabel } from './portalServiceCopy';
@@ -5710,6 +5711,7 @@ function StudioApp() {
 
       {staffCanManageAppointments && appointmentToCharge?.serverId && <React.Suspense fallback={<p role="status">Abriendo caja…</p>}>
         <LazyAppointmentCashDialog key={appointmentToCharge.serverId}
+          quickServices={cashQuickServices(catalog, [], bookingName, formatDateKey(new Date()))}
           clientName={appointmentToCharge.clientName}
           onClose={() => setAppointmentToCharge(null)}
           onOpenCash={() => {
