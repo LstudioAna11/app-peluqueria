@@ -1,4 +1,4 @@
-import type { HairAssessmentKey, HairDetailKey } from './studioApi';
+import type { HairAssessmentKey, HairDetailKey, HairCharacteristicKey } from './studioApi';
 
 const extraKeys = ['assessment','habits','chemistry','scalpSensitivity','scalpFlaking','scalpDandruff','hairChemicalDamage','hairFrizz','allergy','reported','none-reported','allergyNote','washFrequency','washTime','drying','heatTools','homeCareTime','habitNotes','lastColor','lastBleach','lastStraightening','chemicalNotes','scoreExplanation'] as const;
 type ExtraKey = typeof extraKeys[number];
@@ -27,3 +27,38 @@ export const scalpIntensityScores: readonly HairAssessmentKey[] = [
   'scalpSensitivity','scalpFlaking','scalpDandruff',
 ];
 export const chemicalDates: readonly HairDetailKey[] = ['lastColor','lastBleach','lastStraightening'];
+
+const characteristicCopy: Record<string, readonly string[]> = {
+  es: ['Características del cabello','Tipo de cabello','Textura','Densidad','Porosidad','Estado actual','Tratamientos previos','Liso','Ondulado','Rizado','Muy rizado','Fino','Medio','Grueso','Baja','Media','Alta'],
+  en: ['Hair characteristics','Hair type','Texture','Density','Porosity','Current condition','Previous treatments','Straight','Wavy','Curly','Coily','Fine','Medium','Coarse','Low','Medium','High'],
+  fr: ['Caractéristiques des cheveux','Type de cheveux','Texture','Densité','Porosité','État actuel','Traitements précédents','Raides','Ondulés','Bouclés','Crépus','Fins','Moyens','Épais','Faible','Moyenne','Élevée'],
+  it: ['Caratteristiche dei capelli','Tipo di capelli','Texture','Densità','Porosità','Condizione attuale','Trattamenti precedenti','Lisci','Mossi','Ricci','Molto ricci','Fini','Medi','Spessi','Bassa','Media','Alta'],
+  pt: ['Características do cabelo','Tipo de cabelo','Textura','Densidade','Porosidade','Estado atual','Tratamentos anteriores','Liso','Ondulado','Encaracolado','Crespo','Fino','Médio','Grosso','Baixa','Média','Alta'],
+  de: ['Haarmerkmale','Haartyp','Haarstruktur','Haardichte','Porosität','Aktueller Zustand','Frühere Behandlungen','Glatt','Wellig','Lockig','Kraus','Fein','Mittel','Dick','Gering','Mittel','Hoch'],
+  nl: ['Haarkenmerken','Haartype','Textuur','Haardichtheid','Porositeit','Huidige conditie','Eerdere behandelingen','Steil','Golvend','Krullend','Kroes','Fijn','Gemiddeld','Dik','Laag','Gemiddeld','Hoog'],
+  pl: ['Charakterystyka włosów','Typ włosów','Tekstura','Gęstość','Porowatość','Obecna kondycja','Wcześniejsze zabiegi','Proste','Falowane','Kręcone','Mocno kręcone','Cienkie','Średnie','Grube','Niska','Średnia','Wysoka'],
+  cs: ['Vlastnosti vlasů','Typ vlasů','Textura','Hustota','Poréznost','Současný stav','Předchozí ošetření','Rovné','Vlnité','Kudrnaté','Silně kudrnaté','Jemné','Střední','Silné','Nízká','Střední','Vysoká'],
+  nb: ['Hårets egenskaper','Hårtype','Tekstur','Tetthet','Porøsitet','Nåværende tilstand','Tidligere behandlinger','Rett','Bølgete','Krøllete','Veldig krøllete','Fint','Middels','Grovt','Lav','Middels','Høy'],
+  sv: ['Hårets egenskaper','Hårtyp','Textur','Täthet','Porositet','Nuvarande skick','Tidigare behandlingar','Rakt','Vågigt','Lockigt','Mycket lockigt','Fint','Medel','Grovt','Låg','Medel','Hög'],
+  ar: ['خصائص الشعر','نوع الشعر','ملمس الشعر','الكثافة','المسامية','الحالة الحالية','المعالجات السابقة','مستقيم','مموج','مجعد','شديد التجعد','ناعم','متوسط','سميك','منخفضة','متوسطة','عالية'],
+};
+
+const characteristicLabelIndex = {
+  title: 0, hairType: 1, hairTexture: 2, hairDensity: 3, hairPorosityLevel: 4, hairCondition: 5, previousTreatments: 6,
+} as const;
+
+const choiceLabelIndex: Record<string, number> = {
+  straight: 7, wavy: 8, curly: 9, coily: 10, fine: 11, medium: 15, thick: 13, low: 14, high: 16,
+};
+
+export function hairCharacteristicLabel(locale: string, key: HairCharacteristicKey | 'title') {
+  const labels = characteristicCopy[locale.split('-')[0]] ?? characteristicCopy.es;
+  return labels[characteristicLabelIndex[key]];
+}
+
+export function hairCharacteristicValue(locale: string, key: HairCharacteristicKey, value: string) {
+  if (key === 'hairCondition' || key === 'previousTreatments') return value;
+  const labels = characteristicCopy[locale.split('-')[0]] ?? characteristicCopy.es;
+  const index = key === 'hairTexture' && value === 'medium' ? 12 : choiceLabelIndex[value];
+  return labels[index] ?? value;
+}
