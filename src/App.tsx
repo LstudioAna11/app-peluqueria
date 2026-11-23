@@ -50,6 +50,7 @@ import type { Promotion } from './promotions';
 import { promotionServiceIds } from './promotions';
 import { calculatePromotionDiscount, exactPrice } from './promotionPricing';
 import { cashQuickServices } from './cashQuickServices';
+import { HairAssessmentEditor } from './HairAssessment';
 import type { PromotionDiscount } from './promotionPricing';
 import { getBookingName, getAppointmentServiceNames, compactServiceText } from './serviceNames';
 import { catalogServiceCopy, catalogVariantCopy, sameCatalogText, serviceCardLabel } from './portalServiceCopy';
@@ -5900,6 +5901,7 @@ function StudioApp() {
             <h3 id="passport-editor-title" style={{ color: '#E4C687', marginTop: 0 }}>Pasaporte · {passportDraft.nombre} {passportDraft.apellidos}</h3>
             <fieldset disabled={passportSaving} style={{border:0,padding:0,margin:0,minWidth:0}}>
             <p style={{ fontSize: '13px', color: '#D6CBB8', lineHeight: 1.6 }}>Estos datos serán visibles en el portal de la clienta. Incluye solo las notas que quieras compartir con ella.</p>
+            {passportDraft.serverId && <HairAssessmentEditor key={passportDraft.serverId} clientId={passportDraft.serverId}/>}
             {([['dniCapilar', 'DNI capilar / diagnóstico'], ['prescripcionCasa', 'Cuidado en casa'], ['ultimaVisita', 'Última visita registrada'], ['proximaVisitaSugerida', 'Próxima visita recomendada']] as const).map(([field, label]) => <label key={field} style={{ display: 'block', marginBottom: '16px', fontSize: '13px' }}>{label}<textarea value={passportDraft[field] || ''} onChange={e => setPassportDraft({ ...passportDraft, [field]: e.target.value })} rows={field === 'dniCapilar' || field === 'prescripcionCasa' ? 3 : 1} style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', padding: '10px', marginTop: '7px', fontSize: '14px' }} /></label>)}
             {passportDraft.serverId && <div style={{ marginBottom: 16 }}>
               <h4 style={{ color: '#E4C687', margin: '0 0 8px' }}>Rutina de productos</h4>
