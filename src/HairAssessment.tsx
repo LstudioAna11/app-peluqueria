@@ -1,10 +1,11 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown, Fingerprint, Droplet, Sparkles } from 'lucide-react';
 import {
-  currentToken, fetchHairAssessment, saveHairAssessment, hairAssessmentKeys, hairHabitKeys, chemicalHistoryKeys, StudioApiError,
+  currentToken, fetchHairAssessment, saveHairAssessment, hairAssessmentKeys, hairHabitKeys, chemicalHistoryKeys,
+  hairCharacteristicKeys, hairChoiceKeys, hairCharacteristicChoices, StudioApiError,
   type HairAssessment, type HairAssessmentKey, type HairScores, type HairDetails, type HairDetailKey, type ChemicalVisit,
 } from './studioApi';
-import { chemicalDates, hairAssessmentLabel, scalpIntensityScores } from './hairAssessmentCopy';
+import { chemicalDates, hairAssessmentLabel, hairCharacteristicLabel, hairCharacteristicValue, scalpIntensityScores } from './hairAssessmentCopy';
 import './hair-assessment.css';
 
 const labels = {
@@ -30,7 +31,7 @@ const labelIndex = {
   overall:2, scalpComfort:3, scalpHydration:4, scalpBalance:5, hairHydration:4, hairShine:6, hairElasticity:7, hairPorosity:8,
 } as const;
 const evaluatedKeys = hairAssessmentKeys.filter(key => key !== 'overall');
-const detailKeys = ['allergy','allergyNote',...hairHabitKeys,...chemicalHistoryKeys] as const;
+const detailKeys = ['allergy','allergyNote',...hairHabitKeys,...chemicalHistoryKeys,...hairCharacteristicKeys] as const;
 const emptyChemicalVisit: ChemicalVisit = { date:'',treatment:'',product:'',notes:'' };
 type Draft = Partial<Record<HairAssessmentKey, string>>;
 const toDraft = (scores: HairScores): Draft =>
@@ -125,8 +126,10 @@ function AssessmentProfile({ scores, details, title, locale, date, notes }: {
 }) {
   const habits=hairHabitKeys.filter(key=>!!details[key]);
   const chemistry=chemicalHistoryKeys.filter(key=>!!details[key]);
+  const characteristics = hairCharacteristicKeys.filter(key => !!details[key]);
+  const hasChart = assessmentPercentage(scores) !== null || !!details.allergy;
   const visits=[...(details.chemicalHistory ?? [])].sort((a,b)=>b.date.localeCompare(a.date));
-  const available=sections.filter(key=>key==='assessment' ? assessmentPercentage(scores)!==null||!!details.allergy :
+  const available=sections.filter(key=>key==='assessment' ? hasChart || characteristics.length > 0 :
     key==='habits' ? habits.length>0 : chemistry.length>0||visits.length>0);
   if (!available.length && !notes) return null;
   const displayDate = (value: string) => new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeZone:'Europe/Madrid'}).format(new Date(value));
@@ -143,7 +146,17 @@ function AssessmentProfile({ scores, details, title, locale, date, notes }: {
       {date && <time dateTime={date}>{displayDate(date)}</time>}
     </header>
     <AssessmentSections locale={locale} available={available} content={{
-      assessment:<AssessmentCharts scores={scores} details={details} locale={locale}/>,
+      assessment:<>
+        {hasChart && <AssessmentCharts scores={scores} details={details} locale={locale}/>}
+        {characteristics.length > 0 && <AssessmentDisclosure title={hairCharacteristicLabel(locale,'title')}>
+          <dl className="studio-hair-adn-details studio-hair-adn-characteristics">
+            {characteristics.map(key => <div key={key} data-wide={key === 'previousTreatments'}>
+              <dt>{hairCharacteristicLabel(locale,key)}</dt>
+              <dd>{hairCharacteristicValue(locale,key,details[key]!)}</dd>
+            </div>)}
+          </dl>
+        </AssessmentDisclosure>}
+      </>,
       habits:description(habits), chemistry:<>
         {chemistry.length>0 && description(chemistry)}
         {visits.length>0 && <ul className="studio-hair-adn-history">{visits.map((visit,index)=><li key={index}>
@@ -316,6 +329,31 @@ export function HairAssessmentEditor({ clientId }: { clientId: string }) {
                     <input maxLength={160} value={details.allergyNote ?? ''} disabled={busy} onChange={event=>setDetail('allergyNote',event.target.value)}/>
                   </label>}
                 </>}
+                {index===1 && <AssessmentDisclosure title={hairCharacteristicLabel('es','title')}>
+                  <div className="studio-hair-adn-characteristics">
+                    {hairChoiceKeys.map(key => (
+                      <label className="studio-hair-adn-detail-input" key={key}>
+                        {hairCharacteristicLabel('es',key)}
+                        <select value={details[key] ?? ''} disabled={busy} onChange={event => setDetail(key,event.target.value)}>
+                          <option value="">— Seleccionar —</option>
+                          {hairCharacteristicChoices[key].map(value => (
+                            <option key={value} value={value}>{hairCharacteristicValue('es',key,value)}</option>
+                          ))}
+                        </select>
+                      </label>
+                    ))}
+                    <label className="studio-hair-adn-detail-input" data-wide="true">
+                      {hairCharacteristicLabel('es','hairCondition')}
+                      <input value={details.hairCondition ?? ''} maxLength={100} disabled={busy}
+                        onChange={event => setDetail('hairCondition',event.target.value)} />
+                    </label>
+                    <label className="studio-hair-adn-detail-input" data-wide="true">
+                      {hairCharacteristicLabel('es','previousTreatments')}
+                      <textarea value={details.previousTreatments ?? ''} rows={3} maxLength={500} disabled={busy}
+                        onChange={event => setDetail('previousTreatments',event.target.value)} />
+                    </label>
+                  </div>
+                </AssessmentDisclosure>}
               </fieldset>)}
             </div>
           </>,
