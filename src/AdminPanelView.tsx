@@ -1,4 +1,5 @@
-import ProductInventory, { ClientProductRoutine } from './Products';
+import ProductInventory from './Products';
+import ClientRecordDetail from './ClientRecordDetail';
 import {StraighteningProductConfig,isStraighteningSupplement} from './StraighteningProduct'; // lst-straightening-product-v1
 import { cashQuickServices } from './cashQuickServices';
 import { AgendaSlotAlerts } from './SlotAlerts';
@@ -7,19 +8,19 @@ import {HighlightsVariantEditor, hasAdditionalHighlightModes} from './HighlightO
 // lst-quick-open-direct-v1
 import ParkingPanel from './ParkingPanel'; // lst-parking-admin-v1
 import WeeklyHoursEditor from './WeeklyHoursEditor';
-import {ClientPermissionStatus,PrivacyDocumentsPanel} from './ClientPermissions';
+import {PrivacyDocumentsPanel} from './ClientPermissions';
 import {BookingLinksPanel} from './BookingLinks';
 import BirthdayPanel from './BirthdayPanel';
 import ClientExcelExport from './ClientExcelExport';
 import {clientVisitSummary} from './clientListSummary';
 import {captureOfflineSnapshot} from './OfflineIntranet';
 import {privateStorage} from './PrivateSessionGate';
-import { ClientPhotoGallery, StudioNews, VoucherPanel, voucherServiceOptions, NpsSummary, feedbackGroup, feedbackGroupLabel, feedbackInPeriod } from './App';
+import { StudioNews, VoucherPanel, voucherServiceOptions, NpsSummary, feedbackGroup, feedbackGroupLabel, feedbackInPeriod } from './App';
 import * as StudioAppFeatures from './App';
 import { AddonEditor } from './ServiceAddons';
 import { PackBreakdownCard, usePackBreakdowns } from './PackBreakdown';
 import React, { useState, useEffect, useRef } from 'react';
-import { Maximize2, Minimize2, Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ChevronDown, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
+import { Maximize2, Minimize2, Home, Scissors, CalendarDays, User, LogOut, BookOpen, ArrowRight, ArrowLeft, UserRoundSearch, Sparkles, Info, ChevronLeft, ChevronRight, ImagePlus, Trash2, Globe, MapPin, MessageCircle, Clock3, Instagram, Facebook, Music2 } from 'lucide-react';
 import * as studioApi from './studioApi';
 import OfficialHolidaysView from './OfficialHolidaysView';
 import PromotionsView from './PromotionsView';
@@ -48,8 +49,6 @@ const LazyLostDemandBoard=React.lazy(()=>import('./LostDemandBoard'));
 
 const LazyClubAdmin=React.lazy(()=>import('./ClubAdmin'));
 const LazyMaintenanceSettings=React.lazy(()=>import('./MaintenanceSettings'));
-const LazyMemoriesAdmin=React.lazy(()=>import('./MemoriesAdmin'));
-const LazyClubProfile=React.lazy(()=>import('./ClubAdmin').then(m=>({default:m.ClubProfile})));
 const LazyCrmView=React.lazy(()=>import('./CrmView'));
 
 
@@ -240,26 +239,14 @@ interface Props {
   filteredClientRows: ClientRecord[];
   clientStatusError: string;
   visibleClientRows: ClientRecord[];
-  editingClientId: number | null;
   expandedClientId: number | null;
   setExpandedClientId: React.Dispatch<React.SetStateAction<number | null>>;
-  setEditingClientId: React.Dispatch<React.SetStateAction<number | null>>;
-  setEditAdminUltimaVisita: React.Dispatch<React.SetStateAction<string>>;
-  setEditAdminProxima: React.Dispatch<React.SetStateAction<string>>;
-  setEditAdminFormulas: React.Dispatch<React.SetStateAction<string>>;
-  setEditAdminDniCapilar: React.Dispatch<React.SetStateAction<string>>;
-  setEditAdminPrescripcionCasa: React.Dispatch<React.SetStateAction<string>>;
   setClientDetailsDraft: React.Dispatch<React.SetStateAction<ClientRecord | null>>;
   openPassportEditor: (client: ClientRecord) => void;
   clientStatusBusy: number | null;
   handleClientStatus: (client: ClientRecord) => Promise<void>;
   handleDeleteClient: (client: ClientRecord) => Promise<void>;
-  editAdminUltimaVisita: string;
-  editAdminProxima: string;
-  editAdminDniCapilar: string;
-  editAdminPrescripcionCasa: string;
-  editAdminFormulas: string;
-  handleGuardarEdicionAdminCliente: (idNum: number) => void;
+  onSaveClientNotes: (idNum: number, notes: string) => void;
   effectiveClientsPage: number;
   setClientsPage: React.Dispatch<React.SetStateAction<number>>;
   clientsPageCount: number;
@@ -543,7 +530,7 @@ function StudioBackupPanel({hasUnsavedChanges}:{hasUnsavedChanges:boolean}){
 
 export default function AdminPanelView(props: Props) {
  const [npsPeriod,setNpsPeriod]=useState<'30d'|'90d'|'all'>('30d');
- const { onLogout, onPromotionsSaved, bookingName, appointmentServiceNames, compactVisitText, AGENDA_SWATCHES, DEFAULT_BRAND_LOGO, DEFAULT_HEADER_LOGO, FINISH_COPY, activeEmployees, adminCatalogSearch, adminCatalogStatus, adminTab, agendaExpanded, agendaLayoutRef, agendaSwatch, agendaViewMode, anioMini, appointmentSearch, appointmentSearchQuery, appointmentSearchResults, appointments, attemptClock, bizConfig, bookingAttempts, busquedaCliente, cambiarMesMiniCal, catalog, catalogEditorId, catalogEditorTab, catalogHasChanges, catalogSavedMsg, clientStatusBusy, clientStatusError, clientStatusFilter, clientsPageCount, configHasPendingChanges, configSubTab, crmPeriod, crmView, dashboardEnd, dashboardStart, demandEnd, demandFilter, demandStart, detractorReplies, diaSeleccionadoObj, diasRejillaMini, editAdminDniCapilar, editAdminFormulas, editAdminPrescripcionCasa, editAdminProxima, editAdminUltimaVisita, editingClientId, effectiveClientsPage, emailConfigStatus, employeePhotoBusy, enableDoubleBooking, enableOutOfHours, expandedCategories, expandedClientId, fallbackHeaderLogo, fechaSeleccionada, feedbackList, feedbackRatingFilter, feedbackStatusBusy, filteredClientRows, formatDateKey, googleCalendarConnected, googleCalendarSyncActive, handleAddCategorySubmit, handleAddSubserviceSubmit, handleAddVariant, handleCategoryPhotoDelete, handleCategoryPhotoSelect, handleCellClick, handleClientStatus, handleDeleteClient, handleDeleteCategory, handleDeleteSubservice, handleDeleteVariant, handleFeedbackResolution, handleGuardarEdicionAdminCliente, handleGuardarNuevoCliente, handleMoveCategory, handleSaveCatalogMaster, handleSaveSection, handleServicePhotoDelete, handleServicePhotoSelect, handleToggleVariants, handleUpdateCategoryCode, handleUpdateCategoryTitle, headerLogoSrc, holidaysList, hoursList, isActiveAppointment, isAddingCategory, isAddingClient, isAddingSub, isDateBlockedByHoliday, isFinish, isTimeSlotOccupied, listaClientes, logoUploadBusy, logoUploadMessage, lostDemandsList, mailboxError, mailboxFilter, mesMini, newCatCode, newCatTitle, newHolidayEnd, newHolidayReason, newHolidayStart, newHolidayType, newSubAchieved, newSubAlertBadge, newSubAlertText, newSubDesc, newSubDur, newSubIncludes, newSubName, newSubPrice, newSubPriceType, newVariantDuration, newVariantName, newVariantPrice, nombresMeses, normalizeCatalogSearch, normalizeEmail, novoApellidos, novoDiagnostico, novoEmail, novoEmailMode, novoTitularId, novoParentesco, novoNacimiento, novoNombre, novoPin, novoTelefono, openPassportEditor, opportunityPage, opportunitySearch, opportunityStatus, photoUploadBusy, renderAgendaLinks, renderDurationAgenda, returnToAppointmentId, saveErrorMsg, saveState, savedMsg, semanaActual, setAdminCatalogSearch, setAdminCatalogStatus, setAdminTab, setAgendaExpanded, setAgendaSidePanel, setAgendaSwatch, setAgendaViewMode, setAppointmentSearch, setBookingAttempts, setBusquedaCliente, setCatalog, setCatalogEditorId, setCatalogEditorTab, setClientDetailsDraft, setClientStatusFilter, setClientsPage, setConfigSubTab, setCrmPeriod, setCrmView, setCurrentScreen, setDashboardEnd, setDashboardStart, setDemandEnd, setDemandFilter, setDemandStart, setDetractorReplies, setEditAdminDniCapilar, setEditAdminFormulas, setEditAdminPrescripcionCasa, setEditAdminProxima, setEditAdminUltimaVisita, setEditingClientId, setEnableDoubleBooking, setEnableOutOfHours, setExpandedCategories, setExpandedClientId, setFechaSeleccionada, setFeedbackRatingFilter, setGoogleCalendarConnected, setGoogleCalendarSyncActive, setHolidaysList, setIsAddingCategory, setIsAddingClient, setIsAddingSub, setLogoUploadMessage, setLostDemandsList, setMailboxFilter, setMesNavegacion, setModalServices, setNewCatCode, setNewCatTitle, setNewHolidayEnd, setNewHolidayReason, setNewHolidayStart, setNewHolidayType, setNewSubAchieved, setNewSubAlertBadge, setNewSubAlertText, setNewSubDesc, setNewSubDur, setNewSubIncludes, setNewSubName, setNewSubPrice, setNewSubPriceType, setNewVariantDuration, setNewVariantName, setNewVariantPrice, setNovoApellidos, setNovoDiagnostico, setNovoEmail, setNovoEmailMode, setNovoTitularId, setNovoParentesco, setNovoNacimiento, setNovoNombre, setNovoPin, setNovoTelefono, setOpportunityPage, setOpportunitySearch, setOpportunityStatus, setPendingPanelFilter, setPreviewServiceId, setPreviewVariantId, setReturnToAppointmentId, setSelectedServicesToBook, setTempConfig, setViewApptModal, t, tempConfig, timeBlocks, trafficEvents, updateEmployee, updateSubserviceField, uploadEmployeePhoto, uploadStudioLogo, visibleClientRows, whatsappConfigStatus, workingRanges } = props;
+ const { onLogout, onPromotionsSaved, bookingName, appointmentServiceNames, compactVisitText, AGENDA_SWATCHES, DEFAULT_BRAND_LOGO, DEFAULT_HEADER_LOGO, FINISH_COPY, activeEmployees, adminCatalogSearch, adminCatalogStatus, adminTab, agendaExpanded, agendaLayoutRef, agendaSwatch, agendaViewMode, anioMini, appointmentSearch, appointmentSearchQuery, appointmentSearchResults, appointments, attemptClock, bizConfig, bookingAttempts, busquedaCliente, cambiarMesMiniCal, catalog, catalogEditorId, catalogEditorTab, catalogHasChanges, catalogSavedMsg, clientStatusBusy, clientStatusError, clientStatusFilter, clientsPageCount, configHasPendingChanges, configSubTab, crmPeriod, crmView, dashboardEnd, dashboardStart, demandEnd, demandFilter, demandStart, detractorReplies, diaSeleccionadoObj, diasRejillaMini, effectiveClientsPage, emailConfigStatus, employeePhotoBusy, enableDoubleBooking, enableOutOfHours, expandedCategories, expandedClientId, fallbackHeaderLogo, fechaSeleccionada, feedbackList, feedbackRatingFilter, feedbackStatusBusy, filteredClientRows, formatDateKey, googleCalendarConnected, googleCalendarSyncActive, handleAddCategorySubmit, handleAddSubserviceSubmit, handleAddVariant, handleCategoryPhotoDelete, handleCategoryPhotoSelect, handleCellClick, handleClientStatus, handleDeleteClient, handleDeleteCategory, handleDeleteSubservice, handleDeleteVariant, handleFeedbackResolution, onSaveClientNotes, handleGuardarNuevoCliente, handleMoveCategory, handleSaveCatalogMaster, handleSaveSection, handleServicePhotoDelete, handleServicePhotoSelect, handleToggleVariants, handleUpdateCategoryCode, handleUpdateCategoryTitle, headerLogoSrc, holidaysList, hoursList, isActiveAppointment, isAddingCategory, isAddingClient, isAddingSub, isDateBlockedByHoliday, isFinish, isTimeSlotOccupied, listaClientes, logoUploadBusy, logoUploadMessage, lostDemandsList, mailboxError, mailboxFilter, mesMini, newCatCode, newCatTitle, newHolidayEnd, newHolidayReason, newHolidayStart, newHolidayType, newSubAchieved, newSubAlertBadge, newSubAlertText, newSubDesc, newSubDur, newSubIncludes, newSubName, newSubPrice, newSubPriceType, newVariantDuration, newVariantName, newVariantPrice, nombresMeses, normalizeCatalogSearch, normalizeEmail, novoApellidos, novoDiagnostico, novoEmail, novoEmailMode, novoTitularId, novoParentesco, novoNacimiento, novoNombre, novoPin, novoTelefono, openPassportEditor, opportunityPage, opportunitySearch, opportunityStatus, photoUploadBusy, renderAgendaLinks, renderDurationAgenda, returnToAppointmentId, saveErrorMsg, saveState, savedMsg, semanaActual, setAdminCatalogSearch, setAdminCatalogStatus, setAdminTab, setAgendaExpanded, setAgendaSidePanel, setAgendaSwatch, setAgendaViewMode, setAppointmentSearch, setBookingAttempts, setBusquedaCliente, setCatalog, setCatalogEditorId, setCatalogEditorTab, setClientDetailsDraft, setClientStatusFilter, setClientsPage, setConfigSubTab, setCrmPeriod, setCrmView, setCurrentScreen, setDashboardEnd, setDashboardStart, setDemandEnd, setDemandFilter, setDemandStart, setDetractorReplies, setEnableDoubleBooking, setEnableOutOfHours, setExpandedCategories, setExpandedClientId, setFechaSeleccionada, setFeedbackRatingFilter, setGoogleCalendarConnected, setGoogleCalendarSyncActive, setHolidaysList, setIsAddingCategory, setIsAddingClient, setIsAddingSub, setLogoUploadMessage, setLostDemandsList, setMailboxFilter, setMesNavegacion, setModalServices, setNewCatCode, setNewCatTitle, setNewHolidayEnd, setNewHolidayReason, setNewHolidayStart, setNewHolidayType, setNewSubAchieved, setNewSubAlertBadge, setNewSubAlertText, setNewSubDesc, setNewSubDur, setNewSubIncludes, setNewSubName, setNewSubPrice, setNewSubPriceType, setNewVariantDuration, setNewVariantName, setNewVariantPrice, setNovoApellidos, setNovoDiagnostico, setNovoEmail, setNovoEmailMode, setNovoTitularId, setNovoParentesco, setNovoNacimiento, setNovoNombre, setNovoPin, setNovoTelefono, setOpportunityPage, setOpportunitySearch, setOpportunityStatus, setPendingPanelFilter, setPreviewServiceId, setPreviewVariantId, setReturnToAppointmentId, setSelectedServicesToBook, setTempConfig, setViewApptModal, t, tempConfig, timeBlocks, trafficEvents, updateEmployee, updateSubserviceField, uploadEmployeePhoto, uploadStudioLogo, visibleClientRows, whatsappConfigStatus, workingRanges } = props;
  const packBreakdowns = usePackBreakdowns(adminTab === 'catalog' ? catalogEditorId : null);
  useEffect(()=>{
    captureOfflineSnapshot({
@@ -1970,23 +1957,6 @@ export default function AdminPanelView(props: Props) {
                 }
                 .lst-client-directory .lst-directory-row:hover {background:#3B3128}
                 .lst-client-directory .lst-directory-row button {min-height:36px}
-                 .lst-client-directory .lst-profile-hero {display:flex;align-items:center;gap:13px;flex-wrap:wrap}
-                .lst-client-directory .lst-profile-avatar {width:52px;height:52px;flex-shrink:0;display:grid;place-items:center;border-radius:14px;background:#4A3B2B;border:1px solid #94734D;color:#E4C687;font-family:Georgia,serif;font-size:21px}
-                .lst-client-directory .lst-profile-main-action {background:#C49A58;border:0;border-radius:8;padding:11px 16px;min-height:42px;color:#29231F;font-size:12px;font-weight:700;cursor:pointer}
-                .lst-client-directory .lst-profile-stats {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-                .lst-client-directory .lst-profile-stats > div {border:1px solid #514333;border-radius:10px;background:#322A25;padding:12px;display:grid;align-content:start;gap:7px;min-width:0}
-                .lst-client-directory .lst-profile-stats small {color:#C5AE92;font-size:10px;text-transform:uppercase;letter-spacing:.07em}
-                .lst-client-directory .lst-profile-stats strong {font-size:13px;font-weight:500;color:#FFF8EE;line-height:1.35;overflow-wrap:anywhere}
-                .lst-client-directory .lst-profile-shortcuts {display:flex;flex-wrap:wrap;gap:8px}
-                .lst-client-directory .lst-profile-shortcuts button,.lst-client-directory .lst-profile-shortcuts a {display:inline-flex;align-items:center;justify-content:center;min-height:39px;padding:9px 12px;box-sizing:border-box;background:#3A3027;border:1px solid #8A6C45;border-radius:7px;color:#E4C687;font-size:12px;text-decoration:none;cursor:pointer}
-                .lst-client-directory .lst-profile-shortcuts :is(button,a):hover {background:#4A3929}
-                .lst-client-directory .lst-profile-section {border:1px solid #655039;border-radius:10px;background:#322A25;overflow:hidden}
-                .lst-client-directory .lst-profile-section > summary {list-style:none;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;cursor:pointer;color:#E4C687;font-size:13px;font-weight:600}
-                .lst-client-directory .lst-profile-section > summary::-webkit-details-marker {display:none}
-                .lst-client-directory .lst-profile-section[open] > summary {border-bottom:1px solid #514333}
-                .lst-client-directory .lst-profile-section[open] .lst-profile-chevron {transform:rotate(180deg)}
-                .lst-client-directory .lst-profile-section-content {padding:13px;display:grid;gap:12px}
-                @media(max-width:700px){.lst-client-directory .lst-profile-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.lst-client-directory .lst-profile-shortcuts button,.lst-client-directory .lst-profile-shortcuts a{flex:1 1 43%}.lst-client-directory .lst-profile-main-action{width:100%}}
                 .lst-client-directory .lst-client-drawer {
                   position:fixed;right:0;top:0;bottom:0;z-index:151;
                   width:min(510px,100vw);overflow-y:auto;box-sizing:border-box;
@@ -2092,159 +2062,41 @@ export default function AdminPanelView(props: Props) {
               {clientStatusError && <p role="alert" style={{ color: '#F5C7B8', margin: 0 }}>{clientStatusError}</p>}
               <div style={{border:'1px solid #4B4035',borderRadius:10,overflow:'hidden',background:'#322A25'}}>
                 <div className="lst-directory-head" aria-hidden="true"><span>Nº ficha</span><span>Clienta</span><span>Estado</span><span>Acceso</span></div>
-                {visibleClientRows
-                  .map((c) => {
-                    const isEditing = editingClientId === c.idNum;
-                    const visits = clientVisitSummary(c, appointments, summaryNow);
-                    return (
-                      <article key={c.serverId||c.idNum} style={{background:'#322A25',borderTop:'1px solid #4B4035',overflow:'hidden'}}>
-<div className="lst-directory-row">
-  <span style={{fontSize:12,color:'#C9A96F',fontVariantNumeric:'tabular-nums'}}>#{clientDisplayNumber(c)}</span>
-  <strong title={c.nombre+' '+c.apellidos} style={{fontSize:13,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',color:'#FFF8EE'}}>
-    {c.nombre} {c.apellidos}{c.emailHolderId && <span title="Email familiar vinculado" style={{color:'#C9A96F',marginLeft:7}}>♧</span>}
-  </strong>
-  <span className="lst-client-status" style={{fontSize:12,whiteSpace:'nowrap',color:c.archivedAt?'#F5C7B8':'#BDE1B8'}}>{c.archivedAt?'De baja':'● Activa'}</span>
-  <button type="button" className="studio-btn-ghost lst-client-action" aria-label={`${expandedClientId === c.idNum?'Cerrar':'Ver'} ficha de ${c.nombre} ${c.apellidos}`} aria-expanded={expandedClientId === c.idNum} aria-controls={`client-details-${c.idNum}`} onClick={() => { setExpandedClientId(previous => previous === c.idNum ? null : c.idNum); setEditingClientId(null); }} style={{minHeight:36,padding:'6px 8px',fontSize:12,color:'#E4C687',whiteSpace:'nowrap'}}>{expandedClientId === c.idNum ? 'Cerrar' : 'Ver ficha'}</button>
-</div>
-{expandedClientId === c.idNum && <div id={`client-details-${c.idNum}`} className="lst-profile-detail" style={{display:'flex',flexDirection:'column',gap:14,padding:16,borderTop:'1px solid #655039',background:'#29231F'}}>
-  <header className="lst-profile-hero">
-    <div className="lst-profile-avatar" aria-hidden="true">{(c.nombre.trim()[0]||'C').toUpperCase()}{(c.apellidos.trim()[0]||'').toUpperCase()}</div>
-    <div style={{minWidth:0,flex:1}}>
-      <p style={{margin:'0 0 3px',fontSize:10,letterSpacing:'0.13em',textTransform:'uppercase',color:'#C9A96F'}}>Ficha #{clientDisplayNumber(c)} · L’Studio Ana</p>
-      <h3 style={{margin:0,fontSize:'clamp(17px,2.2vw,23px)',fontFamily:'Georgia,serif',fontWeight:400,color:'#FFF8EE',overflowWrap:'anywhere'}}>{c.nombre} {c.apellidos}</h3>
-      <span style={{fontSize:11,color:c.archivedAt?'#F5C7B8':'#BDE1B8'}}>{c.archivedAt?'● De baja':'● Clienta activa'}</span>
-      {c.emailHolderId && <span style={{marginLeft:10,fontSize:11,color:'#D7B980'}}>✦ Email familiar</span>}
-    </div>
-    {!c.archivedAt && <button type="button" className="lst-profile-main-action" aria-label={`Nueva cita para ${c.nombre} ${c.apellidos}`} onClick={() => props.onStartClientAppointment(c)}>+ Nueva cita</button>}
-  </header>
-  <div className="lst-profile-stats">
-    <div><small>Última visita</small><strong>{visits.last || 'Sin visitas registradas'}</strong></div>
-    <div><small>Próxima cita</small><strong>{visits.next || 'Sin cita reservada'}</strong></div>
-    <div><small>Historial</small><strong>{c.pastVisits?.length || 0} visitas</strong></div>
-  </div>
-  <div className="lst-profile-shortcuts" role="group" aria-label="Acciones rápidas de la clienta">
-    <button type="button" onClick={()=>openPassportEditor(c)}>✦ Pasaporte capilar</button>
-    <button type="button" onClick={()=>setClientDetailsDraft({...c})}>♙ Datos y acceso</button>
-    <button type="button" onClick={()=>{
-      setEditingClientId(c.idNum);
-      setEditAdminUltimaVisita(c.ultimaVisita);
-      setEditAdminProxima(c.proximaVisitaSugerida);
-      setEditAdminFormulas(c.formulasAplicadas);
-      setEditAdminDniCapilar(c.dniCapilar||'');
-      setEditAdminPrescripcionCasa(c.prescripcionCasa||'');
-    }}>✎ Notas y fórmulas</button>
-    {c.telefono && /\d{9,}/.test(c.telefono.replace(/\D/g,'')) && <a href={'tel:'+c.telefono.replace(/[^+\d]/g,'')}>☎ Llamar</a>}
-  </div>
-  <details className="lst-profile-section">
-    <summary><span>Datos personales y herramientas</span><span className="lst-profile-chevron">⌄</span></summary>
-    <div className="lst-profile-section-content">
-      <p style={{margin:'0 0 10px',color:'#D6CBB8',fontSize:12}}>Consulta los datos de contacto, permisos, galería, pasaporte y herramientas de gestión de esta ficha.</p>
-{c.archivedAt && <p style={{margin:0,fontSize:12,color:'#F5C7B8'}}>De baja desde {new Date(c.archivedAt).toLocaleDateString('es-ES')}. Su historial se conserva.</p>}
-<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                            <span style={{ backgroundColor: '#322A25', color: '#FFF8EE', padding: '3px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
-                              ID #{clientDisplayNumber(c)} ({c.registroId})
-                            </span>
-                            <span style={{ color: '#FFF8EE', fontSize: '14px', fontWeight: 'bold' }}>{c.nombre} {c.apellidos}</span>
-                          </div>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-                            <button onClick={() => {
-                              if (isEditing) {
-                                setEditingClientId(null);
-                              } else {
-                                setEditingClientId(c.idNum);
-                                setEditAdminUltimaVisita(c.ultimaVisita);
-                                setEditAdminProxima(c.proximaVisitaSugerida);
-                                setEditAdminFormulas(c.formulasAplicadas);
-                                setEditAdminDniCapilar(c.dniCapilar || '');
-                                setEditAdminPrescripcionCasa(c.prescripcionCasa || '');
-                              }
-                            }} style={{ background: 'transparent', border: '1px solid #B98A3E', color: '#E4C687', padding: '4px 10px', borderRadius: '4px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>
-                              {isEditing ? 'Cerrar Edición' : 'Editar ficha y fórmulas'}
-                            </button>
-                            <button type="button" onClick={() => setClientDetailsDraft({ ...c })} style={{ background: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', padding: '8px 12px', cursor: 'pointer', fontSize: '12px' }}>Editar datos y acceso</button>
-                            <button type="button" onClick={() => openPassportEditor(c)} style={{ background: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '6px', padding: '8px 12px', cursor: 'pointer', fontSize: '12px' }}>Editar pasaporte e historial</button>
-                            <button type="button" disabled={clientStatusBusy!==null} onClick={()=>void handleDeleteClient(c)} style={{background:'transparent',border:'1px solid #B86D63',borderRadius:6,padding:'8px 12px',color:'#FFC4B5',fontSize:12,cursor:'pointer'}}>Eliminar ficha definitivamente</button>
-                            <button type="button" disabled={clientStatusBusy !== null} onClick={() => void handleClientStatus(c)} style={{ background: 'transparent', border: '1px solid #8C6A4B', borderRadius: 6, padding: '8px 12px', color: c.archivedAt ? '#BDE1B8' : '#F5C7B8', fontSize: 12, cursor: 'pointer' }}>{clientStatusBusy === c.idNum ? 'Guardando…' : c.archivedAt ? 'Reactivar clienta' : 'Dar de baja'}</button>
-                          </div>
-                        </div>
-<div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '10px', fontSize: '14px', color: '#D6CBB8', backgroundColor: '#322A25', padding: '10px', borderRadius: '6px' }}>
-                          <div><strong>Email:</strong> {c.email}</div>
-                          <div><strong>Teléfono:</strong> {c.telefono}</div>
-                          <div><strong>PIN Acceso:</strong> <span style={{ color: '#E4C687', fontWeight: 'bold' }}>{c.pinAcceso}</span></div>
-                          <div><strong>F. Nacimiento:</strong> {c.fechaNacimiento}</div>
-                        </div>
-<ClientPermissionStatus clientId={c.serverId}/>
-<ClientPhotoGallery key={c.serverId||String(c.idNum)} clientId={c.serverId} editable/>
-<details className="lst-profile-section" key={'routine-' + c.idNum}>
-  <summary>Rutina de productos <ChevronDown className="lst-profile-chevron" size={16} aria-hidden="true"/></summary>
-  <div className="lst-profile-section-content">{c.serverId
-    ? <ClientProductRoutine key={c.serverId} clientId={c.serverId}/>
-    : <p>Guarda la ficha en el servidor para asignar productos.</p>}</div>
-</details>
-{isEditing ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', backgroundColor: '#322A25', padding: '14px', borderRadius: '8px', border: '1px solid #B98A3E' }}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                              <div>
-                                <label style={{ color: '#E4C687', fontSize: '12px', display: 'block', marginBottom: '2px' }}>Última Visita:</label>
-                                <input type="text" value={editAdminUltimaVisita} onChange={(e) => setEditAdminUltimaVisita(e.target.value)} style={{ width: '100%', padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} />
-                              </div>
-                              <div>
-                                <label style={{ color: '#E4C687', fontSize: '12px', display: 'block', marginBottom: '2px' }}>Próxima Visita Sugerida:</label>
-                                <input type="text" value={editAdminProxima} onChange={(e) => setEditAdminProxima(e.target.value)} style={{ width: '100%', padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} />
-                              </div>
-                            </div>
-                            <div>
-                              <label style={{ color: '#E4C687', fontSize: '12px', display: 'block', marginBottom: '2px' }}>DNI Capilar Activo (Visible en Pasaporte de la clienta):</label>
-                              <input type="text" value={editAdminDniCapilar} onChange={(e) => setEditAdminDniCapilar(e.target.value)} placeholder="Ej. Porosidad: Media | Hidratación: Necesaria" style={{ width: '100%', padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} />
-                            </div>
-                            <div>
-                              <label style={{ color: '#E4C687', fontSize: '12px', display: 'block', marginBottom: '2px' }}>Mantenimiento en Casa (Visible en Pasaporte de la clienta):</label>
-                              <input type="text" value={editAdminPrescripcionCasa} onChange={(e) => setEditAdminPrescripcionCasa(e.target.value)} placeholder="Ej. Champú Hidratante | Sérum Nutritivo" style={{ width: '100%', padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px' }} />
-                            </div>
-                            <div>
-                              <label style={{ color: '#E4C687', fontSize: '12px', display: 'block', marginBottom: '2px' }}>Fórmulas y Notas (Uso Exclusivo Intranet):</label>
-                              <textarea value={editAdminFormulas} onChange={(e) => setEditAdminFormulas(e.target.value)} rows={2} style={{ width: '100%', padding: '6px', backgroundColor: '#322A25', border: '1px solid #C5A059', color: '#FFF8EE', borderRadius: '4px', fontSize: '14px', resize: 'none' }} />
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' }}>
-                              <button onClick={() => setEditingClientId(null)} style={{ background: 'none', border: 'none', color: '#D6CBB8', fontSize: '14px', cursor: 'pointer' }}>Cancelar</button>
-                              <button onClick={() => handleGuardarEdicionAdminCliente(c.idNum)} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', border: 'none', padding: '6px 14px', borderRadius: '4px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Guardar y Sincronizar Pasaporte</button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
-                            <section style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '10px', padding: '18px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', color: '#D6CBB8', fontSize: '14px', lineHeight: 1.7 }}>
-                              <h4 style={{ color: '#E4C687', fontSize: '14px', margin: '0 0 10px' }}>Pasaporte capilar</h4>
-                              <strong style={{ color: '#FFF8EE' }}>Diagnóstico</strong><p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: '6px 0 14px' }}>{c.dniCapilar || 'Sin diagnóstico registrado'}</p>
-                              <strong style={{ color: '#FFF8EE' }}>Cuidados en casa</strong><p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', margin: '6px 0' }}>{c.prescripcionCasa || 'Sin recomendaciones registradas'}</p>
-                              <button type="button" onClick={() => openPassportEditor(c)} style={{ background: 'none', border: '1px solid #C5A059', color: '#E4C687', padding: '10px 12px', borderRadius: '6px', cursor: 'pointer', marginTop: '12px' }}>Editar pasaporte</button>
-                            </section>
-                            <section style={{ backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '10px', padding: '18px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', color: '#D6CBB8', fontSize: '14px', lineHeight: 1.7 }}>
-                              <h4 style={{ color: '#E4C687', fontSize: '14px', margin: '0 0 10px' }}>Seguimiento</h4>
-                              <p>Última visita: <span style={{ color: '#FFF8EE' }}>{c.ultimaVisita || 'Sin registrar'}</span></p>
-                              <p>Próxima recomendada: <span style={{ color: '#FFF8EE' }}>{c.proximaVisitaSugerida || 'Sin indicar'}</span></p>
-                              <p>{c.pastVisits?.length || 0} visitas en el historial</p>
-                              <button type="button" onClick={() => openPassportEditor(c)} style={{ background: 'none', border: '1px solid #C5A059', color: '#E4C687', padding: '10px 12px', borderRadius: '6px', cursor: 'pointer' }}>Ver y editar historial</button>
-                            </section>
-                            <details style={{ gridColumn: '1 / -1', backgroundColor: '#322A25', border: '1px solid #3A312A', borderRadius: '10px', padding: '18px', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.22)', color: '#D6CBB8', fontSize: '14px' }}>
-                              <summary style={{ cursor: 'pointer', color: '#E4C687' }}>Fórmulas y notas de la intranet</summary>
-                              <p style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.7 }}>{c.formulasAplicadas || 'Sin fórmulas registradas'}</p>
-                            </details>
-                          </div>
-                        )}
-    </div>
-  </details>
-  <details className="lst-profile-section">
-    <summary><span>L’Studio Club y recuerdos</span><span className="lst-profile-chevron">⌄</span></summary>
-    <div className="lst-profile-section-content" style={{display:'grid',gap:12}}>
-      <React.Suspense fallback={<p style={{color:'#D6CBB8'}}>Abriendo Club…</p>}><LazyClubProfile clientId={c.serverId}/></React.Suspense>
-      <React.Suspense fallback={<p style={{color:'#D6CBB8'}}>Abriendo recuerdos…</p>}><LazyMemoriesAdmin key={c.serverId||c.idNum} clientId={c.serverId} clientName={[c.nombre,c.apellidos].filter(Boolean).join(' ')}/></React.Suspense>
-    </div>
-  </details>
-</div>}
-</article>
-                    );
-                  })}
+                {visibleClientRows.map(client => {
+                  const expanded = expandedClientId === client.idNum;
+                  const fichaNumber = clientDisplayNumber(client);
+                  const fullName = [client.nombre,client.apellidos].join(' ');
+                  const openButtonId = `client-open-${client.idNum}`;
+
+                  return <article key={client.serverId || client.idNum}
+                    style={{background:'#322A25',borderTop:'1px solid #4B4035',overflow:'hidden'}}>
+                    {expanded ? <ClientRecordDetail client={client} fichaNumber={fichaNumber}
+                      visits={clientVisitSummary(client,appointments,summaryNow)} statusBusy={clientStatusBusy}
+                      onClose={() => {
+                        setExpandedClientId(null);
+                        requestAnimationFrame(() => document.getElementById(openButtonId)?.focus({ preventScroll: true }));
+                      }}
+                      onBook={() => props.onStartClientAppointment(client)}
+                      onEditContact={() => setClientDetailsDraft({ ...client })}
+                      onOpenPassport={() => openPassportEditor(client)}
+                      onSaveNotes={notes => onSaveClientNotes(client.idNum,notes)}
+                      onChangeStatus={() => { void handleClientStatus(client); }}
+                      onDelete={() => { void handleDeleteClient(client); }}
+                    /> : <div className="lst-directory-row">
+                      <span style={{fontSize:12,color:'#C9A96F',fontVariantNumeric:'tabular-nums'}}>#{fichaNumber}</span>
+                      <strong title={fullName} style={{fontSize:13,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',color:'#FFF8EE'}}>
+                        {fullName}{client.emailHolderId && <span title="Email familiar vinculado" style={{color:'#C9A96F',marginLeft:7}}>♧</span>}
+                      </strong>
+                      <span className="lst-client-status" style={{fontSize:12,whiteSpace:'nowrap',color:client.archivedAt?'#F5C7B8':'#BDE1B8'}}>
+                        {client.archivedAt ? 'De baja' : '● Activa'}
+                      </span>
+                      <button type="button" id={openButtonId} className="studio-btn-ghost lst-client-action"
+                        aria-label={`Ver ficha de ${fullName}`} aria-expanded={false} aria-controls={`client-details-${client.idNum}`}
+                        onClick={() => setExpandedClientId(client.idNum)}
+                        style={{minHeight:36,padding:'6px 8px',fontSize:12,color:'#E4C687',whiteSpace:'nowrap'}}>Ver ficha</button>
+                    </div>}
+                  </article>;
+                })}
                 {!visibleClientRows.length && <p style={{ color: '#D6CBB8', padding: 16 }}>No hay clientas con estos filtros.</p>}
               </div>
               {clientsPageCount > 1 && <nav aria-label="Páginas de clientas" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12 }}>
