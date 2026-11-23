@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { Fingerprint, Droplet, Sparkles } from 'lucide-react';
+import { ChevronDown, Fingerprint, Droplet, Sparkles } from 'lucide-react';
 import {
   currentToken, fetchHairAssessment, saveHairAssessment, hairAssessmentKeys, hairHabitKeys, chemicalHistoryKeys, StudioApiError,
   type HairAssessment, type HairAssessmentKey, type HairScores, type HairDetails, type HairDetailKey, type ChemicalVisit,
@@ -52,19 +52,34 @@ export function assessmentPercentage(scores: HairScores, keys: readonly HairAsse
   return values.length ? Math.round(values.reduce((sum,value)=>sum+value,0)/values.length) : null;
 }
 
+function globalAssessmentPercentage(scores: HairScores, includeScalp?: boolean) {
+  return assessmentPercentage(scores, includeScalp === true ? evaluatedKeys : groups[1].keys);
+}
+
+const diagnosisLabels: Record<string, string> = {
+  es: 'Notas del diagnóstico', en: 'Assessment notes', fr: 'Notes du diagnostic', it: 'Note della valutazione',
+  pt: 'Notas da avaliação', de: 'Beurteilungsnotizen', nl: 'Notities bij de beoordeling', pl: 'Notatki z oceny',
+  cs: 'Poznámky k hodnocení', nb: 'Vurderingsnotater', sv: 'Bedömningsanteckningar', ar: 'ملاحظات التقييم',
+};
+
 type AssessmentSection = 'assessment' | 'habits' | 'chemistry';
 const sections: AssessmentSection[] = ['assessment','habits','chemistry'];
 function AssessmentSections({ locale, content, available = sections }: {
   locale:string; content: Record<AssessmentSection, ReactNode>; available?: AssessmentSection[];
 }) {
-  const [selected,setSelected] = useState<AssessmentSection>('assessment');
-  const active = available.includes(selected) ? selected : available[0];
   return <>
-    {available.length>1 && <nav className="studio-hair-adn-tabs" aria-label={hairAssessmentLabel(locale,'assessment')}>
-      {available.map(key=><button type="button" aria-pressed={key===active} key={key} onClick={()=>setSelected(key)}>{hairAssessmentLabel(locale,key)}</button>)}
-    </nav>}
-    {active && content[active]}
+    {available.includes('assessment') && content.assessment}
+    {available.filter(key => key !== 'assessment').map(key => (
+      <AssessmentDisclosure key={key} title={hairAssessmentLabel(locale,key)}>{content[key]}</AssessmentDisclosure>
+    ))}
   </>;
+}
+
+function AssessmentDisclosure({ title, children }: { title: string; children: ReactNode }) {
+  return <details className="studio-hair-adn-fold">
+    <summary>{title}<ChevronDown size={16} aria-hidden="true"/></summary>
+    <div className="studio-hair-adn-fold-content">{children}</div>
+  </details>;
 }
 
 function ScoreRing({ value, label, locale }: { value: number; label:string; locale:string }) {
@@ -80,7 +95,7 @@ function AssessmentCharts({ scores, details, locale }: {
   const language = locale.split('-')[0] as keyof typeof labels;
   const copy = labels[language] || labels.es;
   const format = new Intl.NumberFormat(locale);
-  const overall = assessmentPercentage(scores);
+  const overall = globalAssessmentPercentage(scores, details.includeScalp);
   return <>
     {overall !== null && <><ScoreRing value={overall} label={copy[2]} locale={locale}/>
       <p className="studio-hair-adn-caption">{hairAssessmentLabel(locale,'scoreExplanation')}</p></>}
@@ -105,15 +120,15 @@ function AssessmentCharts({ scores, details, locale }: {
   </>;
 }
 
-function AssessmentProfile({ scores, details, title, locale, date }: {
-  scores: HairScores; details: HairDetails; title: string; locale: string; date?: string;
+function AssessmentProfile({ scores, details, title, locale, date, notes }: {
+  scores: HairScores; details: HairDetails; title: string; locale: string; date?: string; notes?: string;
 }) {
   const habits=hairHabitKeys.filter(key=>!!details[key]);
   const chemistry=chemicalHistoryKeys.filter(key=>!!details[key]);
   const visits=[...(details.chemicalHistory ?? [])].sort((a,b)=>b.date.localeCompare(a.date));
   const available=sections.filter(key=>key==='assessment' ? assessmentPercentage(scores)!==null||!!details.allergy :
     key==='habits' ? habits.length>0 : chemistry.length>0||visits.length>0);
-  if (!available.length) return null;
+  if (!available.length && !notes) return null;
   const displayDate = (value: string) => new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeZone:'Europe/Madrid'}).format(new Date(value));
   function description(keys: readonly HairDetailKey[]) {
     return <dl className="studio-hair-adn-details">{keys.map(key=><div key={key}>
@@ -139,10 +154,13 @@ function AssessmentProfile({ scores, details, title, locale, date }: {
         </li>)}</ul>}
       </>,
     }}/>
+    {notes && <AssessmentDisclosure title={diagnosisLabels[locale.split('-')[0]] || diagnosisLabels.es}>
+      <p className="studio-hair-adn-notes">{notes}</p>
+    </AssessmentDisclosure>}
   </section>;
 }
 
-export function HairAssessmentPortal({ title, locale = 'es-ES' }: { title: string; locale?: string }) {
+export function HairAssessmentPortal({ title, locale = 'es-ES', notes }: { title: string; locale?: string; notes?: string }) {
   const [assessment, setAssessment] = useState<HairAssessment | null>();
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
@@ -161,10 +179,16 @@ export function HairAssessmentPortal({ title, locale = 'es-ES' }: { title: strin
     );
     return () => { active=false; };
   }, [token,attempt]);
-  if (!token || assessment === null) return null;
-  if (failed) return <div className="studio-hair-adn-message" role="status">{copy[10]} <button type="button" onClick={() => { setFailed(false); setAttempt(value => value+1); }}>{copy[11]}</button></div>;
-  if (!assessment) return <small className="studio-hair-adn-message" role="status">{copy[9]}</small>;
-  return <AssessmentProfile scores={assessment.scores} details={assessment.details ?? {}} title={title} locale={locale} date={assessment.updated_at}/>;
+  const notesText = notes?.trim();
+  const profile = <AssessmentProfile scores={assessment?.scores ?? {}} details={assessment?.details ?? {}}
+    title={title} locale={locale} date={assessment?.updated_at} notes={notesText}/>;
+  if (!token || assessment === null) return profile;
+  if (failed) return <>
+    <div className="studio-hair-adn-message" role="status">{copy[10]} <button type="button" onClick={() => { setFailed(false); setAttempt(value => value+1); }}>{copy[11]}</button></div>
+    {profile}
+  </>;
+  if (!assessment && !notesText) return <small className="studio-hair-adn-message" role="status">{copy[9]}</small>;
+  return profile;
 }
 
 export function HairAssessmentEditor({ clientId }: { clientId: string }) {
@@ -202,12 +226,14 @@ export function HairAssessmentEditor({ clientId }: { clientId: string }) {
     const value = details[key]?.trim();
     return value && (key !== 'allergyNote' || details.allergy === 'reported') ? [[key,value]] : [];
   })) as HairDetails;
+  if (details.includeScalp === true) cleanDetails.includeScalp = true;
   const visits=details.chemicalHistory ?? [];
   const cleanVisits=visits.map(row=>({...row,treatment:row.treatment.trim(),product:row.product.trim(),notes:row.notes.trim()}))
     .filter(row=>Object.values(row).some(Boolean));
   if(cleanVisits.length) cleanDetails.chemicalHistory=cleanVisits;
   const invalidHistory=cleanVisits.some(row=>!row.treatment);
   const dirty = evaluatedKeys.some(key => (draft[key] || '') !== (saved?.scores[key] === undefined ? '' : String(saved.scores[key]))) ||
+    (cleanDetails.includeScalp === true) !== (saved?.details?.includeScalp === true) ||
     detailKeys.some(key=>(cleanDetails[key]??'')!==(saved?.details?.[key]??'')) ||
     cleanVisits.length!==(saved?.details?.chemicalHistory?.length ?? 0) ||
     cleanVisits.some((row,index)=>(Object.keys(row) as (keyof ChemicalVisit)[]).some(key=>row[key]!==saved?.details?.chemicalHistory?.[index]?.[key]));
@@ -233,7 +259,7 @@ export function HairAssessmentEditor({ clientId }: { clientId: string }) {
       aria-invalid={!!draft[key] && scoreOf(draft[key]) === null || undefined}
       onChange={event => { const value=event.target.value; setNotice(''); setDraft(previous => ({...previous,[key]:value})); }} />
   </label>;
-  function setDetail(key: Exclude<keyof HairDetails,'chemicalHistory'>, value: string) {
+  function setDetail(key: typeof detailKeys[number], value: string) {
     setNotice('');
     setDetails(previous=>({...previous,[key]:value}));
   }
@@ -243,7 +269,7 @@ export function HairAssessmentEditor({ clientId }: { clientId: string }) {
       : <input type={chemicalDates.includes(key) ? 'date' : 'text'} maxLength={100} value={details[key] ?? ''} disabled={busy}
           onChange={event=>setDetail(key,event.target.value)}/>}
   </label>;
-  const overall = assessmentPercentage(scores);
+  const overall = globalAssessmentPercentage(scores, cleanDetails.includeScalp);
   function setVisits(next: ChemicalVisit[]) {
     setNotice('');
     setDetails(previous=>({...previous,chemicalHistory:next}));
@@ -261,6 +287,14 @@ export function HairAssessmentEditor({ clientId }: { clientId: string }) {
               {groups.map(({keys},index) => <fieldset className="studio-hair-adn-group" key={index}>
                 <legend>{labels.es[index]}</legend>{keys.map(input)}
                 {index===0 && <>
+                  <label className="studio-hair-adn-include-scalp">
+                    <input type="checkbox" checked={details.includeScalp === true} disabled={busy} onChange={event => {
+                      const includeScalp = event.target.checked;
+                      setNotice('');
+                      setDetails(previous => ({ ...previous, includeScalp }));
+                    }}/>
+                    Incluir cuero cabelludo en el porcentaje global
+                  </label>
                   <label className="studio-hair-adn-detail-input">Alergias referidas<select value={details.allergy || ''} disabled={busy} onChange={event=>setDetail('allergy',event.target.value)}>
                     <option value="">Sin valorar</option><option value="none-reported">Ninguna referida</option><option value="reported">Alergia referida</option>
                   </select></label>
@@ -289,7 +323,7 @@ export function HairAssessmentEditor({ clientId }: { clientId: string }) {
           </>,
         }}/>
         {overall!==null && <p><strong>Valoración general · {overall}%</strong></p>}
-        {(overall!==null || Object.keys(cleanDetails).length>0) && <details>
+        {(assessmentPercentage(scores)!==null || detailKeys.some(key => cleanDetails[key]) || cleanVisits.length>0) && <details>
           <summary>Vista previa del portal</summary><AssessmentProfile scores={scores} details={cleanDetails} title="ADN Capilar" locale="es-ES"/>
         </details>}
         {invalid && <p role="alert">Introduce números enteros de 0 a 100.</p>}
