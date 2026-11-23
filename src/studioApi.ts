@@ -139,6 +139,17 @@ export const createClientOnServer = (token: string, client: Record<string, unkno
 export const pushPassport = (token: string, passport: Record<string, unknown>) =>
   call<{ ok: true }>("passport", { method: "PUT", token, body: passport });
 
+export const hairAssessmentKeys = [
+  'overall','scalpComfort','scalpHydration','scalpBalance','hairHydration','hairShine','hairElasticity','hairPorosity',
+] as const;
+export type HairAssessmentKey = typeof hairAssessmentKeys[number];
+export type HairScores = Partial<Record<HairAssessmentKey, number>>;
+export type HairAssessment = { scores: HairScores; revision: string; updated_at: string };
+export const fetchHairAssessment = (token: string, clientId?: string) =>
+  call<{ assessment: HairAssessment | null }>('passport-adn', { token, body: { clientId } });
+export const saveHairAssessment = (token: string, clientId: string, revision: string | null, scores: HairScores) =>
+  call<{ assessment: HairAssessment }>('passport-adn', { token, method: 'PUT', body: { clientId, revision, scores } });
+
 export const createClosure = (token: string, closure: Record<string, unknown>) =>
   call<{ ok: true; id: string }>("closure", { token, body: closure });
 
