@@ -1,0 +1,173 @@
+--- a/src/HairAssessment.tsx
++++ b/src/HairAssessment.tsx
+@@ -1,10 +1,11 @@
+ import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+ import { ChevronDown, Fingerprint, Droplet, Sparkles } from 'lucide-react';
+ import {
+-  currentToken, fetchHairAssessment, saveHairAssessment, hairAssessmentKeys, hairHabitKeys, chemicalHistoryKeys, StudioApiError,
++  currentToken, fetchHairAssessment, saveHairAssessment, hairAssessmentKeys, hairHabitKeys, chemicalHistoryKeys,
++  hairCharacteristicKeys, hairChoiceKeys, hairCharacteristicChoices, StudioApiError,
+   type HairAssessment, type HairAssessmentKey, type HairScores, type HairDetails, type HairDetailKey, type ChemicalVisit,
+ } from './studioApi';
+-import { chemicalDates, hairAssessmentLabel, scalpIntensityScores } from './hairAssessmentCopy';
++import { chemicalDates, hairAssessmentLabel, hairCharacteristicLabel, hairCharacteristicValue, scalpIntensityScores } from './hairAssessmentCopy';
+ import './hair-assessment.css';
+ 
+ const labels = {
+@@ -30,7 +31,7 @@
+   overall:2, scalpComfort:3, scalpHydration:4, scalpBalance:5, hairHydration:4, hairShine:6, hairElasticity:7, hairPorosity:8,
+ } as const;
+ const evaluatedKeys = hairAssessmentKeys.filter(key => key !== 'overall');
+-const detailKeys = ['allergy','allergyNote',...hairHabitKeys,...chemicalHistoryKeys] as const;
++const detailKeys = ['allergy','allergyNote',...hairHabitKeys,...chemicalHistoryKeys,...hairCharacteristicKeys] as const;
+ const emptyChemicalVisit: ChemicalVisit = { date:'',treatment:'',product:'',notes:'' };
+ type Draft = Partial<Record<HairAssessmentKey, string>>;
+ const toDraft = (scores: HairScores): Draft =>
+@@ -125,8 +126,10 @@
+ }) {
+   const habits=hairHabitKeys.filter(key=>!!details[key]);
+   const chemistry=chemicalHistoryKeys.filter(key=>!!details[key]);
++  const characteristics = hairCharacteristicKeys.filter(key => !!details[key]);
++  const hasChart = assessmentPercentage(scores) !== null || !!details.allergy;
+   const visits=[...(details.chemicalHistory ?? [])].sort((a,b)=>b.date.localeCompare(a.date));
+-  const available=sections.filter(key=>key==='assessment' ? assessmentPercentage(scores)!==null||!!details.allergy :
++  const available=sections.filter(key=>key==='assessment' ? hasChart || characteristics.length > 0 :
+     key==='habits' ? habits.length>0 : chemistry.length>0||visits.length>0);
+   if (!available.length && !notes) return null;
+   const displayDate = (value: string) => new Intl.DateTimeFormat(locale,{dateStyle:'medium',timeZone:'Europe/Madrid'}).format(new Date(value));
+@@ -143,7 +146,17 @@
+       {date && <time dateTime={date}>{displayDate(date)}</time>}
+     </header>
+     <AssessmentSections locale={locale} available={available} content={{
+-      assessment:<AssessmentCharts scores={scores} details={details} locale={locale}/>,
++      assessment:<>
++        {hasChart && <AssessmentCharts scores={scores} details={details} locale={locale}/>}
++        {characteristics.length > 0 && <AssessmentDisclosure title={hairCharacteristicLabel(locale,'title')}>
++          <dl className="studio-hair-adn-details studio-hair-adn-characteristics">
++            {characteristics.map(key => <div key={key} data-wide={key === 'previousTreatments'}>
++              <dt>{hairCharacteristicLabel(locale,key)}</dt>
++              <dd>{hairCharacteristicValue(locale,key,details[key]!)}</dd>
++            </div>)}
++          </dl>
++        </AssessmentDisclosure>}
++      </>,
+       habits:description(habits), chemistry:<>
+         {chemistry.length>0 && description(chemistry)}
+         {visits.length>0 && <ul className="studio-hair-adn-history">{visits.map((visit,index)=><li key={index}>
+@@ -316,6 +329,31 @@
+                     <input maxLength={160} value={details.allergyNote ?? ''} disabled={busy} onChange={event=>setDetail('allergyNote',event.target.value)}/>
+                   </label>}
+                 </>}
++                {index===1 && <AssessmentDisclosure title={hairCharacteristicLabel('es','title')}>
++                  <div className="studio-hair-adn-characteristics">
++                    {hairChoiceKeys.map(key => (
++                      <label className="studio-hair-adn-detail-input" key={key}>
++                        {hairCharacteristicLabel('es',key)}
++                        <select value={details[key] ?? ''} disabled={busy} onChange={event => setDetail(key,event.target.value)}>
++                          <option value="">— Seleccionar —</option>
++                          {hairCharacteristicChoices[key].map(value => (
++                            <option key={value} value={value}>{hairCharacteristicValue('es',key,value)}</option>
++                          ))}
++                        </select>
++                      </label>
++                    ))}
++                    <label className="studio-hair-adn-detail-input" data-wide="true">
++                      {hairCharacteristicLabel('es','hairCondition')}
++                      <input value={details.hairCondition ?? ''} maxLength={100} disabled={busy}
++                        onChange={event => setDetail('hairCondition',event.target.value)} />
++                    </label>
++                    <label className="studio-hair-adn-detail-input" data-wide="true">
++                      {hairCharacteristicLabel('es','previousTreatments')}
++                      <textarea value={details.previousTreatments ?? ''} rows={3} maxLength={500} disabled={busy}
++                        onChange={event => setDetail('previousTreatments',event.target.value)} />
++                    </label>
++                  </div>
++                </AssessmentDisclosure>}
+               </fieldset>)}
+             </div>
+           </>,
+--- a/src/hairAssessmentCopy.tsx
++++ b/src/hairAssessmentCopy.tsx
+@@ -1,4 +1,4 @@
+-import type { HairAssessmentKey, HairDetailKey } from './studioApi';
++import type { HairAssessmentKey, HairDetailKey, HairCharacteristicKey } from './studioApi';
+ 
+ const extraKeys = ['assessment','habits','chemistry','scalpSensitivity','scalpFlaking','scalpDandruff','hairChemicalDamage','hairFrizz','allergy','reported','none-reported','allergyNote','washFrequency','washTime','drying','heatTools','homeCareTime','habitNotes','lastColor','lastBleach','lastStraightening','chemicalNotes','scoreExplanation'] as const;
+ type ExtraKey = typeof extraKeys[number];
+@@ -27,3 +27,38 @@
+   'scalpSensitivity','scalpFlaking','scalpDandruff',
+ ];
+ export const chemicalDates: readonly HairDetailKey[] = ['lastColor','lastBleach','lastStraightening'];
++
++const characteristicCopy: Record<string, readonly string[]> = {
++  es: ['Características del cabello','Tipo de cabello','Textura','Densidad','Porosidad','Estado actual','Tratamientos previos','Liso','Ondulado','Rizado','Muy rizado','Fino','Medio','Grueso','Baja','Media','Alta'],
++  en: ['Hair characteristics','Hair type','Texture','Density','Porosity','Current condition','Previous treatments','Straight','Wavy','Curly','Coily','Fine','Medium','Coarse','Low','Medium','High'],
++  fr: ['Caractéristiques des cheveux','Type de cheveux','Texture','Densité','Porosité','État actuel','Traitements précédents','Raides','Ondulés','Bouclés','Crépus','Fins','Moyens','Épais','Faible','Moyenne','Élevée'],
++  it: ['Caratteristiche dei capelli','Tipo di capelli','Texture','Densità','Porosità','Condizione attuale','Trattamenti precedenti','Lisci','Mossi','Ricci','Molto ricci','Fini','Medi','Spessi','Bassa','Media','Alta'],
++  pt: ['Características do cabelo','Tipo de cabelo','Textura','Densidade','Porosidade','Estado atual','Tratamentos anteriores','Liso','Ondulado','Encaracolado','Crespo','Fino','Médio','Grosso','Baixa','Média','Alta'],
++  de: ['Haarmerkmale','Haartyp','Haarstruktur','Haardichte','Porosität','Aktueller Zustand','Frühere Behandlungen','Glatt','Wellig','Lockig','Kraus','Fein','Mittel','Dick','Gering','Mittel','Hoch'],
++  nl: ['Haarkenmerken','Haartype','Textuur','Haardichtheid','Porositeit','Huidige conditie','Eerdere behandelingen','Steil','Golvend','Krullend','Kroes','Fijn','Gemiddeld','Dik','Laag','Gemiddeld','Hoog'],
++  pl: ['Charakterystyka włosów','Typ włosów','Tekstura','Gęstość','Porowatość','Obecna kondycja','Wcześniejsze zabiegi','Proste','Falowane','Kręcone','Mocno kręcone','Cienkie','Średnie','Grube','Niska','Średnia','Wysoka'],
++  cs: ['Vlastnosti vlasů','Typ vlasů','Textura','Hustota','Poréznost','Současný stav','Předchozí ošetření','Rovné','Vlnité','Kudrnaté','Silně kudrnaté','Jemné','Střední','Silné','Nízká','Střední','Vysoká'],
++  nb: ['Hårets egenskaper','Hårtype','Tekstur','Tetthet','Porøsitet','Nåværende tilstand','Tidligere behandlinger','Rett','Bølgete','Krøllete','Veldig krøllete','Fint','Middels','Grovt','Lav','Middels','Høy'],
++  sv: ['Hårets egenskaper','Hårtyp','Textur','Täthet','Porositet','Nuvarande skick','Tidigare behandlingar','Rakt','Vågigt','Lockigt','Mycket lockigt','Fint','Medel','Grovt','Låg','Medel','Hög'],
++  ar: ['خصائص الشعر','نوع الشعر','ملمس الشعر','الكثافة','المسامية','الحالة الحالية','المعالجات السابقة','مستقيم','مموج','مجعد','شديد التجعد','ناعم','متوسط','سميك','منخفضة','متوسطة','عالية'],
++};
++
++const characteristicLabelIndex = {
++  title: 0, hairType: 1, hairTexture: 2, hairDensity: 3, hairPorosityLevel: 4, hairCondition: 5, previousTreatments: 6,
++} as const;
++
++const choiceLabelIndex: Record<string, number> = {
++  straight: 7, wavy: 8, curly: 9, coily: 10, fine: 11, medium: 15, thick: 13, low: 14, high: 16,
++};
++
++export function hairCharacteristicLabel(locale: string, key: HairCharacteristicKey | 'title') {
++  const labels = characteristicCopy[locale.split('-')[0]] ?? characteristicCopy.es;
++  return labels[characteristicLabelIndex[key]];
++}
++
++export function hairCharacteristicValue(locale: string, key: HairCharacteristicKey, value: string) {
++  if (key === 'hairCondition' || key === 'previousTreatments') return value;
++  const labels = characteristicCopy[locale.split('-')[0]] ?? characteristicCopy.es;
++  const index = key === 'hairTexture' && value === 'medium' ? 12 : choiceLabelIndex[value];
++  return labels[index] ?? value;
++}
+--- a/src/studioApi.ts
++++ b/src/studioApi.ts
+@@ -147,10 +147,20 @@
+ export type HairScores = Partial<Record<HairAssessmentKey, number>>;
+ export const hairHabitKeys = ['washFrequency','washTime','drying','heatTools','homeCareTime','habitNotes'] as const;
+ export const chemicalHistoryKeys = ['lastColor','lastBleach','lastStraightening','chemicalNotes'] as const;
++export const hairCharacteristicChoices = {
++  hairType: ['straight','wavy','curly','coily'],
++  hairTexture: ['fine','medium','thick'],
++  hairDensity: ['low','medium','high'],
++  hairPorosityLevel: ['low','medium','high'],
++} as const;
++export type HairChoiceKey = keyof typeof hairCharacteristicChoices;
++export const hairChoiceKeys = Object.keys(hairCharacteristicChoices) as HairChoiceKey[];
++export const hairCharacteristicKeys = [...hairChoiceKeys,'hairCondition','previousTreatments'] as const;
++export type HairCharacteristicKey = typeof hairCharacteristicKeys[number];
+ export type HairHabitKey = typeof hairHabitKeys[number];
+ export type HairDetailKey = HairHabitKey | typeof chemicalHistoryKeys[number];
+ export type ChemicalVisit = { date: string; treatment: string; product: string; notes: string };
+-export type HairDetails = Partial<Record<HairDetailKey, string>> & {
++export type HairDetails = Partial<Record<HairDetailKey | HairCharacteristicKey, string>> & {
+   includeScalp?: boolean;
+   allergy?: '' | 'reported' | 'none-reported'; allergyNote?: string; chemicalHistory?: ChemicalVisit[];
+ };
+--- a/src/hair-assessment.css
++++ b/src/hair-assessment.css
+@@ -132,3 +132,11 @@
+ .studio-hair-adn-detail-input :is(input,select,textarea) { width:100%; min-height:40px; box-sizing:border-box; padding:7px; text-align:start; color:#fff8ee; background:#29231f; border:1px solid #806444; border-radius:6px; font:inherit; }
+ .studio-hair-adn-editor > button { margin-top: 8px; min-height: 44px; padding: 8px 12px; background: #e4c687; color: #211a15; border: 0; border-radius: 6px; font-weight: 600; cursor: pointer; }
+ .studio-hair-adn-editor > button:disabled { opacity: .55; cursor: default; }
++
++.studio-hair-adn-characteristics {
++  display: grid;
++  grid-template-columns: repeat(auto-fit, minmax(min(100%, 145px), 1fr));
++  gap: 8px;
++}
++.studio-hair-adn-characteristics > [data-wide="true"] { grid-column: 1 / -1; }
++.studio-hair-adn-characteristics select { min-width: 0; }
