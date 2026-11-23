@@ -318,9 +318,9 @@ function ProductRecommendationDetail({ item, onClose, t, locale }: { item: Routi
   </ProductDialog>;
 }
 
-function ProductRoutineSection({ portal, children, t }: { portal: boolean; children: ReactNode; t: Translate }) {
+function ProductRoutineSection({ portal, children, t, hideHeading }: { portal: boolean; children: ReactNode; t: Translate; hideHeading?: boolean }) {
   return <section className={`lst-products lst-routine${portal ? ' lst-routine-customer' : ''}`}>
-    {portal && <h3>{t('productsRecommended')}</h3>}
+    {portal && !hideHeading && <h3>{t('productsRecommended')}</h3>}
     {children}
   </section>;
 }
@@ -364,7 +364,7 @@ function RoutineList({ items, interactive = false, showArchived = false, onEdit,
   </>;
 }
 
-export function ClientProductRoutine({ clientId, t = spanishText, locale }: { clientId?: string; t?: Translate; locale?: string }) {
+export function ClientProductRoutine({ clientId, t = spanishText, locale, hideHeading }: { clientId?: string; t?: Translate; locale?: string; hideHeading?: boolean }) {
   const admin = Boolean(clientId);
   const offline = offlineConsultation();
   const [items, setItems] = useState<RoutineItem[]>([]);
@@ -421,7 +421,7 @@ export function ClientProductRoutine({ clientId, t = spanishText, locale }: { cl
     finally { setBusy(false); }
   }
 
-  return <ProductRoutineSection portal={!admin} t={t}>
+  return <ProductRoutineSection portal={!admin} t={t} hideHeading={hideHeading}>
     {offline ? <p>{t('productOffline')}</p> : <>
       {loading && <p role="status">{t('productLoading')}</p>}
       {loadError && <p role="alert">{admin ? loadError : t('productLoadError')} <button type="button" onClick={() => setRevision(value => value + 1)}>{t('portalRetry')}</button></p>}
