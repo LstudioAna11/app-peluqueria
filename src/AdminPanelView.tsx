@@ -3,7 +3,7 @@ import {StraighteningProductConfig,isStraighteningSupplement} from './Straighten
 import { cashQuickServices } from './cashQuickServices';
 import { AgendaSlotAlerts } from './SlotAlerts';
 import CatalogServiceOrder,{moveCatalogService} from './CatalogServiceOrder'; // lst-service-order-controls-v1
-import {HighlightsVariantEditor} from './HighlightOptions'; // lst-soft-full-length-picker-v1
+import {HighlightsVariantEditor, hasAdditionalHighlightModes} from './HighlightOptions'; // lst-soft-full-length-picker-v1
 // lst-quick-open-direct-v1
 import ParkingPanel from './ParkingPanel'; // lst-parking-admin-v1
 import WeeklyHoursEditor from './WeeklyHoursEditor';
@@ -1735,7 +1735,7 @@ export default function AdminPanelView(props: Props) {
                                 </div>
                                 {catalogEditorId === sub.id && (!sub.hasVariants || !sub.variants?.length) &&
                                   <PackBreakdownCard key={sub.id} title={bookingName(sub)} breakdowns={packBreakdowns} />}
-                                {sub.hasVariants && (
+                                {(sub.hasVariants || hasAdditionalHighlightModes(sub)) && (
                                   <div className="studio-editor-options" style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', borderRadius: '6px', padding: '10px', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px' }}>
                                     <span style={{ color: '#E4C687', fontSize: '14px', fontWeight: 'bold' }}>Opciones del servicio</span>
                                     <HighlightsVariantEditor key={sub.id} service={sub}
