@@ -7,6 +7,7 @@ import {
 import { attachAppointmentVoucher, currentToken, fetchVouchers, StudioApiError, studioCashRegister } from './studioApi';
 import { createSalonQrModules, SALON_QR_LINK } from './ReservationQr';
 import type { CashQuickService } from './cashQuickServices';
+import { CashAppointmentExtras, cashExtraKey, type CashExtra } from './CashAppointmentExtras';
 import './cash-register.css';
 
 type Method = 'cash' | 'card' | 'bizum' | 'transfer' | 'courtesy' | 'mixed';
@@ -21,6 +22,7 @@ type ServiceReceipt = {
   deposit_cents?: number;
   voucher_cents?: number;
   voucher_kind?: string;
+  checkout_extras_request?: { kind: 'service' | 'product' }[];
 };
 type ReceiptServiceDetails = {
   services: { label: string; base: number | null; vat: number | null; total: number | null }[];
@@ -56,7 +58,7 @@ type AppointmentSale = {
   giftCard?: { clientId: string; saved: () => Promise<void> };
   giftApplied?: boolean;
 };
-type Command = { operation: 'open' | 'close' | 'record' | 'record-discount' | 'record-courtesy' | 'record-named' | 'invoice'; id?: string; paymentParts?: PaymentParts; [key: string]: unknown };
+type Command = { operation: 'open' | 'close' | 'record' | 'record-discount' | 'record-courtesy' | 'record-named' | 'record-extras' | 'invoice'; id?: string; paymentParts?: PaymentParts; baseOperation?: Command['operation']; [key: string]: unknown };
 
 const methods: Record<Method, string> = { cash: 'Efectivo', card: 'Tarjeta', bizum: 'Bizum', transfer: 'Transferencia', courtesy: 'Cortesía', mixed: 'Pago combinado' };
 const kinds: Record<Kind, string> = { sale: 'Cobro', refund: 'Devolución', cash_in: 'Entrada de efectivo', cash_out: 'Salida de efectivo', courtesy: 'Cortesía' };
@@ -268,8 +270,14 @@ function splitTicketCents(total: number, weights: number[]): number[] {
 function makeReceiptServiceDetails(snapshot: ServiceReceipt, vatRate: string, base: number | null): ReceiptServiceDetails {
   const prices = snapshot.items.map(([, amount]) => amount);
   const knownPrices = prices.every((price): price is number => price !== null);
-  const canAllocate = knownPrices && (snapshot.total_cents === 0 || prices.some(price => price > 0));
-  const allocatedTotals = canAllocate ? splitTicketCents(snapshot.total_cents, prices) : null;
+  const extras = snapshot.checkout_extras_request || [];
+  const firstExtra = snapshot.items.length - extras.length;
+  const retailPrices = prices.map((price, index) => extras[index - firstExtra]?.kind === 'product' ? price ?? 0 : 0);
+  const serviceTotal = snapshot.total_cents - retailPrices.reduce((sum, price) => sum + price, 0);
+  const serviceWeights = prices.map((price, index) => (price ?? 0) - retailPrices[index]);
+  const canAllocate = knownPrices && serviceTotal >= 0 && (serviceTotal === 0 || serviceWeights.some(price => price > 0));
+  const allocatedTotals = canAllocate
+    ? splitTicketCents(serviceTotal, serviceWeights).map((price, index) => price + retailPrices[index]) : null;
   const totals = allocatedTotals ?? prices;
   const bases = allocatedTotals && base !== null ? splitTicketCents(base, allocatedTotals) : null;
   return {
@@ -1026,12 +1034,13 @@ function GiftCardPicker({ clientId, disabled, onApply }: {
   </>;
 }
 
-export function AppointmentCashDialog({ appointment, clientName, onClose, onOpenCash, onReturnToAgenda }: {
+export function AppointmentCashDialog({ appointment, clientName, onClose, onOpenCash, onReturnToAgenda, quickServices }: {
   appointment: AppointmentSale;
   clientName: string;
   onClose: () => void;
   onOpenCash: () => void;
   onReturnToAgenda: () => void;
+  quickServices?: CashQuickService[];
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
@@ -1055,7 +1064,7 @@ export function AppointmentCashDialog({ appointment, clientName, onClose, onOpen
         onClick={() => ref.current?.close()}>Cerrar <span aria-hidden="true">×</span></button>
     </header>
     <div className="appointment-cash-dialog-body">
-      <CashRegister appointment={appointment} onOpenCash={onOpenCash} openAgenda={onReturnToAgenda} onSavingChange={setSaving} hideTitle />
+      <CashRegister appointment={appointment} onOpenCash={onOpenCash} openAgenda={onReturnToAgenda} onSavingChange={setSaving} quickServices={quickServices} hideTitle />
     </div>
   </dialog>;
 }
@@ -1117,6 +1126,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   const [cashReceived, setCashReceived] = useState('');
   const [discountType, setDiscountType] = useState<'amount' | 'percent'>('amount');
   const [discountInput, setDiscountInput] = useState('');
+  const [extras, setExtras] = useState<CashExtra[]>([]);
 
   const applyReceiptHeader = useCallback((header: ReceiptHeader) => {
     setReceiptHeader(header);
@@ -1159,7 +1169,8 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     if (lock.current) return;
     lock.current = true;
     const payload = { ...command, id: command.id || crypto.randomUUID() };
-    const isRecord = payload.operation === 'record' || payload.operation === 'record-discount' || payload.operation === 'record-courtesy' || payload.operation === 'record-named';
+    const cashOperation = payload.operation === 'record-extras' ? payload.baseOperation : payload.operation;
+    const isRecord = cashOperation === 'record' || cashOperation === 'record-discount' || cashOperation === 'record-courtesy' || cashOperation === 'record-named';
     setBusy(true);
     setError('');
     setNotice('');
@@ -1167,7 +1178,11 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
     try {
       const result = await request<{ ok: boolean; shiftId?: string; movement?: Omit<Movement, 'refunded'> }>(payload);
       if (!result.ok) throw new Error('La caja no ha confirmado el guardado.');
-      if ((payload.operation === 'record-discount' || payload.operation === 'record-courtesy') &&
+      if (payload.operation === 'record-extras' && (!Array.isArray(command.extras) ||
+        result.movement?.service_receipt?.checkout_extras_request?.length !== command.extras.length)) {
+        throw new Error('La caja no ha confirmado las líneas adicionales.');
+      }
+      if ((cashOperation === 'record-discount' || cashOperation === 'record-courtesy') &&
         result.movement?.discount_cents !== command.discountCents) {
         throw new Error('La caja no ha confirmado el descuento.');
       }
@@ -1206,9 +1221,10 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         setTicketClientName('');
         setBankReference('');
         setInvoiceReference('');
+        setExtras([]);
       }
       if (payload.operation === 'invoice') setInvoiceEdit(undefined);
-      if (!sale) setNotice({ open: 'Caja abierta.', close: 'Cierre guardado.', record: 'Movimiento registrado.', 'record-discount': 'Cobro registrado.', 'record-courtesy': 'Cortesía registrada.', 'record-named': 'Cobro registrado.', invoice: 'Número de factura actualizado.' }[payload.operation]);
+      if (!sale) setNotice({ open: 'Caja abierta.', close: 'Cierre guardado.', record: 'Movimiento registrado.', 'record-discount': 'Cobro registrado.', 'record-courtesy': 'Cortesía registrada.', 'record-named': 'Cobro registrado.', 'record-extras': 'Cobro registrado.', invoice: 'Número de factura actualizado.' }[payload.operation]);
       setLoading(true);
       setReload(value => value + 1);
     } catch (reason) {
@@ -1232,17 +1248,23 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
   const expected = shift && totals ? shift.opening_cents + totals.cash + totals.cashIn - totals.cashOut : 0;
   const appointmentCourtesy = state?.movements.some(movement => movement.kind === 'courtesy');
   const appointmentPaid = appointmentCourtesy || state?.movements.some(movement => movement.kind === 'sale' && !movement.refunded);
-  const final = cents(finalAmount);
+  const baseFinal = cents(finalAmount);
+  const extrasTotal = extras.reduce((sum, line) => sum + line.unitCents * line.quantity, 0);
+  const productsTotal = extras.reduce((sum, line) => line.kind === 'product' ? sum + line.unitCents * line.quantity : sum, 0);
+  const final = baseFinal === null ? null : baseFinal + extrasTotal;
+  const totalTooHigh = final !== null && final > 99_999_999;
   const dueBeforeDiscount = appointment && final !== null ? final - appointment.depositCents - appointment.voucherCents : null;
   const parsedDiscount = cents(discountInput);
   const discountCents = appointment && final !== null && parsedDiscount !== null
-    ? (discountType === 'percent' ? Math.round(final * parsedDiscount / 10000) : parsedDiscount)
+    ? (discountType === 'percent' ? Math.round((final - productsTotal) * parsedDiscount / 10000) : parsedDiscount)
     : 0;
   const isCourtesy = !!appointment && appointment.depositCents === 0 && appointment.voucherCents === 0 &&
-    final !== null && final > 0 && discountCents === final;
+    final !== null && final > 0 && discountCents === final && !extras.some(line => line.kind === 'product');
   const discountError = !discountInput.trim() ? ''
     : parsedDiscount === null || (discountType === 'percent' && parsedDiscount > 10000)
       ? (discountType === 'percent' ? 'Introduce un porcentaje de hasta el 100 %.' : 'Introduce un importe válido.')
+      : productsTotal > 0 && final !== null && discountCents > final - productsTotal
+        ? 'El descuento solo puede aplicarse a los servicios.'
       : dueBeforeDiscount === null || (!isCourtesy && discountCents >= dueBeforeDiscount)
         ? 'El descuento debe dejar un saldo mayor que cero después del anticipo o bono.'
         : parsedDiscount > 0 && discountCents === 0 ? 'El descuento debe ser de al menos 0,01 €.' : '';
@@ -1290,10 +1312,15 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
 
   function record(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!activeShift || blocked || discountError || mixedError || (kind === 'sale' && giftMode)) return;
+    if (!activeShift || blocked || totalTooHigh || discountError || mixedError || (kind === 'sale' && giftMode)) return;
+    function recordSale(command: Command) {
+      if (!extras.length) return void send(command);
+      const lines = extras.map(({ kind, id, variantId, unitCents, quantity }) => ({ kind, id, variantId, unitCents, quantity }));
+      void send({ ...command, operation: 'record-extras', baseOperation: command.operation, extras: lines, finalCents: command.finalCents ?? 0 });
+    }
     if (isCourtesy && appointment) {
       if (window.confirm(`¿Registrar la cita como cortesía con un descuento de ${money(discountCents)} y un saldo de 0 €?`)) {
-        void send({
+        recordSale({
           operation: 'record-courtesy', shiftId: activeShift.id, appointmentId: appointment.id,
           description: appointment.description, discountCents,
         });
@@ -1316,7 +1343,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
       ? `¿Registrar el cobro de ${money(amountCents)} con este reparto? ${split}.`
       : `¿Registrar ${money(amountCents)} ya cobrados por ${methods[selectedMethod]}?`)) return;
     const name = !appointment && kind === 'sale' ? ticketClientName.trim() : '';
-    void send({
+    recordSale({
       operation: discountCents > 0 ? 'record-discount' : name ? 'record-named' : 'record',
       ...(name ? { ticketClientName: name } : {}),
       kind, method: selectedMethod, shiftId: activeShift.id, amountCents, paymentParts,
@@ -1508,16 +1535,25 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         </div>)}
       </section>}
 
-      {!!appointment?.services?.length && <section className="cash-card cash-service-breakdown" aria-label="Desglose de servicios">
+      {appointment && <section className="cash-card cash-service-breakdown" aria-label="Desglose del cobro">
         <h3>Servicios de la cita</h3>
         <dl>
-          {appointment.services.map((service, index) => <div key={index}>
+          {appointment.services?.map((service, index) => <div key={index}>
             <dt>{service.label}</dt><dd>{service.amountCents === null ? 'Por confirmar' : money(service.amountCents)}</dd>
           </div>)}
-          {appointment.finalCents !== null && <div className="cash-service-total">
-            <dt>Total servicios</dt><dd>{money(appointment.finalCents)}</dd>
+          {extras.map(line => <div key={cashExtraKey(line)}>
+            <dt>{line.quantity > 1 ? line.quantity + ' × ' : ''}{line.label}{line.quantity > 1 && <small> · {money(line.unitCents)} / ud.</small>}
+              <button type="button" className="cash-remove-addon" disabled={blocked} aria-label={`Quitar una unidad de ${line.label}`}
+                onClick={() => setExtras(previous => previous.flatMap(item => item !== line ? [item] :
+                  item.quantity > 1 ? [{ ...item, quantity: item.quantity - 1 }] : []))}>Quitar</button></dt>
+            <dd>{money(line.unitCents * line.quantity)}</dd>
+          </div>)}
+          {final !== null && <div className="cash-service-total">
+            <dt>{extras.length ? 'Total antes de anticipos y descuentos' : 'Total servicios'}</dt><dd>{money(final)}</dd>
           </div>}
         </dl>
+        {!appointmentPaid && !appointment.unavailable && !appointment.hasUnknownVoucher &&
+          <CashAppointmentExtras services={quickServices} lines={extras} disabled={blocked} money={money} parseCents={cents} onChange={setExtras} />}
       </section>}
 
       {appointment && !activeShift && <div className="cash-message">
@@ -1617,7 +1653,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
             </>}
           </div>
           <div className="cash-pos-amount">
-            {!hasServiceTotal && <Keypad label={appointment ? 'Precio total antes del descuento de caja' : 'Importe'} value={appointment ? finalAmount : movementAmount}
+            {!hasServiceTotal && <Keypad label={appointment ? 'Precio de los servicios de la cita antes de añadidos y descuentos' : 'Importe'} value={appointment ? finalAmount : movementAmount}
               onChange={appointment ? setFinalAmount : setMovementAmount} disabled={blocked} />}
             {appointment && dueBeforeDiscount !== null && (dueBeforeDiscount > 0 || discountInput) && <details className="cash-checkout-discount">
               <summary><span>{discountCents > 0 && !discountError ? 'Descuento aplicado · ' + money(discountCents) : 'Aplicar descuento'}</span>
@@ -1650,7 +1686,8 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
               </div>
               {cashReceived.trim() && receivedCents === null && <p className="cash-pos-note">Introduce un importe válido, con hasta dos decimales.</p>}
             </div>}
-            <button className="cash-primary" disabled={blocked || (kind === 'sale' && giftMode) || activeSale === null || (activeSale <= 0 && !isCourtesy) || receivedInvalid || !!discountError || !!mixedError}>
+            {totalTooHigh && <p className="cash-pos-note" role="alert">El total supera el límite de caja.</p>}
+            <button className="cash-primary" disabled={blocked || totalTooHigh || (kind === 'sale' && giftMode) || activeSale === null || (activeSale <= 0 && !isCourtesy) || receivedInvalid || !!discountError || !!mixedError}>
               <Check size={17} aria-hidden="true" />
               <span>{isCourtesy ? 'Registrar cortesía' : kind === 'sale' ? 'Registrar cobro' : `Registrar ${movementLabel?.toLowerCase()}`}</span>
               {!appointment && activeSale !== null && activeSale > 0 && <strong>{money(activeSale)}</strong>}
