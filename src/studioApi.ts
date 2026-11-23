@@ -147,10 +147,20 @@ export type HairAssessmentKey = typeof hairAssessmentKeys[number];
 export type HairScores = Partial<Record<HairAssessmentKey, number>>;
 export const hairHabitKeys = ['washFrequency','washTime','drying','heatTools','homeCareTime','habitNotes'] as const;
 export const chemicalHistoryKeys = ['lastColor','lastBleach','lastStraightening','chemicalNotes'] as const;
+export const hairCharacteristicChoices = {
+  hairType: ['straight','wavy','curly','coily'],
+  hairTexture: ['fine','medium','thick'],
+  hairDensity: ['low','medium','high'],
+  hairPorosityLevel: ['low','medium','high'],
+} as const;
+export type HairChoiceKey = keyof typeof hairCharacteristicChoices;
+export const hairChoiceKeys = Object.keys(hairCharacteristicChoices) as HairChoiceKey[];
+export const hairCharacteristicKeys = [...hairChoiceKeys,'hairCondition','previousTreatments'] as const;
+export type HairCharacteristicKey = typeof hairCharacteristicKeys[number];
 export type HairHabitKey = typeof hairHabitKeys[number];
 export type HairDetailKey = HairHabitKey | typeof chemicalHistoryKeys[number];
 export type ChemicalVisit = { date: string; treatment: string; product: string; notes: string };
-export type HairDetails = Partial<Record<HairDetailKey, string>> & {
+export type HairDetails = Partial<Record<HairDetailKey | HairCharacteristicKey, string>> & {
   includeScalp?: boolean;
   allergy?: '' | 'reported' | 'none-reported'; allergyNote?: string; chemicalHistory?: ChemicalVisit[];
 };
