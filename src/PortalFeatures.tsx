@@ -1,5 +1,6 @@
 import spanish from './portalSpanish';
 import { ClientProductRoutine } from './Products';
+import { HairAssessmentPortal } from './HairAssessment';
 import GiftRecipientAdmin,{GiftPurchaseReceipts} from './GiftRecipientAdmin'; // lst-gift-recipient-v1
 import './passport-refine.css';
 import {Fingerprint as PassportHairIcon,Home as PassportHomeIcon} from 'lucide-react';
@@ -673,6 +674,7 @@ export function ClientProfileCompact({client,catalog,logoSrc,t,locale,compactVis
   
   <nav role="tablist" aria-label={t('profileSections')} className="lp-tabs">{tabs.map((item,index)=><button key={item.id} id={'lp-tab-'+item.id} type="button" role="tab" aria-selected={tab===item.id} aria-controls={'lp-panel-'+item.id} tabIndex={tab===item.id?0:-1} onClick={()=>select(item.id)} onKeyDown={event=>tabKey(event,index)}>{item.label}</button>)}</nav>
   <div className="lp-panel" id="lp-panel-hair" role="tabpanel" aria-labelledby="lp-tab-hair" hidden={tab!=='hair'}>
+   <HairAssessmentPortal key={client?.serverId || 'own-assessment'} locale={locale} title={t('hairDna')}/>
    <div className="lp-hair"><section className="lp-next" data-recommendation={hasRecommendation?'true':'false'}><small>{t('recommendedVisit')}</small><p>{hasRecommendation?recommendation:t('profileReturnHint')}</p>{hasRecommendation&&<><button className="lp-book" type="button" onClick={onBook}>{t('bookNext')}</button><details className="lp-recommend-extra"><summary>{t('profileMaintenance')}</summary><p>{t('maintenanceNote')}</p></details></>}</section>
    <details className="lp-fold"><summary><span className="lp-fold-label"><PassportHairIcon size={19} strokeWidth={1.5} aria-hidden="true"/>{t('hairDna')}</span><ChevronDown size={16} aria-hidden="true"/></summary><div className="lp-fold-body">{client?.dniCapilar||t('emptyDna')}</div></details>
    <details className="lp-fold"><summary><span className="lp-fold-label"><PassportHomeIcon size={19} strokeWidth={1.5} aria-hidden="true"/>{t('homeRitual')}</span><ChevronDown size={16} aria-hidden="true"/></summary><div className="lp-fold-body">{client?.prescripcionCasa||t('emptyCare')}</div></details>
