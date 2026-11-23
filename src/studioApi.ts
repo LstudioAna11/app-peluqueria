@@ -151,6 +151,7 @@ export type HairHabitKey = typeof hairHabitKeys[number];
 export type HairDetailKey = HairHabitKey | typeof chemicalHistoryKeys[number];
 export type ChemicalVisit = { date: string; treatment: string; product: string; notes: string };
 export type HairDetails = Partial<Record<HairDetailKey, string>> & {
+  includeScalp?: boolean;
   allergy?: '' | 'reported' | 'none-reported'; allergyNote?: string; chemicalHistory?: ChemicalVisit[];
 };
 export type HairAssessment = { scores: HairScores; details?: HairDetails; revision: string; updated_at: string };
