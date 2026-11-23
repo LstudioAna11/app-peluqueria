@@ -140,14 +140,25 @@ export const pushPassport = (token: string, passport: Record<string, unknown>) =
   call<{ ok: true }>("passport", { method: "PUT", token, body: passport });
 
 export const hairAssessmentKeys = [
-  'overall','scalpComfort','scalpHydration','scalpBalance','hairHydration','hairShine','hairElasticity','hairPorosity',
+  'overall','scalpComfort','scalpHydration','scalpBalance','scalpSensitivity','scalpFlaking','scalpDandruff',
+  'hairHydration','hairShine','hairElasticity','hairPorosity','hairChemicalDamage','hairFrizz',
 ] as const;
 export type HairAssessmentKey = typeof hairAssessmentKeys[number];
 export type HairScores = Partial<Record<HairAssessmentKey, number>>;
-export type HairAssessment = { scores: HairScores; revision: string; updated_at: string };
+export const hairHabitKeys = ['washFrequency','washTime','drying','heatTools','homeCareTime','habitNotes'] as const;
+export const chemicalHistoryKeys = ['lastColor','lastBleach','lastStraightening','chemicalNotes'] as const;
+export type HairHabitKey = typeof hairHabitKeys[number];
+export type HairDetailKey = HairHabitKey | typeof chemicalHistoryKeys[number];
+export type ChemicalVisit = { date: string; treatment: string; product: string; notes: string };
+export type HairDetails = Partial<Record<HairDetailKey, string>> & {
+  allergy?: '' | 'reported' | 'none-reported'; allergyNote?: string; chemicalHistory?: ChemicalVisit[];
+};
+export type HairAssessment = { scores: HairScores; details?: HairDetails; revision: string; updated_at: string };
 export const fetchHairAssessment = (token: string, clientId?: string) =>
   call<{ assessment: HairAssessment | null }>('passport-adn', { token, body: { clientId } });
-export const saveHairAssessment = (token: string, clientId: string, revision: string | null, scores: HairScores) =>
+export const saveHairAssessment = (token: string, clientId: string, revision: string | null, scores: HairScores, details: HairDetails) =>
+  call<{ assessment: HairAssessment }>('passport-adn', { token, method: 'PUT', body: { clientId, revision, scores, details } });
+
   call<{ assessment: HairAssessment }>('passport-adn', { token, method: 'PUT', body: { clientId, revision, scores } });
 
 export const createClosure = (token: string, closure: Record<string, unknown>) =>
