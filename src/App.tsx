@@ -5902,13 +5902,23 @@ function StudioApp() {
             <fieldset disabled={passportSaving} style={{border:0,padding:0,margin:0,minWidth:0}}>
             <p style={{ fontSize: '13px', color: '#D6CBB8', lineHeight: 1.6 }}>Estos datos serán visibles en el portal de la clienta. Incluye solo las notas que quieras compartir con ella.</p>
             {passportDraft.serverId && <HairAssessmentEditor key={passportDraft.serverId} clientId={passportDraft.serverId}/>}
-            {([['dniCapilar', 'DNI capilar / diagnóstico'], ['prescripcionCasa', 'Cuidado en casa'], ['ultimaVisita', 'Última visita registrada'], ['proximaVisitaSugerida', 'Próxima visita recomendada']] as const).map(([field, label]) => <label key={field} style={{ display: 'block', marginBottom: '16px', fontSize: '13px' }}>{label}<textarea value={passportDraft[field] || ''} onChange={e => setPassportDraft({ ...passportDraft, [field]: e.target.value })} rows={field === 'dniCapilar' || field === 'prescripcionCasa' ? 3 : 1} style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', padding: '10px', marginTop: '7px', fontSize: '14px' }} /></label>)}
-            {passportDraft.serverId && <div style={{ marginBottom: 16 }}>
-              <h4 style={{ color: '#E4C687', margin: '0 0 8px' }}>Rutina de productos</h4>
-              <React.Suspense fallback={<p role="status">Cargando productos…</p>}>
-                <LazyClientProductRoutine key={passportDraft.serverId} clientId={passportDraft.serverId} />
-              </React.Suspense>
-            </div>}
+            <details className="studio-hair-adn-fold" style={{ marginBottom: 16 }}>
+              <summary>DNI capilar / diagnóstico</summary>
+              <div className="studio-hair-adn-fold-content">
+                <textarea aria-label="DNI capilar / diagnóstico" value={passportDraft.dniCapilar || ''}
+                  onChange={event => setPassportDraft({ ...passportDraft, dniCapilar: event.target.value })}
+                  rows={3} style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', padding: '10px', fontSize: '14px' }}/>
+              </div>
+            </details>
+            {([['prescripcionCasa', 'Cuidado en casa'], ['ultimaVisita', 'Última visita registrada'], ['proximaVisitaSugerida', 'Próxima visita recomendada']] as const).map(([field, label]) => <label key={field} style={{ display: 'block', marginBottom: '16px', fontSize: '13px' }}>{label}<textarea value={passportDraft[field] || ''} onChange={e => setPassportDraft({ ...passportDraft, [field]: e.target.value })} rows={field === 'prescripcionCasa' ? 3 : 1} style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', padding: '10px', marginTop: '7px', fontSize: '14px' }} /></label>)}
+            {passportDraft.serverId && <details className="studio-hair-adn-fold" style={{ marginBottom: 16 }}>
+              <summary>Rutina de productos</summary>
+              <div className="studio-hair-adn-fold-content">
+                <React.Suspense fallback={<p role="status">Cargando productos…</p>}>
+                  <LazyClientProductRoutine key={passportDraft.serverId} clientId={passportDraft.serverId} />
+                </React.Suspense>
+              </div>
+            </details>}
             <h4 style={{ color: '#E4C687' }}>Historial de visitas</h4>
             {(passportDraft.pastVisits || []).map((visit, index) => <div key={index} style={{ backgroundColor: '#322A25', border: '1px solid rgba(212, 175, 55, 0.25)', padding: '14px', borderRadius: '8px', marginBottom: '12px' }}>
               {(['date', 'service', 'stylist', 'notes'] as const).map(field => <label key={field} style={{ display: 'block', marginBottom: '10px', fontSize: '12px' }}>{({ date: 'Fecha', service: 'Servicio realizado', stylist: 'Profesional', notes: 'Notas para la clienta' })[field]}<input type="text" value={visit[field]} onChange={e => setPassportDraft({ ...passportDraft, pastVisits: (passportDraft.pastVisits || []).map((item, i) => i === index ? { ...item, [field]: e.target.value } : item) })} style={{ display: 'block', width: '100%', boxSizing: 'border-box', padding: '10px', marginTop: '5px', backgroundColor: '#322A25', border: '1px solid #C5A059', borderRadius: '6px', color: '#FFF8EE' }} /></label>)}
