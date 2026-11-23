@@ -1,0 +1,39 @@
+.studio-hair-adn,
+.studio-hair-adn-editor {
+  padding: 14px;
+  border: 1px solid #806444;
+  border-radius: 12px;
+  background: #2b241f;
+  color: #fff8ee;
+}
+.studio-hair-adn-heading,
+.studio-hair-adn-overall,
+.studio-hair-adn-group h4 { display: flex; align-items: center; gap: 9px; }
+.studio-hair-adn-heading { flex-wrap: wrap; color: #e4c687; }
+.studio-hair-adn-heading time { margin-inline-start: auto; color: #d6cbb8; font-size: .78rem; }
+.studio-hair-adn-overall { margin: 14px 0; }
+.studio-hair-adn-ring { flex: 0 0 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; }
+.studio-hair-adn-ring::before { content: ''; width: 42px; height: 42px; border-radius: 50%; background: #2b241f; }
+.studio-hair-adn-overall span { color: #d6cbb8; font-size: .83rem; }
+.studio-hair-adn-overall strong { display: block; color: #e4c687; font-size: 1.3rem; line-height: 1.12; }
+.studio-hair-adn-overall small { font-size: .77rem; font-weight: 400; color: #d6cbb8; }
+.studio-hair-adn-groups { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%, 170px),1fr)); gap: 9px; }
+.studio-hair-adn-heading + .studio-hair-adn-groups { margin-top: 12px; }
+.studio-hair-adn-group { min-width: 0; margin: 0; padding: 10px; border: 1px solid #69523b; border-radius: 8px; background: #352b23; }
+.studio-hair-adn-group h4 { color: #e4c687; margin: 0 0 9px; font-size: .88rem; }
+.studio-hair-adn-reading + .studio-hair-adn-reading { margin-top: 9px; }
+.studio-hair-adn-reading > div:first-child { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 3px 8px; font-size: .77rem; }
+.studio-hair-adn-reading > div:first-child > :last-child { white-space: nowrap; color: #e4c687; font-variant-numeric: tabular-nums; }
+.studio-hair-adn-track { margin-top: 4px; height: 5px; border-radius: 99px; background: #4a3a2f; overflow: hidden; }
+.studio-hair-adn-track span { display: block; height: 100%; border-radius: inherit; background: #d5ab70; }
+.studio-hair-adn-message { color: #d6cbb8; font-size: .79rem; }
+.studio-hair-adn-editor { margin: 12px 0 16px; }
+.studio-hair-adn-editor summary { min-height: 35px; align-content: center; cursor: pointer; color: #e4c687; }
+.studio-hair-adn-editor p { margin: 8px 0; font-size: .82rem; }
+.studio-hair-adn-editor .studio-hair-adn-groups { margin: 9px 0; }
+.studio-hair-adn-editor legend { color: #e4c687; font-weight: 600; padding: 0 3px; }
+.studio-hair-adn-editor label { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: .82rem; min-height: 44px; }
+.studio-hair-adn-editor > label { max-width: 250px; }
+.studio-hair-adn-editor input { width: 55px; min-height: 40px; box-sizing: border-box; padding: 5px; text-align: center; color: #fff8ee; background: #29231f; border: 1px solid #806444; border-radius: 6px; }
+.studio-hair-adn-editor > button { margin-top: 8px; min-height: 44px; padding: 8px 12px; background: #e4c687; color: #211a15; border: 0; border-radius: 6px; font-weight: 600; cursor: pointer; }
+.studio-hair-adn-editor > button:disabled { opacity: .55; cursor: default; }
