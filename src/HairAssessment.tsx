@@ -4,22 +4,22 @@ import {
   currentToken, fetchHairAssessment, saveHairAssessment, hairAssessmentKeys, hairHabitKeys, chemicalHistoryKeys, StudioApiError,
   type HairAssessment, type HairAssessmentKey, type HairScores, type HairDetails, type HairDetailKey, type ChemicalVisit,
 } from './studioApi';
-import { chemicalDates, hairAssessmentLabel, intensityScores } from './hairAssessmentCopy';
+import { chemicalDates, hairAssessmentLabel, scalpIntensityScores } from './hairAssessmentCopy';
 import './hair-assessment.css';
 
 const labels = {
-  es: ['Cuero cabelludo','Cabello','Valoración general','Confort','Hidratación','Equilibrio de grasa','Brillo','Elasticidad','Porosidad','Cargando valoración…','No se pudo cargar la valoración.','Reintentar'],
-  en: ['Scalp','Hair','Overall assessment','Comfort','Hydration','Oil balance','Shine','Elasticity','Porosity','Loading assessment…','Could not load the assessment.','Retry'],
-  fr: ['Cuir chevelu','Cheveux','Évaluation générale','Confort','Hydratation','Équilibre du sébum','Brillance','Élasticité','Porosité','Chargement de l’évaluation…','Impossible de charger l’évaluation.','Réessayer'],
-  it: ['Cuoio capelluto','Capelli','Valutazione generale','Comfort','Idratazione','Equilibrio del sebo','Lucentezza','Elasticità','Porosità','Caricamento della valutazione…','Impossibile caricare la valutazione.','Riprova'],
-  pt: ['Couro cabeludo','Cabelo','Avaliação geral','Conforto','Hidratação','Equilíbrio da oleosidade','Brilho','Elasticidade','Porosidade','A carregar a avaliação…','Não foi possível carregar a avaliação.','Tentar novamente'],
-  de: ['Kopfhaut','Haar','Gesamtbeurteilung','Wohlbefinden','Feuchtigkeit','Talgbalance','Glanz','Elastizität','Porosität','Beurteilung wird geladen…','Die Beurteilung konnte nicht geladen werden.','Erneut versuchen'],
-  nl: ['Hoofdhuid','Haar','Algemene beoordeling','Comfort','Hydratatie','Talgbalans','Glans','Elasticiteit','Porositeit','Beoordeling laden…','De beoordeling kon niet worden geladen.','Opnieuw proberen'],
-  pl: ['Skóra głowy','Włosy','Ocena ogólna','Komfort','Nawilżenie','Równowaga sebum','Połysk','Elastyczność','Porowatość','Wczytywanie oceny…','Nie udało się wczytać oceny.','Spróbuj ponownie'],
-  cs: ['Pokožka hlavy','Vlasy','Celkové hodnocení','Pohodlí','Hydratace','Rovnováha mazu','Lesk','Pružnost','Poréznost','Načítání hodnocení…','Hodnocení se nepodařilo načíst.','Zkusit znovu'],
-  nb: ['Hodebunn','Hår','Helhetsvurdering','Komfort','Fuktighet','Talg­balanse','Glans','Elastisitet','Porøsitet','Laster vurderingen…','Kunne ikke laste vurderingen.','Prøv igjen'],
-  sv: ['Hårbotten','Hår','Helhetsbedömning','Komfort','Fukt','Talgbalans','Glans','Elasticitet','Porositet','Läser in bedömningen…','Det gick inte att läsa in bedömningen.','Försök igen'],
-  ar: ['فروة الرأس','الشعر','التقييم العام','الراحة','الترطيب','توازن الدهون','اللمعان','المرونة','المسامية','جارٍ تحميل التقييم…','تعذّر تحميل التقييم.','إعادة المحاولة'],
+  es: ['Cuero cabelludo','Cabello','Valoración general','Confort','Hidratación','Equilibrio de grasa','Brillo','Elasticidad','Equilibrio de la porosidad','Cargando valoración…','No se pudo cargar la valoración.','Reintentar'],
+  en: ['Scalp','Hair','Overall assessment','Comfort','Hydration','Oil balance','Shine','Elasticity','Porosity balance','Loading assessment…','Could not load the assessment.','Retry'],
+  fr: ['Cuir chevelu','Cheveux','Évaluation générale','Confort','Hydratation','Équilibre du sébum','Brillance','Élasticité','Équilibre de la porosité','Chargement de l’évaluation…','Impossible de charger l’évaluation.','Réessayer'],
+  it: ['Cuoio capelluto','Capelli','Valutazione generale','Comfort','Idratazione','Equilibrio del sebo','Lucentezza','Elasticità','Equilibrio della porosità','Caricamento della valutazione…','Impossibile caricare la valutazione.','Riprova'],
+  pt: ['Couro cabeludo','Cabelo','Avaliação geral','Conforto','Hidratação','Equilíbrio da oleosidade','Brilho','Elasticidade','Equilíbrio da porosidade','A carregar a avaliação…','Não foi possível carregar a avaliação.','Tentar novamente'],
+  de: ['Kopfhaut','Haar','Gesamtbeurteilung','Wohlbefinden','Feuchtigkeit','Talgbalance','Glanz','Elastizität','Ausgewogene Porosität','Beurteilung wird geladen…','Die Beurteilung konnte nicht geladen werden.','Erneut versuchen'],
+  nl: ['Hoofdhuid','Haar','Algemene beoordeling','Comfort','Hydratatie','Talgbalans','Glans','Elasticiteit','Porositeitsbalans','Beoordeling laden…','De beoordeling kon niet worden geladen.','Opnieuw proberen'],
+  pl: ['Skóra głowy','Włosy','Ocena ogólna','Komfort','Nawilżenie','Równowaga sebum','Połysk','Elastyczność','Równowaga porowatości','Wczytywanie oceny…','Nie udało się wczytać oceny.','Spróbuj ponownie'],
+  cs: ['Pokožka hlavy','Vlasy','Celkové hodnocení','Pohodlí','Hydratace','Rovnováha mazu','Lesk','Pružnost','Rovnováha poréznosti','Načítání hodnocení…','Hodnocení se nepodařilo načíst.','Zkusit znovu'],
+  nb: ['Hodebunn','Hår','Helhetsvurdering','Komfort','Fuktighet','Talg­balanse','Glans','Elastisitet','Balansert porøsitet','Laster vurderingen…','Kunne ikke laste vurderingen.','Prøv igjen'],
+  sv: ['Hårbotten','Hår','Helhetsbedömning','Komfort','Fukt','Talgbalans','Glans','Elasticitet','Balanserad porositet','Läser in bedömningen…','Det gick inte att läsa in bedömningen.','Försök igen'],
+  ar: ['فروة الرأس','الشعر','التقييم العام','الراحة','الترطيب','توازن الدهون','اللمعان','المرونة','توازن المسامية','جارٍ تحميل التقييم…','تعذّر تحميل التقييم.','إعادة المحاولة'],
 } as const;
 
 const groups = [
@@ -47,7 +47,7 @@ function metricLabel(locale: string, key: HairAssessmentKey) {
 export function assessmentPercentage(scores: HairScores, keys: readonly HairAssessmentKey[] = evaluatedKeys) {
   const values = keys.flatMap(key => {
     const score = scores[key];
-    return key === 'overall' || score === undefined ? [] : [intensityScores.includes(key) ? 100-score : score];
+    return key === 'overall' || score === undefined ? [] : [scalpIntensityScores.includes(key) ? 100-score : score];
   });
   return values.length ? Math.round(values.reduce((sum,value)=>sum+value,0)/values.length) : null;
 }
@@ -108,7 +108,7 @@ function AssessmentCharts({ scores, details, locale }: {
         return <section className="studio-hair-adn-group" key={index}>
           <h4><Icon size={16} aria-hidden="true" /> {copy[index]}</h4>
           {groupScore!==null && <ScoreRing value={groupScore} label={copy[index]} locale={locale}/>}
-          {rows.map(key => <div className="studio-hair-adn-reading" data-intensity={intensityScores.includes(key)} key={key}>
+          {rows.map(key => <div className="studio-hair-adn-reading" data-intensity={scalpIntensityScores.includes(key)} key={key}>
             <div><span>{metricLabel(locale,key)}</span><span>{format.format(scores[key]!)} / 100</span></div>
             <div aria-hidden="true" className="studio-hair-adn-track"><span style={{width:`${scores[key]}%`}} /></div>
           </div>)}
@@ -286,7 +286,7 @@ export function HairAssessmentEditor({ clientId }: { clientId: string }) {
           assessment:<>
             <div className="studio-hair-adn-editor-overview">
               {overall!==null && <ScoreRing value={overall} label={labels.es[2]} locale="es-ES"/>}
-              <p>Valora de 0 a 100 y deja en blanco lo que no hayas evaluado. La sensibilidad, descamación, caspa, porosidad, daño químico y encrespamiento indican intensidad. Los valores altos de esos indicadores reducen el porcentaje.</p>
+              <p>En Cabello, 100 indica el mejor estado. En Cuero cabelludo, sensibilidad, descamación y caspa se valoran por intensidad: 0 indica ausencia. Deja en blanco lo que no hayas evaluado.</p>
             </div>
             <div className="studio-hair-adn-group-switch" role="group" aria-label="Zona de la valoración">
               {groups.map(({Icon},index) => (
