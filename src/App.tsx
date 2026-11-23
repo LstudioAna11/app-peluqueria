@@ -5910,9 +5910,8 @@ function StudioApp() {
                   rows={3} style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', padding: '10px', fontSize: '14px' }}/>
               </div>
             </details>
-            {([['prescripcionCasa', 'Cuidado en casa'], ['ultimaVisita', 'Última visita registrada'], ['proximaVisitaSugerida', 'Próxima visita recomendada']] as const).map(([field, label]) => <label key={field} style={{ display: 'block', marginBottom: '16px', fontSize: '13px' }}>{label}<textarea value={passportDraft[field] || ''} onChange={e => setPassportDraft({ ...passportDraft, [field]: e.target.value })} rows={field === 'prescripcionCasa' ? 3 : 1} style={{ display: 'block', width: '100%', boxSizing: 'border-box', backgroundColor: '#322A25', color: '#FFF8EE', border: '1px solid #3A312A', borderRadius: '6px', padding: '10px', marginTop: '7px', fontSize: '14px' }} /></label>)}
             {passportDraft.serverId && <details className="studio-hair-adn-fold" style={{ marginBottom: 16 }}>
-              <summary>Rutina de productos</summary>
+              <summary>Rutina en casa · Recomendaciones de productos</summary>
               <div className="studio-hair-adn-fold-content">
                 <React.Suspense fallback={<p role="status">Cargando productos…</p>}>
                   <LazyClientProductRoutine key={passportDraft.serverId} clientId={passportDraft.serverId} />
