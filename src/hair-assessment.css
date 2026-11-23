@@ -140,3 +140,35 @@
 }
 .studio-hair-adn-characteristics > [data-wide="true"] { grid-column: 1 / -1; }
 .studio-hair-adn-characteristics select { min-width: 0; }
+
+[data-score-level="attention"] { --hair-score-color: #f49a95; }
+[data-score-level="caution"] { --hair-score-color: #f2ad68; }
+[data-score-level="good"] { --hair-score-color: #a5d7a2; }
+.studio-hair-adn-overall[data-score-level] :is(strong, small) { color: var(--hair-score-color); }
+.studio-hair-adn-overall[data-score-level] small { display: block; margin-top: 3px; }
+.studio-hair-adn-score-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 12px;
+  padding: 0;
+  margin: 10px 0 0;
+  list-style: none;
+  font-size: .75rem;
+}
+.studio-hair-adn-score-legend li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: #fff8ee;
+}
+.studio-hair-adn-score-legend li::before {
+  content: '';
+  flex: 0 0 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--hair-score-color);
+}
+.studio-hair-adn-score-legend li > :last-child {
+  color: #d6cbb8;
+  white-space: nowrap;
+}
