@@ -40,6 +40,14 @@
 .cash-register :where(button, summary, select):hover:not(:disabled) { border-color: var(--cash-accent); }
 .cash-register :where(button, summary, select):focus-visible,
 .cash-register input:focus-visible { outline: 2px solid var(--cash-accent); outline-offset: 2px; }
+.cash-appointment-additions { margin-top: 12px; }
+.cash-addition-picker { display: grid; gap: 10px; padding-top: 8px; }
+.cash-addition-picker label { display: grid; gap: 5px; }
+.cash-addition-picker [aria-pressed="true"] { border-color: var(--cash-accent); }
+.cash-addon-list { list-style: none; margin: 0; padding: 0; max-height: 250px; overflow: auto; }
+.cash-addon-list li { display: flex; align-items: center; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding: 8px 4px; border-bottom: 1px solid var(--cash-border, #66503a); }
+.cash-addon-list small { display: block; color: var(--cash-muted); }
+.cash-register button.cash-remove-addon { margin-inline-start: 8px; min-height: 30px; padding: 3px 6px; font-size: .75rem; }
 .cash-register button:disabled { cursor: default; opacity: .55; }
 .cash-register h2 { color: var(--cash-text); font-size: clamp(1.6rem, 4.6cqi, 2.55rem); line-height: 1.1; }
 .cash-register h3 { color: var(--cash-text); font-size: 1.125rem; line-height: 1.3; }
