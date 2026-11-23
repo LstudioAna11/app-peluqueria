@@ -3,7 +3,7 @@ import { ClientProductRoutine } from './Products';
 import { HairAssessmentPortal } from './HairAssessment';
 import GiftRecipientAdmin,{GiftPurchaseReceipts} from './GiftRecipientAdmin'; // lst-gift-recipient-v1
 import './passport-refine.css';
-import {Fingerprint as PassportHairIcon,Home as PassportHomeIcon} from 'lucide-react';
+import {Home as PassportHomeIcon} from 'lucide-react';
 import './portal-vouchers-compact.css';
 import {Gift as VoucherGiftIcon,Ticket as VoucherTicketIcon,Plus as VoucherPlusIcon} from 'lucide-react';
 import React,{useEffect,useRef,useState} from 'react';
@@ -659,8 +659,8 @@ export function ClientProfileCompact({client,catalog,logoSrc,t,locale,compactVis
    .lp-next small{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#CEB791}.lp-next p{font-size:13px;color:#F1E4D0;line-height:1.55;overflow-wrap:anywhere}
    .lp-next .lp-book{min-height:44px;border:1px solid #C6A16C;border-radius:6px;background:#D0AA71;color:#2C2219;padding:9px 13px;font-size:12px;grid-column:2;grid-row:1/3}
    .lp-fold{border:1px solid #68533C;border-radius:9px;background:#302820;padding:0 14px}
-   .lp-fold summary{display:flex;align-items:center;justify-content:space-between;gap:10px;list-style:none;min-height:59px;padding:10px 0;color:#E7D4B6;font-size:13px;cursor:pointer}
-   .lp-fold summary::-webkit-details-marker{display:none}.lp-fold summary svg{color:#B69A73;flex-shrink:0}.lp-fold[open] > summary > svg{transform:rotate(180deg)}
+   .lp-fold > summary{display:flex;align-items:center;justify-content:space-between;gap:10px;list-style:none;min-height:59px;padding:10px 0;color:#E7D4B6;font-size:13px;cursor:pointer}
+   .lp-fold > summary::-webkit-details-marker{display:none}.lp-fold > summary svg{color:#B69A73;flex-shrink:0}.lp-fold[open] > summary > svg{transform:rotate(180deg)}
    .lp-fold .lp-fold-body{font-size:13px;line-height:1.8;color:#DED0BC;white-space:pre-wrap;overflow-wrap:anywhere;padding:1px 0 15px}
    .lp-quiet{font-size:11px;color:#BFAE95;line-height:1.65;padding:3px 2px}.lp-recommend-extra{grid-column:1/-1;font-size:11px;color:#CBB99E}.lp-recommend-extra summary{cursor:pointer;min-height:35px;padding:5px 0}.lp-recommend-extra p{font-size:12px;color:#CBB99E}
    .lp-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:2px 0 12px}.lp-section-head h3{font-family:Georgia,serif;font-size:19px;font-weight:400;color:#E3C9A2}.lp-section-head small{color:#BFAE95;font-size:11px}
@@ -674,12 +674,16 @@ export function ClientProfileCompact({client,catalog,logoSrc,t,locale,compactVis
   
   <nav role="tablist" aria-label={t('profileSections')} className="lp-tabs">{tabs.map((item,index)=><button key={item.id} id={'lp-tab-'+item.id} type="button" role="tab" aria-selected={tab===item.id} aria-controls={'lp-panel-'+item.id} tabIndex={tab===item.id?0:-1} onClick={()=>select(item.id)} onKeyDown={event=>tabKey(event,index)}>{item.label}</button>)}</nav>
   <div className="lp-panel" id="lp-panel-hair" role="tabpanel" aria-labelledby="lp-tab-hair" hidden={tab!=='hair'}>
-   <HairAssessmentPortal key={client?.serverId || 'own-assessment'} locale={locale} title={t('hairDna')}/>
+   <HairAssessmentPortal key={client?.serverId || 'own-assessment'} locale={locale} title={t('hairDna')} notes={client?.dniCapilar}/>
    <div className="lp-hair"><section className="lp-next" data-recommendation={hasRecommendation?'true':'false'}><small>{t('recommendedVisit')}</small><p>{hasRecommendation?recommendation:t('profileReturnHint')}</p>{hasRecommendation&&<><button className="lp-book" type="button" onClick={onBook}>{t('bookNext')}</button><details className="lp-recommend-extra"><summary>{t('profileMaintenance')}</summary><p>{t('maintenanceNote')}</p></details></>}</section>
-   <details className="lp-fold"><summary><span className="lp-fold-label"><PassportHairIcon size={19} strokeWidth={1.5} aria-hidden="true"/>{t('hairDna')}</span><ChevronDown size={16} aria-hidden="true"/></summary><div className="lp-fold-body">{client?.dniCapilar||t('emptyDna')}</div></details>
    <details className="lp-fold"><summary><span className="lp-fold-label"><PassportHomeIcon size={19} strokeWidth={1.5} aria-hidden="true"/>{t('homeRitual')}</span><ChevronDown size={16} aria-hidden="true"/></summary>
     {client?.prescripcionCasa && <div className="lp-fold-body">{client.prescripcionCasa}</div>}
-    <ClientProductRoutine key={client?.serverId || 'own-routine'} t={t} locale={locale}/>
+    <details className="studio-hair-adn-fold">
+     <summary>{t('productsRecommended')}<ChevronDown size={16} aria-hidden="true"/></summary>
+     <div className="studio-hair-adn-fold-content">
+      <ClientProductRoutine key={client?.serverId || 'own-routine'} t={t} locale={locale} hideHeading/>
+     </div>
+    </details>
    </details>
    {client?.ultimaVisita&&stamp(client.ultimaVisita)>0&&stamp(client.ultimaVisita)<=Date.now()&&<p className="lp-quiet">{t('profileLastVisit')} · {client.ultimaVisita}</p>}
    </div>
