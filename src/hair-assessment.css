@@ -17,10 +17,45 @@
 .studio-hair-adn-overall span { color: #d6cbb8; font-size: .83rem; }
 .studio-hair-adn-overall strong { display: block; color: #e4c687; font-size: 1.3rem; line-height: 1.12; }
 .studio-hair-adn-caption { margin: 8px 0; color: #d6cbb8; font-size: .78rem; overflow-wrap: anywhere; }
-.studio-hair-adn-tabs { display: flex; flex-wrap: wrap; gap: 5px; margin: 12px 0; }
-.studio-hair-adn-tabs button { min-height: 44px; border: 1px solid #806444; color: #e4c687; background: #352b23; padding: 6px 9px; border-radius: 6px; font: inherit; font-size: .8rem; cursor: pointer; }
-.studio-hair-adn-tabs button[aria-pressed="true"] { background: #e4c687; color: #211a15; border-color: #e4c687; }
-.studio-hair-adn-tabs button:focus-visible { outline: 2px solid #e4c687; outline-offset: 2px; }
+.studio-hair-adn-fold {
+  margin: 9px 0 0;
+  border: 1px solid #69523b;
+  border-radius: 8px;
+  background: #352b23;
+}
+.studio-hair-adn-fold > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  box-sizing: border-box;
+  min-height: 44px;
+  padding: 8px 10px;
+  list-style: none;
+  color: #e4c687;
+  cursor: pointer;
+  font-size: .85rem;
+}
+.studio-hair-adn-fold > summary::-webkit-details-marker { display: none; }
+.studio-hair-adn-fold > summary:focus-visible { outline: 2px solid #e4c687; outline-offset: 2px; }
+.studio-hair-adn-fold[open] > summary > svg { transform: rotate(180deg); }
+.studio-hair-adn-fold-content { padding: 0 10px 10px; }
+.studio-hair-adn-notes { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.studio-hair-adn-editor label.studio-hair-adn-include-scalp {
+  justify-content: flex-start;
+  min-height: 44px;
+  padding: 5px 0;
+  gap: 9px;
+}
+.studio-hair-adn-include-scalp input[type="checkbox"] {
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  width: 18px;
+  height: 18px;
+  min-height: 0;
+  margin: 0;
+  accent-color: #e4c687;
+}
 .studio-hair-adn-group .studio-hair-adn-overall { margin: 8px 0 12px; }
 .studio-hair-adn-group .studio-hair-adn-ring { flex-basis: 42px; height: 42px; }
 .studio-hair-adn-group .studio-hair-adn-ring::before { width: 32px; height: 32px; background: #352b23; }
