@@ -62,3 +62,23 @@ export function hairCharacteristicValue(locale: string, key: HairCharacteristicK
   const index = key === 'hairTexture' && value === 'medium' ? 12 : choiceLabelIndex[value];
   return labels[index] ?? value;
 }
+
+const scoreCopy = {
+  es: { attention: 'Requiere atención', caution: 'Precaución', good: 'Buen estado' },
+  en: { attention: 'Needs attention', caution: 'Caution', good: 'Good condition' },
+  fr: { attention: 'À surveiller', caution: 'Prudence', good: 'Bon état' },
+  it: { attention: 'Richiede attenzione', caution: 'Cautela', good: 'Buono stato' },
+  pt: { attention: 'Requer atenção', caution: 'Precaução', good: 'Bom estado' },
+  de: { attention: 'Aufmerksamkeit erforderlich', caution: 'Vorsicht', good: 'Guter Zustand' },
+  nl: { attention: 'Heeft aandacht nodig', caution: 'Voorzichtigheid', good: 'Goede conditie' },
+  pl: { attention: 'Wymaga uwagi', caution: 'Ostrożność', good: 'Dobry stan' },
+  cs: { attention: 'Vyžaduje pozornost', caution: 'Opatrnost', good: 'Dobrý stav' },
+  nb: { attention: 'Trenger oppmerksomhet', caution: 'Vær oppmerksom', good: 'God tilstand' },
+  sv: { attention: 'Behöver uppmärksamhet', caution: 'Försiktighet', good: 'Gott skick' },
+  ar: { attention: 'يحتاج إلى عناية', caution: 'يستدعي الحذر', good: 'حالة جيدة' },
+};
+
+export function hairScoreLabel(locale: string, level: keyof typeof scoreCopy.es) {
+  const language = locale.split('-')[0] as keyof typeof scoreCopy;
+  return (scoreCopy[language] ?? scoreCopy.es)[level];
+}
