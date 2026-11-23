@@ -12,6 +12,12 @@ type Length=typeof lengths[number];type Intensity=typeof intensities[number];
 type Cell={length:Length;intensity:Intensity;id:string;price:string;minutes:string;base?:ServiceVariant};
 const fold=(s:string)=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/extra[ -]?larg[oa]/g,'extralargo');
 export const isHighlights=(service:Pick<SubService,'name'|'bookingName'>)=>(highlightFamily(service.name+' '+(service.bookingName||''))!==null) || isTraditionalHighlights(service);
+const isPartial = (service: Pick<SubService,'id'>) => service.id === '1792249694609';
+export const hasAdditionalHighlightModes = (service: Pick<SubService,'id'>) => isPartial(service) || service.id === '1794856922956';
+const supportsIntensity = (service: SubService) => isHighlights(service) || hasAdditionalHighlightModes(service);
+const techniqueName = (service: SubService) => hasAdditionalHighlightModes(service)
+  ? (service.bookingName || service.name).trim()
+  : highlightTechniqueLabel(service.name + ' ' + (service.bookingName || ''));
 
 function isTraditionalHighlights(service:Pick<SubService,'name'|'bookingName'>):boolean { const name=fold(service.name+' '+(service.bookingName||'')); return /\bmechas?\b/.test(name)&&/\btradicional(?:es)?\b/.test(name); }
 export function variantAxes(variant:ServiceVariant):{length:Length;intensity:Intensity|null}|null{
@@ -21,14 +27,13 @@ export function variantAxes(variant:ServiceVariant):{length:Length;intensity:Int
  return length?{length,intensity}:null;
 }
 export function matrixReady(service:SubService):boolean{
- if(!isHighlights(service)||service.variants?.length!==6)return false;
+ if(!supportsIntensity(service)||service.variants?.length!==6)return false;
  return lengths.every(length=>intensities.every(intensity=>service.variants!.filter(v=>{const axes=variantAxes(v);return axes?.length===length&&axes.intensity===intensity;}).length===1));
 }
 export function HighlightOptions({service,selected,onSelect,children,language = 'es',title}:{language?:string;title?:string;service:SubService;selected:ServiceVariant|null|undefined;onSelect:(variant:ServiceVariant)=>void;children:React.ReactNode}){
  if(!matrixReady(service))return <>{children}{isHighlights(service)&&<HighlightComparison key={service.id} service={service} language={language} title={title}/>}</>;
  const axes=selected?variantAxes(selected):null;
- const name=fold(service.name+' '+(service.bookingName||''));
- const technique=title || (isTraditionalHighlights(service) ? 'Mechas tradicionales' : highlightTechniqueLabel(name));
+ const technique=title || techniqueName(service);
  const localizedLength = {Medio:'medium', Largo:'long', Extralargo:'extraLong'} as const;
  return <div className="lst-highlights-options lst-highlights-by-length">
   <div className="lst-highlights-length-cards">{lengths.map(length=><fieldset key={length} data-selected={axes?.length===length}>
@@ -38,11 +43,11 @@ export function HighlightOptions({service,selected,onSelect,children,language = 
     return <button key={variant.id} type="button" aria-label={technique+' · '+catalogLabel(language, localizedLength[length])+' · '+intensity+' · '+catalogLabel(language, intensity==='SOFT'?'softLight':'fullLight')} aria-pressed={selected?.id===variant.id} onClick={()=>onSelect(variant)}><strong>{intensity}</strong><span>{catalogLabel(language, intensity==='SOFT'?'soft':'full')}</span></button>;
    })}</div>
   </fieldset>)}</div>
-  <HighlightComparison key={service.id} service={service} language={language} title={title}/>
+  {isHighlights(service)&&<HighlightComparison key={service.id} service={service} language={language} title={title}/>}
  </div>;
 }
 export function setupDraft(service:SubService):Cell[]|null{
- if(!isHighlights(service))return null;
+ if(!supportsIntensity(service))return null;
  const traditional=isTraditionalHighlights(service);
  const variants=traditional?(service.variants||[]).filter(v=>! /\b(?:corto|corta|short)\b/.test(fold(v.name))):(service.variants||[]);
  const source={...service,variants};
@@ -50,6 +55,9 @@ export function setupDraft(service:SubService):Cell[]|null{
   const base=variants.find(v=>{const a=variantAxes(v);return a?.length===length&&a.intensity===intensity;})!;
   return {length,intensity,id:base.id,price:base.price,minutes:String(parseInt(base.duration.match(/\d+/)?.[0]||'',10)||''),base};
  }));
+ if(isPartial(service)&&!variants.length){
+  return lengths.flatMap(length=>intensities.map(intensity=>({length,intensity,id:'hf-'+crypto.randomUUID(),price:'',minutes:''})));
+ }
  if(variants.length!==3)return null;
  const originals=lengths.map(length=>variants.filter(v=>{
   const a=variantAxes(v);
@@ -64,9 +72,14 @@ export function setupDraft(service:SubService):Cell[]|null{
 export function applySetup(service:SubService,cells:Cell[]):SubService{
  if(cells.length!==6||new Set(cells.map(c=>c.length+':'+c.intensity)).size!==6||new Set(cells.map(c=>c.id)).size!==6)throw Error('Revisa las seis combinaciones.');
  if(cells.some(c=>!c.price.trim()||!/^\d+$/.test(c.minutes)||Number(c.minutes)<5||Number(c.minutes)>1440))throw Error('Completa el precio y una duración de 5 a 1440 minutos para cada opción.');
+ const additionalModes=hasAdditionalHighlightModes(service);
  return {...service,hasVariants:true,variants:cells.map(c=>{
   const {translations,...base}=c.base||{};
-  return {...base,id:c.id,name:c.length+' · '+c.intensity,description:c.intensity==='SOFT'?'Iluminación sutil en zonas seleccionadas.':'Iluminación completa con mayor cantidad de mechas.',price:c.price.trim(),duration:Number(c.minutes)+' min'};
+  const description=c.intensity==='SOFT'?'Iluminación sutil en zonas seleccionadas.':
+    additionalModes?'Iluminación más intensa dentro de las zonas trabajadas.':'Iluminación completa con mayor cantidad de mechas.';
+  const name=c.length+' · '+c.intensity;
+  return {...base,id:c.id,name,description: additionalModes && c.base?.id===c.id ? c.base.description||description : description,
+    ...(additionalModes && c.base?.name===name && translations ? {translations} : {}),price:c.price.trim(),duration:Number(c.minutes)+' min'};
  })};
 }
 type EditorProps = {
@@ -78,13 +91,14 @@ function Editor({service,onApply,initial,renderBreakdown}:EditorProps & {initial
  const [cells,setCells]=useState(initial),[error,setError]=useState(''),[done,setDone]=useState(false);
  const [tabs,setTabs]=useState<Record<Length,Intensity>>({Medio:'SOFT',Largo:'SOFT',Extralargo:'SOFT'});
  const change=(i:number,key:'price'|'minutes',value:string)=>{setDone(false);setCells(previous=>previous.map((cell,index)=>index===i?{...cell,[key]:value}:cell));};
- const name=fold(service.name+' '+(service.bookingName||''));
- const technique=isTraditionalHighlights(service) ? 'Mechas tradicionales' : (highlightTechniqueLabel(name));
- return <details className="lst-highlights-editor" open={isTraditionalHighlights(service)}>
+ const technique=techniqueName(service);
+ const noPartialVariants=isPartial(service)&&!service.variants?.length;
+ return <details className="lst-highlights-editor" open={isTraditionalHighlights(service)||hasAdditionalHighlightModes(service)}>
   {isTraditionalHighlights(service)&&service.variants?.some(v=>/\b(?:corto|corta|short)\b/.test(fold(v.name)))&&<p>Corto quedará fuera de Mechas tradicionales al aplicar estas opciones. Puedes mantenerlo por separado en Parciales · Corto. Revisa precios y completa los tiempos de SOFT y FULL antes de aplicar y guardar.</p>}
 <summary>SOFT / FULL dentro de cada largo</summary>
   <p>Cada largo contiene dos opciones: SOFT y FULL. Pulsa cada botón para editar su precio y duración.</p>
-  {!matrixReady(service)&&<p>Las opciones actuales se conservan como FULL, con sus identificadores, precios y tiempos. SOFT queda pendiente de completar. Revisa los importes antes de aplicar.</p>}
+  {noPartialVariants ? <p>Tarifa actual de referencia: {service.price} · {service.duration}. Completa el precio y la duración de las seis opciones.</p> :
+    !matrixReady(service)&&<p>Las opciones actuales se conservan como FULL, con sus identificadores, precios y tiempos. SOFT queda pendiente de completar. Revisa los importes antes de aplicar.</p>}
   <div className="lst-highlights-editor-grid lst-highlights-editor-by-length">{lengths.map(length=>{
    const intensity=tabs[length],i=cells.findIndex(cell=>cell.length===length&&cell.intensity===intensity),cell=cells[i];
    return <section key={length}>
@@ -104,12 +118,12 @@ function Editor({service,onApply,initial,renderBreakdown}:EditorProps & {initial
   })}</div>
   {error&&<p role="alert">{error}</p>}{done&&<p role="status">Opciones preparadas. Pulsa «Guardar catálogo» para guardarlas en el servidor.</p>}
   <button type="button" onClick={()=>{try{onApply(applySetup(service,cells));setError('');setDone(true);}catch(value){setError(value instanceof Error?value.message:'Revisa los datos.');}}}>Aplicar opciones al catálogo</button>
- <HighlightComparisonEditor key={service.id} service={service} onApply={onApply}/>
+ {isHighlights(service)&&<HighlightComparisonEditor key={service.id} service={service} onApply={onApply}/>}
  </details>;
 }
 export function HighlightsVariantEditor({service,onApply,renderBreakdown}:EditorProps){
  const [initial]=useState(()=>setupDraft(service));
- if(!isHighlights(service))return null;
+ if(!supportsIntensity(service))return null;
  if(!initial)return <p className="lst-highlights-setup-note">SOFT/FULL: las opciones deben ser Medio, Largo y Extralargo, o las seis combinaciones de largo e intensidad. Revisa sus nombres antes de configurar.</p>;
  return <Editor service={service} onApply={onApply} initial={initial} renderBreakdown={renderBreakdown}/>;
 }
