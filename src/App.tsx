@@ -5839,6 +5839,8 @@ function StudioApp() {
               return {
                 label: bookingName(item.sub) + (item.variant?.name ? ' · ' + item.variant.name : ''),
                 amountCents: amount === null || (!promotion && item.sub.priceType && item.sub.priceType !== 'fijo') ? null : Math.round(amount * 100),
+                referenceCents: amount === null ? null : Math.round(amount * 100),
+                priceLabel: promotion ? 'Precio promocional' : item.sub.priceType === 'desde' ? 'Desde' : item.sub.priceType === 'aprox' ? 'Aproximado' : item.sub.priceType === 'consultar' ? 'Consultar' : 'Precio',
               };
             }),
             depositCents: appointmentToCharge.advancePayment?.status === 'confirmed' ? Math.round(appointmentToCharge.advancePayment.amount * 100) : 0,
