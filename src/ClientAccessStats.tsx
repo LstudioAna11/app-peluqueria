@@ -18,7 +18,17 @@ export default function ClientAccessStats(){
    const value=await audienceCall<AudienceCounts>(reset?'reset':'stats',reset?{expectedRevision:counts!.resetRevision}:{},control.signal);
    if(value.metricVersion!==2||!Number.isSafeInteger(value.installed)||value.installed<0||!Number.isSafeInteger(value.browser)||value.browser<0)throw new Error('No se recibió un recuento válido.');
    if(mounted.current){setCounts(value);if(reset){setPage(1);setNotice(value.resetApplied?'Recuento reiniciado.':'El recuento había cambiado. Datos actualizados.');}setVersion(v=>v+1);}
-  }catch(value){if(mounted.current)setError(reset?'No se pudo confirmar el reinicio. Pulsa Actualizar antes de reintentar.':value instanceof Error&&value.name==='AbortError'?'La consulta ha tardado demasiado.':value instanceof Error?value.message:'No se pudo consultar el uso.');}
+  }catch(value){
+   if(mounted.current){
+    const message=value instanceof Error?value.message:'Error de comunicación desconocido.';
+    const timedOut=value instanceof Error&&value.name==='AbortError';
+    setError(reset
+     ? timedOut
+       ? 'El reinicio no respondió a tiempo. Pulsa Actualizar para verificar el recuento antes de volver a intentarlo.'
+       : `No se pudo confirmar el reinicio: ${message} Pulsa Actualizar y revisa el mensaje antes de reintentar.`
+     : timedOut?'La consulta ha tardado demasiado.':message);
+   }
+  }
   finally{clearTimeout(timeout);running.current=false;if(controller.current===control)controller.current=null;if(mounted.current)setBusy(false);}
  };
  useEffect(()=>{if(open)void load();},[open]);
