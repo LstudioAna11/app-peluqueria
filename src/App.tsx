@@ -4654,6 +4654,89 @@ function StudioApp() {
 
   const renderPromotionBadge=(appointment:Appointment)=><>{renderPromotionOnlyBadge(appointment)}{appointment.voucherId&&<span style={{display:'inline-block',padding:'3px 7px',fontSize:10,border:'1px solid #B99B67',borderRadius:6,color:'#5C4020',background:'#E8D9BE',marginTop:4}}>Bono · {appointment.voucher?.kind==='gift'?voucherMoney(appointment.voucher.amountCents):appointment.voucher?.title||'Seleccionado'}{appointment.voucher?.state==='released'?' · liberado':appointment.voucher?.state==='consumed'?' · consumido':' · reservado'}</span>}</>;
 
+  // L'Studio: ajustar la duración desde el borde inferior, sin mover el inicio.
+  const [agendaResizePreview, setAgendaResizePreview] = useState<{ id: string; minutes: number } | null>(null);
+  const [agendaResizeBusy, setAgendaResizeBusy] = useState<string | null>(null);
+  const agendaResizeBusyRef = useRef(false);
+  const agendaResizeDragRef = useRef<{ id: string; pointerId: number; startY: number; initial: number; current: number; moved: boolean } | null>(null);
+
+  const saveAgendaResizedDuration = async (appointment: Appointment, requested: number) => {
+    const duration = Math.round(requested);
+    if (duration === (appointment.durationMinutes || 45)) return;
+    if (agendaResizeBusyRef.current) return;
+    if (!staffCanManageAppointments || appointment.completedAt || !isActiveAppointment(appointment)) {
+      window.alert('Esta cita no se puede ajustar desde la agenda.'); return;
+    }
+    const [hour, minute] = appointment.time.split(':').map(Number);
+    const start = hour * 60 + minute;
+    const date = new Date(appointment.dateKey + 'T12:00:00');
+    if (!Number.isFinite(start) || duration < agendaStep || duration > 720 || start + duration > 1440) {
+      window.alert('La nueva duración no cabe dentro del día.'); return;
+    }
+    if (timeBlockConflict(appointment.dateKey, appointment.time, duration)) {
+      window.alert('No se ha guardado: el nuevo intervalo coincide con un bloqueo de agenda.'); return;
+    }
+    if (!enableOutOfHours && !isAgendaTimeWorking(date, appointment.time, duration)) {
+      window.alert('No se ha guardado: el nuevo final queda fuera del horario de trabajo.'); return;
+    }
+    if (getRescheduleConflict({ ...appointment, durationMinutes: duration }, appointment.dateKey, appointment.time)) {
+      window.alert('No se ha guardado: el nuevo intervalo se solapa con otra cita.'); return;
+    }
+    agendaResizeBusyRef.current = true;
+    setAgendaResizeBusy(appointment.id);
+    try {
+      const token = studioApi.currentToken();
+      if (!studioApi.serverConfigured || !token || studioApi.storedRole() !== 'admin') {
+        throw new Error('Se necesita conexión y una sesión de administración para guardar la duración.');
+      }
+      const row = await persistVerifiedAppointmentEdit(token, {
+        id: appointment.serverId || appointment.id,
+        durationMinutes: duration,
+      });
+      const saved = mapServerAppointment(row);
+      setAppointments(previous => previous.map(item =>
+        item.id === appointment.id || (saved.serverId && item.serverId === saved.serverId) ? saved : item));
+      setViewApptModal(previous => previous && (previous.id === appointment.id || previous.serverId === saved.serverId) ? saved : previous);
+    } catch (error) {
+      window.alert((error instanceof Error ? error.message : 'No se ha podido guardar la duración.') + ' La cita conserva su duración anterior.');
+    } finally {
+      agendaResizeBusyRef.current = false;
+      setAgendaResizeBusy(null);
+    }
+  };
+
+  const beginAgendaResize = (event: React.PointerEvent<HTMLSpanElement>, appointment: Appointment) => {
+    if (agendaResizeBusyRef.current || !staffCanManageAppointments || appointment.completedAt || !isActiveAppointment(appointment)) return;
+    event.preventDefault(); event.stopPropagation();
+    const initial = appointment.durationMinutes || 45;
+    agendaResizeDragRef.current = { id: appointment.id, pointerId: event.pointerId, startY: event.clientY, initial, current: initial, moved: false };
+    event.currentTarget.setPointerCapture(event.pointerId);
+    setAgendaResizePreview({ id: appointment.id, minutes: initial });
+  };
+  const moveAgendaResize = (event: React.PointerEvent<HTMLSpanElement>) => {
+    const drag = agendaResizeDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    event.preventDefault(); event.stopPropagation();
+    const slots = Math.round((event.clientY - drag.startY) / agendaRowHeight);
+    const next = Math.max(agendaStep, Math.min(720, drag.initial + slots * agendaStep));
+    if (Math.abs(event.clientY - drag.startY) > 4) drag.moved = true;
+    if (next !== drag.current) { drag.current = next; setAgendaResizePreview({ id: drag.id, minutes: next }); }
+  };
+  const endAgendaResize = (event: React.PointerEvent<HTMLSpanElement>, appointment: Appointment) => {
+    const drag = agendaResizeDragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    event.preventDefault(); event.stopPropagation();
+    agendaResizeDragRef.current = null;
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+    setAgendaResizePreview(null);
+    if (drag.moved && drag.current !== drag.initial) void saveAgendaResizedDuration(appointment, drag.current);
+  };
+  const cancelAgendaResize = (event: React.PointerEvent<HTMLSpanElement>) => {
+    if (agendaResizeDragRef.current?.pointerId !== event.pointerId) return;
+    agendaResizeDragRef.current = null;
+    setAgendaResizePreview(null);
+  };
+
   const renderDurationAgenda = (days: { name: string; dateObj: Date; dateFormatted: string }[]) => {
     const minutes = (time: string) => { const [hour, minute] = time.split(':').map(Number); return hour * 60 + minute; };
     const clockParts=new Intl.DateTimeFormat('en',{timeZone:'Europe/Madrid',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(agendaNow);
@@ -4729,24 +4812,40 @@ function StudioApp() {
         return placed.map(({item, lane, start, end}) => {
           const row = hoursList.indexOf(item.time);
           if (row < 0) return null;
-          const span = Math.max(1, hoursList.filter(time => minutes(time) >= start && minutes(time) < end).length);
+          const visibleDuration = agendaResizePreview?.id === item.id ? agendaResizePreview.minutes : (item.durationMinutes || 45);
+          const visibleEnd = start + visibleDuration;
+          const span = Math.max(1, hoursList.filter(time => minutes(time) >= start && minutes(time) < visibleEnd).length);
           const serviceLabel = item.services?.length
             ? item.services.map(service => bookingName(service.sub)).join(' + ')
             : appointmentServiceNames(item);
           const appointmentText = item.completedAt || item.saturdayApproval?.status === 'pending' ? '#FFF8EE' : '#243529';
-          return <button type="button" className="studio-agenda-appointment" key={item.id} draggable onDragStart={event => handleDragStart(event, item.id)}
-            onClick={() => setViewApptModal(item)} onDragOver={handleDragOver}
+          return <button type="button" className="studio-agenda-appointment" key={item.id} draggable={agendaResizeDragRef.current?.id !== item.id}
+            onDragStart={event => { if (agendaResizeDragRef.current || agendaResizeBusyRef.current) { event.preventDefault(); return; } handleDragStart(event, item.id); }}
+            onClick={event => { if ((event.target as HTMLElement).closest('[data-agenda-resize]')) return; setViewApptModal(item); }} onDragOver={handleDragOver}
             onDrop={event => { event.stopPropagation(); handleDrop(event, day.dateObj, day.name, item.time); }}
-            title={item.clientName + ' · ' + item.time + '–' + minuteTime(end) + ' · ' + serviceLabel}
+            title={item.clientName + ' · ' + item.time + '–' + minuteTime(visibleEnd) + ' · ' + serviceLabel}
             style={{ gridRow: (row + 2) + ' / span ' + span, gridColumn: column + 2, zIndex: 2,
               marginLeft: (lane * 100 / lanes) + '%', width: (100 / lanes) + '%', boxSizing: 'border-box',
-              alignSelf: 'stretch', minWidth: 0, textAlign: 'left', padding: '7px 8px',
+              alignSelf: 'stretch', position: 'relative', minWidth: 0, textAlign: 'left', padding: '7px 8px 18px',
               background: adminAppointmentColor(item).background, border: '1px solid #3A312A', borderLeft: '3px solid ' + adminAppointmentColor(item).border,
               color: appointmentText, borderRadius: '5px', cursor: 'pointer', overflow: 'hidden',
               display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: '3px' }}>
-            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 3, width: '100%' }}><strong style={{ fontSize: '10px', letterSpacing: '0.3px', color: appointmentText }}>{item.time}–{minuteTime(end)}</strong>{renderPromotionBadge(item)}</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 3, width: '100%' }}><strong style={{ fontSize: '10px', letterSpacing: '0.3px', color: appointmentText }}>{item.time}–{minuteTime(visibleEnd)}{agendaResizeBusy === item.id ? ' · Guardando…' : ''}</strong>{renderPromotionBadge(item)}</div>
             <strong style={{ color: appointmentText, fontSize: '13px', lineHeight: 1.25, overflowWrap: 'anywhere' }}>{item.clientName}</strong>
             <span style={{ fontSize: '11px', lineHeight: 1.3, color: appointmentText, overflowWrap: 'anywhere' }}>{serviceLabel}</span>
+            {staffCanManageAppointments && !item.completedAt && <span data-agenda-resize="true"
+              aria-label={'Ajustar duración de ' + item.clientName + ', ' + visibleDuration + ' minutos. Arrastra arriba o abajo.'}
+              title="Arrastra para acortar o alargar la cita"
+              onPointerDown={event => beginAgendaResize(event, item)}
+              onPointerMove={moveAgendaResize}
+              onPointerUp={event => endAgendaResize(event, item)}
+              onPointerCancel={cancelAgendaResize}
+              onClick={event => { event.preventDefault(); event.stopPropagation(); }}
+              style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                borderTop: '1px solid rgba(40,35,30,.28)', cursor: 'ns-resize', touchAction: 'none', userSelect: 'none',
+                background: 'rgba(255,255,255,.18)', color: appointmentText, fontSize: 12, fontWeight: 800, zIndex: 4 }}>
+              ═══
+            </span>}
           </button>;
         });
       })}
