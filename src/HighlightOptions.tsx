@@ -55,7 +55,7 @@ export function setupDraft(service:SubService):Cell[]|null{
   const base=variants.find(v=>{const a=variantAxes(v);return a?.length===length&&a.intensity===intensity;})!;
   return {length,intensity,id:base.id,price:base.price,minutes:String(parseInt(base.duration.match(/\d+/)?.[0]||'',10)||''),base};
  }));
- if(isPartial(service)&&!variants.length){
+ if(hasAdditionalHighlightModes(service)&&!variants.length){
   return lengths.flatMap(length=>intensities.map(intensity=>({length,intensity,id:'hf-'+crypto.randomUUID(),price:'',minutes:''})));
  }
  if(variants.length!==3)return null;
@@ -92,12 +92,12 @@ function Editor({service,onApply,initial,renderBreakdown}:EditorProps & {initial
  const [tabs,setTabs]=useState<Record<Length,Intensity>>({Medio:'SOFT',Largo:'SOFT',Extralargo:'SOFT'});
  const change=(i:number,key:'price'|'minutes',value:string)=>{setDone(false);setCells(previous=>previous.map((cell,index)=>index===i?{...cell,[key]:value}:cell));};
  const technique=techniqueName(service);
- const noPartialVariants=isPartial(service)&&!service.variants?.length;
+ const noConfiguredVariants=hasAdditionalHighlightModes(service)&&!service.variants?.length;
  return <details className="lst-highlights-editor" open={isTraditionalHighlights(service)||hasAdditionalHighlightModes(service)}>
   {isTraditionalHighlights(service)&&service.variants?.some(v=>/\b(?:corto|corta|short)\b/.test(fold(v.name)))&&<p>Corto quedará fuera de Mechas tradicionales al aplicar estas opciones. Puedes mantenerlo por separado en Parciales · Corto. Revisa precios y completa los tiempos de SOFT y FULL antes de aplicar y guardar.</p>}
 <summary>SOFT / FULL dentro de cada largo</summary>
   <p>Cada largo contiene dos opciones: SOFT y FULL. Pulsa cada botón para editar su precio y duración.</p>
-  {noPartialVariants ? <p>Tarifa actual de referencia: {service.price} · {service.duration}. Completa el precio y la duración de las seis opciones.</p> :
+  {noConfiguredVariants ? <p>Tarifa actual de referencia: {service.price} · {service.duration}. Completa el precio y la duración de las seis opciones.</p> :
     !matrixReady(service)&&<p>Las opciones actuales se conservan como FULL, con sus identificadores, precios y tiempos. SOFT queda pendiente de completar. Revisa los importes antes de aplicar.</p>}
   <div className="lst-highlights-editor-grid lst-highlights-editor-by-length">{lengths.map(length=>{
    const intensity=tabs[length],i=cells.findIndex(cell=>cell.length===length&&cell.intensity===intensity),cell=cells[i];
@@ -105,13 +105,14 @@ function Editor({service,onApply,initial,renderBreakdown}:EditorProps & {initial
     <strong>{technique} {length}</strong>
     <div className="lst-highlights-editor-tabs" role="group" aria-label={'Opciones de '+technique+' '+length}>{intensities.map(value=><button key={value} type="button" aria-pressed={intensity===value} onClick={()=>setTabs(previous=>({...previous,[length]:value}))}>{value}</button>)}</div>
     <div className="lst-highlights-editor-fields" aria-label={length+' · '+intensity}>
+     {/* El desglose pertenece a la variante seleccionada y se muestra justo debajo de SOFT / FULL. */}
+     {renderBreakdown && (()=>{
+      const savedVariant=service.variants?.find(item=>item.id===cell.id);
+      return savedVariant
+       ? <div className="lst-highlights-breakdown" key={savedVariant.id}>{renderBreakdown(savedVariant)}</div>
+       : <p className="lst-highlights-setup-note">Para editar el desglose de {length} · {intensity}, completa las seis opciones, pulsa «Aplicar opciones al catálogo» y después «Guardar catálogo». Al volver a abrir este servicio aparecerá aquí su desglose interno.</p>;
+     })()}
      <label>Precio · {intensity}<input type="text" value={cell.price} onChange={event=>change(i,'price',event.target.value)} placeholder="Precio de esta opción"/></label>
-     {renderBreakdown && cells.filter(option=>option.length===length).map(option=>{
-      const variant=service.variants?.find(item=>item.id===option.id);
-      return variant && <div key={option.id} hidden={option.intensity!==intensity} className="lst-highlights-breakdown">
-       {renderBreakdown(variant)}
-      </div>;
-     })}
      <label>Duración · {intensity} · minutos<input type="number" min={5} max={1440} step={1} value={cell.minutes} onChange={event=>change(i,'minutes',event.target.value)} placeholder="Completar"/></label>
     </div>
    </section>;
