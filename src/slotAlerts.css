@@ -9,3 +9,12 @@
 .ld-board.slot-alert-agenda { padding: 0 12px; gap: 10px; margin-bottom: 10px; border: 1px solid #806340; border-radius: 9px; background: #302721; }
 .slot-alert-agenda summary { font-weight: 650; padding: 11px 0; }
 .slot-alert-agenda[open] { padding-bottom: 12px; }
+
+/* Agenda > Avisos pendientes: tipografía más compacta sin afectar al resto. */
+.ld-board.slot-alert-agenda { font-size: 12px; }
+.ld-board.slot-alert-agenda summary { font-size: 13px; line-height: 1.35; }
+.ld-board.slot-alert-agenda .ld-inline strong { font-size: 13px; line-height: 1.35; }
+.ld-board.slot-alert-agenda .slot-alert-list p { font-size: 12px; line-height: 1.45; }
+.ld-board.slot-alert-agenda button,
+.ld-board.slot-alert-agenda .ld-link { font-size: 12px; padding: 7px 11px; min-height: 36px; }
+.ld-board.slot-alert-agenda .slot-alert-card strong { font-size: 12px; }
