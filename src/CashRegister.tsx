@@ -53,7 +53,7 @@ type CashState = {
 };
 type AppointmentSale = {
   id: string; description: string; finalCents: number | null; depositCents: number;
-  services?: { label: string; amountCents: number | null }[];
+  services?: { label: string; amountCents: number | null; referenceCents?: number | null; priceLabel?: string }[];
   voucherCents: number; unavailable: boolean; hasUnknownVoucher: boolean;
   giftCard?: { clientId: string; saved: () => Promise<void> };
   giftApplied?: boolean;
@@ -1539,7 +1539,7 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
         <h3>Servicios de la cita</h3>
         <dl>
           {appointment.services?.map((service, index) => <div key={index}>
-            <dt>{service.label}</dt><dd>{service.amountCents === null ? 'Por confirmar' : money(service.amountCents)}</dd>
+            <dt>{service.label}</dt><dd>{service.amountCents !== null ? money(service.amountCents) : service.referenceCents != null ? `${service.priceLabel || 'Orientativo'} ${money(service.referenceCents)} · confirmar` : 'Precio por confirmar'}</dd>
           </div>)}
           {extras.map(line => <div key={cashExtraKey(line)}>
             <dt>{line.quantity > 1 ? line.quantity + ' × ' : ''}{line.label}{line.quantity > 1 && <small> · {money(line.unitCents)} / ud.</small>}
@@ -1653,7 +1653,8 @@ export default function CashRegister({ appointment, onOpenCash, openAppointment,
             </>}
           </div>
           <div className="cash-pos-amount">
-            {!hasServiceTotal && <Keypad label={appointment ? 'Precio de los servicios de la cita antes de añadidos y descuentos' : 'Importe'} value={appointment ? finalAmount : movementAmount}
+            {appointment && !hasServiceTotal && appointment.services?.length && appointment.services.every(item => item.referenceCents != null) && <div className="cash-pos-note"><p>Los precios «Desde», «Aproximado» y «Consultar» requieren confirmar el importe real antes de cobrar. Puedes introducirlo manualmente o usar la suma del catálogo tras comprobarla.</p><button type="button" disabled={blocked} onClick={() => setFinalAmount(decimal(appointment.services!.reduce((sum, item) => sum + (item.referenceCents ?? 0), 0)))}>Usar suma del catálogo · {money(appointment.services.reduce((sum, item) => sum + (item.referenceCents ?? 0), 0))}</button></div>}
+            {!hasServiceTotal && <Keypad label={appointment ? 'Precio final confirmado de los servicios (€)' : 'Importe'} value={appointment ? finalAmount : movementAmount}
               onChange={appointment ? setFinalAmount : setMovementAmount} disabled={blocked} />}
             {appointment && dueBeforeDiscount !== null && (dueBeforeDiscount > 0 || discountInput) && <details className="cash-checkout-discount">
               <summary><span>{discountCents > 0 && !discountError ? 'Descuento aplicado · ' + money(discountCents) : 'Aplicar descuento'}</span>
