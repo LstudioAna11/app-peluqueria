@@ -1437,6 +1437,15 @@ export default function AdminPanelView(props: Props) {
                 .studio-service-editor[open] { position: fixed !important; inset: 0 0 0 auto; width: min(920px, 98vw); max-height: 100vh; overflow-y: auto; z-index: 1800; box-sizing: border-box; border: 1px solid #B98A3E !important; border-radius: 0 !important; box-shadow: -20px 0 60px rgba(60, 50, 40, 0.12); padding: 20px !important; background: #322A25 !important; }
                 .studio-service-editor[open] > summary { display: none; }
                 .studio-editor-toolbar { position: sticky; top: -20px; z-index: 4; background: #322A25; border-bottom: 1px solid rgba(212, 175, 55, 0.35); padding: 15px 0; }
+                /* Visibilidad de controles del editor de servicios */
+                .studio-service-editor .studio-editor-toolbar nav[aria-label="Apartados del servicio"] button:hover { background: #55402A !important; color: #FFF4DD !important; border-color: #FFE0A0 !important; }
+                .studio-service-editor .studio-editor-toolbar nav[aria-label="Apartados del servicio"] button[aria-pressed="true"]:hover { background: #E5BD79 !important; color: #211A15 !important; }
+                .studio-service-editor .studio-editor-toolbar button:focus-visible { outline: 3px solid #FFE0A0; outline-offset: 3px; }
+                .studio-service-editor .studio-editor-toolbar > div:nth-of-type(2) > button:not(.studio-catalog-save) { background: #29231F; color: #F2D8A7; border: 2px solid #CAA25E; padding: 10px 16px; min-height: 44px; border-radius: 8px; font-weight: 650; cursor: pointer; }
+                .studio-service-editor .studio-editor-toolbar > div:nth-of-type(2) > button:not(.studio-catalog-save):hover { background: #4A3829; color: #FFF1D0; }
+                .studio-service-editor .studio-editor-toolbar .studio-catalog-save { min-height: 44px; border-radius: 8px; padding: 10px 16px !important; font-size: 14px; font-weight: 700; }
+                .studio-service-editor .studio-editor-toolbar .studio-catalog-save:disabled { background: #463C31 !important; color: #CCBC9E !important; border: 1px solid #726047 !important; opacity: 1 !important; cursor: not-allowed; }
+
                 .studio-service-editor[data-editor-tab=data] .studio-editor-options,
                 .studio-service-editor[data-editor-tab=data] .studio-editor-booking,
                 .studio-service-editor[data-editor-tab=options] .studio-editor-data,
@@ -1646,7 +1655,7 @@ export default function AdminPanelView(props: Props) {
                                     <nav aria-label="Apartados del servicio" style={{ display: 'flex', flexWrap: 'wrap', gap: '7px', margin: '15px 0' }}>
                                       {([['data', 'Datos'], ['options', 'Opciones'], ['booking', 'Reserva']] as const).map(([tab, label]) =>
                                         <button type="button" key={tab} aria-pressed={catalogEditorTab === tab} onClick={() => setCatalogEditorTab(tab)}
-                                          style={{ background: catalogEditorTab === tab ? '#8F6D24' : '#3E342C', color: catalogEditorTab === tab ? '#2C2521' : '#8F6D24', padding: '10px', border: '1px solid #C5A059', borderRadius: '6px', cursor: 'pointer' }}>{label}</button>)}
+                                          style={{ background: catalogEditorTab === tab ? '#D7AE69' : '#29231F', color: catalogEditorTab === tab ? '#211A15' : '#F1D7A5', padding: '11px 18px', minHeight: '46px', fontSize: '15px', fontWeight: 700, border: catalogEditorTab === tab ? '2px solid #F4D79A' : '2px solid #CBA765', borderRadius: '8px', boxShadow: catalogEditorTab === tab ? '0 2px 9px rgba(0,0,0,0.28)' : 'none', cursor: 'pointer', transition: 'background 160ms ease, color 160ms ease, border-color 160ms ease' }}>{label}</button>)}
                                     </nav>
                                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
                                       <button type="button" className="studio-catalog-save" disabled={!catalogHasChanges || photoUploadBusy} onClick={handleSaveCatalogMaster} style={{ background: 'linear-gradient(135deg, #8F6D24 0%, #B3823B 100%)', color: '#29231F', padding: '10px', border: 0, cursor: 'pointer' }}>Guardar cambios</button>
