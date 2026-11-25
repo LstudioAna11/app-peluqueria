@@ -434,3 +434,17 @@ export const studioCashRegister = <T>(token: string, body: unknown) =>
 
 export const slotAlert = <T>(body: unknown) => call<T>('slot-alert', { token: currentToken() || '', body });
 export const studioProducts = <T>(body: unknown) => call<T>('products', { token: currentToken() || '', body });
+
+
+// Gestión administrativa del acceso al portal, independiente de la baja de la ficha.
+export const listClientPortalBlocks = (token: string) =>
+  call<{blockedIds:string[]}>('client-access',{token,body:{operation:'list'}});
+export const setClientPortalBlock = (token: string, clientId:string, blocked:boolean) =>
+  call<{ok:true;blocked:boolean}>('client-access',{token,body:{operation:blocked?'block':'unblock',clientId}});
+
+
+// Gestión administrativa del acceso al portal, independiente de la baja de la ficha.
+export const listClientPortalBlocks = (token: string) =>
+  call<{blockedIds:string[]}>('client-access',{token,body:{operation:'list'}});
+export const setClientPortalBlock = (token: string, clientId:string, blocked:boolean) =>
+  call<{ok:true;blocked:boolean}>('client-access',{token,body:{operation:blocked?'block':'unblock',clientId}});
