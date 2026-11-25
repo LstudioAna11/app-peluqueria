@@ -3797,10 +3797,9 @@ function StudioApp() {
 
     if (editingAppointment) {
       if (!modalServices.length) { alert('Añade al menos un servicio a la lista de la cita.'); return; }
-      const needsNewAssessment = services.some(item => item.sub.requiresAssessment) &&
-        !(editingAppointment.services || []).some(item => item.sub.requiresAssessment);
-      const approval = needsNewAssessment ? { status: 'pending' as const, reason: 'assessment' as const,
-        reference: 'REV-' + crypto.randomUUID().slice(0, 8).toUpperCase() } : editingAppointment.saturdayApproval;
+      // Editar desde la intranet no inicia una aprobación nueva.
+      // Se conserva el estado de solicitudes creadas originalmente en el portal.
+      const approval = editingAppointment.saturdayApproval;
       const payment = modalWaiveDeposit ? undefined : editingAppointment.advancePayment ||
         (approval?.status !== 'pending' && serviceDepositAmount(services,durationMin)>0 ? createAdvancePayment(services,durationMin) : undefined);
       const prefix = approval?.status === 'pending' ? 'PENDIENTE VALORACIÓN' :
@@ -3819,7 +3818,6 @@ function StudioApp() {
           waiveDeposit: modalWaiveDeposit,
           durationMinutes: updated.durationMinutes,
           services: updated.services,
-          ...(needsNewAssessment && approval ? {approval: {status: approval.status, reason: approval.reason, reference: approval.reference}} : {}),
           ...(!editingAppointment.advancePayment && !editingAppointment.voucherId && payment ? {advancePayment: payment} : {}),
           clientSnapshot: {
             clientName: updated.clientName, phone: updated.phone, email: updated.email,
@@ -3838,14 +3836,8 @@ function StudioApp() {
       return;
     }
     quickChargeDraftId.current = openCash ? newApp.id : undefined;
-    const approvalReason = getApprovalReason(services, newApp.dateKey);
-    if (approvalReason) {
-      newApp.saturdayApproval = { status: 'pending', reason: approvalReason, reference: `REV-${crypto.randomUUID().slice(0, 8).toUpperCase()}` };
-      newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, approvalReason === 'saturday' ? 'PENDIENTE SÁBADO' : 'PENDIENTE VALORACIÓN');
-      newApp.remindersStatus = { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false };
-      setSaturdayRequestModal(newApp);
-      return;
-    }
+    // Las citas dadas de alta por Ana en la intranet no necesitan su propia aprobación.
+    // La validación de sábado y valoración se mantiene exclusivamente en el portal.
     if (!newApp.depositWaived && serviceDepositAmount(newApp.services,newApp.durationMinutes)>0) {
       newApp.advancePayment = createAdvancePayment(newApp.services,newApp.durationMinutes);
       newApp.serviceSubcategory = newApp.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE BIZUM');
@@ -4708,6 +4700,9 @@ function StudioApp() {
   const beginAgendaResize = (event: React.PointerEvent<HTMLSpanElement>, appointment: Appointment) => {
     if (agendaResizeBusyRef.current || !staffCanManageAppointments || appointment.completedAt || !isActiveAppointment(appointment)) return;
     event.preventDefault(); event.stopPropagation();
+    // Desactiva temporalmente HTML5 Drag en la cita para que el tirador
+    // inferior pueda recibir el movimiento vertical completo.
+    event.currentTarget.parentElement?.setAttribute('draggable', 'false');
     const initial = appointment.durationMinutes || 45;
     agendaResizeDragRef.current = { id: appointment.id, pointerId: event.pointerId, startY: event.clientY, initial, current: initial, moved: false };
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -4727,6 +4722,7 @@ function StudioApp() {
     if (!drag || drag.pointerId !== event.pointerId) return;
     event.preventDefault(); event.stopPropagation();
     agendaResizeDragRef.current = null;
+    event.currentTarget.parentElement?.setAttribute('draggable', 'true');
     if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
     setAgendaResizePreview(null);
     if (drag.moved && drag.current !== drag.initial) void saveAgendaResizedDuration(appointment, drag.current);
@@ -4734,6 +4730,7 @@ function StudioApp() {
   const cancelAgendaResize = (event: React.PointerEvent<HTMLSpanElement>) => {
     if (agendaResizeDragRef.current?.pointerId !== event.pointerId) return;
     agendaResizeDragRef.current = null;
+    event.currentTarget.parentElement?.setAttribute('draggable', 'true');
     setAgendaResizePreview(null);
   };
 
@@ -4820,7 +4817,7 @@ function StudioApp() {
             : appointmentServiceNames(item);
           const appointmentText = item.completedAt || item.saturdayApproval?.status === 'pending' ? '#FFF8EE' : '#243529';
           return <button type="button" className="studio-agenda-appointment" key={item.id} draggable={agendaResizeDragRef.current?.id !== item.id}
-            onDragStart={event => { if (agendaResizeDragRef.current || agendaResizeBusyRef.current) { event.preventDefault(); return; } handleDragStart(event, item.id); }}
+            onDragStart={event => { if (agendaResizeDragRef.current || agendaResizeBusyRef.current || (event.target as HTMLElement).closest('[data-agenda-resize]')) { event.preventDefault(); return; } handleDragStart(event, item.id); }}
             onClick={event => { if ((event.target as HTMLElement).closest('[data-agenda-resize]')) return; setViewApptModal(item); }} onDragOver={handleDragOver}
             onDrop={event => { event.stopPropagation(); handleDrop(event, day.dateObj, day.name, item.time); }}
             title={item.clientName + ' · ' + item.time + '–' + minuteTime(visibleEnd) + ' · ' + serviceLabel}
@@ -4840,6 +4837,7 @@ function StudioApp() {
               onPointerMove={moveAgendaResize}
               onPointerUp={event => endAgendaResize(event, item)}
               onPointerCancel={cancelAgendaResize}
+              onDragStart={event => { event.preventDefault(); event.stopPropagation(); }}
               onClick={event => { event.preventDefault(); event.stopPropagation(); }}
               style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 17, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 borderTop: '1px solid rgba(40,35,30,.28)', cursor: 'ns-resize', touchAction: 'none', userSelect: 'none',
@@ -6622,13 +6620,7 @@ function StudioApp() {
                     serviceSubcategory: 'RESERVADO ' + services.map(item => bookingName(item.sub) + (item.variant ? ' (' + item.variant.name + ')' : '')).join(' + '),
                     remindersStatus: { email48h: false, whatsapp48h: false, whatsapp24h: false, whatsapp2h: false }
                   };
-                  const reason = getApprovalReason(services, newRescheduleDate);
-                  if (reason) {
-                    setRescheduleModalAppt(null); setRepeatAppointmentMode(false);
-                    repeated.saturdayApproval = { status: 'pending', reason, reference: 'REV-' + crypto.randomUUID().slice(0, 8).toUpperCase() };
-                    repeated.serviceSubcategory = repeated.serviceSubcategory.replace(/^RESERVADO/, reason === 'saturday' ? 'PENDIENTE SÁBADO' : 'PENDIENTE VALORACIÓN');
-                    setSaturdayRequestModal(repeated); return;
-                  }
+                  // Repetir desde la intranet es una reserva directa de administración.
                   if (serviceDepositAmount(repeated.services,repeated.durationMinutes)>0) {
                     repeated.advancePayment = createAdvancePayment(repeated.services,repeated.durationMinutes);
                     repeated.serviceSubcategory = repeated.serviceSubcategory.replace(/^RESERVADO/, 'PENDIENTE BIZUM');
