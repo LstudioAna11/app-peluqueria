@@ -2273,6 +2273,76 @@ function StudioApp() {
     } catch(error) {setTimeBlockError((error instanceof Error?error.message:'No se pudo guardar el bloqueo.')+' Conservamos los datos para comprobar y reintentar.');}
     finally {timeBlockSavingRef.current=false;setTimeBlockSaving(false);}
   };
+  const [editingBlock,setEditingBlock] = useState<StudioTimeBlock|null>(null);
+  const [editingBlockDate,setEditingBlockDate] = useState('');
+  const [editingBlockTime,setEditingBlockTime] = useState('');
+  const [editingBlockDuration,setEditingBlockDuration] = useState(30);
+  const [editingBlockReason,setEditingBlockReason] = useState('');
+  const [editingBlockError,setEditingBlockError] = useState('');
+  const [editingBlockBusy,setEditingBlockBusy] = useState(false);
+  const editingBlockLock=useRef(false);
+  const openBlockEditor=(block:StudioTimeBlock)=>{
+    setEditingBlock(block);setEditingBlockDate(block.dateKey);setEditingBlockTime(block.time);
+    setEditingBlockDuration(block.durationMinutes);setEditingBlockReason(block.reason);setEditingBlockError('');
+  };
+  const saveEditedBlock=async(block:StudioTimeBlock,dateKey:string,time:string,duration:number,reason:string):Promise<boolean>=>{
+    if(editingBlockLock.current || timeBlockSavingRef.current)return false;
+    const message=(value:string)=>{setEditingBlockError(value);window.alert(value);};
+    const date=new Date(dateKey+'T12:00:00');
+    const [h,m]=time.split(':').map(Number);const start=h*60+m;
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)||formatDateKey(date)!==dateKey||!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)||!Number.isInteger(duration)||duration<5||duration>720||start+duration>1440||!reason.trim()||reason.trim().length>240){message('Comprueba el día, la hora, el motivo y la duración (5–720 minutos).');return false;}
+    if(isDateBlockedByHoliday(dateKey)){message('El día seleccionado está cerrado por festivo o vacaciones.');return false;}
+    if(!enableOutOfHours&&!isAgendaTimeWorking(date,time,duration)){message('El bloqueo debe caber dentro del horario laboral.');return false;}
+    if(timeBlockConflict(dateKey,time,duration,block.id)||getRescheduleConflict({id:'',durationMinutes:duration} as Appointment,dateKey,time)){message('El nuevo horario coincide con una cita o con otro bloqueo.');return false;}
+    if(block.dateKey===dateKey&&block.time===time&&block.durationMinutes===duration&&block.reason===reason.trim()){setEditingBlock(null);return true;}
+    editingBlockLock.current=true;setEditingBlockBusy(true);setEditingBlockError('');
+    try{
+      const token=studioApi.currentToken();
+      if(!studioApi.serverConfigured||!token||studioApi.storedRole()!=='admin'||!block.serverId||block.invalidInterval||block.pendingSync)throw new Error('El bloqueo debe estar sincronizado para poder modificarlo.');
+      await studioApi.updateTimeBlock(token,{id:block.serverId,dateKey,time,durationMinutes:duration,reason:reason.trim(),expectedStart:block.dateKey+'T'+block.time+':00',expectedEnd:new Date(Date.parse(block.dateKey+'T'+block.time+':00Z')+block.durationMinutes*60000).toISOString()});
+      const data=await studioApi.syncAll<{timeBlocks?:Record<string,any>[]}>(token,['timeBlocks']);
+      if(token!==studioApi.currentToken())throw new Error('La sesión cambió durante el guardado.');
+      const row=data.timeBlocks?.find(item=>item.id===block.serverId);const saved=row?mapServerTimeBlock(row):null;
+      if(!saved||saved.invalidInterval||saved.dateKey!==dateKey||saved.time!==time||saved.durationMinutes!==duration||saved.reason!==reason.trim())throw new Error('El servidor no ha confirmado todos los cambios. Actualiza la agenda.');
+      setTimeBlocks(previous=>previous.map(item=>item.id===block.id?saved:item));setEditingBlock(null);return true;
+    }catch(error){message((error instanceof Error?error.message:'No se pudo guardar el bloqueo.')+' El bloqueo original permanece en la agenda.');return false;}
+    finally{editingBlockLock.current=false;setEditingBlockBusy(false);}
+  };
+  const [blockResizePreview,setBlockResizePreview]=useState<{id:string;minutes:number}|null>(null);
+  const blockResizeRef=useRef<{id:string;pointerId:number;y:number;initial:number;current:number;moved:boolean}|null>(null);
+  const beginBlockResize=(event:React.PointerEvent<HTMLSpanElement>,block:StudioTimeBlock)=>{
+    if(editingBlockLock.current||timeBlockSavingRef.current||!block.serverId||block.pendingSync||block.invalidInterval)return;
+    event.preventDefault();event.stopPropagation();event.currentTarget.parentElement?.setAttribute('draggable','false');
+    blockResizeRef.current={id:block.id,pointerId:event.pointerId,y:event.clientY,initial:block.durationMinutes,current:block.durationMinutes,moved:false};
+    event.currentTarget.setPointerCapture(event.pointerId);setBlockResizePreview({id:block.id,minutes:block.durationMinutes});
+  };
+  const moveBlockResize=(event:React.PointerEvent<HTMLSpanElement>)=>{
+    const state=blockResizeRef.current;if(!state||state.pointerId!==event.pointerId)return;
+    event.preventDefault();event.stopPropagation();
+    const next=Math.min(720,Math.max(5,state.initial+Math.round((event.clientY-state.y)/agendaRowHeight)*agendaStep));
+    if(Math.abs(event.clientY-state.y)>4)state.moved=true;
+    if(next!==state.current){state.current=next;setBlockResizePreview({id:state.id,minutes:next});}
+  };
+  const endBlockResize=(event:React.PointerEvent<HTMLSpanElement>,block:StudioTimeBlock)=>{
+    const state=blockResizeRef.current;if(!state||state.pointerId!==event.pointerId)return;
+    event.preventDefault();event.stopPropagation();blockResizeRef.current=null;
+    event.currentTarget.parentElement?.setAttribute('draggable','true');
+    if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);
+    setBlockResizePreview(null);
+    if(state.moved&&state.current!==state.initial)void saveEditedBlock(block,block.dateKey,block.time,state.current,block.reason);
+  };
+  const cancelBlockResize=(event:React.PointerEvent<HTMLSpanElement>)=>{
+    const state=blockResizeRef.current;if(!state||state.pointerId!==event.pointerId)return;
+    blockResizeRef.current=null;event.currentTarget.parentElement?.setAttribute('draggable','true');setBlockResizePreview(null);
+  };
+  const handleBlockDrop=async(event:React.DragEvent,date:Date,time:string)=>{
+    const id=event.dataTransfer.getData('application/x-lstudio-block');if(!id)return false;
+    event.preventDefault();event.stopPropagation();
+    const block=timeBlocks.find(item=>item.id===id);if(!block)return true;
+    await saveEditedBlock(block,formatDateKey(date),time,block.durationMinutes,block.reason);
+    return true;
+  };
+
   const deleteTimeBlock = async (block:StudioTimeBlock) => {
     if(timeBlockSavingRef.current)return;
     if(!window.confirm((block.serverId?'¿Desbloquear este periodo: ':'¿Retirar este bloqueo local pendiente: ')+block.reason+'?'))return false;
@@ -3426,6 +3496,7 @@ function StudioApp() {
   const handleDrop = async (e: React.DragEvent, targetDate: Date, dayName: string, time: string) => {
     if(!staffCanManageAppointments||rescheduleSavingRef.current||adminBookingSavingRef.current||timeBlockSavingRef.current||cancellationBusyRef.current||visualBookingBusyRef.current)return;
     e.preventDefault();
+    if (e.dataTransfer.types.includes('application/x-lstudio-block')) { await handleBlockDrop(e,targetDate,time);return; }
     const targetDateKey = formatDateKey(targetDate);
     if (isDateBlockedByHoliday(targetDateKey)) {
       window.alert('Este día está bloqueado por vacaciones o festivo. No se pueden mover citas aquí.');
@@ -4782,16 +4853,23 @@ function StudioApp() {
       })()}
       {days.flatMap((day, column) => timeBlocks.filter(block => block.dateKey === formatDateKey(day.dateObj)).map(block => {
         const row = hoursList.indexOf(block.time), start = minutes(block.time);
-        const span = Math.max(1, hoursList.filter(time => minutes(time) >= start && minutes(time) < start + block.durationMinutes).length);
-        return <button type="button" key={block.id} disabled={timeBlockSaving} onClick={() => {
-          if(block.pendingSync||block.invalidInterval){
-            blockDraftId.current=block.serverId||block.id;setBlockDuration(block.durationMinutes);setBlockReason(block.reason);setTimeBlockError('Este bloqueo antiguo necesita revisión. Confirma la duración y pulsa Guardar bloqueo para sincronizarlo.');setBlockMode(true);setSlotAction({date:new Date(block.dateKey+'T12:00:00'),day:'',time:block.time});
-          }else void deleteTimeBlock(block);
-        }}
-          title={block.pendingSync||block.invalidInterval?'Pulsa para revisar el bloqueo antiguo':'Pulsa para desbloquear'} style={{ gridRow: (row + 2) + ' / span ' + span, gridColumn: column + 2,
-            zIndex: 3, background: '#3E342C', border: '1px dashed rgba(255, 248, 238, 0.35)', color: '#D6CBB8', padding: '6px', borderRadius: '5px',
-            textAlign: 'left', cursor: 'pointer', fontSize: '11px', overflow: 'hidden' }} data-studio-state="blocked">
-          <strong>{block.time}–{minuteTime(start + block.durationMinutes)}</strong><div>{block.pendingSync||block.invalidInterval?'Revisar y sincronizar':'Bloqueado'} · {block.reason}</div>
+        const shownDuration=blockResizePreview?.id===block.id?blockResizePreview.minutes:block.durationMinutes;
+        const span = Math.max(1, hoursList.filter(time => minutes(time) >= start && minutes(time) < start + shownDuration).length);
+        return <button type="button" key={block.id} disabled={timeBlockSaving||editingBlockBusy}
+          draggable={!!block.serverId&&!block.pendingSync&&!block.invalidInterval&&!editingBlockBusy}
+          onDragStart={event=>{if(blockResizeRef.current){event.preventDefault();return;}event.dataTransfer.setData('application/x-lstudio-block',block.id);event.dataTransfer.effectAllowed='move';event.stopPropagation();}}
+          onDragOver={event=>event.preventDefault()}
+          onDrop={event=>{event.stopPropagation();void handleBlockDrop(event,day.dateObj,block.time);}}
+          onClick={event=>{if((event.target as HTMLElement).closest('[data-block-resize]'))return;openBlockEditor(block);}}
+          title="Pulsa para editar · Arrastra para mover · Borde inferior para cambiar duración" style={{ gridRow: (row + 2) + ' / span ' + span, gridColumn: column + 2,
+            zIndex: 3, background: '#3E342C', border: '1px dashed rgba(255, 248, 238, 0.55)', color: '#FFF8EE', padding: '6px 6px 18px', borderRadius: '5px',
+            textAlign: 'left', cursor: 'move', fontSize: '11px', overflow: 'hidden', position:'relative' }} data-studio-state="blocked">
+          <strong>{block.time}–{minuteTime(start + shownDuration)}</strong><div>{block.pendingSync||block.invalidInterval?'Revisar bloqueo':'Bloqueado'} · {block.reason}</div>
+          {!!block.serverId&&!block.pendingSync&&!block.invalidInterval&&<span data-block-resize="true" title="Arrastra para alargar o acortar el bloqueo"
+            onPointerDown={event=>beginBlockResize(event,block)} onPointerMove={moveBlockResize}
+            onPointerUp={event=>endBlockResize(event,block)} onPointerCancel={cancelBlockResize}
+            onClick={event=>{event.preventDefault();event.stopPropagation();}} onDragStart={event=>{event.preventDefault();event.stopPropagation();}}
+            style={{position:'absolute',bottom:0,left:0,right:0,height:17,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(228,198,135,.22)',borderTop:'1px solid #B9955F',cursor:'ns-resize',touchAction:'none',userSelect:'none',fontSize:13,fontWeight:800,zIndex:5}}>═══</span>}
         </button>;
       }))}
       {days.flatMap((day, column) => {
@@ -6059,6 +6137,19 @@ function StudioApp() {
         </div>
       )}
 
+      {editingBlock && currentScreen==='adminPanel' && <div style={{position:'fixed',inset:0,zIndex:2600,background:'rgba(0,0,0,.85)',display:'grid',placeItems:'center',padding:16}}>
+        <form role="dialog" aria-modal="true" aria-label="Editar bloqueo de agenda" onSubmit={event=>{event.preventDefault();void saveEditedBlock(editingBlock,editingBlockDate,editingBlockTime,editingBlockDuration,editingBlockReason);}} style={{width:'min(430px,100%)',padding:22,boxSizing:'border-box',background:'#322A25',color:'#FFF8EE',border:'1px solid #C5A059',borderRadius:12,display:'grid',gap:14}}>
+          <h3 style={{color:'#E4C687',margin:0}}>Editar bloqueo</h3>
+          <label>Día<input type="date" value={editingBlockDate} disabled={editingBlockBusy} onChange={event=>setEditingBlockDate(event.target.value)} required style={{display:'block',width:'100%',boxSizing:'border-box',minHeight:44,background:'#29231F',color:'#FFF8EE',border:'1px solid #B9955F'}}/></label>
+          <label>Hora de inicio<input type="time" value={editingBlockTime} step={300} disabled={editingBlockBusy} onChange={event=>setEditingBlockTime(event.target.value)} required style={{display:'block',width:'100%',boxSizing:'border-box',minHeight:44,background:'#29231F',color:'#FFF8EE',border:'1px solid #B9955F'}}/></label>
+          <label>Duración en minutos<input type="number" value={editingBlockDuration} min={5} max={720} step={5} disabled={editingBlockBusy} onChange={event=>setEditingBlockDuration(Number(event.target.value))} required style={{display:'block',width:'100%',boxSizing:'border-box',minHeight:44,background:'#29231F',color:'#FFF8EE',border:'1px solid #B9955F'}}/></label>
+          <label>Motivo<input value={editingBlockReason} maxLength={240} disabled={editingBlockBusy} onChange={event=>setEditingBlockReason(event.target.value)} required style={{display:'block',width:'100%',boxSizing:'border-box',minHeight:44,background:'#29231F',color:'#FFF8EE',border:'1px solid #B9955F'}}/></label>
+          {!!editingBlockError&&<p role="alert" style={{color:'#FFB4A9',fontSize:13,margin:0}}>{editingBlockError}</p>}
+          {(editingBlock.pendingSync||editingBlock.invalidInterval)&&<p style={{fontSize:12,color:'#E4C687',margin:0}}>Este bloqueo antiguo necesita sincronización. No se modificará automáticamente.</p>}
+          <button type="submit" disabled={editingBlockBusy||!editingBlock.serverId||!!editingBlock.pendingSync||!!editingBlock.invalidInterval} style={{minHeight:44,border:0,borderRadius:8,background:'#C99E52',color:'#29231F',fontWeight:700}}>{editingBlockBusy?'Guardando…':'Guardar cambios'}</button>
+          <div style={{display:'flex',justifyContent:'space-between',gap:12}}><button type="button" disabled={editingBlockBusy} onClick={()=>setEditingBlock(null)} style={{padding:10,color:'#FFF8EE',background:'transparent',border:'1px solid #806340',borderRadius:7}}>Cerrar</button><button type="button" disabled={editingBlockBusy} onClick={async()=>{if(await deleteTimeBlock(editingBlock))setEditingBlock(null);}} style={{padding:10,color:'#FFB4A9',background:'transparent',border:'1px solid #806340',borderRadius:7}}>Eliminar bloqueo</button></div>
+        </form>
+      </div>}
       {slotAction && currentScreen === 'adminPanel' && <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.85)', display: 'grid', placeItems: 'center', zIndex: 2500, padding: '16px' }}>
         <div role="dialog" aria-modal="true" aria-labelledby="slot-action-title" style={{ background: '#322A25', border: '1px solid #C5A059', borderRadius: '12px', padding: '22px', width: '100%', maxWidth: '400px', boxSizing: 'border-box' }}>
           <h3 id="slot-action-title" style={{ color: '#E4C687' }}>{blockMode ? 'Bloquear tiempo' : '¿Qué quieres hacer?'}</h3>
