@@ -107,10 +107,21 @@ function Editor({service,onApply,initial,renderBreakdown}:EditorProps & {initial
     <div className="lst-highlights-editor-fields" aria-label={length+' · '+intensity}>
      {/* El desglose pertenece a la variante seleccionada y se muestra justo debajo de SOFT / FULL. */}
      {renderBreakdown && (()=>{
-      const savedVariant=service.variants?.find(item=>item.id===cell.id);
-      return savedVariant
-       ? <div className="lst-highlights-breakdown" key={savedVariant.id}>{renderBreakdown(savedVariant)}</div>
-       : <p className="lst-highlights-setup-note">Para editar el desglose de {length} · {intensity}, completa las seis opciones, pulsa «Aplicar opciones al catálogo» y después «Guardar catálogo». Al volver a abrir este servicio aparecerá aquí su desglose interno.</p>;
+      // Mostrar siempre el desglose, incluso en una SOFT nueva todavía no aplicada.
+      // El identificador del borrador se conserva al aplicar las seis variantes,
+      // de forma que el desglose pertenece a la misma SOFT/FULL y al mismo largo.
+      const variant: ServiceVariant = service.variants?.find(item=>item.id===cell.id) || {
+        id: cell.id,
+        name: `${length} · ${intensity}`,
+        price: cell.price,
+        duration: cell.minutes ? `${cell.minutes} min` : '',
+        description: cell.base?.description || ''
+      };
+      return <div className="lst-highlights-breakdown" key={variant.id}>
+        {!service.variants?.some(item=>item.id===cell.id) &&
+          <p className="lst-highlights-setup-note">Variante nueva: completa las seis opciones y guarda el catálogo para que este desglose quede asociado al servicio definitivamente.</p>}
+        {renderBreakdown(variant)}
+      </div>;
      })()}
      <label>Precio · {intensity}<input type="text" value={cell.price} onChange={event=>change(i,'price',event.target.value)} placeholder="Precio de esta opción"/></label>
      <label>Duración · {intensity} · minutos<input type="number" min={5} max={1440} step={1} value={cell.minutes} onChange={event=>change(i,'minutes',event.target.value)} placeholder="Completar"/></label>
