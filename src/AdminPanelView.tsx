@@ -1437,6 +1437,45 @@ export default function AdminPanelView(props: Props) {
                 .studio-service-editor[open] { position: fixed !important; inset: 0 0 0 auto; width: min(920px, 98vw); max-height: 100vh; overflow-y: auto; z-index: 1800; box-sizing: border-box; border: 1px solid #B98A3E !important; border-radius: 0 !important; box-shadow: -20px 0 60px rgba(60, 50, 40, 0.12); padding: 20px !important; background: #322A25 !important; }
                 .studio-service-editor[open] > summary { display: none; }
                 .studio-editor-toolbar { position: sticky; top: -20px; z-index: 4; background: #322A25; border-bottom: 1px solid rgba(212, 175, 55, 0.35); padding: 15px 0; }
+                /* Contraste reforzado en el editor: sin modificar la lógica de botones */
+                .studio-service-editor .studio-editor-toolbar nav[aria-label="Apartados del servicio"] button {
+                  color: #FFE7B6 !important;
+                  background: #211B17 !important;
+                  border: 2px solid #DBB873 !important;
+                  font-size: 16px !important;
+                  font-weight: 700 !important;
+                  min-height: 48px !important;
+                  padding: 11px 19px !important;
+                  opacity: 1 !important;
+                }
+                .studio-service-editor .studio-editor-toolbar nav[aria-label="Apartados del servicio"] button[aria-pressed="true"] {
+                  color: #211A15 !important;
+                  background: #E6BE79 !important;
+                  border-color: #FFE2AA !important;
+                  box-shadow: 0 0 0 1px rgba(255,226,170,.32) !important;
+                }
+                .studio-service-editor .studio-editor-toolbar > div:first-child > button {
+                  color: #FFE7B6 !important;
+                  background: #29231F !important;
+                  border: 2px solid #DBB873 !important;
+                  border-radius: 8px !important;
+                  font-weight: 700 !important;
+                  min-height: 44px !important;
+                  padding: 9px 15px !important;
+                  cursor: pointer;
+                }
+                .studio-service-editor .studio-editor-toolbar .studio-catalog-save:disabled {
+                  color: #F2DDAD !important;
+                  background: #42372D !important;
+                  border: 2px solid #BDA076 !important;
+                  opacity: 1 !important;
+                  cursor: not-allowed !important;
+                }
+                .studio-service-editor .studio-editor-toolbar .studio-catalog-save:not(:disabled) {
+                  color: #211A15 !important;
+                  background: #E6BE79 !important;
+                  border: 2px solid #FFE2AA !important;
+                }
                 /* Visibilidad de controles del editor de servicios */
                 .studio-service-editor .studio-editor-toolbar nav[aria-label="Apartados del servicio"] button:hover { background: #55402A !important; color: #FFF4DD !important; border-color: #FFE0A0 !important; }
                 .studio-service-editor .studio-editor-toolbar nav[aria-label="Apartados del servicio"] button[aria-pressed="true"]:hover { background: #E5BD79 !important; color: #211A15 !important; }
@@ -1444,7 +1483,7 @@ export default function AdminPanelView(props: Props) {
                 .studio-service-editor .studio-editor-toolbar > div:nth-of-type(2) > button:not(.studio-catalog-save) { background: #29231F; color: #F2D8A7; border: 2px solid #CAA25E; padding: 10px 16px; min-height: 44px; border-radius: 8px; font-weight: 650; cursor: pointer; }
                 .studio-service-editor .studio-editor-toolbar > div:nth-of-type(2) > button:not(.studio-catalog-save):hover { background: #4A3829; color: #FFF1D0; }
                 .studio-service-editor .studio-editor-toolbar .studio-catalog-save { min-height: 44px; border-radius: 8px; padding: 10px 16px !important; font-size: 14px; font-weight: 700; }
-                .studio-service-editor .studio-editor-toolbar .studio-catalog-save:disabled { background: #463C31 !important; color: #CCBC9E !important; border: 1px solid #726047 !important; opacity: 1 !important; cursor: not-allowed; }
+                .studio-service-editor .studio-editor-toolbar .studio-catalog-save:disabled { background: #42372D !important; color: #F2DDAD !important; border: 2px solid #BDA076 !important; opacity: 1 !important; cursor: not-allowed; }
 
                 .studio-service-editor[data-editor-tab=data] .studio-editor-options,
                 .studio-service-editor[data-editor-tab=data] .studio-editor-booking,
