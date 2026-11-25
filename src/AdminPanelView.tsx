@@ -531,6 +531,46 @@ function StudioBackupPanel({hasUnsavedChanges}:{hasUnsavedChanges:boolean}){
 export default function AdminPanelView(props: Props) {
  const [npsPeriod,setNpsPeriod]=useState<'30d'|'90d'|'all'>('30d');
  const { onLogout, onPromotionsSaved, bookingName, appointmentServiceNames, compactVisitText, AGENDA_SWATCHES, DEFAULT_BRAND_LOGO, DEFAULT_HEADER_LOGO, FINISH_COPY, activeEmployees, adminCatalogSearch, adminCatalogStatus, adminTab, agendaExpanded, agendaLayoutRef, agendaSwatch, agendaViewMode, anioMini, appointmentSearch, appointmentSearchQuery, appointmentSearchResults, appointments, attemptClock, bizConfig, bookingAttempts, busquedaCliente, cambiarMesMiniCal, catalog, catalogEditorId, catalogEditorTab, catalogHasChanges, catalogSavedMsg, clientStatusBusy, clientStatusError, clientStatusFilter, clientsPageCount, configHasPendingChanges, configSubTab, crmPeriod, crmView, dashboardEnd, dashboardStart, demandEnd, demandFilter, demandStart, detractorReplies, diaSeleccionadoObj, diasRejillaMini, effectiveClientsPage, emailConfigStatus, employeePhotoBusy, enableDoubleBooking, enableOutOfHours, expandedCategories, expandedClientId, fallbackHeaderLogo, fechaSeleccionada, feedbackList, feedbackRatingFilter, feedbackStatusBusy, filteredClientRows, formatDateKey, googleCalendarConnected, googleCalendarSyncActive, handleAddCategorySubmit, handleAddSubserviceSubmit, handleAddVariant, handleCategoryPhotoDelete, handleCategoryPhotoSelect, handleCellClick, handleClientStatus, handleDeleteClient, handleDeleteCategory, handleDeleteSubservice, handleDeleteVariant, handleFeedbackResolution, onSaveClientNotes, handleGuardarNuevoCliente, handleMoveCategory, handleSaveCatalogMaster, handleSaveSection, handleServicePhotoDelete, handleServicePhotoSelect, handleToggleVariants, handleUpdateCategoryCode, handleUpdateCategoryTitle, headerLogoSrc, holidaysList, hoursList, isActiveAppointment, isAddingCategory, isAddingClient, isAddingSub, isDateBlockedByHoliday, isFinish, isTimeSlotOccupied, listaClientes, logoUploadBusy, logoUploadMessage, lostDemandsList, mailboxError, mailboxFilter, mesMini, newCatCode, newCatTitle, newHolidayEnd, newHolidayReason, newHolidayStart, newHolidayType, newSubAchieved, newSubAlertBadge, newSubAlertText, newSubDesc, newSubDur, newSubIncludes, newSubName, newSubPrice, newSubPriceType, newVariantDuration, newVariantName, newVariantPrice, nombresMeses, normalizeCatalogSearch, normalizeEmail, novoApellidos, novoDiagnostico, novoEmail, novoEmailMode, novoTitularId, novoParentesco, novoNacimiento, novoNombre, novoPin, novoTelefono, openPassportEditor, opportunityPage, opportunitySearch, opportunityStatus, photoUploadBusy, renderAgendaLinks, renderDurationAgenda, returnToAppointmentId, saveErrorMsg, saveState, savedMsg, semanaActual, setAdminCatalogSearch, setAdminCatalogStatus, setAdminTab, setAgendaExpanded, setAgendaSidePanel, setAgendaSwatch, setAgendaViewMode, setAppointmentSearch, setBookingAttempts, setBusquedaCliente, setCatalog, setCatalogEditorId, setCatalogEditorTab, setClientDetailsDraft, setClientStatusFilter, setClientsPage, setConfigSubTab, setCrmPeriod, setCrmView, setCurrentScreen, setDashboardEnd, setDashboardStart, setDemandEnd, setDemandFilter, setDemandStart, setDetractorReplies, setEnableDoubleBooking, setEnableOutOfHours, setExpandedCategories, setExpandedClientId, setFechaSeleccionada, setFeedbackRatingFilter, setGoogleCalendarConnected, setGoogleCalendarSyncActive, setHolidaysList, setIsAddingCategory, setIsAddingClient, setIsAddingSub, setLogoUploadMessage, setLostDemandsList, setMailboxFilter, setMesNavegacion, setModalServices, setNewCatCode, setNewCatTitle, setNewHolidayEnd, setNewHolidayReason, setNewHolidayStart, setNewHolidayType, setNewSubAchieved, setNewSubAlertBadge, setNewSubAlertText, setNewSubDesc, setNewSubDur, setNewSubIncludes, setNewSubName, setNewSubPrice, setNewSubPriceType, setNewVariantDuration, setNewVariantName, setNewVariantPrice, setNovoApellidos, setNovoDiagnostico, setNovoEmail, setNovoEmailMode, setNovoTitularId, setNovoParentesco, setNovoNacimiento, setNovoNombre, setNovoPin, setNovoTelefono, setOpportunityPage, setOpportunitySearch, setOpportunityStatus, setPendingPanelFilter, setPreviewServiceId, setPreviewVariantId, setReturnToAppointmentId, setSelectedServicesToBook, setTempConfig, setViewApptModal, t, tempConfig, timeBlocks, trafficEvents, updateEmployee, updateSubserviceField, uploadEmployeePhoto, uploadStudioLogo, visibleClientRows, whatsappConfigStatus, workingRanges } = props;
+  const [portalBlockedIds,setPortalBlockedIds]=useState<string[]>([]);
+  const [portalBlockLoading,setPortalBlockLoading]=useState(false);
+  const [portalBlockBusy,setPortalBlockBusy]=useState<string|null>(null);
+  const [portalBlockError,setPortalBlockError]=useState('');
+  const portalBlockBusyRef=useRef(false);
+  useEffect(()=>{
+    if(adminTab!=='clients')return;
+    const token=studioApi.currentToken();
+    if(!token||studioApi.storedRole()!=='admin')return;
+    let cancelled=false;
+    setPortalBlockLoading(true);setPortalBlockError('');
+    void studioApi.listClientPortalBlocks(token).then(result=>{
+      if(!cancelled)setPortalBlockedIds(result.blockedIds);
+    }).catch(error=>{
+      if(!cancelled)setPortalBlockError(error instanceof Error?error.message:'No se pudieron consultar los accesos.');
+    }).finally(()=>{if(!cancelled)setPortalBlockLoading(false);});
+    return ()=>{cancelled=true;};
+  },[adminTab]);
+  const togglePortalBlock=async(client:ClientRecord)=>{
+    if(portalBlockBusyRef.current||portalBlockLoading||!client.serverId)return;
+    const blocked=portalBlockedIds.includes(client.serverId);
+    const fullName=[client.nombre,client.apellidos].join(' ').trim();
+    if(!window.confirm(blocked
+      ?`¿Permitir de nuevo que ${fullName} acceda al portal? Su ficha y sus citas se conservarán.`
+      :`¿Bloquear el acceso de ${fullName} al portal? No podrá iniciar sesión ni reservar desde su cuenta. Su ficha, citas y cobros se conservarán.`))return;
+    const token=studioApi.currentToken();
+    if(!token||studioApi.storedRole()!=='admin'){
+      setPortalBlockError('Entra de nuevo en la intranet para gestionar los accesos.');return;
+    }
+    portalBlockBusyRef.current=true;setPortalBlockBusy(client.serverId);setPortalBlockError('');
+    try{
+      await studioApi.setClientPortalBlock(token,client.serverId,!blocked);
+      const latest=await studioApi.listClientPortalBlocks(token);
+      setPortalBlockedIds(latest.blockedIds);
+    }catch(error){
+      setPortalBlockError(error instanceof Error?error.message:'No se pudo completar el cambio. Actualiza el listado antes de reintentar.');
+      try{const latest=await studioApi.listClientPortalBlocks(token);setPortalBlockedIds(latest.blockedIds);}catch{}
+    }finally{portalBlockBusyRef.current=false;setPortalBlockBusy(null);}
+  };
+
  const packBreakdowns = usePackBreakdowns(adminTab === 'catalog' ? catalogEditorId : null);
  useEffect(()=>{
    captureOfflineSnapshot({
@@ -1992,7 +2032,7 @@ export default function AdminPanelView(props: Props) {
               <style>{`
                 .lst-client-directory .lst-directory-head,
                 .lst-client-directory .lst-directory-row {
-                  display:grid;grid-template-columns:100px minmax(0,1fr) 110px 96px;
+                  display:grid;grid-template-columns:100px minmax(0,1fr) 110px 190px;
                   align-items:center;gap:12px;
                 }
                 .lst-client-directory .lst-directory-head {
@@ -2018,7 +2058,7 @@ export default function AdminPanelView(props: Props) {
                 @media(max-width:700px) {
                   .lst-client-directory .lst-directory-head,
                   .lst-client-directory .lst-directory-row {
-                    grid-template-columns:55px minmax(0,1fr) 65px 48px;gap:6px;
+                    grid-template-columns:55px minmax(0,1fr) 75px 106px;gap:6px;
                   }
                   .lst-client-directory .lst-directory-head {padding:8px;font-size:10px}
                   .lst-client-directory .lst-directory-row {padding:3px 8px}
@@ -2029,6 +2069,7 @@ export default function AdminPanelView(props: Props) {
                   .lst-client-directory .lst-directory-row .lst-client-action::after {
                     content:'›';font-size:23px;line-height:1;
                   }
+                  .lst-client-directory .lst-portal-block-button { font-size:10px !important; padding:4px !important; }
                   .lst-client-directory .lst-client-drawer {padding:16px}
                 }
               `}</style>
@@ -2108,6 +2149,7 @@ export default function AdminPanelView(props: Props) {
                 <span style={{ color: '#D6CBB8', fontSize: 12, marginLeft: 'auto' }}>{filteredClientRows.length} {filteredClientRows.length === 1 ? 'clienta' : 'clientas'}{busquedaCliente.trim() ? ' encontradas' : ''}</span>
               </div>
               {clientStatusError && <p role="alert" style={{ color: '#F5C7B8', margin: 0 }}>{clientStatusError}</p>}
+              {portalBlockError && <p role="alert" style={{color:'#F5C7B8',fontSize:13,margin:0}}>{portalBlockError}</p>}
               <div style={{border:'1px solid #4B4035',borderRadius:10,overflow:'hidden',background:'#322A25'}}>
                 <div className="lst-directory-head" aria-hidden="true"><span>Nº ficha</span><span>Clienta</span><span>Estado</span><span>Acceso</span></div>
                 {visibleClientRows.map(client => {
@@ -2118,7 +2160,17 @@ export default function AdminPanelView(props: Props) {
 
                   return <article key={client.serverId || client.idNum}
                     style={{background:'#322A25',borderTop:'1px solid #4B4035',overflow:'hidden'}}>
-                    {expanded ? <ClientRecordDetail client={client} fichaNumber={fichaNumber}
+                    {expanded ? <>
+                    <div style={{padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',borderBottom:'1px solid #655039'}}>
+                      <span style={{fontSize:12,color:client.serverId&&portalBlockedIds.includes(client.serverId)?'#F5C7B8':'#D6CBB8'}}>
+                        {portalBlockLoading?'Comprobando acceso…':portalBlockError?'Estado pendiente de verificar':client.serverId&&portalBlockedIds.includes(client.serverId)?'Acceso al portal bloqueado':'Acceso al portal permitido'}
+                      </span>
+                      <button type="button" disabled={!client.serverId||portalBlockLoading||!!portalBlockError||portalBlockBusy!==null} onClick={()=>void togglePortalBlock(client)}
+                        style={{minHeight:40,padding:'8px 12px',borderRadius:8,border:'1px solid #C49A58',color:'#FFF8EE',background:'#3E342C',fontSize:12,cursor:'pointer'}}>
+                        {client.serverId&&portalBlockedIds.includes(client.serverId)?'Desbloquear acceso':'Bloquear acceso'}
+                      </button>
+                    </div>
+                    <ClientRecordDetail client={client} fichaNumber={fichaNumber}
                       visits={clientVisitSummary(client,appointments,summaryNow)} statusBusy={clientStatusBusy}
                       onClose={() => {
                         setExpandedClientId(null);
@@ -2130,18 +2182,27 @@ export default function AdminPanelView(props: Props) {
                       onSaveNotes={notes => onSaveClientNotes(client.idNum,notes)}
                       onChangeStatus={() => { void handleClientStatus(client); }}
                       onDelete={() => { void handleDeleteClient(client); }}
-                    /> : <div className="lst-directory-row">
+                    />
+                    </> : <div className="lst-directory-row">
                       <span style={{fontSize:12,color:'#C9A96F',fontVariantNumeric:'tabular-nums'}}>#{fichaNumber}</span>
                       <strong title={fullName} style={{fontSize:13,minWidth:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',color:'#FFF8EE'}}>
                         {fullName}{client.emailHolderId && <span title="Email familiar vinculado" style={{color:'#C9A96F',marginLeft:7}}>♧</span>}
                       </strong>
                       <span className="lst-client-status" style={{fontSize:12,whiteSpace:'nowrap',color:client.archivedAt?'#F5C7B8':'#BDE1B8'}}>
-                        {client.archivedAt ? 'De baja' : '● Activa'}
+                        {client.archivedAt ? 'De baja' : client.serverId&&portalBlockedIds.includes(client.serverId) ? '🔒 Portal' : '● Activa'}
                       </span>
-                      <button type="button" id={openButtonId} className="studio-btn-ghost lst-client-action"
-                        aria-label={`Ver ficha de ${fullName}`} aria-expanded={false} aria-controls={`client-details-${client.idNum}`}
-                        onClick={() => setExpandedClientId(client.idNum)}
-                        style={{minHeight:36,padding:'6px 8px',fontSize:12,color:'#E4C687',whiteSpace:'nowrap'}}>Ver ficha</button>
+                      <div style={{display:'flex',alignItems:'center',gap:5,minWidth:0}}>
+                        <button type="button" id={openButtonId} className="studio-btn-ghost lst-client-action"
+                          aria-label={`Ver ficha de ${fullName}`} aria-expanded={false} aria-controls={`client-details-${client.idNum}`}
+                          onClick={() => setExpandedClientId(client.idNum)}
+                          style={{minHeight:36,padding:'6px 8px',fontSize:12,color:'#E4C687',whiteSpace:'nowrap',flex:'0 0 auto'}}>Ver ficha</button>
+                        <button type="button" className="lst-portal-block-button" disabled={!client.serverId||portalBlockLoading||!!portalBlockError||portalBlockBusy!==null}
+                          aria-label={`${client.serverId&&portalBlockedIds.includes(client.serverId)?'Desbloquear':'Bloquear'} acceso al portal de ${fullName}`}
+                          onClick={()=>void togglePortalBlock(client)}
+                          style={{minHeight:36,padding:'6px 7px',borderRadius:7,fontSize:11,whiteSpace:'nowrap',border:'1px solid #B99159',background:'#322A25',color:client.serverId&&portalBlockedIds.includes(client.serverId)?'#BDE1B8':'#F5C7B8',cursor:'pointer',flex:'1 1 auto'}}>
+                          {portalBlockBusy===client.serverId?'Guardando…':client.serverId&&portalBlockedIds.includes(client.serverId)?'Permitir':'Bloquear'}
+                        </button>
+                      </div>
                     </div>}
                   </article>;
                 })}
