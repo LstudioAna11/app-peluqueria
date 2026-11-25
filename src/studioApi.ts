@@ -179,6 +179,9 @@ export const deleteClosure = (token: string, id: string) =>
 export const createTimeBlock = (token: string, block: Record<string, unknown>) =>
   call<{ ok: true; id: string }>("timeblock", { token, body: block });
 
+export const updateTimeBlock = (token: string, block: {id:string;dateKey:string;time:string;durationMinutes:number;reason:string;expectedStart:string;expectedEnd:string}) =>
+  call<{ok:true;id:string}>("timeblock", {method:"PATCH",token,body:block});
+
 export const deleteTimeBlock = (token: string, id: string) =>
   call<{ ok: true }>("timeblock", { method: "DELETE", token, body: { id } });
 
