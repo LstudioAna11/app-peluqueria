@@ -5808,7 +5808,7 @@ function StudioApp() {
                 allowRequest={!hasPortalTimes} t={t} locale={portalLocale}
                 selection={selectedServicesToBook.map(({ sub, variant }) => ({
                   id: sub.id, variantId: variant?.id ?? null,
-                  name: serviceText(sub, 'name') + (variant ? ' · ' + variantText(variant, sub) : ''),
+                  name: portalServiceTitle(latestSub(sub), true) + (variant ? ' · ' + variantText(variant, sub) : ''),
                 }))} />}
           </section>
           <div className="lst-booking-review">
